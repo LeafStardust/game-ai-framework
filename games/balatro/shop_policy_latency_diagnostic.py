@@ -16,7 +16,6 @@ from games.balatro.reroll_joker_expectation_policy import (
 )
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.shop_booster_policy import BuildAwareShopBoosterPolicy
-from games.balatro.shop_policy import BalatroShopPolicy
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 
 
@@ -33,11 +32,10 @@ _IN_REROLL_FUTURE: ContextVar[bool] = ContextVar(
     default=False,
 )
 
-# These buckets are disjoint direct children of D14. ``deterministic`` is excluded
-# because BalatroShopPolicy.rank_actions can also execute inside reroll evaluation;
-# it remains visible as an overlapping informational metric. D11 substage buckets
-# are likewise nested within ``reroll`` and are never subtracted from D14 residual.
+# These buckets are disjoint direct children of D14. D11 substage buckets are
+# nested within ``reroll`` and are never subtracted from D14 residual.
 _TOP_LEVEL_STAGES = (
+    "deterministic",
     "joker_standalone",
     "joker",
     "consumable",
@@ -121,7 +119,7 @@ def install_shop_policy_latency_diagnostic() -> None:
         return
 
     original_decide = BuildAwareShopArbiter.decide
-    original_rank_actions = BalatroShopPolicy.rank_actions
+    original_rank_deterministic = BuildAwareShopArbiter._rank_deterministic_actions
     original_standalone_jokers = BuildAwareShopArbiter._standalone_joker_decisions
     original_best_joker = BuildAwareShopArbiter._best_joker_decision
     original_best_consumable = BuildAwareShopArbiter._best_consumable_decision
@@ -150,10 +148,10 @@ def install_shop_policy_latency_diagnostic() -> None:
             _ACTIVE_PROFILE.reset(token)
             _LAST_PROFILE.set(profile)
 
-    def rank_actions(self, state, actions):
+    def rank_deterministic(self, state, actions):
         return _record_stage(
             "deterministic",
-            original_rank_actions,
+            original_rank_deterministic,
             self,
             state,
             actions,
@@ -284,7 +282,7 @@ def install_shop_policy_latency_diagnostic() -> None:
         )
 
     BuildAwareShopArbiter.decide = decide
-    BalatroShopPolicy.rank_actions = rank_actions
+    BuildAwareShopArbiter._rank_deterministic_actions = rank_deterministic
     BuildAwareShopArbiter._standalone_joker_decisions = staticmethod(
         standalone_jokers
     )

@@ -81,7 +81,7 @@ def test_shop_d14_latency_note_separates_child_components():
         "reroll_future_tarot=0.200s/1calls "
         "reroll_future_planet=0.100s/1calls "
         "reroll_future_residual=0.400s "
-        "reroll_joker=3.000s/2calls residual=0.100s"
+        "reroll_joker=3.000s/2calls residual=0.000s"
     )
     assert consume_shop_policy_latency_note() is None
 
@@ -113,4 +113,34 @@ def test_standalone_joker_evaluation_is_timed_without_changing_results(monkeypat
     assert profile == {
         "joker_standalone_seconds": 2.5,
         "joker_standalone_calls": 1,
+    }
+
+
+def test_active_deterministic_policy_override_is_timed_as_direct_d14_child(
+    monkeypatch,
+):
+    class Policy:
+        @staticmethod
+        def rank_actions(state, actions):
+            return [state, *actions]
+
+    arbiter = object.__new__(BuildAwareShopArbiter)
+    arbiter.shop_policy = Policy()
+    install_shop_policy_latency_diagnostic()
+    clock = iter((20.0, 23.25))
+    monkeypatch.setattr(
+        "games.balatro.shop_policy_latency_diagnostic.perf_counter",
+        lambda: next(clock),
+    )
+    profile = {}
+    token = _ACTIVE_PROFILE.set(profile)
+    try:
+        result = arbiter._rank_deterministic_actions("state", ["voucher"])
+    finally:
+        _ACTIVE_PROFILE.reset(token)
+
+    assert result == ["state", "voucher"]
+    assert profile == {
+        "deterministic_seconds": 3.25,
+        "deterministic_calls": 1,
     }

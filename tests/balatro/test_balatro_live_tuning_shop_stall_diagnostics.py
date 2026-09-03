@@ -89,6 +89,10 @@ class _Arbiter:
         del args, kwargs
         return None
 
+    def _rank_deterministic_actions(self, *args, **kwargs):
+        del args, kwargs
+        return []
+
     def _best_joker_decision(self, *args, **kwargs):
         del args, kwargs
         return None
@@ -164,6 +168,7 @@ def test_supervisor_factory_installs_durable_shop_stage_wrappers(tmp_path):
     assert runner.shop_generator.generate_actions(object()) == []
     assert runner.reroll_terms_reader() == "terms"
     assert runner.shop_arbiter._standalone_joker_decisions(object()) == ()
+    assert runner.shop_arbiter._rank_deterministic_actions(object()) == []
     assert runner.shop_arbiter._best_joker_decision(object()) is None
     assert runner.shop_arbiter._best_consumable_decision(object()) is None
     assert runner.shop_arbiter._best_visible_bond_pair(object()) is None

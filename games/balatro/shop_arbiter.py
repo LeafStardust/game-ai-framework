@@ -202,7 +202,7 @@ class BuildAwareShopArbiter:
             if action.name in self.DETERMINISTIC_ACTIONS
             and action.name != END_SHOP
         ]
-        deterministic_ranked = self.shop_policy.rank_actions(
+        deterministic_ranked = self._rank_deterministic_actions(
             state,
             deterministic_actions,
         )
@@ -767,6 +767,14 @@ class BuildAwareShopArbiter:
         if option.mode != BUY or not option.eligible:
             return None
         return option
+
+    def _rank_deterministic_actions(
+        self,
+        state: BalatroState,
+        actions: list[BalatroAction],
+    ) -> list[ShopActionScore]:
+        """Rank D14's visible deterministic actions through the active policy."""
+        return self.shop_policy.rank_actions(state, actions)
 
     @staticmethod
     def _standalone_joker_decisions(

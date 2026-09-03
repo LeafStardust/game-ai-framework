@@ -227,7 +227,7 @@ def instrument_live_tuning_shop_runner(runner, *, trace_path: str | Path):
 
     arbiter = runner.shop_arbiter
     _wrap_method(trace, arbiter, "_pending_bond_pair_completion", "D14_PENDING_BOND_PAIR")
-    _wrap_method(trace, arbiter.shop_policy, "rank_actions", "D14_DETERMINISTIC_RANK")
+    _wrap_method(trace, arbiter, "_rank_deterministic_actions", "D14_DETERMINISTIC_RANK")
     _wrap_method(
         trace,
         arbiter,
