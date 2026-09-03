@@ -122,6 +122,18 @@ def _public_card_sort_key(card: BalatroCard) -> tuple[str, ...]:
     )
 
 
+def _hand_sort_key(
+    card: BalatroCard,
+    *,
+    pristine: bool,
+    creation_index: dict[int, int],
+) -> tuple[float, int]:
+    return (
+        _vanilla_hand_primary_nominal(card, pristine=pristine),
+        -creation_index[id(card)],
+    )
+
+
 def _require_empty_round_start_zones(run: HeadlessRunState) -> None:
     state = run.public
     if state.phase != "DRAW_TO_HAND":
@@ -192,15 +204,69 @@ def deal_supported_round_start(run: HeadlessRunState) -> HeadlessRunState:
     next_run.draw_pile = draw_pile
     next_state.hand = sorted(
         dealt,
-        key=lambda card: (
-            _vanilla_hand_primary_nominal(card, pristine=pristine),
-            -creation_index[id(card)],
+        key=lambda card: _hand_sort_key(
+            card,
+            pristine=pristine,
+            creation_index=creation_index,
         ),
         reverse=True,
     )
     # Never expose hidden physical draw order through canonical public state.
     next_state.deck = sorted(draw_pile, key=_public_card_sort_key)
     next_state.phase = "SELECTING_HAND"
+    return next_run
+
+
+def draw_one_supported_card_to_hand(run: HeadlessRunState) -> HeadlessRunState:
+    """Draw one exact card from the owned physical draw pile into the hand.
+
+    This owns the deterministic draw used by effects such as disabling The
+    Manacle after its initial deal.  It deliberately requires an already-owned
+    physical draw pile; a pre-shuffle ``G.deck`` state is not reconstructed from
+    the public canonical deck ordering.
+    """
+    state = run.public
+    if state.phase != "SELECTING_HAND":
+        raise HeadlessTransitionError(
+            "single-card headless draw requires SELECTING_HAND phase"
+        )
+    if len(state.hand) >= state.hand_size:
+        raise HeadlessTransitionError(
+            "single-card headless draw requires free hand capacity"
+        )
+    if len(run.draw_pile) != len(state.deck):
+        raise HeadlessTransitionError(
+            "private draw pile and public remaining deck size disagree"
+        )
+    if {id(card) for card in run.draw_pile} != {id(card) for card in state.deck}:
+        raise HeadlessTransitionError(
+            "private draw pile and public remaining deck cards disagree"
+        )
+    if not run.draw_pile:
+        return run.copy()
+
+    order = run.require_playing_card_order()
+    pristine = _is_provably_pristine_base_order(order)
+    if not pristine:
+        for card in order:
+            _vanilla_hand_primary_nominal(card, pristine=False)
+
+    next_run = run.copy()
+    next_state = next_run.public
+    next_order = next_run.require_playing_card_order()
+    creation_index = {id(card): index for index, card in enumerate(next_order)}
+
+    card = next_run.draw_pile.pop()
+    next_state.hand.append(card)
+    next_state.hand.sort(
+        key=lambda value: _hand_sort_key(
+            value,
+            pristine=pristine,
+            creation_index=creation_index,
+        ),
+        reverse=True,
+    )
+    next_state.deck = sorted(next_run.draw_pile, key=_public_card_sort_key)
     return next_run
 
 
