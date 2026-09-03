@@ -7,7 +7,7 @@ This is the authoritative development roadmap for the Balatro Red Deck / White S
 - Repository: `LeafStardust/game-ai-framework`
 - Branch: `feat/v1.0-red-white-competence`
 - Primary objective: **maximize P(clear Ante 8 | Red Deck, White Stake, normal mode)**.
-- Work Chat runs deterministic/static tests itself where available; GitHub Actions is currently authoritative.
+- Work Chat runs deterministic/static tests itself where available; GitHub Actions is authoritative when no local clone exists.
 - User runs only validation that genuinely requires Windows/Balatro.
 - Preserve exact mechanics, legality, boss rules, economy, public-information boundaries, and reproducible RNG.
 - Prefer canonical ownership over rescue wrappers or approximations.
@@ -26,7 +26,7 @@ Retain deterministic mechanics/state/legality/tactical execution, Bond features,
 
 ## L — live stabilization — COMPLETE
 
-Historical validation batches are preserved in project docs. L3 froze the environment contract:
+L3 froze the environment contract:
 
 ```text
 BALATRO_ENV_CONTRACT_VERSION = "l3-v1"
@@ -106,7 +106,7 @@ Key gates:
 33790592775  1424 passed, 1594 deselected
 ```
 
-Private deterministic state also validates exact card zones, seed type, tags, pack container shape, and round-reset baselines.
+Private deterministic state validates exact card zones, seed type, tags, pack container shape, round-reset baselines, playing-card creation order, RNG state, one-shot round bonuses, and reversible Boss resource fields.
 
 ---
 
@@ -116,17 +116,23 @@ Private deterministic state also validates exact card zones, seed type, tags, pa
 
 Balatro keyed pseudohash/pseudoseed over LuaJIT combined Tausworthe `math.random`; never Python `random`.
 
-Commits `2e61cd8`, `290ff11`.
-CI `33791671797`: **1432 passed, 1594 deselected**.
+```text
+2e61cd8  exact Balatro/LuaJIT RNG primitives
+290ff11  pinned reference vectors
+CI 33791671797: 1432 passed, 1594 deselected
+```
 
 ### R2.2 — pseudoshuffle — GREEN
 
 One keyed pseudoseed advance, then one LuaJIT RNG stream drives Fisher–Yates.
 
-Commits `246f442`, `d9662c6`.
-CI `33791916289`: **1435 passed, 1594 deselected**.
+```text
+246f442  exact pseudoshuffle
+ d9662c6  pinned shuffle vectors
+CI 33791916289: 1435 passed, 1594 deselected
+```
 
-### R2.3 — playing-card creation order + headless RNG ownership — GREEN
+### R2.3 — playing-card creation order + private RNG ownership — GREEN
 
 Exact private order is reconstructable only from:
 
@@ -136,25 +142,31 @@ Exact private order is reconstructable only from:
 Unprovable order fails closed. No fake public `sort_id` is introduced.
 
 Relevant commits: `e7b0bb0`, `2a26e79`, `34d88e9`, `7c070b2`, `2dc47eb`, `0a7f845`, `eed926e`.
-CI `33795507133`: **1461 passed, 1594 deselected**.
+
+```text
+CI 33795507133: 1461 passed, 1594 deselected
+```
 
 ### R2.4 — exact complete-deck shuffle/deal — GREEN FOR SUPPORTED COMPLETE DECKS
 
 Pristine implementation: `61ec993`, `2d37016`.
-Generalized implementation:
+Generalized implementation retains exact original-suit history when required and preserves hidden physical draw order privately.
 
-```text
-fa6c40e  retain original suit nominal for vanilla Card:get_nominal
-1f35a5c  generalize exact complete owned-deck round-start deal
-```
+`deal_supported_round_start()` requires authoritative complete deck composition, exact object identity, exact retained creation order, and exact original-suit nominal where history cannot otherwise be proved.
 
-`deal_supported_round_start()` requires authoritative complete deck composition, exact object identity, exact retained creation order, and original-suit nominal where needed. Hidden physical draw order remains private; public remaining deck is canonicalized.
-
-Pinned `TESTSEED` first hand remains:
+Pinned `TESTSEED` first hand:
 
 ```text
 A Hearts, K Hearts, Q Diamonds, 9 Spades,
 9 Clubs, 5 Clubs, 5 Diamonds, 4 Clubs
+```
+
+A narrow additional proof now exists for a structurally untouched base 52-card deck carrying only transient Boss `debuffed` flags. In that case original suit is still exactly inferable from current suit; enhancements/conversions/live-created cards remain on the strict historical-nominal path.
+
+```text
+1ce2662  allow exact transient-debuff base deals
+8bb5ae1  pin transient-debuff deal invariants
+CI 33803629167: 1563 passed, 1594 deselected
 ```
 
 ### R2.5 — round bonuses/resources — GREEN
@@ -175,8 +187,9 @@ discards_remaining = max(0, round_reset_discards + round_bonus_discards)
 
 Bonuses are consumed only after blind setup / `setting_blind` Joker processing.
 
-Commits `906719d`, `d727221`, `58ac3cc`, `bd07ffe`.
-CI `33796637904`: **1479 passed, 1594 deselected**.
+```text
+CI 33796637904: 1479 passed, 1594 deselected
+```
 
 ### R2.6 — `setting_blind` Joker lifecycle / Burglar — GREEN FOR AUDITED IDENTITIES
 
@@ -192,19 +205,24 @@ Source order:
 ```text
 round resource baseline
 → Boss set_blind mutation
+→ playing-card debuff pass when applicable
 → audited Joker setting_blind pass
 → consume one-shot round bonuses
 ```
 
-All currently R1-admitted identities are explicitly classified at this trigger; unknown lifecycle identities fail closed.
+Unknown lifecycle identities fail closed.
 
-CI `33797436606`: **1483 passed, 1594 deselected**.
+```text
+CI 33797436606: 1483 passed, 1594 deselected
+```
 
 ### R2.7 — first-round counter parity — GREEN
 
-Vanilla `G.GAME.round` begins at `0`; selecting the first blind queues `ease_round(1)` before `new_round()`. First start is therefore `0 → 1`.
+Vanilla `G.GAME.round` begins at `0`; selecting the first blind queues `ease_round(1)` before `new_round()`. First start is `0 → 1`.
 
-CI `33797071526`: **1482 passed, 1594 deselected**.
+```text
+CI 33797071526: 1482 passed, 1594 deselected
+```
 
 ### R2.8 — Small/Big Blind start — GREEN
 
@@ -222,59 +240,39 @@ BLIND_SELECT
 
 `start_supported_nonboss_blind()` composes this with exact generalized shuffle/deal.
 
-Constraints remain: no active tags, no vouchers, exact reset allowances, empty transition zones, unclassified Joker identities rejected.
-
 Key gates:
 
 ```text
 33797587142  1492 passed, 1594 deselected
 33798795353  1497 passed, 1594 deselected
+33796012173  1467 passed, 1594 deselected  # pristine first-blind regression gate
 ```
 
 ### R2.9 — Boss blind-start lifecycle — ACTIVE
 
-Bosses must be admitted by exact source-audited start semantics, not display text.
+Bosses are admitted only by exact source-audited lifecycle semantics.
 
 #### R2.9a — requirement-only Bosses — GREEN
-
-Audited set:
 
 ```text
 The Wall
 Violet Vessel
 ```
 
-Neither has an explicit `Blind:set_blind` start mutation nor a card-debuff rule; the enlarged requirement is already represented by authoritative `Blind.requirement`.
-
-Wall commits: `4f5b476`, `e3f1bd5`, validation-contract fix `7c27802`.
-Wall CI `33799302675`: **1502 passed, 1594 deselected**.
-
-Requirement-only generalization:
+Their start-time mechanic is fully represented by the authoritative blind requirement; no additional `Blind:set_blind` state mutation is needed on the audited boundary.
 
 ```text
-8980579  admit explicit {The Wall, Violet Vessel} start allowlist
-a1214f2  pin requirement-only Boss tests
+CI 33799746434: 1509 passed, 1594 deselected
 ```
 
-Violet Vessel CI `33799746434`: **1509 passed, 1594 deselected**.
-
-Every other Boss remains rejected by this path.
-
 #### R2.9b — mutable hand-rule Bosses — GREEN
-
-Audited set:
 
 ```text
 The Eye
 The Mouth
 ```
 
-Vanilla `Blind:set_blind` initializes these after the resource baseline and before Joker `setting_blind`:
-
-- Eye: empty per-hand-used table
-- Mouth: no hand locked yet
-
-Canonical state represents this exactly as:
+Canonical start state:
 
 ```text
 boss_blind_state_observed = True
@@ -282,53 +280,113 @@ boss_blind_hands = set()
 boss_blind_only_hand = None
 ```
 
-Implementation:
-
 ```text
-0594735  own Eye/Mouth start state and source ordering
-42bb495  pin stale-state replacement, Burglar/bonus ordering,
-         exact deal composition, identity rejection, tag/voucher rejection
+CI 33800243393: 1518 passed, 1594 deselected
 ```
 
-CI `33800243393`: **1518 passed, 1594 deselected**.
+#### R2.9c — Water / Needle reversible resources — GREEN
 
-#### R2.9c — resource-mutating Bosses — NEXT
-
-Next candidates:
-
-```text
-The Water
-The Needle
-```
-
-Vanilla start behavior:
+Vanilla start behavior is represented with private reversal state:
 
 ```text
 Water:
-  discards_sub = current_round.discards_left
-  ease_discard(-discards_sub)
+  boss_discards_sub = current post-bonus discards
+  discards_remaining -= boss_discards_sub
 
 Needle:
-  hands_sub = round_resets.hands - 1
-  ease_hands_played(-hands_sub)
+  boss_hands_sub = round_reset_hands - 1
+  hands_remaining -= boss_hands_sub
 ```
 
-Important: vanilla stores `discards_sub` / `hands_sub` because `Blind:disable()` restores them. Therefore do **not** implement these Bosses by only changing public resource counts. First add validated simulator-private reversible Boss adjustment state, then implement exact start ordering and later disable/cleanup semantics.
+`Blind:disable()` restoration is owned for both. Source ordering relative to Burglar and round bonuses is pinned.
 
-Manacle also requires reversible hand-size ownership. Amber Acorn requires exact Joker flipping/shuffling RNG. Card/Joker-debuff Bosses require exact debuff application. These remain blocked.
+```text
+CI 33801195935: 1542 passed, 1594 deselected
+```
+
+#### R2.9d — The Manacle reversible hand-size lifecycle — GREEN
+
+Private state:
+
+```text
+boss_hand_size_sub = 1
+```
+
+Start:
+
+```text
+hand_size -= 1
+```
+
+Exact end boundaries are intentionally distinct:
+
+```text
+Blind:disable():
+  hand_size += 1
+  draw one replacement card from the already-shuffled physical draw pile
+  do not advance RNG again
+
+Blind:defeat():
+  hand_size += 1
+  no replacement draw
+```
+
+Pre-deal Manacle disable remains fail-closed because Chicot-style disable during `setting_blind` would require an exact pre-deal draw boundary that is not yet owned.
+
+Key commits include `88af1e4`, `c8f699b`, `899fc96`, `142c530`, `6bbbb22`, and the Manacle lifecycle regressions through `4b955e4` plus later corrections. The final static-suit head gate below includes these Manacle corrections.
+
+#### R2.9e — static suit card-debuff Bosses — GREEN ON EXACT BASE-DECK BOUNDARY
+
+Audited set:
+
+```text
+The Goad    → Spades
+The Window  → Diamonds
+The Head    → Hearts
+The Club    → Clubs
+```
+
+Vanilla order reproduced:
+
+```text
+round baseline
+→ Boss-specific start mutation (none for this family)
+→ debuff pass over every permanent playing card
+→ Joker setting_blind
+→ consume bonuses
+→ shuffle/deal
+```
+
+First implementation deliberately supports only the untouched one-of-each 52-card composition with no Wild/suit-changing enhancement, conversion, edition, seal, permanent bonus, live-created card, forced selection, or pre-existing unknown debuff. This makes `card:is_suit(..., true)` exactly equivalent to base suit equality without approximating modified-card suit semantics.
+
+Disable/defeat cleanup clears the Boss-owned transient debuffs across the retained permanent-card object set without changing card zones or RNG.
+
+```text
+8af8dae  own static suit Boss card debuffs
+0baef57  compose static suit Boss start lifecycle
+3262dcc  pin all four Bosses, deal preservation, cleanup, isolation, fail-closed cases
+CI 33803874842: 1583 passed, 1594 deselected
+```
 
 ### Current R2 fail-closed boundary
 
 `SELECT_BLIND` remains **PLANNED / NOT TRAINING-EXPOSED**.
 
-Burglar purchase remains **FAIL-CLOSED** even though its Small/Big, requirement-only Boss, and Eye/Mouth start effects are now owned. A purchased Burglar persists into all Bosses, so full supported Boss-start coverage is required before admitting it as run-safe.
+Burglar purchase remains **FAIL-CLOSED** even though its effect is owned for the currently supported starts. A purchased Burglar persists into arbitrary future Bosses, so broader supported Boss-start coverage is still required before admitting it as run-safe.
 
-Still high-priority/unowned:
+High-priority unowned Boss/start groups:
 
-- Water/Needle reversible resource state and start lifecycle
-- Manacle reversible hand-size lifecycle
-- other Boss card/Joker debuffs and mutable states
-- Amber Acorn RNG/Joker order
+- **The Plant**: face-card debuff; vanilla `card:is_face(true)` includes Pareidolia, so exact implementation must consult Joker inventory and cannot be reduced to J/Q/K
+- **The Pillar**: requires persistent per-card `played_this_ante` history
+- **Verdant Leaf**: requires all-card debuff plus Joker-sale lifecycle
+- **Amber Acorn**: Joker flip + seeded Joker-order shuffle
+- face-down families (Wheel/House/Mark/Fish) require exact facing/round-event ownership
+- Cerulean Bell forced selection lifecycle
+- Hook random discards and other action-time Boss RNG
+- Chicot Boss-disable composition, including pre-deal Manacle disable
+
+Other unowned stochastic/lifecycle surfaces:
+
 - prior-round zone cleanup for all supported trajectories
 - active tag effects
 - voucher blind-start effects
@@ -409,14 +467,17 @@ R2 exact RNG / round start                       ACTIVE
 R2.1 LuaJIT RNG                                  GREEN — CI 33791671797
 R2.2 pseudoshuffle                               GREEN — CI 33791916289
 R2.3 creation order / private RNG                GREEN — CI 33795507133
-R2.4 complete-deck exact deal                    GREEN
+R2.4 complete-deck exact deal                    GREEN FOR SUPPORTED DECKS
 R2.5 round resources / bonuses                   GREEN — CI 33796637904
 R2.6 Burglar setting_blind                       GREEN — CI 33797436606
 R2.7 first round 0→1                             GREEN — CI 33797071526
 R2.8 Small/Big start + deal                      GREEN — CI 33798795353
 R2.9a Wall + Violet Vessel                       GREEN — CI 33799746434
 R2.9b Eye + Mouth                                GREEN — CI 33800243393
-R2.9c Water + Needle reversible resource state   NEXT
+R2.9c Water + Needle                             GREEN — CI 33801195935
+R2.9d Manacle start/disable/defeat               GREEN UNDER FINAL HEAD GATE
+R2.9e Goad/Window/Head/Club                      GREEN — CI 33803874842
+Transient-debuff base-deck deal                  GREEN — CI 33803629167
 SELECT_BLIND                                      NOT EXPOSED
 Burglar acquisition                              FAIL-CLOSED
 Generic/unknown acquisitions                     FAIL-CLOSED
@@ -432,23 +493,23 @@ Observation/PPO                                  NOT STARTED
 Current branch code head immediately before this roadmap synchronization:
 
 ```text
-42bb495983cacdb23fb18f17024ef2b2415fcc0b
+3262dcc9daaa1fe2b9e9193594e8ffaf016d2e0f
 ```
 
 ---
 
 # Exact next development action
 
-**Continue R2 Boss-start lifecycle. Do not start PPO/observation training.**
+**Continue R2 Boss lifecycle. Do not start PPO/observation training.**
 
 Immediate order:
 
-1. add validated private reversible Boss resource fields for Water/Needle (`discards_sub`, `hands_sub` equivalents);
-2. prove copy/validation/isolation for those hidden fields;
-3. implement Water and Needle source ordering after baseline and before `setting_blind` Jokers;
-4. pin Burglar interactions and exact deal composition;
-5. add exact disable/restore semantics before treating these Bosses as lifecycle-complete;
-6. then handle Manacle and remaining Boss debuff/RNG groups separately;
+1. implement **The Plant** only after reproducing vanilla `card:is_face(true)` exactly, including Pareidolia interaction, on a clearly bounded permanent-card surface;
+2. pin Plant start/deal/cleanup/input-isolation and Pareidolia regressions;
+3. keep Pillar blocked until persistent per-card `played_this_ante` state is owned;
+4. keep Verdant Leaf blocked until Joker sale/inverse lifecycle is owned;
+5. continue remaining Boss families in mechanically coherent groups rather than broad allowlists;
+6. preserve the distinction among Boss `set_blind`, `disable`, `defeat`, press-play, hand-rule, and draw-time effects;
 7. keep tags, vouchers, editions, packs, unknown acquisitions, sell effects, and `SELECT_BLIND` fail-closed until exact;
 8. add R5 live/simulator parity before declaring the environment authoritative for training.
 
