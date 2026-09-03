@@ -16,11 +16,14 @@ from games.balatro.jokers.blackboard import BlackboardJoker
 from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
+from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
+from games.balatro.jokers.scholar import ScholarJoker
+from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 from games.balatro.state import BalatroState
@@ -143,9 +146,12 @@ def test_balatro_env_r1_buy_consumable_updates_exact_zone():
         BlackboardJoker,
         BlueJoker,
         EvenStevenJoker,
+        FibonacciJoker,
         MysticSummitJoker,
         OddToddJoker,
         RaisedFistJoker,
+        ScholarJoker,
+        SmileyFaceJoker,
         JugglerJoker,
         StuntmanJoker,
     ),
