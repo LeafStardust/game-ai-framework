@@ -26,8 +26,6 @@ def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -
         raise HeadlessTransitionError(f"{label} requires BLIND_SELECT phase")
     if isinstance(state.round, bool) or not isinstance(state.round, int) or state.round < 0:
         raise HeadlessTransitionError("round must be an exact nonnegative integer")
-    if state.blind is None:
-        raise HeadlessTransitionError(f"{label} requires an active blind")
     requirement = getattr(state.blind, "requirement", None)
     if isinstance(requirement, bool) or not isinstance(requirement, int) or requirement < 0:
         raise HeadlessTransitionError("blind requirement must be an exact nonnegative integer")
@@ -40,10 +38,13 @@ def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -
 
 
 def _require_nonboss_blind_start_boundary(run: HeadlessRunState) -> None:
-    _require_common_blind_start_boundary(run, label="nonboss blind start")
     state = run.public
-    if getattr(state.blind, "type", None) not in {BlindType.SMALL, BlindType.BIG}:
+    if state.blind is None or getattr(state.blind, "type", None) not in {
+        BlindType.SMALL,
+        BlindType.BIG,
+    }:
         raise HeadlessTransitionError("nonboss blind start requires Small or Big Blind")
+    _require_common_blind_start_boundary(run, label="nonboss blind start")
     if state.boss_name is not None:
         raise HeadlessTransitionError("nonboss blind start cannot have boss state")
 
@@ -92,10 +93,10 @@ def prepare_supported_wall_blind_start(run: HeadlessRunState) -> HeadlessRunStat
     requirement. This slice therefore adds the Boss identity gate around the same
     source-ordered round reset → setting_blind → bonus-consumption lifecycle.
     """
-    _require_common_blind_start_boundary(run, label="The Wall blind start")
     state = run.public
-    if getattr(state.blind, "type", None) is not BlindType.BOSS:
+    if state.blind is None or getattr(state.blind, "type", None) is not BlindType.BOSS:
         raise HeadlessTransitionError("The Wall blind start requires Boss Blind")
+    _require_common_blind_start_boundary(run, label="The Wall blind start")
     if state.boss_name != "The Wall":
         raise HeadlessTransitionError("The Wall blind start requires authoritative boss name")
 
