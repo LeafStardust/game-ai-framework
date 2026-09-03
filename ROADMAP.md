@@ -274,6 +274,29 @@ This item is now closed unless later live telemetry shows another post-D2 author
 
 The D2 gate is green. Resume diagnosis from the same three-attempt baseline before any numerical tuning.
 
+##### L2.3.1 — Attempt 001 Throwback blind-skip realization false positive — FIXED AND VALIDATED
+
+Classification: **mechanics/model bug**.
+
+Observed defect during Attempt 001 Joker inspection:
+
+- the canonical `blind_skip` realizer marked the Bond ACTIVE solely because Throwback was owned;
+- with `blinds_skipped == 0`, Throwback has not yet accumulated any skip-derived XMult, so ACTIVE overstated realized engine value before the first actual skip.
+
+Repair:
+
+- Throwback-backed `blind_skip` remains PARTIAL at zero skipped blinds;
+- it becomes ACTIVE only after at least one blind has actually been skipped;
+- the existing stronger-realization threshold at five skipped blinds is unchanged.
+
+Committed repair/test state:
+
+- production fix: `cde297bda93ac002f4c6ea78c0900a9d50530afb` — `fix(balatro): require realized Throwback skip value`;
+- focused regression: `5ed53b870060d25c1feddaebcc078bbeaa29f41a` — `test(balatro): cover Throwback realization threshold`;
+- focused Throwback validation: **GREEN, user-confirmed**.
+
+This item is closed unless later live telemetry disproves the repaired semantics.
+
 Active inspection targets:
 
 - remaining attempt 001 material Joker/pack/voucher/reroll decisions;
@@ -281,7 +304,7 @@ Active inspection targets:
 - terminal boss decision quality in attempts 001/002/003 where telemetry indicates a suspicious actionable decision rather than simple insufficient engine strength;
 - D14 standalone-Joker timing residual attribution.
 
-These are **inspection/classification pending**, not fixed, not tuned, and not validated.
+These remaining targets are **inspection/classification pending**, not fixed, not tuned, and not validated.
 
 ### Current validation checkpoint — EXACT STATE
 
@@ -290,6 +313,7 @@ Deterministic Phase K suite                     GREEN
 Fresh 3-attempt live baseline collection       COMPLETE
 Baron motif semantics patch                    GREEN
 Flash Card / canonical D2 authority patch      GREEN
+Throwback blind-skip realization patch         GREEN
 Further Phase L2 baseline classification        ACTIVE
 Numerical tuning / Optuna                       NOT STARTED
 Phase M broader competence                      NOT STARTED
