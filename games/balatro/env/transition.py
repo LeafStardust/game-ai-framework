@@ -72,8 +72,22 @@ class HeadlessRunState:
             raise HeadlessTransitionError("R1 headless state currently supports Red Deck only")
         if str(self.public.stake_name).upper() != "WHITE":
             raise HeadlessTransitionError("R1 headless state currently supports White Stake only")
-        if self.reroll_cost < 0 or self.skips < 0:
-            raise HeadlessTransitionError("environment counters cannot be negative")
+        self._require_int("money", self.public.money)
+        self._require_nonnegative_int("joker_slots", self.public.joker_slots)
+        self._require_nonnegative_int("consumable_slots", self.public.consumable_slots)
+        self._require_nonnegative_int("reroll_cost", self.reroll_cost)
+        self._require_nonnegative_int("skips", self.skips)
+
+    @staticmethod
+    def _require_int(name: str, value: Any) -> None:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise HeadlessTransitionError(f"{name} must be an exact integer")
+
+    @classmethod
+    def _require_nonnegative_int(cls, name: str, value: Any) -> None:
+        cls._require_int(name, value)
+        if value < 0:
+            raise HeadlessTransitionError(f"{name} cannot be negative")
 
     def copy(self) -> "HeadlessRunState":
         """Return an isolated transition snapshot.
