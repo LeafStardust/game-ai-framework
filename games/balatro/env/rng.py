@@ -2,12 +2,8 @@
 
 Balatro layers its own keyed ``pseudohash``/``pseudoseed`` cache over the
 ``math.randomseed``/``math.random`` implementation supplied by its LÖVE/LuaJIT
-runtime.  This module reproduces that boundary directly instead of substituting
+runtime. This module reproduces that boundary directly instead of substituting
 Python's unrelated ``random`` module.
-
-The public owner is :class:`BalatroRNG`: every keyed draw advances only that
-key's cached pseudoseed value, then reseeds a fresh LuaJIT combined-Tausworthe
-state for the one random decision, matching Balatro's helper semantics.
 """
 
 from __future__ import annotations
@@ -15,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import math
 import struct
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping, MutableSequence, TypeVar
 
 
 BALATRO_RNG_VERSION = "r2-rng-v1"
@@ -25,6 +21,7 @@ _RANDOM_MANTISSA_MASK = (1 << 52) - 1
 _ONE_BITS = 0x3FF0000000000000
 _PI = math.pi
 _E = math.e
+_T = TypeVar("_T")
 
 
 def _double_bits(value: float) -> int:
@@ -36,7 +33,6 @@ def _bits_double(value: int) -> float:
 
 
 def _lua_mod_one(value: float) -> float:
-    """Lua-compatible ``value % 1`` for the finite and non-finite seed path."""
     if not math.isfinite(value):
         return math.nan
     return value % 1.0
@@ -51,10 +47,7 @@ def pseudohash(text: str) -> float:
     encoded = text.encode("utf-8")
     for index in range(len(encoded), 0, -1):
         byte = encoded[index - 1]
-        if num == 0.0:
-            quotient = math.copysign(math.inf, num)
-        else:
-            quotient = 1.1239285023 / num
+        quotient = math.copysign(math.inf, num) if num == 0.0 else 1.1239285023 / num
         num = _lua_mod_one(quotient * byte * _PI + _PI * index)
     return num
 
@@ -67,14 +60,8 @@ def _round13(value: float) -> float:
     scale = 1e13
     tentative = math.floor(value * scale) / scale
     toward_one = math.nextafter(value, 1.0)
-    # This decomposition reproduces the decimal tie behavior used by the
-    # reference Balatro seed implementations without depending on locale.
     truncated = ((value * 8192.0) % 1.0) * 1_220_703_125.0
-    if (
-        tentative != value
-        and tentative != toward_one
-        and (truncated % 1.0) >= 0.5
-    ):
+    if tentative != value and tentative != toward_one and (truncated % 1.0) >= 0.5:
         return (math.floor(value * scale) + 1.0) / scale
     return tentative
 
@@ -120,12 +107,10 @@ class LuaJITRandom:
         return result & _U64_MASK
 
     def random(self) -> float:
-        """Return the next LuaJIT random double in ``[0, 1)``."""
         bits = (self._next_u64() & _RANDOM_MANTISSA_MASK) | _ONE_BITS
         return _bits_double(bits) - 1.0
 
     def randint(self, minimum: int, maximum: int) -> int:
-        """Return LuaJIT ``math.random(minimum, maximum)`` (inclusive)."""
         if isinstance(minimum, bool) or not isinstance(minimum, int):
             raise TypeError("minimum must be an exact integer")
         if isinstance(maximum, bool) or not isinstance(maximum, int):
@@ -157,7 +142,6 @@ class BalatroRNG:
         self._hashed_seed = pseudohash(self.seed)
 
     def pseudoseed(self, key: str) -> float:
-        """Advance and return one Balatro keyed pseudoseed value."""
         if not isinstance(key, str) or not key:
             raise ValueError("Balatro RNG key must be a non-empty string")
         if key == "seed":
@@ -170,21 +154,51 @@ class BalatroRNG:
         self._nodes[key] = abs(updated)
         return (self._nodes[key] + self._hashed_seed) / 2.0
 
+    def generator(self, key: str) -> LuaJITRandom:
+        """Advance one keyed pseudoseed and return its freshly seeded LuaJIT RNG.
+
+        Balatro's helpers such as ``pseudoshuffle`` call ``pseudoseed`` once,
+        then consume several ``math.random`` results from that single seeded
+        state. Keeping this operation explicit prevents accidentally advancing
+        the Balatro node once per swap.
+        """
+        return LuaJITRandom(self.pseudoseed(key))
+
     def random(self, key: str) -> float:
-        """Match Balatro ``pseudorandom(key)`` for one keyed decision."""
-        return LuaJITRandom(self.pseudoseed(key)).random()
+        return self.generator(key).random()
 
     def randint(self, key: str, minimum: int, maximum: int) -> int:
-        """Match Balatro ``pseudorandom(key, minimum, maximum)``."""
-        return LuaJITRandom(self.pseudoseed(key)).randint(minimum, maximum)
+        return self.generator(key).randint(minimum, maximum)
+
+    def shuffle_in_place(
+        self,
+        values: MutableSequence[_T],
+        key: str,
+        *,
+        sort_key: Callable[[_T], Any] | None = None,
+    ) -> None:
+        """Match Balatro ``pseudoshuffle(list, pseudoseed(key))``.
+
+        Vanilla sorts card-like values by their stable ``sort_id`` before the
+        Fisher-Yates swaps. The caller must provide the corresponding exact
+        ordering key when that pre-sort is required; R2 does not guess one.
+        """
+        if not isinstance(values, MutableSequence):
+            raise TypeError("shuffle target must be a mutable sequence")
+        if sort_key is not None:
+            values[:] = sorted(values, key=sort_key)
+
+        rng = self.generator(key)
+        for size in range(len(values), 1, -1):
+            other = rng.randint(1, size) - 1
+            current = size - 1
+            values[current], values[other] = values[other], values[current]
 
     @property
     def nodes(self) -> Mapping[str, float]:
-        """Return an isolated read-only-style snapshot of keyed node values."""
         return dict(self._nodes)
 
     def snapshot(self) -> dict[str, Any]:
-        """Return a JSON-safe, bit-preserving R2 RNG checkpoint."""
         return {
             "version": BALATRO_RNG_VERSION,
             "seed": self.seed,
@@ -193,7 +207,6 @@ class BalatroRNG:
 
     @classmethod
     def from_snapshot(cls, snapshot: Mapping[str, Any]) -> "BalatroRNG":
-        """Restore a checkpoint such that the next keyed result is unchanged."""
         if not isinstance(snapshot, Mapping):
             raise TypeError("Balatro RNG snapshot must be a mapping")
         if snapshot.get("version") != BALATRO_RNG_VERSION:
