@@ -73,6 +73,17 @@ def prepare_supported_nonboss_blind_start(run: HeadlessRunState) -> HeadlessRunS
     return next_run
 
 
+def start_supported_nonboss_blind_pristine_deck(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose the audited non-boss lifecycle with the exact pristine deck deal.
+
+    This remains a simulator helper, not a training-visible ``SELECT_BLIND``
+    action.  It is exact only when both the non-boss lifecycle preconditions and
+    :func:`deal_pristine_round_start`'s untouched-base-deck preconditions hold.
+    """
+    prepared = prepare_supported_nonboss_blind_start(run)
+    return deal_pristine_round_start(prepared)
+
+
 def prepare_pristine_first_small_blind(run: HeadlessRunState) -> HeadlessRunState:
     """Apply the exact fresh Red/White first-blind pre-draw lifecycle."""
     state = run.public
