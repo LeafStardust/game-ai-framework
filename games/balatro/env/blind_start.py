@@ -22,8 +22,10 @@ def prepare_pristine_first_small_blind(run: HeadlessRunState) -> HeadlessRunStat
 
     if state.phase != "BLIND_SELECT":
         raise HeadlessTransitionError("first blind start requires BLIND_SELECT phase")
-    if state.ante != 1 or state.round != 1:
-        raise HeadlessTransitionError("pristine first blind start requires ante 1 round 1")
+    # G.GAME.round initializes at 0. G.FUNCS.select_blind queues ease_round(1)
+    # before new_round(), so the first BLIND_SELECT boundary is exactly 0 -> 1.
+    if state.ante != 1 or state.round != 0:
+        raise HeadlessTransitionError("pristine first blind start requires ante 1 round 0")
     if state.blind is None or getattr(state.blind, "type", None) is not BlindType.SMALL:
         raise HeadlessTransitionError("pristine first blind start requires Small Blind")
     if state.boss_name is not None:
@@ -50,6 +52,7 @@ def prepare_pristine_first_small_blind(run: HeadlessRunState) -> HeadlessRunStat
     next_run = run.copy()
     next_state = next_run.public
 
+    next_state.round += 1
     # Vanilla new_round resets current-round counters before entering DRAW_TO_HAND.
     next_state.score = 0
     next_state.blind_score = next_state.blind.requirement
