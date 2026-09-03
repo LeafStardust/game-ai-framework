@@ -20,6 +20,9 @@ from games.balatro.env.round_lifecycle import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
+_REQUIREMENT_ONLY_BOSS_NAMES = frozenset({"The Wall", "Violet Vessel"})
+
+
 def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -> None:
     state = run.public
     if state.phase != "BLIND_SELECT":
@@ -85,26 +88,40 @@ def start_supported_nonboss_blind_pristine_deck(run: HeadlessRunState) -> Headle
     return deal_pristine_round_start(prepared)
 
 
-def prepare_supported_wall_blind_start(run: HeadlessRunState) -> HeadlessRunState:
-    """Own the exact pre-deal lifecycle for The Wall.
+def prepare_supported_requirement_only_boss_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own Boss starts whose only start-time mechanic is their requirement.
 
-    The Wall has no start-time card debuff, hand/discard override, or mutable boss
-    state. Its enlarged target is already represented by the authoritative blind
-    requirement. This slice therefore adds the Boss identity gate around the same
-    source-ordered round reset → setting_blind → bonus-consumption lifecycle.
+    Vanilla source currently proves this boundary for The Wall and Violet Vessel:
+    neither has a dedicated ``Blind:set_blind`` mutation and both use an empty
+    card-debuff configuration. Their enlarged target is already represented by
+    the authoritative selected blind requirement.
     """
     state = run.public
     if state.blind is None or getattr(state.blind, "type", None) is not BlindType.BOSS:
-        raise HeadlessTransitionError("The Wall blind start requires Boss Blind")
-    _require_common_blind_start_boundary(run, label="The Wall blind start")
-    if state.boss_name != "The Wall":
-        raise HeadlessTransitionError("The Wall blind start requires authoritative boss name")
-
+        raise HeadlessTransitionError("requirement-only boss start requires Boss Blind")
+    _require_common_blind_start_boundary(run, label="requirement-only boss start")
+    if state.boss_name not in _REQUIREMENT_ONLY_BOSS_NAMES:
+        raise HeadlessTransitionError(
+            "boss is not in the audited requirement-only start set"
+        )
     return _apply_common_predeal_lifecycle(run)
 
 
+def start_supported_requirement_only_boss(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose an audited requirement-only Boss start with exact shuffle/deal."""
+    prepared = prepare_supported_requirement_only_boss_start(run)
+    return deal_supported_round_start(prepared)
+
+
+def prepare_supported_wall_blind_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Backward-compatible exact The Wall pre-deal wrapper."""
+    if run.public.boss_name != "The Wall":
+        raise HeadlessTransitionError("The Wall blind start requires authoritative boss name")
+    return prepare_supported_requirement_only_boss_start(run)
+
+
 def start_supported_wall_blind(run: HeadlessRunState) -> HeadlessRunState:
-    """Compose exact The Wall lifecycle with generalized shuffle/deal."""
+    """Backward-compatible exact The Wall shuffle/deal wrapper."""
     prepared = prepare_supported_wall_blind_start(run)
     return deal_supported_round_start(prepared)
 
