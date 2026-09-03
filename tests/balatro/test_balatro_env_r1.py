@@ -15,7 +15,12 @@ from games.balatro.state import BalatroState
 @dataclass
 class _Item:
     label: str
-    price: int
+    price: object
+
+
+@dataclass
+class _PricelessItem:
+    label: str
 
 
 def _shop_state(*, money=20):
@@ -138,8 +143,31 @@ def test_balatro_env_r1_rejects_unsupported_acquisition_execution():
     assert [item.label for item in run.public.shop_boosters] == ["Pack A"]
 
 
+def test_balatro_env_r1_affordability_rejects_inexact_prices():
+    state = _shop_state()
+    state.shop_consumables = [
+        _Item("Negative", -1),
+        _Item("Invalid", "not-a-price"),
+        _Item("Boolean", True),
+        _PricelessItem("Missing"),
+    ]
+    run = HeadlessRunState(public=state, seed=12)
+    engine = ShopTransitionEngine()
+    legal = engine.legal_actions(run)
+
+    assert EnvAction.from_alias("END_SHOP") in legal
+    assert all(action.alias != "BUY_CONSUMABLE" for action in legal)
+
+    for slot in range(len(state.shop_consumables)):
+        with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
+            engine.step(run, EnvAction.from_alias("BUY_CONSUMABLE", {"slot": slot}))
+
+    assert run.public.money == 20
+    assert run.public.consumables == []
+
+
 def test_balatro_env_r1_end_shop_clears_offers_and_transfers_phase():
-    run = HeadlessRunState(public=_shop_state(), seed=12)
+    run = HeadlessRunState(public=_shop_state(), seed=13)
     next_run = ShopTransitionEngine().step(run, EnvAction.from_alias("END_SHOP"))
 
     assert next_run.public.phase == "BLIND_SELECT"
@@ -152,7 +180,7 @@ def test_balatro_env_r1_end_shop_clears_offers_and_transfers_phase():
 
 
 def test_balatro_env_r1_rejects_unaffordable_or_invalid_shop_action():
-    run = HeadlessRunState(public=_shop_state(money=2), seed=13)
+    run = HeadlessRunState(public=_shop_state(money=2), seed=14)
     engine = ShopTransitionEngine()
 
     with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
