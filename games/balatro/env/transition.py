@@ -184,6 +184,7 @@ class HeadlessRunState:
     round_bonus_discards: int = 0
     boss_hands_sub: int | None = None
     boss_discards_sub: int | None = None
+    boss_hand_size_sub: int | None = None
     reroll_cost: int = 5
     skips: int = 0
     tags: list[str] = field(default_factory=list)
@@ -246,7 +247,20 @@ class HeadlessRunState:
                 raise HeadlessTransitionError(
                     "boss_discards_sub is only valid for The Water"
                 )
-        if self.boss_hands_sub is not None and self.boss_discards_sub is not None:
+        if self.boss_hand_size_sub is not None:
+            self._require_nonnegative_int("boss_hand_size_sub", self.boss_hand_size_sub)
+            if self.public.boss_name != "The Manacle":
+                raise HeadlessTransitionError(
+                    "boss_hand_size_sub is only valid for The Manacle"
+                )
+        if sum(
+            value is not None
+            for value in (
+                self.boss_hands_sub,
+                self.boss_discards_sub,
+                self.boss_hand_size_sub,
+            )
+        ) > 1:
             raise HeadlessTransitionError(
                 "only one reversible boss resource adjustment may be active"
             )
