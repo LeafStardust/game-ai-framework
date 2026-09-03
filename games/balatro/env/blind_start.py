@@ -1,35 +1,88 @@
-"""Exact first-blind lifecycle slice for R2 blind-start ownership.
+"""Exact blind-start lifecycle slices for R2 ownership.
 
-This module intentionally starts with the one blind-start state whose complete
-pre-deal lifecycle is already provable without shop/tag/Joker bonus semantics:
-the fresh Red Deck / White Stake Ante-1 Small Blind before any shop has occurred.
-
-It does not expose SELECT_BLIND to training yet.  Later blind starts must widen
-this boundary only after their round bonuses, Joker ``setting_blind`` effects,
-and boss setup are exact.
+The training action remains fail-closed.  These helpers own increasingly broad
+pieces of the vanilla select-blind/new-round boundary while preserving source
+ordering and rejecting unclassified modifier surfaces.
 """
 
 from __future__ import annotations
 
 from games.balatro.blinds.blind import BlindType
 from games.balatro.env.deal import deal_pristine_round_start
+from games.balatro.env.round_lifecycle import (
+    apply_round_resource_baseline,
+    apply_supported_setting_blind_effects,
+    consume_round_bonuses,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
+def _require_nonboss_blind_start_boundary(run: HeadlessRunState) -> None:
+    state = run.public
+    if state.phase != "BLIND_SELECT":
+        raise HeadlessTransitionError("nonboss blind start requires BLIND_SELECT phase")
+    if state.blind is None or getattr(state.blind, "type", None) not in {
+        BlindType.SMALL,
+        BlindType.BIG,
+    }:
+        raise HeadlessTransitionError("nonboss blind start requires Small or Big Blind")
+    if state.boss_name is not None:
+        raise HeadlessTransitionError("nonboss blind start cannot have boss state")
+    if isinstance(state.round, bool) or not isinstance(state.round, int) or state.round < 0:
+        raise HeadlessTransitionError("round must be an exact nonnegative integer")
+    requirement = getattr(state.blind, "requirement", None)
+    if isinstance(requirement, bool) or not isinstance(requirement, int) or requirement < 0:
+        raise HeadlessTransitionError("blind requirement must be an exact nonnegative integer")
+    if run.tags:
+        raise HeadlessTransitionError("nonboss blind start with active tags is not yet owned")
+    if state.vouchers:
+        raise HeadlessTransitionError("nonboss blind start with vouchers is not yet owned")
+    if state.hand or state.discard_pile or run.draw_pile or run.discard_pile or run.played_pile:
+        raise HeadlessTransitionError("nonboss blind start requires empty transition card zones")
+
+
+def prepare_supported_nonboss_blind_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own select→pre-deal lifecycle for audited Small/Big Blind state.
+
+    The selected Blind object is already represented in canonical public state;
+    this helper owns the source-ordered consequences after selection and before
+    the shuffle/deal transition:
+
+    ``ease_round(1)`` → reset+round_bonus resources → setting_blind Jokers →
+    consume one-shot round bonuses → ``DRAW_TO_HAND``.
+
+    Boss setup, pending tags, vouchers, and unclassified Joker identities remain
+    fail-closed.
+    """
+    _require_nonboss_blind_start_boundary(run)
+
+    next_run = run.copy()
+    next_state = next_run.public
+
+    # G.FUNCS.select_blind queues ease_round(1) before new_round().
+    next_state.round += 1
+    next_state.blind_score = next_state.blind.requirement
+    next_state.boss_blind_state_observed = False
+    next_state.boss_blind_hands = set()
+    next_state.boss_blind_only_hand = None
+
+    next_run = apply_round_resource_baseline(next_run)
+    next_run = apply_supported_setting_blind_effects(next_run)
+    next_run = consume_round_bonuses(next_run)
+    next_run.public.phase = "DRAW_TO_HAND"
+    return next_run
+
+
 def prepare_pristine_first_small_blind(run: HeadlessRunState) -> HeadlessRunState:
-    """Apply the deterministic pre-draw lifecycle for the fresh first blind."""
+    """Apply the exact fresh Red/White first-blind pre-draw lifecycle."""
     state = run.public
 
-    if state.phase != "BLIND_SELECT":
-        raise HeadlessTransitionError("first blind start requires BLIND_SELECT phase")
     # G.GAME.round initializes at 0. G.FUNCS.select_blind queues ease_round(1)
     # before new_round(), so the first BLIND_SELECT boundary is exactly 0 -> 1.
     if state.ante != 1 or state.round != 0:
         raise HeadlessTransitionError("pristine first blind start requires ante 1 round 0")
     if state.blind is None or getattr(state.blind, "type", None) is not BlindType.SMALL:
         raise HeadlessTransitionError("pristine first blind start requires Small Blind")
-    if state.boss_name is not None:
-        raise HeadlessTransitionError("pristine first blind start cannot have boss state")
     if state.jokers or state.vouchers or state.consumables or run.tags or run.skips:
         raise HeadlessTransitionError(
             "pristine first blind start requires no acquired run modifiers"
@@ -46,29 +99,8 @@ def prepare_pristine_first_small_blind(run: HeadlessRunState) -> HeadlessRunStat
         raise HeadlessTransitionError(
             "pristine first blind requires zero pending round bonuses"
         )
-    if state.hand or state.discard_pile or run.draw_pile or run.discard_pile or run.played_pile:
-        raise HeadlessTransitionError("first blind start requires empty card zones")
 
-    next_run = run.copy()
-    next_state = next_run.public
-
-    next_state.round += 1
-    # Vanilla new_round resets current-round counters before entering DRAW_TO_HAND.
-    next_state.score = 0
-    next_state.blind_score = next_state.blind.requirement
-    next_state.hands_remaining = next_state.round_reset_hands
-    next_state.discards_remaining = next_state.round_reset_discards
-    next_state.discards_used = 0
-    next_state.last_played_hand = None
-    next_state.round_hand_play_counts = {
-        hand: 0 for hand in next_state.round_hand_play_counts
-    }
-    next_state.boss_blind_state_observed = False
-    next_state.boss_blind_hands = set()
-    next_state.boss_blind_only_hand = None
-    next_state.phase = "DRAW_TO_HAND"
-
-    return next_run
+    return prepare_supported_nonboss_blind_start(run)
 
 
 def start_pristine_first_small_blind(run: HeadlessRunState) -> HeadlessRunState:
