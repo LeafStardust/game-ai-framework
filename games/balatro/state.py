@@ -45,6 +45,11 @@ class BalatroState(GameState):
         # The counter is ordinary run history, not hidden RNG state.
         self.ectoplasm_hand_size_penalty: int = 1
         self.hands_remaining: int = 4
+        # Public starting hand allowance for the next round. SHOP needs this
+        # instead of the just-finished blind's remaining hands when resolving
+        # prospective Troubadour and related resource-sensitive effects.
+        self.round_reset_hands_observed: bool = False
+        self.round_reset_hands: int = 0
         self.discard_pile: list[BalatroCard] = []
         self.discards_remaining: int = 3
         # Public current-round discard history. ``None`` means the observation
@@ -187,6 +192,8 @@ class BalatroState(GameState):
         new_state.hand_size = self.hand_size
         new_state.ectoplasm_hand_size_penalty = self.ectoplasm_hand_size_penalty
         new_state.hands_remaining = self.hands_remaining
+        new_state.round_reset_hands_observed = self.round_reset_hands_observed
+        new_state.round_reset_hands = self.round_reset_hands
         new_state.discard_pile = self.discard_pile.copy()
         new_state.discards_remaining = self.discards_remaining
         new_state.discards_used = self.discards_used
