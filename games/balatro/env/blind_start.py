@@ -1,6 +1,6 @@
 """Exact blind-start lifecycle slices for R2 ownership.
 
-The training action remains fail-closed.  These helpers own increasingly broad
+The training action remains fail-closed. These helpers own increasingly broad
 pieces of the vanilla select-blind/new-round boundary while preserving source
 ordering and rejecting unclassified modifier surfaces.
 """
@@ -8,7 +8,10 @@ ordering and rejecting unclassified modifier surfaces.
 from __future__ import annotations
 
 from games.balatro.blinds.blind import BlindType
-from games.balatro.env.deal import deal_pristine_round_start
+from games.balatro.env.deal import (
+    deal_pristine_round_start,
+    deal_supported_round_start,
+)
 from games.balatro.env.round_lifecycle import (
     apply_round_resource_baseline,
     apply_supported_setting_blind_effects,
@@ -17,45 +20,35 @@ from games.balatro.env.round_lifecycle import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
-def _require_nonboss_blind_start_boundary(run: HeadlessRunState) -> None:
+def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -> None:
     state = run.public
     if state.phase != "BLIND_SELECT":
-        raise HeadlessTransitionError("nonboss blind start requires BLIND_SELECT phase")
-    if state.blind is None or getattr(state.blind, "type", None) not in {
-        BlindType.SMALL,
-        BlindType.BIG,
-    }:
-        raise HeadlessTransitionError("nonboss blind start requires Small or Big Blind")
-    if state.boss_name is not None:
-        raise HeadlessTransitionError("nonboss blind start cannot have boss state")
+        raise HeadlessTransitionError(f"{label} requires BLIND_SELECT phase")
     if isinstance(state.round, bool) or not isinstance(state.round, int) or state.round < 0:
         raise HeadlessTransitionError("round must be an exact nonnegative integer")
+    if state.blind is None:
+        raise HeadlessTransitionError(f"{label} requires an active blind")
     requirement = getattr(state.blind, "requirement", None)
     if isinstance(requirement, bool) or not isinstance(requirement, int) or requirement < 0:
         raise HeadlessTransitionError("blind requirement must be an exact nonnegative integer")
     if run.tags:
-        raise HeadlessTransitionError("nonboss blind start with active tags is not yet owned")
+        raise HeadlessTransitionError(f"{label} with active tags is not yet owned")
     if state.vouchers:
-        raise HeadlessTransitionError("nonboss blind start with vouchers is not yet owned")
+        raise HeadlessTransitionError(f"{label} with vouchers is not yet owned")
     if state.hand or state.discard_pile or run.draw_pile or run.discard_pile or run.played_pile:
-        raise HeadlessTransitionError("nonboss blind start requires empty transition card zones")
+        raise HeadlessTransitionError(f"{label} requires empty transition card zones")
 
 
-def prepare_supported_nonboss_blind_start(run: HeadlessRunState) -> HeadlessRunState:
-    """Own select→pre-deal lifecycle for audited Small/Big Blind state.
+def _require_nonboss_blind_start_boundary(run: HeadlessRunState) -> None:
+    _require_common_blind_start_boundary(run, label="nonboss blind start")
+    state = run.public
+    if getattr(state.blind, "type", None) not in {BlindType.SMALL, BlindType.BIG}:
+        raise HeadlessTransitionError("nonboss blind start requires Small or Big Blind")
+    if state.boss_name is not None:
+        raise HeadlessTransitionError("nonboss blind start cannot have boss state")
 
-    The selected Blind object is already represented in canonical public state;
-    this helper owns the source-ordered consequences after selection and before
-    the shuffle/deal transition:
 
-    ``ease_round(1)`` → reset+round_bonus resources → setting_blind Jokers →
-    consume one-shot round bonuses → ``DRAW_TO_HAND``.
-
-    Boss setup, pending tags, vouchers, and unclassified Joker identities remain
-    fail-closed.
-    """
-    _require_nonboss_blind_start_boundary(run)
-
+def _apply_common_predeal_lifecycle(run: HeadlessRunState) -> HeadlessRunState:
     next_run = run.copy()
     next_state = next_run.public
 
@@ -73,15 +66,46 @@ def prepare_supported_nonboss_blind_start(run: HeadlessRunState) -> HeadlessRunS
     return next_run
 
 
-def start_supported_nonboss_blind_pristine_deck(run: HeadlessRunState) -> HeadlessRunState:
-    """Compose the audited non-boss lifecycle with the exact pristine deck deal.
+def prepare_supported_nonboss_blind_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own select→pre-deal lifecycle for audited Small/Big Blind state."""
+    _require_nonboss_blind_start_boundary(run)
+    return _apply_common_predeal_lifecycle(run)
 
-    This remains a simulator helper, not a training-visible ``SELECT_BLIND``
-    action.  It is exact only when both the non-boss lifecycle preconditions and
-    :func:`deal_pristine_round_start`'s untouched-base-deck preconditions hold.
-    """
+
+def start_supported_nonboss_blind(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose audited non-boss lifecycle with the generalized exact deal."""
+    prepared = prepare_supported_nonboss_blind_start(run)
+    return deal_supported_round_start(prepared)
+
+
+def start_supported_nonboss_blind_pristine_deck(run: HeadlessRunState) -> HeadlessRunState:
+    """Backward-compatible pristine-deck composition helper."""
     prepared = prepare_supported_nonboss_blind_start(run)
     return deal_pristine_round_start(prepared)
+
+
+def prepare_supported_wall_blind_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own the exact pre-deal lifecycle for The Wall.
+
+    The Wall has no start-time card debuff, hand/discard override, or mutable boss
+    state. Its enlarged target is already represented by the authoritative blind
+    requirement. This slice therefore adds the Boss identity gate around the same
+    source-ordered round reset → setting_blind → bonus-consumption lifecycle.
+    """
+    _require_common_blind_start_boundary(run, label="The Wall blind start")
+    state = run.public
+    if getattr(state.blind, "type", None) is not BlindType.BOSS:
+        raise HeadlessTransitionError("The Wall blind start requires Boss Blind")
+    if state.boss_name != "The Wall":
+        raise HeadlessTransitionError("The Wall blind start requires authoritative boss name")
+
+    return _apply_common_predeal_lifecycle(run)
+
+
+def start_supported_wall_blind(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose exact The Wall lifecycle with generalized shuffle/deal."""
+    prepared = prepare_supported_wall_blind_start(run)
+    return deal_supported_round_start(prepared)
 
 
 def prepare_pristine_first_small_blind(run: HeadlessRunState) -> HeadlessRunState:
