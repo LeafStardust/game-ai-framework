@@ -363,6 +363,26 @@ CI 33806391869: 1610 passed, 1594 deselected
 CI 33806527436: 1614 passed, 1594 deselected
 ```
 
+#### R2.9i — Psychic / Flint / Tooth start-inert Boss boundary — GREEN FOR BLIND START ONLY
+
+Vanilla source audit confirms these Bosses do not introduce additional state in `Blind:set_blind` or `Blind:drawn_to_hand`:
+
+```text
+The Psychic  → play-time hand legality: must play 5 cards
+The Flint    → hand-scoring mutation: base Chips and Mult are halved
+The Tooth    → play-time economy mutation: lose $1 per played card
+```
+
+They are intentionally classified separately from requirement-only Bosses. `prepare_supported_start_inert_boss_start()` owns only the ordinary Boss pre-deal lifecycle; `start_supported_start_inert_boss()` composes that boundary with exact shuffle/deal.
+
+**This does not claim their downstream mechanics are headless-owned.** Psychic legality, Flint scoring, and Tooth economy remain explicit follow-up ownership work before a full trajectory through these Bosses can be considered run-safe.
+
+```text
+7e85cf0  classify start-inert Boss starts
+fa329ff  pin start-inert Boss classification
+CI 33809819965: 1622 passed, 1594 deselected
+```
+
 ### Current R2 fail-closed boundary
 
 `SELECT_BLIND` remains **PLANNED / NOT TRAINING-EXPOSED**.
@@ -385,17 +405,15 @@ Known hard blockers:
 - boss-selection RNG
 - remaining modeled random effects
 
-### NEXT R2 WORK — START-INERT BOSS AUDIT
+### NEXT R2 WORK — DOWNSTREAM START-INERT BOSS MECHANICS
 
-Audit the next mechanically coherent Boss family whose **blind-start** mutation is inert and whose play-time behavior already has a deterministic canonical owner. Start with:
+The blind-start audit for Psychic / Flint / Tooth is complete. The next code should audit and connect their **downstream** mechanics to the headless trajectory without duplicating canonical logic:
 
-```text
-The Psychic
-The Flint
-The Tooth
-```
+1. **The Psychic** — exact hand-play legality for “must play 5 cards”.
+2. **The Flint** — exact base Chips/Mult halving at the canonical scoring boundary.
+3. **The Tooth** — exact `$1 per played card` economy mutation at the canonical play boundary.
 
-For each candidate, prove from vanilla source that `Blind:set_blind` / `Blind:drawn_to_hand` introduce no additional unowned start-time state. Reuse existing deterministic score/economy owners rather than creating duplicate Boss logic. Admit only the exact start lifecycle slice; keep `SELECT_BLIND` non-training-exposed until the full trajectory surface is run-safe.
+Take these as separate mechanically coherent slices. Reuse existing deterministic owners if they are exact; otherwise add the minimum canonical state/transition owner needed. Keep full `SELECT_BLIND` non-training-exposed until the resulting trajectories are run-safe.
 
 Do **not** bypass Pillar/Verdant/Amber/face-down/Chicot blockers with approximations.
 
@@ -484,6 +502,10 @@ R2.9e Goad/Window/Head/Club                      GREEN — CI 33803874842
 R2.9f Plant                                      GREEN — CI 33804343818
 R2.9g pseudorandom_element                       GREEN — CI 33805699954
 R2.9h Cerulean Bell start/draw/cleanup           GREEN — CI 33806527436
+R2.9i Psychic/Flint/Tooth start only             GREEN — CI 33809819965
+Psychic downstream legality                      NOT YET OWNED
+Flint downstream scoring                         NOT YET OWNED
+Tooth downstream economy                         NOT YET OWNED
 SELECT_BLIND                                      NOT EXPOSED
 Burglar acquisition                              FAIL-CLOSED
 Generic/unknown acquisitions                     FAIL-CLOSED
@@ -499,7 +521,7 @@ Observation/PPO                                  NOT STARTED
 Current branch code head immediately before this roadmap synchronization:
 
 ```text
-aea440d1bed66c059558f86d81668d29901757ad
+fa329ff0eaf2019057037d5c9c9f185c4856c071
 ```
 
-The next code written should therefore be the **start-inert Boss audit beginning with The Psychic / The Flint / The Tooth**, or a prerequisite exact state owner discovered by that audit. It should **not** be Bond tuning, PPO, or an approximation of a blocked Boss lifecycle.
+The next code written should therefore be the **downstream Psychic legality audit**, followed by Flint scoring and Tooth economy in separate exact slices, or a prerequisite exact owner discovered by those audits. It should **not** be Bond tuning, PPO, or an approximation of a blocked Boss lifecycle.
