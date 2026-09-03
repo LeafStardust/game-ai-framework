@@ -4,8 +4,13 @@ from pathlib import Path
 def test_shop_arbiter_reuses_standalone_joker_decisions_and_avoids_nested_projected_d2():
     source = Path("games/balatro/shop_arbiter.py").read_text(encoding="utf-8")
 
-    assert "standalone_joker_decisions = tuple(" in source
+    assert "standalone_joker_decisions = self._standalone_joker_decisions(" in source
     assert source.count("standalone=standalone_joker_decisions") >= 2
+
+    standalone_body = source.split("def _standalone_joker_decisions(", 1)[1].split(
+        "def _project_joker_add", 1
+    )[0]
+    assert "policy.decide(state, candidate)" in standalone_body
 
     pair_body = source.split("def _best_visible_bond_pair(", 1)[1].split(
         "def _standalone_add_option", 1

@@ -5,9 +5,12 @@ from games.balatro.shop_observer_latency_diagnostic import (
     shop_decision_latency_note,
 )
 from games.balatro.shop_policy_latency_diagnostic import (
+    _ACTIVE_PROFILE,
     _LAST_PROFILE,
     consume_shop_policy_latency_note,
+    install_shop_policy_latency_diagnostic,
 )
+from games.balatro.shop_arbiter import BuildAwareShopArbiter
 
 
 def test_shop_observer_latency_stage_records_without_changing_result():
@@ -40,6 +43,8 @@ def test_shop_d14_latency_note_separates_child_components():
         {
             "total_seconds": 12.0,
             "deterministic_seconds": 0.1,
+            "joker_standalone_seconds": 0.7,
+            "joker_standalone_calls": 1,
             "joker_seconds": 1.0,
             "consumable_seconds": 0.4,
             "booster_seconds": 0.5,
@@ -67,7 +72,8 @@ def test_shop_d14_latency_note_separates_child_components():
 
     assert note == (
         "shop_d14_latency=total=12.000s "
-        "deterministic=0.100s joker=1.000s consumable=0.400s "
+        "deterministic=0.100s joker_standalone=0.700s/1calls "
+        "joker=1.000s consumable=0.400s "
         "booster=0.500s/2calls bond_pair=0.800s reroll=8.500s "
         "reroll_visible=0.200s/1calls reroll_unmet=5.000s/1calls "
         "reroll_future=3.200s/1calls "
@@ -75,6 +81,36 @@ def test_shop_d14_latency_note_separates_child_components():
         "reroll_future_tarot=0.200s/1calls "
         "reroll_future_planet=0.100s/1calls "
         "reroll_future_residual=0.400s "
-        "reroll_joker=3.000s/2calls residual=0.800s"
+        "reroll_joker=3.000s/2calls residual=0.100s"
     )
     assert consume_shop_policy_latency_note() is None
+
+
+def test_standalone_joker_evaluation_is_timed_without_changing_results(monkeypatch):
+    class Policy:
+        @staticmethod
+        def decide(state, candidate):
+            return state, candidate
+
+    state = SimpleNamespace(shop_jokers=("first", "second"))
+    install_shop_policy_latency_diagnostic()
+    clock = iter((10.0, 12.5))
+    monkeypatch.setattr(
+        "games.balatro.shop_policy_latency_diagnostic.perf_counter",
+        lambda: next(clock),
+    )
+    profile = {}
+    token = _ACTIVE_PROFILE.set(profile)
+    try:
+        result = BuildAwareShopArbiter._standalone_joker_decisions(
+            state,
+            policy=Policy(),
+        )
+    finally:
+        _ACTIVE_PROFILE.reset(token)
+
+    assert result == ((state, "first"), (state, "second"))
+    assert profile == {
+        "joker_standalone_seconds": 2.5,
+        "joker_standalone_calls": 1,
+    }

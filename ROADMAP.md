@@ -328,12 +328,39 @@ Validation state:
 
 This item is closed unless later live telemetry disproves the repaired phase semantics.
 
+##### L2.3.3 — D14 standalone-Joker timing attribution — FIXED AND DETERMINISTICALLY VALIDATED
+
+Classification: **runtime telemetry-attribution bug** at the canonical D14 child boundary.
+
+Observed defect in attempt-001 SHOP telemetry:
+
+- multiple Joker buys, replacements, and rerolls reported substantial D14 `residual` time while the visible `joker` bucket remained at or near zero;
+- `BuildAwareShopArbiter.decide()` evaluated every visible Joker through canonical D2 before entering the timed `_best_joker_decision()` boundary;
+- the existing `joker` measurement therefore covered only selection among already-computed D2 decisions and misattributed the potentially expensive standalone evaluation work to `residual`;
+- globally wrapping D2 would be incorrect because D2 also participates inside reroll/expectation paths and would double-count nested work.
+
+Repair:
+
+- the arbiter now exposes its existing one-pass visible-Joker evaluation as the canonical `_standalone_joker_decisions()` child without changing inputs, outputs, ordering, thresholds, or decision authority;
+- compact D14 telemetry records that disjoint direct child as `joker_standalone`, while preserving `joker` for admitted-result selection;
+- the durable live-tuning trace exposes the same boundary as `D14_JOKER_STANDALONE`;
+- D14 continues to reuse the resulting tuple for both ordinary Joker selection and the bounded visible-pair check, so no additional D2 evaluation was introduced.
+
+Validation state:
+
+- focused D14 diagnostic/arbiter regression slice: **GREEN in Work Chat (`22 passed`)**;
+- broader affected SHOP/Joker/replacement/voucher slice: **GREEN in Work Chat (`160 passed`)**;
+- deterministic timing regression proves a `2.500s` standalone evaluation is reported wholly in `joker_standalone` with the exact policy results unchanged;
+- this repair improves attribution only. It does not claim that D14 is faster, and no optimization is authorized until new telemetry identifies a genuinely expensive canonical owner.
+
+This item is closed. Inspect the new stage in the next genuine live run; do not reopen policy semantics merely because prior residual values were large.
+
 Active inspection targets:
 
 - remaining attempt 001 material Joker/pack/voucher/reroll decisions other than the now-fixed Throwback and Card Sharp defects;
 - remaining attempt 002 material decisions other than the now-fixed Flash Card authority defect;
 - terminal boss decision quality in attempts 001/002/003 where telemetry indicates a suspicious actionable decision rather than simple insufficient engine strength;
-- D14 standalone-Joker timing residual attribution.
+- any remaining D14 residual after the newly explicit standalone-Joker stage is observed in a genuine live run.
 
 These remaining targets are **inspection/classification pending**, not fixed, not tuned, and not validated.
 
@@ -346,6 +373,7 @@ Baron motif semantics patch                    GREEN
 Flash Card / canonical D2 authority patch      GREEN
 Throwback blind-skip realization patch         GREEN
 Card Sharp shop-history translation patch      GREEN (WORK CHAT)
+D14 standalone-Joker timing attribution patch  GREEN (WORK CHAT)
 Further Phase L2 baseline classification        ACTIVE
 Numerical tuning / Optuna                       NOT STARTED
 Phase M broader competence                      NOT STARTED
@@ -376,7 +404,7 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 2. Classify each suspicious decision as mechanics/model, runtime/latency, integration/authority, or calibration before changing code.
 3. Patch only confirmed defects at their canonical owner.
 4. Add a focused regression for each confirmed defect and run it in Work Chat; request user validation only when the remaining proof genuinely requires Balatro or the Windows/game environment.
-5. Keep D14 residual timing under observation and optimize only after identifying the expensive owner without changing semantics.
+5. Read the new `joker_standalone` D14 stage during the next genuine live run; optimize only after telemetry identifies an expensive owner without changing semantics.
 6. Keep L3 numerical tuning closed until the semantic/integration/runtime defect pass is exhausted.
 
 # Progress criterion

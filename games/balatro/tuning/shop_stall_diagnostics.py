@@ -228,6 +228,12 @@ def instrument_live_tuning_shop_runner(runner, *, trace_path: str | Path):
     arbiter = runner.shop_arbiter
     _wrap_method(trace, arbiter, "_pending_bond_pair_completion", "D14_PENDING_BOND_PAIR")
     _wrap_method(trace, arbiter.shop_policy, "rank_actions", "D14_DETERMINISTIC_RANK")
+    _wrap_method(
+        trace,
+        arbiter,
+        "_standalone_joker_decisions",
+        "D14_JOKER_STANDALONE",
+    )
     _wrap_method(trace, arbiter, "_best_joker_decision", "D14_JOKER")
     _wrap_method(trace, arbiter, "_best_consumable_decision", "D14_CONSUMABLE")
     _wrap_policy_factory(

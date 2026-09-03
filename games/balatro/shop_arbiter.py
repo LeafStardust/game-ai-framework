@@ -211,9 +211,9 @@ class BuildAwareShopArbiter:
         )
 
         joker_policy = self._joker_policy_for_state(state)
-        standalone_joker_decisions = tuple(
-            joker_policy.decide(state, candidate)
-            for candidate in tuple(getattr(state, "shop_jokers", ()) or ())
+        standalone_joker_decisions = self._standalone_joker_decisions(
+            state,
+            policy=joker_policy,
         )
         joker_best = self._best_joker_decision(
             state,
@@ -767,6 +767,18 @@ class BuildAwareShopArbiter:
         if option.mode != BUY or not option.eligible:
             return None
         return option
+
+    @staticmethod
+    def _standalone_joker_decisions(
+        state: BalatroState,
+        *,
+        policy: JokerAcquisitionPolicy,
+    ) -> tuple[JokerAcquisitionDecision, ...]:
+        """Evaluate the visible Joker offers once before D14 compares them."""
+        return tuple(
+            policy.decide(state, candidate)
+            for candidate in tuple(getattr(state, "shop_jokers", ()) or ())
+        )
 
     @staticmethod
     def _project_joker_add(state: BalatroState, candidate, money_after: int) -> BalatroState:

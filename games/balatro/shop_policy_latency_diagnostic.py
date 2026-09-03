@@ -38,6 +38,7 @@ _IN_REROLL_FUTURE: ContextVar[bool] = ContextVar(
 # it remains visible as an overlapping informational metric. D11 substage buckets
 # are likewise nested within ``reroll`` and are never subtracted from D14 residual.
 _TOP_LEVEL_STAGES = (
+    "joker_standalone",
     "joker",
     "consumable",
     "booster",
@@ -88,6 +89,8 @@ def consume_shop_policy_latency_note() -> str | None:
         "shop_d14_latency="
         f"total={total:.3f}s "
         f"deterministic={float(profile.get('deterministic_seconds', 0.0)):.3f}s "
+        f"joker_standalone={float(profile.get('joker_standalone_seconds', 0.0)):.3f}s/"
+        f"{int(profile.get('joker_standalone_calls', 0))}calls "
         f"joker={float(profile.get('joker_seconds', 0.0)):.3f}s "
         f"consumable={float(profile.get('consumable_seconds', 0.0)):.3f}s "
         f"booster={float(profile.get('booster_seconds', 0.0)):.3f}s/"
@@ -119,6 +122,7 @@ def install_shop_policy_latency_diagnostic() -> None:
 
     original_decide = BuildAwareShopArbiter.decide
     original_rank_actions = BalatroShopPolicy.rank_actions
+    original_standalone_jokers = BuildAwareShopArbiter._standalone_joker_decisions
     original_best_joker = BuildAwareShopArbiter._best_joker_decision
     original_best_consumable = BuildAwareShopArbiter._best_consumable_decision
     original_best_bond_pair = BuildAwareShopArbiter._best_visible_bond_pair
@@ -162,6 +166,14 @@ def install_shop_policy_latency_diagnostic() -> None:
             self,
             state,
             standalone=standalone,
+        )
+
+    def standalone_jokers(state, *, policy):
+        return _record_stage(
+            "joker_standalone",
+            original_standalone_jokers,
+            state,
+            policy=policy,
         )
 
     def best_consumable(self, state):
@@ -273,6 +285,9 @@ def install_shop_policy_latency_diagnostic() -> None:
 
     BuildAwareShopArbiter.decide = decide
     BalatroShopPolicy.rank_actions = rank_actions
+    BuildAwareShopArbiter._standalone_joker_decisions = staticmethod(
+        standalone_jokers
+    )
     BuildAwareShopArbiter._best_joker_decision = best_joker
     BuildAwareShopArbiter._best_consumable_decision = best_consumable
     BuildAwareShopArbiter._best_visible_bond_pair = best_bond_pair

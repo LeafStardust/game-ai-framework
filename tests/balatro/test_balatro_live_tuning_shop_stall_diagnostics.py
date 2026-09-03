@@ -93,6 +93,10 @@ class _Arbiter:
         del args, kwargs
         return None
 
+    def _standalone_joker_decisions(self, *args, **kwargs):
+        del args, kwargs
+        return ()
+
     def _best_consumable_decision(self, *args, **kwargs):
         del args, kwargs
         return None
@@ -159,6 +163,7 @@ def test_supervisor_factory_installs_durable_shop_stage_wrappers(tmp_path):
     assert runner._recommend_consumable_use(object()) is None
     assert runner.shop_generator.generate_actions(object()) == []
     assert runner.reroll_terms_reader() == "terms"
+    assert runner.shop_arbiter._standalone_joker_decisions(object()) == ()
     assert runner.shop_arbiter._best_joker_decision(object()) is None
     assert runner.shop_arbiter._best_consumable_decision(object()) is None
     assert runner.shop_arbiter._best_visible_bond_pair(object()) is None
@@ -175,6 +180,7 @@ def test_supervisor_factory_installs_durable_shop_stage_wrappers(tmp_path):
     assert "SHOP_PRE_D14_CONSUMABLE_CHECK" in stages
     assert "SHOP_ACTION_GENERATION" in stages
     assert "SHOP_REROLL_TERMS_READ" in stages
+    assert "D14_JOKER_STANDALONE" in stages
     assert "D14_JOKER" in stages
     assert "D14_CONSUMABLE" in stages
     assert "D14_VISIBLE_BOND_PAIR" in stages
