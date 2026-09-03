@@ -29,6 +29,7 @@ from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.photograph import PhotographJoker
@@ -229,6 +230,8 @@ class ShopTransitionEngine:
             return bool(state.round_reset_discards_observed)
         if type(item) is TroubadourJoker:
             return bool(state.round_reset_hands_observed) and state.round_reset_hands >= 1
+        if type(item) is MerryAndyJoker:
+            return bool(state.round_reset_discards_observed) and state.hand_size >= 1
         return False
 
     @staticmethod
@@ -252,6 +255,9 @@ class ShopTransitionEngine:
         elif type(joker) is TroubadourJoker:
             state.hand_size += 2
             state.round_reset_hands -= 1
+        elif type(joker) is MerryAndyJoker:
+            state.hand_size -= 1
+            state.round_reset_discards += 3
 
     @classmethod
     def _is_affordable(cls, state: BalatroState, item: Any) -> bool:
