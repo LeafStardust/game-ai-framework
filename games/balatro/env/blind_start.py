@@ -40,6 +40,10 @@ def prepare_pristine_first_small_blind(run: HeadlessRunState) -> HeadlessRunStat
         raise HeadlessTransitionError(
             "pristine Red/White first blind requires vanilla 4-hand/3-discard reset"
         )
+    if run.round_bonus_hands != 0 or run.round_bonus_discards != 0:
+        raise HeadlessTransitionError(
+            "pristine first blind requires zero pending round bonuses"
+        )
     if state.hand or state.discard_pile or run.draw_pile or run.discard_pile or run.played_pile:
         raise HeadlessTransitionError("first blind start requires empty card zones")
 
