@@ -335,7 +335,16 @@ Once L3 is green, stop manual Bond-strategy tuning and move directly to Phase R.
 
 The environment is the most important new subsystem. RL work must not proceed on top of an unverified simulator.
 
-## R0 — Environment architecture and ownership
+## R0 — Environment architecture and ownership — COMPLETE
+
+Completion evidence (September 3, 2026):
+
+- `games/balatro/env/` now defines the versioned `r0-v1` environment boundary;
+- `reset`, `step`, and `legal_actions` use the target Gym-like API while delegating exact transitions to an injected deterministic backend;
+- observations wrap and copy the canonical `BalatroState` rather than creating a parallel game-state model;
+- strategic actions alias the frozen `l3-v1` contract and fail closed outside training-exposed actions;
+- single-agent turn ownership, Ante-8 win/loss terminal semantics, serialization/restore ownership, and illegal-action rejection are explicit;
+- deterministic CI run `33760179448` passed: `1233 passed, 1594 deselected`.
 
 Create a dedicated environment package, preferably under a clearly isolated path such as:
 
@@ -1432,7 +1441,7 @@ The Sun D1 budget repair                          GREEN (DETERMINISTIC)
 Manual Bond numerical tuning                      RETIRED AS PRIMARY PATH
 RL pivot                                           APPROVED / ROADMAP ACTIVE
 L3 environment-freeze correctness gate            COMPLETE
-Headless training environment                     ACTIVE — R0 NEXT
+Headless training environment                     ACTIVE — R1 NEXT
 Observation/action encoding                       NOT STARTED
 Random/symbolic headless baselines                 NOT STARTED
 PPO strategic learner                             NOT STARTED
