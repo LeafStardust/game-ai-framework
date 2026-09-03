@@ -19,6 +19,7 @@ from games.balatro.card import BalatroCard
 from games.balatro.env.actions import EnvAction
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
+from games.balatro.jokers.arrowhead import ArrowheadJoker
 from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.blackboard import BlackboardJoker
@@ -32,6 +33,7 @@ from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.flower_pot import FlowerPotJoker
 from games.balatro.jokers.four_fingers import FourFingersJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
@@ -43,10 +45,13 @@ from games.balatro.jokers.mad_joker import MadJoker
 from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
+from games.balatro.jokers.onyx_agate import OnyxAgateJoker
 from games.balatro.jokers.pareidolia import PareidoliaJoker
 from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
+from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.scholar import ScholarJoker
+from games.balatro.jokers.seeing_double import SeeingDoubleJoker
 from games.balatro.jokers.shortcut import ShortcutJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.smeared_joker import SmearedJoker
@@ -109,6 +114,11 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     LustyJoker,
     WrathfulJoker,
     GluttonousJoker,
+    ScaryFaceJoker,
+    ArrowheadJoker,
+    OnyxAgateJoker,
+    FlowerPotJoker,
+    SeeingDoubleJoker,
 )
 
 
