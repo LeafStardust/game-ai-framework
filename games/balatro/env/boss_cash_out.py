@@ -1,9 +1,13 @@
-"""Exact Boss-defeat -> cash-out -> ungenerated-shop composition for R2.9.
+"""Boss payout/teardown primitive used while closing the exact R2.9 cash-out path.
 
-This module deliberately stops at the same SHOP boundary as ordinary cash-out.
-Vanilla advances to the next Ante/Blind-select lifecycle later, when the shop is
-left; folding that progression into Boss cash-out would create a non-existent
-headless action boundary.
+This module reaches an ungenerated SHOP after exact owned Boss teardown and
+baseline payout, but it is **not** the complete vanilla Boss ``cash_out`` action
+boundary. Source ``end_round`` has already advanced Ante before ``ROUND_EVAL``;
+then Boss ``cash_out`` regenerates blind tags and calls ``reset_blinds()``, which
+selects the next Boss, before the shop is later left.
+
+Those progression/RNG owners are composed separately. Do not treat this helper
+alone as training-visible exact Boss cash-out.
 """
 
 from __future__ import annotations
@@ -27,9 +31,9 @@ def _require_exact_int(name: str, value: object) -> int:
 
 
 def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
-    """Cash out one defeated Boss whose normal teardown is exactly owned.
+    """Apply the exact owned Boss teardown + baseline payout subset.
 
-    Source-order ownership at this boundary is:
+    Owned work inside this helper is:
 
     1. capture the active Boss reward/target before Blind reset;
     2. run exact normal ``Blind:defeat`` cleanup;
@@ -38,8 +42,16 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
     4. repopulate permanent playing cards into the round-end deck;
     5. enter an active but ungenerated SHOP.
 
-    Boss-specific Ante progression, tags, Voucher economy modifiers, and shop RNG
-    remain separate owners and therefore fail closed here.
+    Important source-order exclusions:
+
+    * Boss Ante advancement belongs to ``end_round`` and must already have been
+      applied by the progression owner before complete source composition;
+    * Boss ``cash_out`` then regenerates Small/Big tag choices and invokes
+      ``reset_blinds()``, including exact next-Boss selection;
+    * Voucher economy modifiers and shop generation remain separate owners.
+
+    Therefore this function is an internal exact subset, not a standalone
+    training-visible Boss cash-out action.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
