@@ -59,6 +59,32 @@ def apply_verdant_leaf_debuff(run: HeadlessRunState) -> HeadlessRunState:
     return next_run
 
 
+def clear_verdant_leaf_debuff(run: HeadlessRunState) -> HeadlessRunState:
+    """Mirror disabled Verdant re-evaluating all permanent cards as non-debuffed.
+
+    Vanilla ``Blind:disable`` sets ``self.disabled`` before calling
+    ``debuff_card`` across playing cards. Verdant's disabled path therefore
+    clears every playing-card debuff. Keep that inverse centralized so Chicot
+    and the minimum Verdant sale lifecycle cannot diverge.
+    """
+    state = run.public
+    if state.boss_name != "Verdant Leaf":
+        raise HeadlessTransitionError("Verdant Leaf cleanup requires Verdant Leaf boss")
+    if state.blind is None:
+        raise HeadlessTransitionError("Verdant Leaf cleanup requires blind state")
+    cards = _permanent_cards(run)
+    if any(not card.debuffed for card in cards):
+        raise HeadlessTransitionError(
+            "Verdant Leaf cleanup requires the owned all-card debuff state"
+        )
+
+    next_run = run.copy()
+    next_run.public.blind.disabled = True
+    for card in next_run.require_playing_card_order():
+        card.debuffed = False
+    return next_run
+
+
 def sell_static_joker_during_verdant(
     run: HeadlessRunState,
     joker_index: int,
@@ -107,7 +133,4 @@ def sell_static_joker_during_verdant(
     next_state = next_run.public
     next_state.money += sell_cost
     next_state.jokers.pop(joker_index)
-    next_state.blind.disabled = True
-    for card in next_run.require_playing_card_order():
-        card.debuffed = False
-    return next_run
+    return clear_verdant_leaf_debuff(next_run)
