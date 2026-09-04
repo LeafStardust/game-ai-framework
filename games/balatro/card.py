@@ -53,6 +53,14 @@ class BalatroCard:
     # Balatro's ``card.facing`` field; facing-sensitive Boss logic must require
     # this flag instead of treating the default ``face_down=False`` as observed.
     facing_observed: bool = False
+    # Permanent public Ante-history used by The Pillar. Vanilla sets this flag as
+    # soon as the card moves hand->play, before Blind:press_play/scoring, and
+    # clears it only after the Ante's Boss is defeated.
+    played_this_ante: bool = False
+    # Missing ``ability.played_this_ante`` is authoritative false only when the
+    # permanent card's ability table itself was read successfully. Synthetic or
+    # partial observations must leave this false so Pillar logic can fail closed.
+    played_this_ante_observed: bool = False
     # Balatro preserves the card's original suit nominal when set_base converts
     # its current suit. Card:get_nominal() uses this value as a deterministic hand
     # sort tiebreak component. It is ordinary card state/history, not future draw
