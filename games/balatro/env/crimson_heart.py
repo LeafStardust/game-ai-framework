@@ -169,7 +169,7 @@ def apply_crimson_heart_drawn_to_hand(run: HeadlessRunState) -> HeadlessRunState
 
 
 def clear_crimson_heart_joker_debuffs(run: HeadlessRunState) -> HeadlessRunState:
-    """Mirror active-Boss disable/defeat cleanup for Joker debuffs."""
+    """Mirror Crimson's Joker-debuff cleanup without changing blind enablement."""
     if run.public.boss_name != "Crimson Heart":
         raise HeadlessTransitionError("Crimson Heart cleanup requires Crimson Heart")
     next_run = run.copy()
@@ -177,4 +177,24 @@ def clear_crimson_heart_joker_debuffs(run: HeadlessRunState) -> HeadlessRunState
         joker.debuffed = False
     if next_run.public.blind is not None:
         setattr(next_run.public.blind, "prepped", False)
+    return next_run
+
+
+def disable_crimson_heart(run: HeadlessRunState) -> HeadlessRunState:
+    """Mirror ``Blind:disable`` for Crimson Heart's owned state.
+
+    Once ``self.disabled`` is true, vanilla ``debuff_card`` clears Joker debuffs.
+    No RNG is consumed and the selected Joker is not remembered for a later
+    re-selection because the Boss remains disabled.
+    """
+    state = run.public
+    if state.boss_name != "Crimson Heart":
+        raise HeadlessTransitionError("Crimson Heart disable requires Crimson Heart")
+    if state.blind is None:
+        raise HeadlessTransitionError("Crimson Heart disable requires blind state")
+    if bool(getattr(state.blind, "disabled", False)):
+        raise HeadlessTransitionError("Crimson Heart blind is already disabled")
+
+    next_run = clear_crimson_heart_joker_debuffs(run)
+    next_run.public.blind.disabled = True
     return next_run
