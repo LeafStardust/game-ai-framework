@@ -2,9 +2,9 @@
 
 This owner is deliberately distinct from :mod:`boss_disable`: Chicot invokes
 ``Blind:disable`` during an active round, while normal defeat occurs after the
-Blind has been cleared.  Vanilla defeat resets the active blind across permanent
-playing cards, clears transient Boss card state, flips hidden Jokers, and restores
-The Manacle's persistent hand-size reduction without drawing a replacement.
+Blind has been cleared.  Vanilla defeat eventually installs a blank blind with
+``set_blind(nil, nil, true)``, re-evaluating permanent cards/Jokers while keeping
+Boss-specific teardown source-ordered.
 
 Only families whose teardown is already represented exactly are admitted here.
 Unsupported Bosses fail closed rather than borrowing disable semantics.
@@ -19,6 +19,7 @@ from games.balatro.env.boss_debuffs import (
 )
 from games.balatro.env.boss_draw import clear_cerulean_bell_forced_selection
 from games.balatro.env.boss_resources import defeat_resource_boss
+from games.balatro.env.crimson_heart import clear_crimson_heart_joker_debuffs
 from games.balatro.env.joker_sale import clear_verdant_leaf_defeat_debuff
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
@@ -40,6 +41,7 @@ _SIMPLE_DEFEAT_BOSSES = frozenset({
 })
 _AMBER_ACORN = "Amber Acorn"
 _VERDANT_LEAF = "Verdant Leaf"
+_CRIMSON_HEART = "Crimson Heart"
 
 
 def _clear_public_blind_transients(run: HeadlessRunState) -> HeadlessRunState:
@@ -73,6 +75,8 @@ def defeat_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
 
     # A Chicot-disabled Boss has already run the exact disable inverse while the
     # round was active. Normal defeat must not apply those inverses a second time.
+    # Disabled Crimson remains fail-closed because the later blank-blind install
+    # also resets Blind.disabled/prepped state, which is not yet globally owned.
     if disabled:
         if name in (
             _RESOURCE_BOSSES
@@ -103,6 +107,13 @@ def defeat_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
         cleaned = clear_cerulean_bell_forced_selection(run)
     elif name == _VERDANT_LEAF:
         cleaned = clear_verdant_leaf_defeat_debuff(run)
+    elif name == _CRIMSON_HEART:
+        # Blank-blind installation runs debuff_card over Jokers after replacing
+        # Crimson's name/debuff config, so the selected Joker is cleared. The
+        # same set_blind call initializes prepped=true; retain that source-native
+        # private bit while the broader blank-blind state reset remains R2.9 work.
+        cleaned = clear_crimson_heart_joker_debuffs(run)
+        setattr(cleaned.public.blind, "prepped", True)
     elif name == _AMBER_ACORN:
         # Vanilla Blind:defeat flips the visually hidden Jokers face-up but does
         # not restore the pre-Boss order and consumes no RNG. Face orientation is
