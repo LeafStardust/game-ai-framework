@@ -16,6 +16,127 @@ Authoritative roadmap for Balatro Red Deck / White Stake competence on `LeafStar
 - Do not reintroduce legacy attempt flags such as `--one`, `--three`, `--five`; retain the canonical attempt-count interface.
 - Face-down card identity is **not public information**. Headless simulation may retain true identity internally for exact mechanics, but policy observations must mask it. Do not give the production/training agent an oracle/cheat view. Any future oracle mode must be explicit debug-only tooling.
 
+## Development procedure — REQUIRED FOR CONTINUATION WORK
+
+This section records the working procedure used by Work Chat so future sessions do not fall back to slower or less reliable habits.
+
+### 1. Start from the repository, not chat memory
+
+For every continuation session:
+
+1. read the current `ROADMAP.md` first;
+2. verify the current branch/head before editing;
+3. inspect the canonical owner(s) for the next roadmap task;
+4. check for intervening commits before writing;
+5. treat chat summaries as navigation aids only — repository state is authoritative.
+
+Target branch for this competence path:
+
+```text
+feat/v1.0-red-white-competence
+```
+
+`ROADMAP.md` is the single source of truth for phase status, blockers, next work, and validation state. Keep it synchronized whenever a completed slice materially changes any of those.
+
+### 2. Implement in small exact slices
+
+For each mechanics/state/lifecycle slice:
+
+1. audit vanilla/source behavior and existing production owners;
+2. classify the exact missing ownership boundary;
+3. patch the canonical owner rather than adding a rescue wrapper;
+4. add focused deterministic regression(s), including rejection/fail-closed behavior where relevant;
+5. keep unsupported composition absent rather than approximating it;
+6. run the deterministic CI gate;
+7. inspect the actual pytest result and selection count;
+8. only then mark the slice GREEN and synchronize the roadmap.
+
+Do not bulk-admit Jokers/actions merely because a nearby class is supported. Each acquisition/lifecycle consequence must be audited for counters, RNG, economy, card mutation, sell/destruction behavior, and other persistent state.
+
+### 3. Source-audit rule
+
+When exact Balatro behavior is unclear, trace the pinned vanilla implementation or the repository's already-validated canonical implementation before coding. Do not infer mechanics from names, UI behavior, memory, wiki prose, or Python convenience semantics when source-exact behavior is available.
+
+Current source audits have used the vanilla Balatro source mirror at pinned commit:
+
+```text
+GladdonT/balatro-source-code
+895ab3a25bc6f513fa80885eb59951bf8e76bc55
+```
+
+If the source reference changes, record the new pin before depending on it for deterministic parity work.
+
+### 4. Fail-closed rule
+
+If exactness cannot be proved at the modeled boundary:
+
+- reject the transition/action;
+- omit it from the training mask;
+- preserve `None`/unobserved state where applicable;
+- do not silently substitute a related public field;
+- do not add synthetic state solely to make a transition convenient unless that state is source-justified and its lifecycle is owned.
+
+Examples already enforced:
+
+- permanent owned deck is `G.playing_cards`, never `G.deck.cards`;
+- partial LuaJIT array reads make owned-deck observation unavailable rather than shorter;
+- future physical draw order remains private;
+- face-down identity remains masked from policy observations;
+- Python `random` is not a substitute for Balatro/LuaJIT RNG.
+
+### 5. Deterministic pytest procedure — GITHUB ACTIONS IS THE WORK CHAT GATE
+
+Work Chat does **not** ask the user to pull the branch and run deterministic pytest when GitHub Actions can run it. The authoritative workflow is:
+
+```text
+.github/workflows/balatro-l3.yml
+```
+
+It runs on pushes to `feat/v1.0-red-white-competence` affecting Balatro/tests/roadmap/workflow paths and executes:
+
+```bash
+python -m pytest -q tests/balatro -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2"
+```
+
+Required procedure after a relevant push:
+
+1. locate the workflow run for the exact commit/head;
+2. wait for the `balatro-deterministic-tests` job to complete;
+3. require workflow/job conclusion `success`;
+4. inspect the job log's final pytest line;
+5. record the exact `passed` and `deselected` counts when reporting a gate;
+6. confirm the intended new test family was selected by the `-k` expression;
+7. if new tests were deselected, fix CI selection and rerun before calling the slice GREEN.
+
+A green workflow badge alone is **not sufficient evidence**. Historical example: the first R2 card-order workflow succeeded while six `env_r2` tests were deselected; the workflow selector was then corrected to include `env_r2`, and only the corrected run counted as the gate.
+
+Do not claim local pytest ran unless there is an actual local repository/runtime in the current environment. GitHub Actions is the default deterministic test executor for Work Chat when no local clone exists.
+
+### 6. Commit/push procedure
+
+The user has authorized pushing completed commits to the remote branch. Therefore:
+
+- push coherent completed implementation/test/doc slices without asking for repeated permission;
+- prefer separate implementation and focused regression commits when useful for auditability;
+- do not claim a push/commit exists without GitHub evidence;
+- do not stack large unrelated changes behind an unverified mechanics gate;
+- synchronize `ROADMAP.md` after green checkpoints so another session can resume exactly.
+
+### 7. Live Balatro validation procedure
+
+Do **not** ask the user to run Balatro for deterministic/static questions that CI can answer.
+
+Request a Windows/live Balatro run only when the remaining uncertainty genuinely depends on live game integration, memory observation, runtime parity, UI/execution behavior, or another condition that cannot be established from source + deterministic tests. When a live run is needed, state exactly what evidence/run is required rather than requesting an open-ended batch.
+
+Current standing instruction: **no open-ended live batch** unless a later roadmap gate explicitly requires one.
+
+### 8. Scope discipline
+
+- Follow the roadmap's current primary workstream; do not pivot back to Bond coefficient tuning.
+- Do not start PPO/observation training before the roadmap gates permit it.
+- Do not reintroduce retired legacy attempt flags; use the canonical attempt-count interface.
+- If context becomes insufficient to continue safely, stop rather than guessing or performing an ungrounded large change. Resume from repository + roadmap state in the next session.
+
 ---
 
 # Completed foundation
@@ -488,11 +609,21 @@ run lost:        0
 
 # Deterministic CI contract
 
+Authoritative Work Chat workflow:
+
+```text
+.github/workflows/balatro-l3.yml
+```
+
+Command:
+
 ```bash
 python -m pytest -q tests/balatro -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2"
 ```
 
-No local clone is assumed in Work Chat; never claim local pytest unless a real local runtime exists.
+A deterministic gate is valid only when the exact pushed head's Actions job succeeds **and** the job log confirms the intended tests were selected and gives the final pytest pass/deselect counts. Do not infer coverage from workflow success alone.
+
+No local clone is assumed in Work Chat; never claim local pytest unless a real local runtime exists. Do not ask the user to run deterministic pytest that this workflow can run.
 
 ---
 
@@ -523,7 +654,7 @@ R6 performance                         NOT STARTED
 Observation/PPO                        NOT STARTED
 ```
 
-Current branch code head immediately before this roadmap synchronization:
+Current branch code head immediately before this roadmap procedure synchronization:
 
 ```text
 41af2ecd201a882e429baae5a4b3fcddf9fdd0ca
