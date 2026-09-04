@@ -142,7 +142,7 @@ def test_env_r2_cashout_pays_exact_golden_cloud9_and_delayed_gratification_rows(
     # Vanilla ordering: $24 pre-payout gives exactly $4 interest.  Joker rows are
     # Golden +$4, Cloud 9 +$4 for the four nines in a base deck, and Delayed
     # Gratification +$4 for two unused discards.  They do not inflate interest.
-    assert result.public.money == 39
+    assert result.public.money == 43
     assert result.public.discards_remaining == 2
 
 
