@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from games.balatro.env.public_observation import public_observation_state
 from games.balatro.state import BalatroState
 
 
@@ -28,7 +29,7 @@ class TurnOwner(str, Enum):
 
 @dataclass(frozen=True)
 class EnvStateFrame:
-    """R0 wrapper around the existing canonical public ``BalatroState``."""
+    """R0 wrapper around the existing canonical Balatro state."""
 
     state: BalatroState
     status: RunStatus = RunStatus.RUNNING
@@ -42,9 +43,13 @@ class EnvStateFrame:
             raise ValueError("non-terminal frame cannot be owned by TERMINAL")
 
     def observation(self) -> BalatroState:
-        """Return an isolated copy of the canonical public observation."""
+        """Return an isolated policy-safe observation.
 
-        return self.state.copy()
+        Internal exact mechanics may retain hidden physical card identity. The
+        policy boundary masks any face-down hand identity before exposure.
+        """
+
+        return public_observation_state(self.state)
 
 
 @dataclass(frozen=True)
