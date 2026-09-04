@@ -12,7 +12,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.state import BalatroState
 
 
-START_INERT_BOSSES = ("The Psychic", "The Flint", "The Tooth", "The Hook")
+START_INERT_BOSSES = ("The Psychic", "The Flint", "The Tooth", "The Hook", "The Ox")
 
 
 def _run(boss_name: str) -> HeadlessRunState:
