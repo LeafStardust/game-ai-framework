@@ -20,6 +20,7 @@ from games.balatro.env.deal import (
     deal_pristine_round_start,
     deal_supported_round_start,
 )
+from games.balatro.env.joker_sale import apply_verdant_leaf_debuff
 from games.balatro.env.round_lifecycle import (
     apply_round_resource_baseline,
     apply_supported_setting_blind_effects,
@@ -267,6 +268,30 @@ def prepare_supported_pillar_start(run: HeadlessRunState) -> HeadlessRunState:
 def start_supported_pillar(run: HeadlessRunState) -> HeadlessRunState:
     """Compose The Pillar history debuff lifecycle with exact shuffle/deal."""
     prepared = prepare_supported_pillar_start(run)
+    return deal_supported_round_start(prepared)
+
+
+def prepare_supported_verdant_leaf_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own Verdant Leaf's source-ordered all-playing-card debuff start.
+
+    Vanilla Verdant debuffs playing cards during ``Blind:set_blind`` before the
+    Joker ``setting_blind`` pass. The minimum exact sale owner separately
+    disables the blind and clears these debuffs when a supported Joker is sold.
+    """
+    _require_boss_blind(run, label="Verdant Leaf boss start")
+    if run.public.boss_name != "Verdant Leaf":
+        raise HeadlessTransitionError("Verdant Leaf boss start requires Verdant Leaf")
+    if getattr(run.public.blind, "disabled", False):
+        raise HeadlessTransitionError("Verdant Leaf start requires active blind state")
+
+    next_run = _begin_predeal_lifecycle(run)
+    next_run = apply_verdant_leaf_debuff(next_run)
+    return _finish_predeal_lifecycle(next_run)
+
+
+def start_supported_verdant_leaf(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose exact Verdant pre-deal debuff with shuffle/deal."""
+    prepared = prepare_supported_verdant_leaf_start(run)
     return deal_supported_round_start(prepared)
 
 
