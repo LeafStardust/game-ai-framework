@@ -19,6 +19,7 @@ from games.balatro.env.boss_debuffs import (
 )
 from games.balatro.env.boss_draw import clear_cerulean_bell_forced_selection
 from games.balatro.env.boss_resources import defeat_resource_boss
+from games.balatro.env.joker_sale import clear_verdant_leaf_defeat_debuff
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
@@ -38,6 +39,7 @@ _SIMPLE_DEFEAT_BOSSES = frozenset({
     "The Mouth",
 })
 _AMBER_ACORN = "Amber Acorn"
+_VERDANT_LEAF = "Verdant Leaf"
 
 
 def _clear_public_blind_transients(run: HeadlessRunState) -> HeadlessRunState:
@@ -76,7 +78,13 @@ def defeat_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
             _RESOURCE_BOSSES
             | _STATIC_SUIT_BOSSES
             | _SIMPLE_DEFEAT_BOSSES
-            | {"The Plant", "The Pillar", "Cerulean Bell", _AMBER_ACORN}
+            | {
+                "The Plant",
+                "The Pillar",
+                "Cerulean Bell",
+                _AMBER_ACORN,
+                _VERDANT_LEAF,
+            }
         ):
             return _clear_public_blind_transients(run)
         raise HeadlessTransitionError(
@@ -93,11 +101,13 @@ def defeat_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
         cleaned = clear_pillar_history_debuff(run)
     elif name == "Cerulean Bell":
         cleaned = clear_cerulean_bell_forced_selection(run)
+    elif name == _VERDANT_LEAF:
+        cleaned = clear_verdant_leaf_defeat_debuff(run)
     elif name == _AMBER_ACORN:
         # Vanilla Blind:defeat flips the visually hidden Jokers face-up but does
-        # not restore the pre-Boss order and consumes no RNG.  Face orientation
-        # is not part of the public Joker model; retaining the exact physical
-        # order is therefore the complete modeled state consequence here.
+        # not restore the pre-Boss order and consumes no RNG. Face orientation is
+        # not part of the public Joker model; retaining exact physical order is
+        # therefore the complete modeled state consequence here.
         cleaned = run.copy()
     elif name in _SIMPLE_DEFEAT_BOSSES:
         cleaned = run.copy()
