@@ -20,6 +20,7 @@ from games.balatro.env.boss_debuffs import (
     clear_static_suit_boss_debuff,
 )
 from games.balatro.env.boss_draw import clear_cerulean_bell_forced_selection
+from games.balatro.env.boss_facing import clear_facing_boss_hand
 from games.balatro.env.boss_resources import disable_resource_boss
 from games.balatro.env.crimson_heart import disable_crimson_heart
 from games.balatro.env.joker_sale import clear_verdant_leaf_debuff
@@ -27,6 +28,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 
 
 _STATIC_SUIT_BOSSES = frozenset({"The Goad", "The Window", "The Head", "The Club"})
+_FACING_BOSSES = frozenset({"The House", "The Wheel", "The Mark", "The Fish"})
 _REQUIREMENT_DISABLE_DIVISORS = {
     "The Wall": 2,
     "Violet Vessel": 3,
@@ -144,6 +146,10 @@ def disable_supported_boss(
     if name == "Verdant Leaf":
         return clear_verdant_leaf_debuff(run)
 
+    if name in _FACING_BOSSES:
+        cleared = clear_facing_boss_hand(run)
+        return _mark_disabled(cleared)
+
     if name == "Cerulean Bell":
         cleared = clear_cerulean_bell_forced_selection(run)
         return _mark_disabled(cleared)
@@ -157,8 +163,6 @@ def disable_supported_boss(
     if name in _SUPPORTED_SIMPLE_DISABLE_BOSSES:
         return _mark_disabled(run)
 
-    # Facing Bosses and any as-yet-unclassified Boss stay unavailable until
-    # their exact disable consequences are centralized/tested.
     raise HeadlessTransitionError(
         f"Boss disable is not exactly owned for {name!r} at this boundary"
     )
