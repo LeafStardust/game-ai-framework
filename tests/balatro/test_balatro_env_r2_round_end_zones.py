@@ -30,7 +30,7 @@ def _partitioned_run() -> tuple[HeadlessRunState, list]:
 
 
 def test_env_r2_round_end_repopulation_pins_hand_then_reverse_discard_order():
-    run, order = _partitioned_run()
+    run, _ = _partitioned_run()
     original_draw = list(run.draw_pile)
     original_discard = list(run.discard_pile)
     original_hand = list(run.public.hand)
@@ -41,7 +41,13 @@ def test_env_r2_round_end_repopulation_pins_hand_then_reverse_discard_order():
         *original_draw,
         *reversed([*original_discard, *original_hand]),
     ]
-    assert {id(card) for card in result.draw_pile} == {id(card) for card in order}
+    # HeadlessRunState.copy() deep-copies the transition snapshot, so output
+    # card identities must be compared with the output's retained creation order,
+    # not with objects from the input snapshot.
+    result_order = result.require_playing_card_order()
+    assert {id(card) for card in result.draw_pile} == {
+        id(card) for card in result_order
+    }
     assert result.public.hand == []
     assert result.public.discard_pile == []
     assert result.discard_pile == []
