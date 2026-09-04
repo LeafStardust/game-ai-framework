@@ -3,6 +3,7 @@ import pytest
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.boss_defeat import defeat_supported_boss
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.state import BalatroState
 
 
@@ -88,6 +89,25 @@ def test_env_r2_boss_defeat_clears_cerulean_forced_selection_from_permanent_card
     assert run.public.deck[0].forced_selection is True
 
 
+def test_env_r2_amber_defeat_preserves_physical_joker_order_without_rng():
+    run = _boss_run("Amber Acorn")
+    first = FlatMultJoker(1)
+    second = FlatMultJoker(2)
+    third = FlatMultJoker(3)
+    run.public.jokers = [third, first, second]
+    before_rng = run.rng_snapshot()
+    before_order = [joker.mult for joker in run.public.jokers]
+
+    result = defeat_supported_boss(run)
+
+    assert [joker.mult for joker in result.public.jokers] == before_order
+    assert result.rng_snapshot() == before_rng
+    assert result.public.boss_blind_state_observed is False
+    assert result.public.boss_blind_hands == set()
+    assert result.public.boss_blind_only_hand is None
+    assert [joker.mult for joker in run.public.jokers] == before_order
+
+
 def test_env_r2_disabled_supported_boss_does_not_reapply_inverse_cleanup():
     run = _boss_run("The Manacle")
     run.public.blind.disabled = True
@@ -101,7 +121,7 @@ def test_env_r2_disabled_supported_boss_does_not_reapply_inverse_cleanup():
 
 
 def test_env_r2_boss_defeat_rejects_unsupported_or_wrong_boundary():
-    run = _boss_run("Amber Acorn")
+    run = _boss_run("Verdant Leaf")
     with pytest.raises(HeadlessTransitionError, match="not exactly owned"):
         defeat_supported_boss(run)
 
