@@ -138,6 +138,29 @@ def test_env_r2_crimson_defeat_clears_joker_debuff_and_installs_blank_blind_prep
     assert getattr(run.public.blind, "prepped", False) is False
 
 
+@pytest.mark.parametrize("boss_name", ["The House", "The Wheel", "The Mark", "The Fish"])
+def test_env_r2_facing_state_boss_normal_defeat_is_state_only_and_rng_neutral(boss_name):
+    run = _boss_run(boss_name)
+    run.public.boss_blind_state_observed = True
+    run.public.boss_blind_hands = {"PAIR"}
+    before_rng = run.rng_snapshot()
+    before_order = list(run.require_playing_card_order())
+
+    result = defeat_supported_boss(run)
+
+    # Vanilla normal Blind:defeat does not borrow Blind:disable's explicit
+    # House/Wheel/Mark/Fish hand-card flip cleanup. The current public model has
+    # no facing field, so the exact normal-defeat consequence at this boundary is
+    # only removal of the defeated Blind's public mutable state.
+    assert result.public.boss_blind_state_observed is False
+    assert result.public.boss_blind_hands == set()
+    assert result.public.boss_blind_only_hand is None
+    assert result.require_playing_card_order() == before_order
+    assert result.rng_snapshot() == before_rng
+    assert run.public.boss_blind_state_observed is True
+    assert run.public.boss_blind_hands == {"PAIR"}
+
+
 def test_env_r2_disabled_supported_boss_does_not_reapply_inverse_cleanup():
     run = _boss_run("The Manacle")
     run.public.blind.disabled = True
