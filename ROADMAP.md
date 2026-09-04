@@ -178,6 +178,7 @@ Tooth                           -$1 per played card          GREEN  CI 338391021
 Hook                            keyed forced discards        GREEN  CI 33839910429
 Ox                              matching hand -> money = 0   GREEN  CI 33841056452
 Arm                             level > 1 -> level - 1       GREEN  CI 33841056452
+Serpent                         post-action 3-card draw       GREEN  CI 33843165212
 ```
 
 #### Start-inert Boss family — GREEN
@@ -191,6 +192,7 @@ The Tooth
 The Hook
 The Ox
 The Arm
+The Serpent
 ```
 
 They have no additional `Blind:set_blind` / initial `Blind:drawn_to_hand` mutation; downstream effects are owned separately.
@@ -242,32 +244,70 @@ Relevant commits:
 a62b53a  Arm start-inert regressions
 ```
 
-Combined current gate:
+#### Serpent exact semantics
+
+Vanilla `draw_from_deck_to_hand` overrides ordinary free-hand-capacity draw after at least one play or discard while The Serpent is enabled:
 
 ```text
-CI 33841056452: 1662 passed, 1594 deselected
+draw_count = min(#remaining_deck, 3)
 ```
 
-### NEXT R2 WORK — THE SERPENT DRAW LIFECYCLE
+The dedicated headless owner:
 
-Source-audited behavior:
+- uses authoritative current-round play/discard history;
+- uses the private physical draw pile and never leaks future order;
+- may grow the hand above nominal hand capacity, as vanilla does;
+- re-sorts the resulting hand using the exact owned-card sort boundary;
+- consumes no RNG;
+- fails closed for unknown history, private/public deck mismatch, wrong phase, wrong Boss, or disabled Serpent;
+- composes with the audited start-inert Boss start and exact initial shuffle/deal.
 
-- after at least one play or discard, The Serpent's `draw_from_deck_to_hand` path draws exactly `min(#deck, 3)` cards;
-- this intentionally ignores normal free-hand capacity;
-- therefore the current `draw_one_supported_card_to_hand()` helper cannot simply be looped because it enforces ordinary hand capacity;
-- implement a dedicated exact post-action Serpent draw helper using the authoritative private physical draw pile;
-- preserve canonical public deck ordering and hand sorting;
-- fail closed when action history or physical draw pile is not authoritative;
-- then classify Serpent start-inert if the downstream gate is green.
+Relevant commits:
 
-Do not approximate with ordinary hand-capacity draws.
+```text
+3a72e25  Serpent post-action draw owner
+dbe52d8  Serpent downstream regressions
+592081d  classify Serpent start-inert
+fca90dc  start-inert family regression
+723c8a5  composed start -> play-history -> Serpent draw regression
+```
+
+Current Serpent-composed gate:
+
+```text
+CI 33843165212: 1675 passed, 1594 deselected
+```
+
+### NEXT R2 WORK — FACE-DOWN / FACING STATE OWNERSHIP
+
+Source audit identifies a mechanically related Boss family whose semantics depend on card-facing state:
+
+```text
+The House
+The Wheel
+The Mark
+The Fish
+```
+
+Do **not** classify these as start-inert yet. `BalatroCard` currently has no authoritative facing/face-down field, so exact headless transitions cannot represent their visible hidden-card state.
+
+Next implementation order:
+
+1. audit exact vanilla `Blind:set_blind`, `Blind:drawn_to_hand`, `Blind:press_play`, disable/defeat flip behavior for all four;
+2. add the minimum canonical **public** facing state needed to represent what the player can see, without leaking rank/suit information through observations when a card is face down;
+3. wire live observer + translator exactness for facing state;
+4. add deterministic draw/flip lifecycle owners per mechanically coherent Boss subgroup;
+5. keep public future draw order private;
+6. add source-pinned regressions and fail-closed tests;
+7. only then widen Boss-start ownership.
+
+The current audit already confirms vanilla flips any remaining face-down hand cards back face-up when these Bosses are disabled/defeated; that inverse lifecycle must be owned too.
 
 ### Current hard blockers / later Boss categories
 
 - Pillar — persistent per-card `played_this_ante` history
 - Verdant Leaf — all-card debuff + Joker-sale lifecycle
 - Amber Acorn — Joker flip + seeded Joker-order shuffle
-- Wheel/House/Mark/Fish — exact face-down/facing state + round-event ownership
 - Crimson Heart — per-hand random Joker debuff lifecycle
 - Chicot composition, especially pre-deal Manacle
 - prior-round arbitrary zone cleanup
@@ -341,11 +381,12 @@ No local clone is assumed in Work Chat; never claim local pytest unless a real l
 ```text
 R1 deterministic state/acquisition     SUBSTANTIALLY COMPLETE
 R2 RNG / round / Boss lifecycle        ACTIVE
-R2 start-inert family                  GREEN THROUGH ARM
+R2 start-inert family                  GREEN THROUGH SERPENT
 R2 Hook downstream                     GREEN — CI 33839910429
 R2 Ox downstream + live target         GREEN — CI 33841056452
 R2 Arm downstream                      GREEN — CI 33841056452
-NEXT                                   THE SERPENT POST-ACTION DRAW
+R2 Serpent downstream + composition    GREEN — CI 33843165212
+NEXT                                   FACE-DOWN / FACING STATE OWNERSHIP
 SELECT_BLIND                           NOT EXPOSED
 Burglar acquisition                    FAIL-CLOSED
 Generic/unknown acquisitions           FAIL-CLOSED
@@ -361,7 +402,7 @@ Observation/PPO                        NOT STARTED
 Current branch code head immediately before this roadmap synchronization:
 
 ```text
-a62b53a959720baba6070b914288006867aa575f
+723c8a56ba536589df508c1c4c5a2e113ffbae0c
 ```
 
-The next code written should therefore be the **exact Serpent post-action draw lifecycle**. It should **not** be Bond tuning, PPO, or an approximation of a blocked Boss lifecycle.
+The next code written should therefore be **exact public facing-state ownership and the source-audited House/Wheel/Mark/Fish lifecycle**, beginning with observer/translator/schema exactness. It should **not** be Bond tuning, PPO, or an approximation that exposes hidden card information.
