@@ -360,7 +360,7 @@ CI 33873017991: 1838 passed, 1595 deselected
 
 Generic training `SELECT_BLIND` remains hidden.
 
-### R2.9 — BLIND CLEAR / ROUND-END ECONOMY -> SHOP — BOSS TEARDOWN CLOSED / PROGRESSION ACTIVE
+### R2.9 — ROUND-END CASHOUT + BLIND/ANTE PROGRESSION — GREEN FOR NORMAL OWNED CHAIN
 
 Owned source-ordered cash-out pieces:
 
@@ -403,25 +403,61 @@ db64bab  compare copied cash-out cards by stable semantic content
 CI 33906956546: 1884 passed, 1595 deselected
 ```
 
-The normal-defeat owner now accounts for **all 28 vanilla Boss names**. R2.9 Boss teardown/cash-out is therefore closed for the currently modeled roster.
+The normal-defeat owner accounts for **all 28 vanilla Boss names**.
 
-Still under R2.9 / fail-closed until exact:
+The normal progression chain is now also owned for the current exact boundary:
 
-- full blind/Ante-state progression after cash-out and shop exit;
-- source-exact Small -> Big -> Boss -> next-Ante state progression;
-- general end-of-round Joker/economy modifiers outside the audited subset.
+1. `finalize_won_round_progression()` marks the current Small/Big/Boss defeated;
+2. Boss `end_round` advances Ante and clears one-shot round bonuses before cash-out;
+3. cash-out remains a separate lifecycle boundary and enters active, ungenerated `SHOP`;
+4. `enter_blind_select_progression()` chooses the next available Small -> Big -> Boss in source order;
+5. `reset_blinds_after_boss_cashout()` restores next-Ante Small/Big/Boss Upcoming state;
+6. normal Boss selection uses exact keyed RNG and usage-count filtering;
+7. normal Small/Big skip-tag selection uses exact keyed RNG/profile gating;
+8. after a Boss cash-out, next-Ante choices are generated in source order: **Small Tag -> Big Tag -> Boss**;
+9. `resolve_supported_boss_round()` composes the owned Boss end-round -> cash-out -> next-Ante generation chain while stopping at the ungenerated SHOP boundary.
 
-Do not fold asynchronous vanilla events into the wrong strategic action merely for convenience. Cash-out and leaving the shop remain separate lifecycle/action boundaries unless pinned source proves otherwise.
+Progression/generation commits:
 
-### Remaining R2 categories after R2.9 progression
+```text
+4cc2683  own blind progression end-round state
+59fb3e9  isolate blind progression primitive
+de192be  pin end-round blind progression
+082641f  own deterministic BLIND_SELECT progression
+db69e28  pin deterministic BLIND_SELECT progression
+44efee3  own deterministic Boss blind reset
+b9b3e0e  pin deterministic Boss reset_blinds state
+f5496db  own exact normal Boss selection
+257491d  pin exact normal Boss selection
+5a49122  own exact normal skip-tag selection
+89a7207  pin exact normal skip-tag selection
+4db12ac  compose post-Boss blind generation
+2951267  pin post-Boss blind generation order
+db2fe5b  compose exact Boss round resolution
+8fff3b6  cover composed Boss round resolution
+```
 
-- shop generation RNG;
-- reroll RNG;
-- pack contents/choice RNG and pack state;
-- voucher lifecycle where needed;
-- active-tag generation/application where needed;
-- Boss-selection RNG/progression;
-- fixed-seed replay across multi-round trajectories.
+Latest composition gate:
+
+```text
+CI 33915588784: 1924 passed, 1595 deselected
+```
+
+R2.9 is therefore closed for the current normal owned progression chain. Unsupported end-of-round Joker/economy modifiers and active Tag effects remain fail-closed; they are not implied by this closure.
+
+Do not fold asynchronous vanilla events into the wrong strategic action merely for convenience. Cash-out, shop generation, leaving the shop, and blind selection remain separate lifecycle/action boundaries unless pinned source proves otherwise.
+
+### Remaining R2 categories after R2.9 progression closure
+
+- **shop inventory generation RNG** — next structural blocker for general multi-round traversal;
+- reroll RNG and reroll-cost/economy modifiers;
+- booster/pack contents, choice RNG, and pack state;
+- voucher availability/lifecycle and voucher-driven shop/economy modifiers;
+- active Tag application/cash-out effects beyond exact normal tag selection/generation;
+- remaining unsupported end-of-round Joker/economy modifiers;
+- fixed-seed replay across representative multi-round trajectories.
+
+Normal Boss-selection RNG/progression and normal skip-tag generation are no longer listed as unfinished: those deterministic owners are green.
 
 ---
 
@@ -520,7 +556,12 @@ R2 round-end private deck retention     GREEN
 R2 ordinary Small/Big cash-out -> SHOP  GREEN
 R2 all-Boss normal defeat/cash-out      GREEN — CI 33906956546
 R2.9 Boss teardown                      CLOSED FOR 28 VANILLA BOSSES
-R2.9 post-cashout blind/Ante progression ACTIVE — NEXT
+R2.9 normal blind/Ante progression      GREEN
+R2.9 normal Boss selection              GREEN
+R2.9 normal skip-tag generation         GREEN
+R2.9 Boss -> next-Ante generation       GREEN
+R2.9 composed Boss round resolution     GREEN — CI 33915588784
+Shop inventory generation RNG           NEXT STRUCTURAL BLOCKER
 SELECT_BLIND                            NOT EXPOSED
 Burglar acquisition                     FAIL-CLOSED
 Chicot acquisition                      FAIL-CLOSED
@@ -537,13 +578,13 @@ Observation/PPO                         NOT STARTED
 Current code head before this documentation commit:
 
 ```text
-db64bab17c10b2be02ccf107ab740354e4d11955
+8fff3b61114957ecdc4b4ffc3597833a7007f938
 ```
 
 Latest authoritative green deterministic gate:
 
 ```text
-CI 33906956546: 1884 passed, 1595 deselected
+CI 33915588784: 1924 passed, 1595 deselected
 ```
 
-The next code written should therefore be **exact R2.9 post-cashout shop-exit / blind-state / Ante progression auditing and implementation**, starting from pinned vanilla `toggle_shop`, end-round Ante mutation, and blind-state transitions. It should **not** be Bond tuning, PPO, broad action exposure, generic shop RNG, or an approximation that moves Ante/blind mutation to a more convenient but source-inaccurate boundary.
+The next code written should therefore be **an exact source audit of normal shop inventory generation followed by the narrowest coherent R2 shop-generation RNG slice that can be proved exact**. Start from pinned vanilla shop creation/item-pool/RNG ordering and explicitly identify required profile/unlock, voucher, Tag, edition, rarity, booster, and slot-state dependencies before admitting generation. Keep unsupported dependencies fail-closed. It should **not** be Bond tuning, PPO, broad action exposure, generic shop approximations, or Python-RNG shortcuts.
