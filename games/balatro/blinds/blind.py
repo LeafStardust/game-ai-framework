@@ -16,12 +16,14 @@ class Blind:
         blind_type: BlindType,
         requirement: int,
         reward: int = 0,
-        modifiers: list[BlindModifier] | None = None
+        modifiers: list[BlindModifier] | None = None,
+        disabled: bool = False,
     ):
         self.type = blind_type
         self.requirement = requirement
         self.reward = reward
         self.modifiers = modifiers or []
+        self.disabled = bool(disabled)
 
 
     def apply_modifiers(
@@ -47,7 +49,8 @@ class Blind:
             self.type,
             self.requirement,
             self.reward,
-            self.modifiers.copy()
+            self.modifiers.copy(),
+            disabled=self.disabled,
         )
 
 
