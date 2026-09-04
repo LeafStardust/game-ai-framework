@@ -120,6 +120,24 @@ def test_env_r2_verdant_defeat_clears_all_card_debuffs_without_disabling_blind()
     assert all(card.debuffed for card in run.require_playing_card_order())
 
 
+def test_env_r2_crimson_defeat_clears_joker_debuff_and_installs_blank_blind_prepped_state():
+    run = _boss_run("Crimson Heart")
+    joker = FlatMultJoker(3)
+    joker.debuffed = True
+    run.public.jokers = [joker]
+    setattr(run.public.blind, "prepped", False)
+    before_rng = run.rng_snapshot()
+
+    result = defeat_supported_boss(run)
+
+    assert result.public.jokers[0].debuffed is False
+    assert getattr(result.public.blind, "prepped", False) is True
+    assert result.public.blind.disabled is False
+    assert result.rng_snapshot() == before_rng
+    assert run.public.jokers[0].debuffed is True
+    assert getattr(run.public.blind, "prepped", False) is False
+
+
 def test_env_r2_disabled_supported_boss_does_not_reapply_inverse_cleanup():
     run = _boss_run("The Manacle")
     run.public.blind.disabled = True
@@ -133,7 +151,7 @@ def test_env_r2_disabled_supported_boss_does_not_reapply_inverse_cleanup():
 
 
 def test_env_r2_boss_defeat_rejects_unsupported_or_wrong_boundary():
-    run = _boss_run("Crimson Heart")
+    run = _boss_run("Unsupported Boss")
     with pytest.raises(HeadlessTransitionError, match="not exactly owned"):
         defeat_supported_boss(run)
 
