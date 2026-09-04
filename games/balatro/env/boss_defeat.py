@@ -38,6 +38,18 @@ _SIMPLE_DEFEAT_BOSSES = frozenset({
     "The Serpent",
     "The Eye",
     "The Mouth",
+    # Normal Blind:defeat does not run Blind:disable's explicit hand-card
+    # facing cleanup for these four. Back-facing cards may therefore remain
+    # physically back-facing while moving hand -> discard -> deck. That
+    # orientation is not a persistent gameplay dependency at the next-round
+    # boundary: new_round clears wheel_flipped on every playing card, and
+    # CardArea:emplace flips any back-facing card entering a normal hand unless
+    # the *current* Blind asks it to stay flipped. No synthetic face-up mutation
+    # belongs in normal-defeat ownership.
+    "The House",
+    "The Wheel",
+    "The Mark",
+    "The Fish",
 })
 _AMBER_ACORN = "Amber Acorn"
 _VERDANT_LEAF = "Verdant Leaf"
