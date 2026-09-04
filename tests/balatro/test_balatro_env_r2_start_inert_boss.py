@@ -19,6 +19,7 @@ START_INERT_BOSSES = (
     "The Hook",
     "The Ox",
     "The Arm",
+    "The Serpent",
 )
 
 
