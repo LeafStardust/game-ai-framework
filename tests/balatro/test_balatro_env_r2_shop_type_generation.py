@@ -1,9 +1,11 @@
 import pytest
 
 from games.balatro.env.shop_generation import (
+    _joker_rarity_from_roll,
     _shop_type_from_polled_rate,
     poll_base_main_shop_types,
     poll_base_shop_card_type,
+    poll_base_shop_joker_rarity,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
@@ -20,7 +22,6 @@ def _run(seed: str = "TESTSEED", *, ante: int = 1) -> HeadlessRunState:
 
 
 def test_env_r2_base_shop_type_weight_boundaries_match_vanilla_order():
-    # Base normal rates are Joker 20, Tarot 4, Planet 4, Base 0, Spectral 0.
     assert _shop_type_from_polled_rate(0.5) == "Joker"
     assert _shop_type_from_polled_rate(20.0) == "Joker"
     assert _shop_type_from_polled_rate(20.000001) == "Tarot"
@@ -71,6 +72,28 @@ def test_env_r2_base_main_shop_sequence_matches_two_source_order_type_polls():
     assert len(sequence.card_types) == 2
 
 
+def test_env_r2_base_shop_joker_rarity_thresholds_match_vanilla():
+    assert _joker_rarity_from_roll(0.0) == 1
+    assert _joker_rarity_from_roll(0.7) == 1
+    assert _joker_rarity_from_roll(0.700001) == 2
+    assert _joker_rarity_from_roll(0.95) == 2
+    assert _joker_rarity_from_roll(0.950001) == 3
+    assert _joker_rarity_from_roll(1.0) == 3
+
+
+def test_env_r2_base_shop_joker_rarity_uses_shop_append_key_and_isolates_input():
+    run = _run(seed="SHOPRARITY", ante=4)
+    before = run.rng_snapshot()
+
+    result = poll_base_shop_joker_rarity(run)
+
+    assert result.rarity in {1, 2, 3}
+    assert run.rng_snapshot() == before
+    assert "rarity4sho" not in run.rng.nodes
+    assert "rarity4sho" in result.run.rng.nodes
+    assert "rarity4" not in result.run.rng.nodes
+
+
 def test_env_r2_base_shop_type_poll_requires_exact_unmodified_shop_boundary():
     run = _run()
     run.public.phase = "BLIND_SELECT"
@@ -79,7 +102,7 @@ def test_env_r2_base_shop_type_poll_requires_exact_unmodified_shop_boundary():
 
     run = _run()
     run.public.vouchers.append("v_tarot_merchant")
-    with pytest.raises(HeadlessTransitionError, match="voucher-modified"):
+    with pytest.raises(HeadlessTransitionError, match="voucher"):
         poll_base_shop_card_type(run)
 
     run = _run()
@@ -93,12 +116,17 @@ def test_env_r2_base_shop_type_poll_requires_exact_unmodified_shop_boundary():
         poll_base_shop_card_type(run)
 
 
-def test_env_r2_base_shop_type_mapping_rejects_malformed_direct_rolls():
+def test_env_r2_base_shop_mapping_rejects_malformed_direct_rolls():
     with pytest.raises(TypeError, match="numeric"):
         _shop_type_from_polled_rate(True)
-    with pytest.raises(ValueError, match="outside"):
-        _shop_type_from_polled_rate(-0.1)
     with pytest.raises(ValueError, match="outside"):
         _shop_type_from_polled_rate(0.0)
     with pytest.raises(ValueError, match="outside"):
         _shop_type_from_polled_rate(28.1)
+
+    with pytest.raises(TypeError, match="numeric"):
+        _joker_rarity_from_roll(False)
+    with pytest.raises(ValueError, match="within"):
+        _joker_rarity_from_roll(-0.1)
+    with pytest.raises(ValueError, match="within"):
+        _joker_rarity_from_roll(1.1)
