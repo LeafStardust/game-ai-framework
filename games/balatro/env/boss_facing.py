@@ -1,8 +1,8 @@
 """Exact card-facing lifecycle for Balatro Boss Blinds.
 
 Balatro keeps the true physical card identity while rendering some hand cards
-face down.  Headless mechanics retain that identity internally, while the
-policy-facing observation layer masks it.  This module owns only source-audited
+face down. Headless mechanics retain that identity internally, while the
+policy-facing observation layer masks it. This module owns only source-audited
 facing transitions; unsupported timing/RNG cases remain separate.
 """
 
@@ -20,6 +20,8 @@ from games.balatro.hand_rules import card_is_face, hand_rules_for_state
 
 _DETERMINISTIC_FACING_BOSS_NAMES = frozenset({"The House", "The Mark"})
 _FACING_BOSS_NAMES = frozenset({"The House", "The Wheel", "The Mark", "The Fish"})
+_WHEEL_KEY = "wheel"
+_WHEEL_NORMAL_PROBABILITY = 1.0 / 7.0
 
 
 def _require_round_play_history(state) -> int:
@@ -72,7 +74,7 @@ def apply_deterministic_facing_to_current_hand(run: HeadlessRunState) -> Headles
 
     This helper is intentionally for a draw boundary where every current hand
     card belongs to the just-completed draw batch, such as the initial round-start
-    deal.  Later partial draws should apply the same predicate only to the newly
+    deal. Later partial draws should apply the same predicate only to the newly
     moved physical cards rather than re-flipping older hand cards.
     """
     state = run.public
@@ -112,11 +114,76 @@ def start_supported_deterministic_facing_boss(run: HeadlessRunState) -> Headless
     return apply_deterministic_facing_to_current_hand(dealt)
 
 
+def prepare_supported_wheel_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own The Wheel's ordinary pre-deal lifecycle on the normal-probability boundary.
+
+    Vanilla checks ``G.GAME.probabilities.normal/7`` for every card moved into the
+    hand. Probability-modifying Jokers such as Oops! All 6s are not admitted by
+    the current blind-start Joker lifecycle, so the exact supported boundary is
+    the ordinary ``normal == 1`` probability. Any such unsupported Joker fails
+    closed before this helper returns.
+    """
+    _require_boss_blind(run, label="Wheel boss start")
+    if run.public.boss_name != "The Wheel":
+        raise HeadlessTransitionError("Wheel boss start requires The Wheel")
+    return _apply_common_predeal_lifecycle(run)
+
+
+def _initial_draw_creation_indices(run: HeadlessRunState) -> list[int]:
+    """Recover exact physical initial-draw order without leaking it publicly.
+
+    ``deal_supported_round_start`` already owns the real ``nr{ante}`` shuffle.
+    The Wheel's RNG check occurs after each physical card is removed from that
+    shuffled deck but before the hand is sorted. Replaying the same shuffle on an
+    isolated copy gives only the creation-order indices of those physical draws;
+    it does not alter the returned run's RNG or expose future draw order.
+    """
+    order = run.require_playing_card_order()
+    replay = run.copy()
+    physical_indices = list(range(len(order)))
+    replay.rng.shuffle_in_place(physical_indices, f"nr{run.public.ante}")
+    draw_count = min(len(physical_indices), run.public.hand_size)
+    return [physical_indices.pop() for _ in range(draw_count)]
+
+
+def start_supported_wheel(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose exact Wheel start, physical deal order, and per-card keyed RNG.
+
+    Source order is preserved even though the generic deal helper sorts the final
+    hand before returning: the physical creation indices are replayed from the
+    pre-deal snapshot, then the *real returned run* consumes one independent
+    ``pseudorandom(pseudoseed('wheel'))`` result per physically drawn card.
+    """
+    prepared = prepare_supported_wheel_start(run)
+    physical_draw_indices = _initial_draw_creation_indices(prepared)
+    dealt = deal_supported_round_start(prepared)
+    next_run = dealt.copy()
+    next_order = next_run.require_playing_card_order()
+    hand_ids = {id(card) for card in next_run.public.hand}
+
+    if len(physical_draw_indices) != len(next_run.public.hand):
+        raise HeadlessTransitionError("Wheel physical draw count does not match dealt hand")
+
+    for creation_index in physical_draw_indices:
+        try:
+            card = next_order[creation_index]
+        except IndexError as exc:
+            raise HeadlessTransitionError("Wheel physical draw index is invalid") from exc
+        if id(card) not in hand_ids:
+            raise HeadlessTransitionError(
+                "Wheel physical draw sequence does not match the dealt hand"
+            )
+        card.face_down = next_run.rng.random(_WHEEL_KEY) < _WHEEL_NORMAL_PROBABILITY
+        card.facing_observed = True
+
+    return next_run
+
+
 def clear_facing_boss_hand(run: HeadlessRunState) -> HeadlessRunState:
     """Mirror facing cleanup performed by ``Blind:disable``/Boss defeat.
 
     Vanilla flips every remaining face-down hand card face up for The Wheel,
-    The House, The Mark, and The Fish.  ``wheel_flipped`` is UI/deck-preview
+    The House, The Mark, and The Fish. ``wheel_flipped`` is UI/deck-preview
     bookkeeping; no additional headless mechanical state is required once the
     authoritative facing value itself is owned.
     """
