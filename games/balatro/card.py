@@ -49,6 +49,10 @@ class BalatroCard:
     # a face-down card for exact mechanics, but policy observations must mask that
     # identity while ``face_down`` is true.
     face_down: bool = False
+    # Exactness bit for the facing value. Legacy/synthetic payloads may not carry
+    # Balatro's ``card.facing`` field; facing-sensitive Boss logic must require
+    # this flag instead of treating the default ``face_down=False`` as observed.
+    facing_observed: bool = False
     # Balatro preserves the card's original suit nominal when set_base converts
     # its current suit. Card:get_nominal() uses this value as a deterministic hand
     # sort tiebreak component. It is ordinary card state/history, not future draw
