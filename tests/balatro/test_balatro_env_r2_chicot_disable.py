@@ -6,6 +6,7 @@ from games.balatro.env.blind_start import (
     prepare_supported_nonboss_blind_start,
     prepare_supported_requirement_only_boss_start,
     prepare_supported_resource_boss_start,
+    start_supported_cerulean_bell,
 )
 from games.balatro.env.boss_disable import disable_supported_boss
 from games.balatro.env.crimson_heart import prepare_supported_crimson_heart_start
@@ -179,3 +180,23 @@ def test_env_r2_chicot_disables_crimson_and_clears_prepped_before_initial_draw()
     assert result.public.blind.disabled is True
     assert getattr(result.public.blind, "prepped", False) is False
     assert result.public.jokers[0].debuffed is False
+
+
+def test_env_r2_chicot_disables_cerulean_before_drawn_to_hand_without_forcing_card():
+    run = _run(boss_name="Cerulean Bell")
+    run.public.jokers = [ChicotJoker()]
+    # Keep retained Joker order coherent after installing Chicot.
+    run = HeadlessRunState(public=run.public, seed="CHICOT")
+
+    result = start_supported_cerulean_bell(run)
+
+    assert result.public.blind.disabled is True
+    assert result.public.phase == "SELECTING_HAND"
+    assert len(result.public.hand) == result.public.hand_size
+    assert not any(card.forced_selection for card in result.public.hand)
+    assert not any(card.forced_selection for card in result.require_playing_card_order())
+    # The normal round-start shuffle uses nr{ante}; disabled Cerulean must not
+    # consume its own keyed RNG node after the hand is dealt.
+    assert "cerulean_bell" not in result.rng.nodes
+    assert f"nr{result.public.ante}" in result.rng.nodes
+    assert not getattr(run.public.blind, "disabled", False)
