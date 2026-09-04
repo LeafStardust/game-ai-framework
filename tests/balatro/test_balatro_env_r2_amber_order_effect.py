@@ -1,8 +1,13 @@
 import pytest
 
 from games.balatro.blinds.blind import Blind, BlindType
+from games.balatro.env.actions import EnvAction
 from games.balatro.env.amber_acorn import apply_amber_acorn_order_effect
-from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.transition import (
+    HeadlessRunState,
+    HeadlessTransitionError,
+    ShopTransitionEngine,
+)
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.sly_joker import SlyJoker
@@ -39,6 +44,7 @@ def test_env_r2_amber_order_effect_installs_exact_hidden_physical_order_and_rng(
     assert result.rng.nodes["aajk"] == 0.991074513307
     assert _ids(run) == [1, 2, 3, 4, 5]
     assert "aajk" not in run.rng.nodes
+    assert result.require_joker_order_state().physical_order == result.public.jokers
 
 
 def test_env_r2_amber_order_effect_one_joker_changes_no_rng_order():
@@ -51,13 +57,47 @@ def test_env_r2_amber_order_effect_one_joker_changes_no_rng_order():
     assert result.rng_snapshot() == before
 
 
-def test_env_r2_amber_order_effect_fails_closed_without_multi_joker_creation_ids():
-    run = _run(2)
-    for joker in run.public.jokers:
-        joker.live_id = None
+def test_env_r2_amber_order_effect_fails_closed_without_proven_or_retained_creation_order():
+    state = BalatroState()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
+    state.boss_name = "Amber Acorn"
+    state.blind = Blind(BlindType.BOSS, 100000)
+    state.jokers = [FlatMultJoker(), JollyJoker()]
+    run = HeadlessRunState(public=state, seed="AMBER-TEST")
 
+    assert run.joker_order_state is None
     with pytest.raises(HeadlessTransitionError, match="creation order is unavailable"):
         apply_amber_acorn_order_effect(run)
+
+
+def test_env_r2_amber_order_effect_uses_headless_purchase_order_without_live_ids():
+    state = BalatroState()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
+    state.phase = "SHOP"
+    state.shop_active = True
+    state.money = 20
+    state.joker_slots = 5
+    first = FlatMultJoker()
+    second = JollyJoker()
+    first.cost = 1
+    second.cost = 1
+    state.shop_jokers = [first, second]
+    run = HeadlessRunState(public=state, seed="AMBER-TEST")
+    engine = ShopTransitionEngine()
+    run = engine.step(run, EnvAction.from_alias("BUY_JOKER", {"slot": 0}))
+    run = engine.step(run, EnvAction.from_alias("BUY_JOKER", {"slot": 0}))
+
+    run.public.boss_name = "Amber Acorn"
+    run.public.blind = Blind(BlindType.BOSS, 100000)
+    result = apply_amber_acorn_order_effect(run)
+
+    assert all(getattr(joker, "live_id", None) is None for joker in result.public.jokers)
+    assert set(map(id, result.public.jokers)) == set(
+        map(id, result.require_joker_order_state().physical_order)
+    )
+    assert result.rng.nodes["aajk"] == 0.991074513307
 
 
 def test_env_r2_amber_order_effect_rejects_wrong_or_disabled_blind():
