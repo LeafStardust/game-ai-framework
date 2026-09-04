@@ -8,6 +8,7 @@ owned by the authoritative observed Joker-generation state.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 
 
@@ -31,6 +32,8 @@ VANILLA_JOKER_CENTERS: tuple[VanillaJokerCenter, ...] = tuple(
     for order, token in enumerate(_ORDERED_KEY_RARITY, start=1)
     for key, rarity in (token.rsplit(":", 1),)
 )
+
+_VANILLA_JOKER_KEYS = frozenset(center.key for center in VANILLA_JOKER_CENTERS)
 
 _RARITY_LABEL_TO_ID = {
     "Common": 1,
@@ -64,6 +67,39 @@ def vanilla_joker_pool(rarity: str | int) -> tuple[str, ...]:
         for center in VANILLA_JOKER_CENTERS
         if center.rarity == rarity_id
     )
+
+
+def current_joker_pool_from_eligible_keys(
+    rarity: str | int,
+    eligible_keys: Collection[str],
+) -> tuple[str, ...]:
+    """Materialize vanilla's Joker pool after dynamic eligibility is resolved.
+
+    ``get_current_pool`` preserves every rarity-pool position and writes the
+    literal ``UNAVAILABLE`` into positions rejected by unlock/profile state,
+    duplicate suppression, pool flags, bans, etc. Those dynamic predicates are
+    deliberately *not* guessed here: callers must provide the exact set of
+    currently eligible Joker center keys from an authoritative generation-state
+    owner.
+
+    If the resulting rarity pool has zero eligible entries, vanilla replaces the
+    whole temporary pool with the one-entry fallback ``j_joker``.
+    """
+    if isinstance(eligible_keys, (str, bytes)) or not isinstance(eligible_keys, Collection):
+        raise TypeError("eligible Joker keys must be a collection of center-key strings")
+    if any(not isinstance(key, str) for key in eligible_keys):
+        raise TypeError("eligible Joker keys must contain only strings")
+
+    unknown = set(eligible_keys) - _VANILLA_JOKER_KEYS
+    if unknown:
+        raise ValueError(f"unknown vanilla Joker center key: {sorted(unknown)[0]!r}")
+
+    source_pool = vanilla_joker_pool(rarity)
+    eligible = set(eligible_keys)
+    result = tuple(key if key in eligible else "UNAVAILABLE" for key in source_pool)
+    if all(value == "UNAVAILABLE" for value in result):
+        return ("j_joker",)
+    return result
 
 
 def _validate_catalogue() -> None:
