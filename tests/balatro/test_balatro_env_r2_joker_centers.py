@@ -2,6 +2,7 @@ import pytest
 
 from games.balatro.env.joker_centers import (
     VANILLA_JOKER_CENTERS,
+    current_joker_pool_from_eligible_keys,
     joker_rarity_id,
     vanilla_joker_pool,
 )
@@ -72,3 +73,34 @@ def test_env_r2_joker_rarity_parser_is_strict():
         joker_rarity_id(0)
     with pytest.raises(TypeError, match="exact integer"):
         joker_rarity_id(True)
+
+
+def test_env_r2_current_joker_pool_preserves_unavailable_positions():
+    common = vanilla_joker_pool(1)
+    eligible = {common[0], common[3], common[-1]}
+
+    pool = current_joker_pool_from_eligible_keys(1, eligible)
+
+    assert len(pool) == len(common)
+    assert pool[0] == common[0]
+    assert pool[1] == "UNAVAILABLE"
+    assert pool[2] == "UNAVAILABLE"
+    assert pool[3] == common[3]
+    assert pool[-1] == common[-1]
+    assert sum(value != "UNAVAILABLE" for value in pool) == 3
+
+
+def test_env_r2_empty_joker_rarity_pool_uses_vanilla_joker_fallback():
+    assert current_joker_pool_from_eligible_keys(1, set()) == ("j_joker",)
+    assert current_joker_pool_from_eligible_keys(2, set()) == ("j_joker",)
+    assert current_joker_pool_from_eligible_keys(3, set()) == ("j_joker",)
+    assert current_joker_pool_from_eligible_keys(4, set()) == ("j_joker",)
+
+
+def test_env_r2_current_joker_pool_rejects_inexact_eligibility():
+    with pytest.raises(TypeError, match="collection"):
+        current_joker_pool_from_eligible_keys(1, "j_joker")
+    with pytest.raises(TypeError, match="only strings"):
+        current_joker_pool_from_eligible_keys(1, {"j_joker", 7})
+    with pytest.raises(ValueError, match="unknown vanilla Joker"):
+        current_joker_pool_from_eligible_keys(1, {"j_not_real"})
