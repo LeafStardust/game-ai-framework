@@ -14,6 +14,7 @@ Authoritative roadmap for Balatro Red Deck / White Stake competence on `LeafStar
 - Ask the user only for validation that genuinely requires Windows/Balatro.
 - Never substitute `G.deck.cards` for permanent owned-deck truth; permanent deck source is `G.playing_cards`.
 - Do not reintroduce legacy attempt flags such as `--one`, `--three`, `--five`; retain the canonical attempt-count interface.
+- Face-down card identity is **not public information**. Headless simulation may retain true identity internally for exact mechanics, but policy observations must mask it. Do not give the production/training agent an oracle/cheat view. Any future oracle mode must be explicit debug-only tooling.
 
 ---
 
@@ -174,11 +175,14 @@ pseudorandom_element            source-exact selection       GREEN  CI 338056999
 Cerulean Bell                   forced-selection lifecycle   GREEN  CI 33806527436
 Psychic                         downstream hand rejection    GREEN  CI 33838722781
 Flint                           downstream base-score halve  GREEN  CI 33838934769
-Tooth                           -$1 per played card          GREEN  CI 33839102154
-Hook                            keyed forced discards        GREEN  CI 33839910429
+Tooth                           -$1 per played card           GREEN  CI 33839102154
+Hook                            keyed forced discards         GREEN  CI 33839910429
 Ox                              matching hand -> money = 0   GREEN  CI 33841056452
 Arm                             level > 1 -> level - 1       GREEN  CI 33841056452
 Serpent                         post-action 3-card draw       GREEN  CI 33843165212
+House + Mark                    deterministic card facing    GREEN  CI 33845952545
+Wheel                           keyed per-draw card facing    GREEN  CI 33846232884
+Fish                            temporal post-play facing     GREEN  CI 33846610717
 ```
 
 #### Start-inert Boss family — GREEN
@@ -214,8 +218,8 @@ Current narrow Hook implementation fails closed when unowned Joker/seal discard 
 #### Ox exact semantics
 
 - authoritative fixed target is `G.GAME.current_round.most_played_poker_hand`;
-- process-memory observer now exposes that public field;
-- existing translator canonicalizes live names, e.g. `"Pair"` → `PAIR`;
+- process-memory observer exposes that public field;
+- translator canonicalizes live names, e.g. `"Pair"` → `PAIR`;
 - headless owner uses `BalatroState.round_most_played_hand` and **never recomputes** from mutable counts;
 - match sets money exactly to `0`, including from negative money;
 - missing/invalid target fails closed.
@@ -278,34 +282,150 @@ Current Serpent-composed gate:
 CI 33843165212: 1675 passed, 1594 deselected
 ```
 
-### NEXT R2 WORK — FACE-DOWN / FACING STATE OWNERSHIP
+### R2.10 — face-down / facing state ownership — GREEN FOR HOUSE/WHEEL/MARK/FISH
 
-Source audit identifies a mechanically related Boss family whose semantics depend on card-facing state:
+Canonical card state now includes authoritative facing without exposing hidden identity to the policy:
 
 ```text
-The House
-The Wheel
-The Mark
-The Fish
+BalatroCard.face_down
+BalatroCard.facing_observed
 ```
 
-Do **not** classify these as start-inert yet. `BalatroCard` currently has no authoritative facing/face-down field, so exact headless transitions cannot represent their visible hidden-card state.
+Live/process-memory path:
+
+- observer reads authoritative card facing;
+- translator maps exact `front`/`back` state;
+- malformed/unobserved facing remains explicit rather than guessed.
+
+Policy/public observation path:
+
+- internal simulator retains the true card object because exact game mechanics need it;
+- a face-down hand card is copied into the policy observation with rank/suit and hidden modifiers masked;
+- `live_id` is removed from the policy-facing hidden card;
+- `forced_selection` remains visible because the game visibly forces the card;
+- future physical draw order remains private.
+
+Facing groundwork commits:
+
+```text
+eea5d32  track authoritative card facing observation
+41db70f  cover live facing translation
+ed1c449  translate authoritative card facing
+```
+
+#### The House — GREEN
+
+Source semantics:
+
+- initial hand stays face down while `hands_played == 0` and `discards_used == 0`;
+- after any play or discard, newly drawn cards are face up;
+- existing hidden cards are not retroactively revealed merely because history advanced;
+- disable/defeat flips remaining hidden hand cards face up.
+
+Implemented via canonical current-round play/discard history; unknown history fails closed.
+
+#### The Mark — GREEN
+
+Source semantics:
+
+- each drawn face card stays face down;
+- Boss face classification honors Pareidolia;
+- debuff state does not suppress face classification at this Boss boundary;
+- disable/defeat flips remaining hidden hand cards face up.
+
+House/Mark commits and gate:
+
+```text
+6bca6c2  deterministic House/Mark facing owner
+55df7ea  House/Mark regressions
+CI 33845952545: 1686 passed, 1595 deselected
+```
+
+#### The Wheel — GREEN ON NORMAL-PROBABILITY BOUNDARY
+
+Source semantics:
+
+```text
+for each physical card drawn to hand:
+    face_down = pseudorandom(pseudoseed("wheel")) < probabilities.normal / 7
+```
+
+Exactness requirements:
+
+- one keyed `wheel` RNG advance per **physical drawn card**;
+- assignment happens before final hand sort;
+- identical seed/state replays identically;
+- hidden identity is masked only in policy/public observation;
+- disable/defeat flips remaining hidden cards face up.
+
+Current blind-start Joker ownership does not admit probability-modifying Jokers such as Oops! All 6s, so Wheel is exact at `probabilities.normal == 1`. Such unsupported composition fails closed rather than silently using the wrong probability.
+
+Implementation reconstructs only the physical creation-order indices of the already-deterministic initial draw by replaying `nr{ante}` shuffle on an isolated copy, then consumes the returned run's independent keyed `wheel` RNG in that physical sequence. No future draw order leaks publicly.
+
+```text
+deb5ba1  Wheel facing RNG lifecycle
+757cb27  Wheel per-card RNG regressions
+CI 33846232884: 1692 passed, 1595 deselected
+```
+
+#### The Fish — GREEN
+
+Source temporal semantics:
+
+```text
+set_blind:      prepped = nil
+initial draw:   face up
+press_play:     prepped = true
+post-play draw: newly drawn cards face down
+drawn_to_hand:  prepped = nil
+post-discard:   newly drawn cards face up
+```
+
+The headless environment does **not** invent a persistent `fish_prepped` flag. Vanilla's flag exists only between `press_play` and the immediately following draw, so the simulator owns that effect atomically at the stable post-play draw boundary.
+
+Owned behavior:
+
+- initial Fish hand is authoritatively face up;
+- ordinary capacity-limited post-play replacements are face down;
+- ordinary post-discard replacements are face up;
+- only newly drawn cards change facing, so older hidden cards can remain hidden;
+- true identity remains internal and policy observation masks hidden cards;
+- no RNG is consumed;
+- action-history evidence is required; unknown/impossible timing fails closed;
+- disable/defeat flips remaining hidden hand cards face up.
+
+```text
+a0beb66  Fish temporal facing owner
+41af2ec  Fish facing regressions
+CI 33846610717: 1700 passed, 1595 deselected
+```
+
+### NEXT R2 WORK — THE PILLAR / PERMANENT PLAYED-THIS-ANTE STATE
+
+The next structural Boss blocker is **The Pillar**.
+
+Vanilla semantics depend on each permanent playing card's persistent:
+
+```text
+card.ability.played_this_ante
+```
+
+A Pillar-active card is debuffed iff it has been played earlier in the current Ante. This is not a Boss-local counter and must not be approximated from current hand/discard zones.
 
 Next implementation order:
 
-1. audit exact vanilla `Blind:set_blind`, `Blind:drawn_to_hand`, `Blind:press_play`, disable/defeat flip behavior for all four;
-2. add the minimum canonical **public** facing state needed to represent what the player can see, without leaking rank/suit information through observations when a card is face down;
-3. wire live observer + translator exactness for facing state;
-4. add deterministic draw/flip lifecycle owners per mechanically coherent Boss subgroup;
-5. keep public future draw order private;
-6. add source-pinned regressions and fail-closed tests;
-7. only then widen Boss-start ownership.
-
-The current audit already confirms vanilla flips any remaining face-down hand cards back face-up when these Bosses are disabled/defeated; that inverse lifecycle must be owned too.
+1. audit every vanilla write/reset site for `played_this_ante` and its exact Ante boundary;
+2. add the minimum canonical permanent-card state + an explicit observation/exactness bit if required;
+3. wire `G.playing_cards` process-memory observation and translator fail-closed semantics;
+4. update headless accepted-play lifecycle so played permanent cards set the flag in source order;
+5. reset the flag exactly when vanilla advances/clears the Ante state;
+6. implement Pillar's debuff projection/start lifecycle from that authoritative state;
+7. cover live translation, headless mutation/reset, Pillar debuff, copy/isolation, and malformed/unobserved state;
+8. keep policy observations public-information safe — `played_this_ante` is public deck history, but do not expose unrelated hidden card identity.
 
 ### Current hard blockers / later Boss categories
 
-- Pillar — persistent per-card `played_this_ante` history
+- Pillar — **NEXT**, persistent per-card `played_this_ante` history
 - Verdant Leaf — all-card debuff + Joker-sale lifecycle
 - Amber Acorn — Joker flip + seeded Joker-order shuffle
 - Crimson Heart — per-hand random Joker debuff lifecycle
@@ -331,7 +451,7 @@ Reuse existing deterministic hand/discard tactical owners while RL initially con
 
 ## R5 — live/simulator parity — NOT STARTED
 
-Priority fixtures: shop paths, blind skip/start/clear, Boss restrictions, lifecycle-sensitive Jokers, owned deck, economy, RNG/shuffle/draw parity.
+Priority fixtures: shop paths, blind skip/start/clear, Boss restrictions, lifecycle-sensitive Jokers, owned deck, economy, RNG/shuffle/draw/facing parity.
 
 ## R6 — performance gate — NOT STARTED
 
@@ -386,7 +506,11 @@ R2 Hook downstream                     GREEN — CI 33839910429
 R2 Ox downstream + live target         GREEN — CI 33841056452
 R2 Arm downstream                      GREEN — CI 33841056452
 R2 Serpent downstream + composition    GREEN — CI 33843165212
-NEXT                                   FACE-DOWN / FACING STATE OWNERSHIP
+R2 public facing schema/live wiring    GREEN
+R2 House + Mark facing                 GREEN — CI 33845952545
+R2 Wheel facing RNG                    GREEN — CI 33846232884
+R2 Fish temporal facing                GREEN — CI 33846610717
+NEXT                                   PILLAR / PLAYED_THIS_ANTE STATE
 SELECT_BLIND                           NOT EXPOSED
 Burglar acquisition                    FAIL-CLOSED
 Generic/unknown acquisitions           FAIL-CLOSED
@@ -402,7 +526,7 @@ Observation/PPO                        NOT STARTED
 Current branch code head immediately before this roadmap synchronization:
 
 ```text
-723c8a56ba536589df508c1c4c5a2e113ffbae0c
+41af2ecd201a882e429baae5a4b3fcddf9fdd0ca
 ```
 
-The next code written should therefore be **exact public facing-state ownership and the source-audited House/Wheel/Mark/Fish lifecycle**, beginning with observer/translator/schema exactness. It should **not** be Bond tuning, PPO, or an approximation that exposes hidden card information.
+The next code written should therefore be **exact permanent-card `played_this_ante` ownership and The Pillar lifecycle**. It should **not** be Bond tuning, PPO, or an approximation that derives persistent Ante history from current card zones.
