@@ -2,6 +2,7 @@ import pytest
 
 from games.balatro.env.shop_generation import (
     _shop_type_from_polled_rate,
+    poll_base_main_shop_types,
     poll_base_shop_card_type,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
@@ -51,11 +52,23 @@ def test_env_r2_base_shop_type_poll_replays_exactly_from_same_seed_and_state():
 
 def test_env_r2_base_shop_type_poll_advances_same_key_across_multiple_slots():
     first = poll_base_shop_card_type(_run(seed="SHOPTYPE", ante=1))
-    # The primitive intentionally leaves inventory unmaterialized, so a caller
-    # may perform the next source-order type poll on the returned RNG state.
     second = poll_base_shop_card_type(first.run)
 
     assert first.run.rng.nodes["cdt1"] != second.run.rng.nodes["cdt1"]
+
+
+def test_env_r2_base_main_shop_sequence_matches_two_source_order_type_polls():
+    run = _run(seed="SHOPTYPE", ante=2)
+    before = run.rng_snapshot()
+
+    sequence = poll_base_main_shop_types(run)
+    first = poll_base_shop_card_type(run)
+    second = poll_base_shop_card_type(first.run)
+
+    assert sequence.card_types == (first.card_type, second.card_type)
+    assert sequence.run.rng_snapshot() == second.run.rng_snapshot()
+    assert run.rng_snapshot() == before
+    assert len(sequence.card_types) == 2
 
 
 def test_env_r2_base_shop_type_poll_requires_exact_unmodified_shop_boundary():
