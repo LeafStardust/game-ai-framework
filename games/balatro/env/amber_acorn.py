@@ -1,8 +1,9 @@
-"""Source-exact hidden Joker permutation primitive for Amber Acorn.
+"""Source-exact hidden Joker ordering for Amber Acorn.
 
-This module deliberately owns only Amber's seeded ordering consequence. Facing
-and policy masking are separate lifecycle/observation concerns and Amber is not
-training-exposed until those boundaries are composed safely.
+Amber is still not training-exposed. This module owns the exact seeded Joker
+permutation and a narrow headless state mutation for states whose engine creation
+order can be proved. Policy masking is owned separately by
+``public_observation_state``.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ from dataclasses import dataclass
 
 from games.balatro.env.joker_order import JokerOrderState, JokerOrderError
 from games.balatro.env.rng import BalatroRNG
+from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
 _AMBER_KEY = "aajk"
@@ -67,3 +69,34 @@ def apply_amber_acorn_shuffle(
         raise
 
     return AmberShuffleResult(order=next_order, rng=next_rng)
+
+
+def apply_amber_acorn_order_effect(run: HeadlessRunState) -> HeadlessRunState:
+    """Apply Amber's exact hidden physical Joker permutation to one run snapshot.
+
+    This is the ``Blind:set_blind`` ordering effect only. The caller is
+    responsible for invoking it in source order between baseline blind setup and
+    the Joker ``setting_blind`` pass. Multi-Joker states require exact engine
+    ``sort_id`` values (live ``joker.live_id``) until headless acquisition-order
+    retention is integrated into :class:`HeadlessRunState`.
+    """
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    state = run.public
+    if state.boss_name != "Amber Acorn":
+        raise HeadlessTransitionError("Amber order effect requires Amber Acorn")
+    if state.blind is None or bool(getattr(state.blind, "disabled", False)):
+        raise HeadlessTransitionError("Amber order effect requires active blind state")
+
+    next_run = run.copy()
+    next_state = next_run.public
+    order = JokerOrderState.from_public(next_state.jokers)
+    if order is None:
+        raise HeadlessTransitionError(
+            "exact Amber Joker creation order is unavailable"
+        )
+
+    result = apply_amber_acorn_shuffle(order, next_run.rng, next_state.jokers)
+    next_state.jokers = list(result.order.physical_order)
+    next_run.rng_state = result.rng
+    return next_run
