@@ -3,12 +3,14 @@
 Vanilla ``new_round`` computes current-round allowances from persistent
 ``round_resets`` plus one-shot ``round_bonus`` values, then immediately clears
 those one-shot bonuses *before* ``Blind:set_blind`` and Joker ``setting_blind``
-processing.  Preserve that ordering so later lifecycle effects cannot observe a
+processing. Preserve that ordering so later lifecycle effects cannot observe a
 bonus that vanilla has already consumed.
 """
 
 from __future__ import annotations
 
+from games.balatro.blinds.blind import BlindType
+from games.balatro.env.boss_disable import disable_supported_boss
 from games.balatro.env.transition import (
     _EXACT_R1_JOKER_ACQUISITION_TYPES,
     _OWNED_DECK_SCORING_TYPES,
@@ -17,6 +19,7 @@ from games.balatro.env.transition import (
 )
 from games.balatro.joker import JokerContext
 from games.balatro.jokers.burglar import BurglarJoker
+from games.balatro.jokers.chicot import ChicotJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
@@ -53,9 +56,6 @@ def apply_round_resource_baseline(run: HeadlessRunState) -> HeadlessRunState:
     next_run = run.copy()
     next_state = next_run.public
 
-    # Vanilla state_events.lua:
-    #   discards_left = max(0, round_resets.discards + round_bonus.discards)
-    #   hands_left = max(1, round_resets.hands + round_bonus.next_hands)
     next_state.discards_remaining = max(
         0,
         next_state.round_reset_discards + next_run.round_bonus_discards,
@@ -81,17 +81,21 @@ def apply_round_resource_baseline(run: HeadlessRunState) -> HeadlessRunState:
 def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunState:
     """Apply the currently owned ``setting_blind`` Joker lifecycle subset.
 
-    The generic Joker interface is not a universal event bus: some modeled
-    Jokers intentionally have trigger-agnostic ``apply`` methods because their
-    owning scoring/rule pipeline decides when to call them.  Blind-start code
-    therefore dispatches only identities explicitly audited for this event.
+    Burglar mutates current round resources immediately during Joker calculation.
+    Chicot queues ``Blind:disable()``; vanilla executes that event only after all
+    Jokers have received the setting-blind context. We therefore collect Chicot's
+    disable request during the same pass, install all Joker resource outputs, and
+    only then call the canonical Boss-disable owner.
 
-    All Jokers already admitted by the R1 shop acquisition boundary have been
-    classified as inert at vanilla ``setting_blind``. Burglar is the first owned
-    active case. Any other identity fails closed.
+    Chicot is lifecycle-modeled here but is *not* admitted to the R1 acquisition
+    allowlist. Unknown identities remain fail-closed.
     """
     state = run.public
-    supported_types = (*_BLIND_START_INERT_JOKER_TYPES, BurglarJoker)
+    supported_types = (
+        *_BLIND_START_INERT_JOKER_TYPES,
+        BurglarJoker,
+        ChicotJoker,
+    )
     if any(type(joker) not in supported_types for joker in state.jokers):
         raise HeadlessTransitionError(
             "blind-start Joker lifecycle contains unsupported identity"
@@ -99,16 +103,19 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
 
     next_run = run.copy()
     next_state = next_run.public
+    is_boss = (
+        next_state.blind is not None
+        and getattr(next_state.blind, "type", None) is BlindType.BOSS
+    )
     data = {
         "hands_gained": 0,
         "discards_remaining": next_state.discards_remaining,
+        "boss_blind": is_boss,
+        "boss_disable_requests": 0,
     }
 
-    # Do not call generic apply() for inert identities. Several mechanical Joker
-    # classes are intentionally trigger-agnostic and rely on their owning scoring
-    # or rule pipeline for dispatch. Only active BLIND_SELECTED identities run.
     for joker in next_state.jokers:
-        if type(joker) is not BurglarJoker:
+        if type(joker) not in {BurglarJoker, ChicotJoker}:
             continue
         context = JokerContext(
             state=next_state,
@@ -119,6 +126,7 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
 
     hands_gained = data.get("hands_gained")
     discards_remaining = data.get("discards_remaining")
+    disable_requests = data.get("boss_disable_requests")
     if isinstance(hands_gained, bool) or not isinstance(hands_gained, int):
         raise HeadlessTransitionError("blind-start hands_gained must be an exact integer")
     if (
@@ -129,19 +137,32 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
         raise HeadlessTransitionError(
             "blind-start discards_remaining must be an exact nonnegative integer"
         )
+    if (
+        isinstance(disable_requests, bool)
+        or not isinstance(disable_requests, int)
+        or disable_requests < 0
+    ):
+        raise HeadlessTransitionError(
+            "blind-start boss_disable_requests must be an exact nonnegative integer"
+        )
+    if disable_requests > 1:
+        raise HeadlessTransitionError(
+            "multiple queued Chicot Boss disables are not yet exactly owned"
+        )
 
     next_state.hands_remaining += hands_gained
     next_state.discards_remaining = discards_remaining
+
+    if disable_requests == 1:
+        # Chicot's event was queued from the setting_blind calculation and runs
+        # before new_round's later DRAW_TO_HAND/nr{ante} shuffle event.
+        next_run = disable_supported_boss(next_run, pre_deal=True)
+
     return next_run
 
 
 def consume_round_bonuses(run: HeadlessRunState) -> HeadlessRunState:
-    """Idempotently clear one-shot round bonuses.
-
-    ``apply_round_resource_baseline`` already performs the canonical vanilla
-    consumption before blind/Joker setup.  This helper remains for callers that
-    need an explicit clear boundary and is intentionally idempotent.
-    """
+    """Idempotently clear one-shot round bonuses."""
     next_run = run.copy()
     next_run.round_bonus_hands = 0
     next_run.round_bonus_discards = 0
