@@ -113,6 +113,10 @@ def disable_resource_boss(
             raise HeadlessTransitionError("Manacle disable requires stored hand_size_sub")
         if amount != 1:
             raise HeadlessTransitionError("Manacle stored hand_size_sub must equal one")
+        if pre_deal and next_state.owned_deck is None:
+            raise HeadlessTransitionError(
+                "pre-deal Manacle disable requires unowned pre-shuffle physical deck order"
+            )
 
         next_state.hand_size += amount
         next_run.boss_hand_size_sub = None
