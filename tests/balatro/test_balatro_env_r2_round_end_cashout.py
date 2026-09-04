@@ -132,6 +132,7 @@ def test_env_r2_cashout_pays_exact_golden_cloud9_and_delayed_gratification_rows(
     from games.balatro.jokers.golden_joker import GoldenJoker
 
     run = _cleared_run(money=24, hands_remaining=0, reward=3)
+    run.public.discards_used = 0
     run.public.discards_remaining = 2
     run.public.jokers.extend(
         [GoldenJoker(), Cloud9Joker(), DelayedGratificationJoker()]
@@ -144,6 +145,33 @@ def test_env_r2_cashout_pays_exact_golden_cloud9_and_delayed_gratification_rows(
     # Gratification +$4 for two unused discards.  They do not inflate interest.
     assert result.public.money == 43
     assert result.public.discards_remaining == 2
+
+
+def test_env_r2_cashout_delayed_gratification_does_not_pay_after_any_discard_used():
+    from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
+
+    run = _cleared_run(money=14, hands_remaining=0, reward=3)
+    run.public.discards_used = 1
+    run.public.discards_remaining = 2
+    run.public.jokers.append(DelayedGratificationJoker())
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    # $14 + $3 blind + $2 interest; remaining discards do not matter once a
+    # discard action was used during the round.
+    assert result.public.money == 19
+
+
+def test_env_r2_cashout_delayed_gratification_requires_observed_discard_history():
+    from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
+
+    run = _cleared_run()
+    run.public.discards_used = None
+    run.public.discards_remaining = 2
+    run.public.jokers.append(DelayedGratificationJoker())
+
+    with pytest.raises(HeadlessTransitionError, match="discards_used must be an exact integer"):
+        cash_out_baseline_ordinary_blind(run)
 
 
 def test_env_r2_cashout_cloud9_requires_authoritative_permanent_deck():
@@ -162,6 +190,7 @@ def test_env_r2_cashout_delayed_gratification_requires_exact_nonnegative_discard
 
     run = _cleared_run()
     run.public.jokers.append(DelayedGratificationJoker())
+    run.public.discards_used = 0
     run.public.discards_remaining = -1
 
     with pytest.raises(HeadlessTransitionError, match="discards_remaining cannot be negative"):
