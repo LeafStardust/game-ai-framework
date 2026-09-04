@@ -5,16 +5,14 @@ score observation. Headless simulation still needs that state to reproduce the
 source lifecycle exactly, so this module owns it privately instead of adding
 engine-internal blind-status fields to :class:`BalatroState`.
 
-This slice deliberately owns only the deterministic ``end_round`` progression
-that occurs after a won blind has entered ``ROUND_EVAL``:
+Owned deterministic slices:
 
-* the current blind state becomes ``Defeated``;
-* a Boss win increments Ante immediately (before cash-out/shop);
-* a Boss win clears ``round_bonus.next_hands`` and ``round_bonus.discards``.
+* won ``end_round`` progression after the blind has entered ``ROUND_EVAL``;
+* BLIND_SELECT choice after shop exit for an already-valid blind-state set.
 
-It does **not** model ``cash_out -> reset_blinds()`` yet. That boundary also
-regenerates tag choices and calls ``get_new_boss()``, so it remains behind exact
-R2 RNG ownership for those pools.
+Boss ``cash_out -> reset_blinds()`` is deliberately not owned here yet. That
+boundary regenerates tag choices and calls ``get_new_boss()``, so a defeated Boss
+must be reset through the exact RNG owner before BLIND_SELECT may continue.
 """
 
 from __future__ import annotations
@@ -31,6 +29,7 @@ _ALLOWED_STATUSES = frozenset(
     {"Upcoming", "Select", "Current", "Defeated", "Skipped", "Hide"}
 )
 _ALLOWED_BLINDS = frozenset({"Small", "Big", "Boss"})
+_TERMINAL_BLIND_STATUSES = frozenset({"Defeated", "Skipped", "Hide"})
 
 
 class BlindProgressionError(ValueError):
@@ -138,3 +137,48 @@ def finalize_won_round_progression(
         next_run.round_bonus_discards = 0
 
     return next_run, next_progression
+
+
+def enter_blind_select_progression(
+    progression: BlindProgressionState,
+) -> BlindProgressionState:
+    """Mirror the deterministic blind choice made by vanilla BLIND_SELECT UI.
+
+    Vanilla chooses Small unless it is Defeated/Skipped/Hide, then Big under the
+    same rule, otherwise Boss, and marks the selected blind ``Select``. A
+    defeated Boss is special: source ``cash_out`` must call ``reset_blinds()``
+    before the next BLIND_SELECT. We reject that stale state rather than silently
+    selecting a defeated Boss.
+    """
+    if not isinstance(progression, BlindProgressionState):
+        raise TypeError("progression must be BlindProgressionState")
+    if "Current" in (
+        progression.small_status,
+        progression.big_status,
+        progression.boss_status,
+    ):
+        raise BlindProgressionError(
+            "BLIND_SELECT cannot begin while a blind is still Current"
+        )
+    if progression.boss_status == "Defeated":
+        raise BlindProgressionError(
+            "defeated Boss requires reset_blinds before BLIND_SELECT"
+        )
+
+    if progression.small_status not in _TERMINAL_BLIND_STATUSES:
+        selected = "Small"
+    elif progression.big_status not in _TERMINAL_BLIND_STATUSES:
+        selected = "Big"
+    else:
+        selected = "Boss"
+
+    selected_status = progression.status_for(selected)
+    if selected_status not in {"Upcoming", "Select"}:
+        raise BlindProgressionError(
+            "selected blind is not available for BLIND_SELECT"
+        )
+
+    next_progression = deepcopy(progression)
+    next_progression.blind_on_deck = selected
+    next_progression.set_status(selected, "Select")
+    return next_progression
