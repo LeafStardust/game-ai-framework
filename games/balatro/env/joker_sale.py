@@ -38,6 +38,27 @@ def _permanent_cards(run: HeadlessRunState) -> list[BalatroCard]:
     return cards
 
 
+def _require_verdant_all_card_debuff(run: HeadlessRunState) -> None:
+    """Prove the exact active Verdant all-playing-card debuff boundary."""
+    state = run.public
+    if state.boss_name != "Verdant Leaf":
+        raise HeadlessTransitionError("Verdant Leaf cleanup requires Verdant Leaf boss")
+    if state.blind is None:
+        raise HeadlessTransitionError("Verdant Leaf cleanup requires blind state")
+    cards = _permanent_cards(run)
+    if any(not card.debuffed for card in cards):
+        raise HeadlessTransitionError(
+            "Verdant Leaf cleanup requires the owned all-card debuff state"
+        )
+
+
+def _clear_verdant_playing_cards(run: HeadlessRunState) -> HeadlessRunState:
+    next_run = run.copy()
+    for card in next_run.require_playing_card_order():
+        card.debuffed = False
+    return next_run
+
+
 def apply_verdant_leaf_debuff(run: HeadlessRunState) -> HeadlessRunState:
     """Mirror active Verdant Leaf debuffing every non-Joker playing card."""
     state = run.public
@@ -59,6 +80,22 @@ def apply_verdant_leaf_debuff(run: HeadlessRunState) -> HeadlessRunState:
     return next_run
 
 
+def clear_verdant_leaf_defeat_debuff(run: HeadlessRunState) -> HeadlessRunState:
+    """Mirror normal ``Blind:defeat`` reset clearing Verdant card debuffs.
+
+    Vanilla normal defeat eventually calls ``set_blind(nil, nil, true)``.  The
+    blank reset blind re-evaluates every permanent playing card as non-debuffed,
+    but this path is *not* a ``Blind:disable`` event and must not manufacture
+    ``blind.disabled = true``.  Keep this distinct from sale/Chicot cleanup.
+    """
+    _require_verdant_all_card_debuff(run)
+    if bool(getattr(run.public.blind, "disabled", False)):
+        raise HeadlessTransitionError(
+            "Verdant normal defeat cleanup requires an active, non-disabled blind"
+        )
+    return _clear_verdant_playing_cards(run)
+
+
 def clear_verdant_leaf_debuff(run: HeadlessRunState) -> HeadlessRunState:
     """Mirror disabled Verdant re-evaluating all permanent cards as non-debuffed.
 
@@ -67,21 +104,10 @@ def clear_verdant_leaf_debuff(run: HeadlessRunState) -> HeadlessRunState:
     clears every playing-card debuff. Keep that inverse centralized so Chicot
     and the minimum Verdant sale lifecycle cannot diverge.
     """
-    state = run.public
-    if state.boss_name != "Verdant Leaf":
-        raise HeadlessTransitionError("Verdant Leaf cleanup requires Verdant Leaf boss")
-    if state.blind is None:
-        raise HeadlessTransitionError("Verdant Leaf cleanup requires blind state")
-    cards = _permanent_cards(run)
-    if any(not card.debuffed for card in cards):
-        raise HeadlessTransitionError(
-            "Verdant Leaf cleanup requires the owned all-card debuff state"
-        )
+    _require_verdant_all_card_debuff(run)
 
-    next_run = run.copy()
+    next_run = _clear_verdant_playing_cards(run)
     next_run.public.blind.disabled = True
-    for card in next_run.require_playing_card_order():
-        card.debuffed = False
     return next_run
 
 
