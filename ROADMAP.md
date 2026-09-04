@@ -14,7 +14,7 @@ Authoritative roadmap for Balatro Red Deck / White Stake competence on `LeafStar
 - Ask the user only for validation that genuinely requires Windows/Balatro.
 - Never substitute `G.deck.cards` for permanent owned-deck truth; permanent deck source is `G.playing_cards`.
 - Do not reintroduce legacy attempt flags such as `--one`, `--three`, `--five`; retain the canonical attempt-count interface.
-- Face-down card identity is **not public information**. Headless simulation may retain true identity internally for exact mechanics, but policy observations must mask it.
+- Face-down card/Joker identity-to-position mapping is **not public information**. Headless simulation may retain hidden truth internally for exact mechanics, but policy observations must mask it.
 - If context becomes insufficient to continue safely, **stop immediately rather than guessing**.
 
 ---
@@ -70,7 +70,8 @@ Already enforced examples:
 - permanent owned deck = `G.playing_cards`, never `G.deck.cards`;
 - partial LuaJIT/TValue reads invalidate owned-deck observation;
 - future physical draw order stays private;
-- face-down identity stays masked;
+- face-down card identity stays masked;
+- Amber Acorn hidden Joker identity-to-position mapping stays masked;
 - Python `random` is not Balatro RNG;
 - unsupported Joker sale inverse lifecycles stay rejected.
 
@@ -160,7 +161,7 @@ Still fail closed:
 - unknown/unaudited Joker acquisitions;
 - Joker editions, especially Negative;
 - generic voucher acquisition;
-- generic packs until their RNG/state is exact;
+- generic packs until RNG/state is exact;
 - malformed/noninteger prices;
 - generic `SELL_JOKER` for classes whose inverse lifecycle is not owned.
 
@@ -260,6 +261,7 @@ Wheel                           keyed per-draw card facing    GREEN  CI 33846232
 Fish                            temporal post-play facing     GREEN  CI 33846610717
 Pillar                          permanent Ante card history  GREEN  CI 33850320184
 Verdant Leaf                    all-card debuff + sale       GREEN  CI 33855720629
+Amber Acorn                     hidden Joker ordering        PARTIAL / ACTIVE
 ```
 
 ### Start-inert Boss family — GREEN
@@ -274,7 +276,7 @@ The Arm
 The Serpent
 ```
 
-Their start boundary is exact; their downstream effects are separately owned/tested.
+Their start boundary is exact; downstream effects are separately owned/tested.
 
 ### Selected semantics already frozen
 
@@ -315,11 +317,11 @@ Permanent cards carry exact `played_this_ante` + observation state from `G.playi
 Owned source boundary:
 
 1. Boss start applies Verdant's all-playing-card debuff before the Joker `setting_blind` pass;
-2. exact shuffle/deal preserves the permanent card debuffs into the active hand/draw pile;
-3. selling an audited **inventory-only / static sell-safe** Joker removes it, credits exact nonnegative `sell_cost`, disables Verdant Leaf, and clears every permanent-card debuff;
+2. exact shuffle/deal preserves permanent-card debuffs into active hand/draw pile;
+3. selling an audited inventory-only/static sell-safe Joker removes it, credits exact nonnegative `sell_cost`, disables Verdant Leaf, and clears permanent-card debuffs;
 4. Eternal Jokers, editions, invalid prices/indexes, resource-sensitive inverse lifecycles, and unsupported Joker classes remain rejected;
 5. `Blind.disabled` is retained across copies/replay state;
-6. generic `SELL_JOKER` remains `PLANNED` and is **not** training-exposed merely because this minimum Verdant path is owned.
+6. generic `SELL_JOKER` remains `PLANNED` and is not training-exposed merely because this minimum path is owned.
 
 Relevant commits:
 
@@ -337,9 +339,7 @@ Final Verdant gate:
 CI 33855720629: 1734 passed, 1595 deselected
 ```
 
----
-
-## NEXT R2 WORK — AMBER ACORN / HIDDEN JOKER ORDER
+### R2.10 — Amber Acorn hidden Joker ordering — PARTIAL / CURRENT
 
 Pinned vanilla `Blind:set_blind` behavior:
 
@@ -352,25 +352,63 @@ if Amber Acorn and Jokers > 0:
         G.jokers:shuffle("aajk")
 ```
 
-Important exactness finding:
+Pinned cleanup behavior:
 
-- `CardArea:shuffle` calls `pseudoshuffle`;
-- `pseudoshuffle` re-sorts cards by engine `sort_id` before each shuffle;
-- therefore Amber's three calls advance keyed `aajk` state three times, and the final permutation is based on Joker creation/sort order rather than the player's current display order;
-- live memory already exposes each Joker's `sort_id` as item `live_id`, but the headless/public schema does not yet own Amber's hidden flipped/shuffled Joker ordering.
+- `Blind:defeat()` flips every Joker whose facing is `back` to the front;
+- `Blind:disable()` does the same;
+- neither path restores the pre-Amber order — the shuffled physical order remains when identities become visible again.
 
-Next implementation order:
+Implemented and green:
 
-1. audit Amber cleanup/disable/defeat behavior and exact Joker facing restoration;
-2. define simulator-private authoritative Joker creation/order state without leaking hidden permutation to policy observations;
-3. validate unique exact Joker `sort_id`/`live_id` when reconstructing live Amber state; fail closed otherwise;
-4. implement three source-exact keyed `aajk` shuffle advances;
-5. retain known owned Joker multiset publicly while masking identity-to-position mapping under Amber;
-6. ensure scoring/execution uses the private physical Joker order where order matters;
-7. add focused RNG snapshot/restore, one-Joker, multi-Joker, duplicate/missing-id, cleanup, and policy-leak regressions;
-8. only then compose Amber into `blind_start.py`.
+1. `games/balatro/env/joker_order.py`
+   - derives exact Joker creation/sort order for empty/single areas or multi-Joker states with unique exact integer `live_id` values;
+   - duplicate/missing/noninteger ids fail closed;
+   - retains separate creation and physical orders;
+   - supports exact acquire/remove/set-permutation bookkeeping primitives.
+2. `games/balatro/env/amber_acorn.py`
+   - implements three keyed `aajk` shuffle advances;
+   - each pass restarts from creation/sort order, matching `CardArea:shuffle` → `pseudoshuffle` re-sort semantics;
+   - final physical permutation is the third shuffle result;
+   - RNG input state is isolated and exact.
+3. `games/balatro/env/public_observation.py`
+   - while active Amber is hiding Jokers, policy sees the owned Joker multiset but not identity-to-position mapping;
+   - strips private `live_id`/area index from masked clones;
+   - canonicalizes masked Joker presentation independently of hidden physical order;
+   - source state is never mutated.
+4. headless Amber order effect
+   - exact physical Joker permutation is applied internally for mechanics/order-sensitive evaluation;
+   - policy-facing observation remains masked while Amber is active.
 
-### Remaining hard Boss / lifecycle categories after Amber
+Relevant commits:
+
+```text
+ad1a057  feat(balatro): mask Amber Acorn Joker order
+7bfae6c  test(balatro): prevent Amber Joker-order leakage
+c605b3e  feat(balatro): apply exact Amber order to headless state
+808e0f2  test(balatro): cover Amber headless order effect
+```
+
+Authoritative gate:
+
+```text
+CI 33857249827: 1755 passed, 1595 deselected
+```
+
+Amber is **not yet complete**. Current implementation owns the hidden permutation/masking primitive but still requires exact lifecycle composition.
+
+## NEXT R2 WORK — AMBER BLIND-START + REVEAL/CLEANUP COMPOSITION
+
+Implement in this order:
+
+1. compose Amber's order effect into `blind_start.py` **between** `_begin_predeal_lifecycle()` and `_finish_predeal_lifecycle()`, matching vanilla `Blind:set_blind` before Joker `setting_blind` effects;
+2. own Joker-facing state explicitly enough to represent Amber's flip-to-back condition without exposing hidden mapping;
+3. implement source-exact reveal on Boss disable and defeat: flip hidden Jokers front while retaining the shuffled physical order;
+4. ensure post-reveal policy observation returns the now-visible physical order;
+5. retain exact Joker creation order through simulator-owned shop acquisitions/removals so headless runs do not require live `sort_id` values merely because the Jokers were created by the simulator itself;
+6. add regressions for zero/one/multiple Jokers, duplicate/missing ids, RNG snapshot/restore, input isolation, Burglar + Amber source ordering, disable/defeat reveal, post-reveal order visibility, and policy no-leak behavior;
+7. only then mark Amber Boss start GREEN.
+
+### Remaining hard Boss/lifecycle categories after Amber
 
 - Crimson Heart — per-hand random Joker debuff lifecycle;
 - Chicot composition, especially pre-deal Manacle/resource reversal;
@@ -463,7 +501,8 @@ R2 Wheel facing RNG                    GREEN — CI 33846232884
 R2 Fish temporal facing                GREEN — CI 33846610717
 R2 Pillar + permanent Ante history     GREEN — CI 33850320184
 R2 Verdant + minimum static sale       GREEN — CI 33855720629
-NEXT                                   AMBER ACORN / HIDDEN JOKER ORDER
+R2 Amber hidden order + masking        GREEN PRIMITIVE — CI 33857249827
+NEXT                                   AMBER START + REVEAL/CLEANUP COMPOSITION
 SELECT_BLIND                           NOT EXPOSED
 Burglar acquisition                    FAIL-CLOSED
 Generic/unknown acquisitions           FAIL-CLOSED
@@ -479,7 +518,7 @@ Observation/PPO                        NOT STARTED
 Current code head before this documentation commit:
 
 ```text
-9d99eb8d4925ccafeb204b3274478b9fcf32d738
+808e0f21cc0377285f0534160b7bee567633f7e0
 ```
 
-The next code written should therefore be **Amber Acorn hidden Joker-order/facing ownership**, starting with simulator-private Joker creation/order state and no policy leakage. It should **not** be Bond tuning, PPO, generic `SELL_JOKER`, or a public-list shuffle approximation.
+The next code written should therefore be **Amber Acorn blind-start + reveal/cleanup composition**, including retained headless Joker creation order where required. It should **not** be Bond tuning, PPO, generic `SELL_JOKER`, or another public-list shuffle approximation.
