@@ -3,15 +3,17 @@
 Vanilla ``create_card_for_shop`` first chooses a card *type* with the keyed
 ``cdt{ante}`` pseudorandom stream. Joker slots then roll rarity with
 ``rarity{ante}sho`` before constructing/culling the concrete center pool.
-Concrete identity selection is a wider boundary involving profile unlocks,
-used-center/Showman state, Ante gates, Planet softlocks, editions and vouchers.
-This module deliberately stops before that pool/identity boundary.
+Concrete identity selection additionally depends on exact dynamic pool
+eligibility. This module accepts that eligibility only when supplied explicitly;
+it does not guess profile unlocks, duplicate suppression, bans or pool flags.
 """
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 
+from games.balatro.env.joker_centers import current_joker_pool_from_eligible_keys
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
@@ -41,6 +43,14 @@ class ShopMainTypeSequence:
 class ShopJokerRarityPoll:
     run: HeadlessRunState
     rarity: int
+
+
+@dataclass(frozen=True)
+class ShopJokerCenterPoll:
+    run: HeadlessRunState
+    center_key: str
+    rarity: int
+    resamples: int
 
 
 def _shop_type_from_polled_rate(polled_rate: float) -> str:
@@ -138,3 +148,44 @@ def poll_base_shop_joker_rarity(run: HeadlessRunState) -> ShopJokerRarityPoll:
     next_run = run.copy()
     roll = next_run.rng.random(f"rarity{run.public.ante}sho")
     return ShopJokerRarityPoll(next_run, _joker_rarity_from_roll(roll))
+
+
+def poll_base_shop_joker_center(
+    run: HeadlessRunState,
+    rarity: int,
+    eligible_keys: Collection[str],
+) -> ShopJokerCenterPoll:
+    """Select one ordinary shop Joker identity from an exact eligible pool.
+
+    This reproduces vanilla ``get_current_pool`` + ``pseudorandom_element``
+    identity selection after the dynamic eligibility predicates have already
+    been resolved by an authoritative owner. Ineligible rarity-pool positions
+    remain literal ``UNAVAILABLE`` entries. If the first draw lands on one,
+    vanilla retries with ``Joker{rarity}sho_resample2``, then ``...resample3``,
+    and so on until an available center is selected.
+
+    The function intentionally does not infer unlock/profile/Showman/ban/flag
+    state and does not instantiate a runtime Joker object or roll an edition.
+    """
+    _validate_base_shop_boundary(run)
+    if type(rarity) is not int or rarity not in (1, 2, 3):
+        raise HeadlessTransitionError("ordinary shop Joker rarity must be exact 1, 2, or 3")
+
+    pool = current_joker_pool_from_eligible_keys(rarity, eligible_keys)
+    next_run = run.copy()
+    pool_key = f"Joker{rarity}sho"
+
+    index = next_run.rng.pseudorandom_element_index(len(pool), pool_key)
+    center = pool[index]
+    resamples = 0
+    source_it = 1
+    while center == "UNAVAILABLE":
+        source_it += 1
+        resamples += 1
+        index = next_run.rng.pseudorandom_element_index(
+            len(pool),
+            f"{pool_key}_resample{source_it}",
+        )
+        center = pool[index]
+
+    return ShopJokerCenterPoll(next_run, center, rarity, resamples)
