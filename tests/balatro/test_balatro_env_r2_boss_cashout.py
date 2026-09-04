@@ -142,6 +142,26 @@ def test_env_r2_verdant_leaf_cashout_clears_all_card_debuffs_without_disable_eve
     assert all(card.debuffed for card in run.require_playing_card_order())
 
 
+def test_env_r2_crimson_heart_cashout_clears_joker_debuff_without_extra_rng():
+    run = _finish(_boss_round("Crimson Heart", money=14, reward=5), hands=0)
+    joker = FlatMultJoker(3)
+    joker.debuffed = True
+    run.public.jokers = [joker]
+    setattr(run.public.blind, "prepped", False)
+    before_rng = run.rng_snapshot()
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.jokers[0].debuffed is False
+    assert getattr(result.public.blind, "prepped", False) is True
+    assert result.public.blind.disabled is False
+    assert result.public.phase == "SHOP"
+    assert result.public.money == 21
+    assert result.rng_snapshot() == before_rng
+    assert run.public.jokers[0].debuffed is True
+    assert getattr(run.public.blind, "prepped", False) is False
+
+
 def test_env_r2_boss_cashout_isolates_input_and_rejects_unsupported_cleanup():
     run = _finish(_boss_round("The Psychic"))
     before_money = run.public.money
@@ -157,7 +177,7 @@ def test_env_r2_boss_cashout_isolates_input_and_rejects_unsupported_cleanup():
     assert run.rng_snapshot() == before_rng
     assert result.rng_snapshot() == before_rng
 
-    unsupported = _finish(_boss_round("Crimson Heart"))
+    unsupported = _finish(_boss_round("Unsupported Boss"))
     with pytest.raises(HeadlessTransitionError, match="not exactly owned"):
         cash_out_supported_boss(unsupported)
 
