@@ -15,16 +15,15 @@ Authoritative roadmap for Balatro Red Deck / White Stake competence on `LeafStar
 - Never substitute `G.deck.cards` for permanent owned-deck truth; permanent deck source is `G.playing_cards`.
 - Do not reintroduce legacy attempt flags such as `--one`, `--three`, `--five`; retain the canonical attempt-count interface.
 - Face-down card identity is **not public information**. Headless simulation may retain true identity internally for exact mechanics, but policy observations must mask it.
+- If context becomes insufficient to continue safely, **stop immediately rather than guessing**.
 
 ---
 
 # Required development procedure
 
-## Start from repository truth
-
 For every continuation session:
 
-1. read the current `ROADMAP.md` first;
+1. read current `ROADMAP.md` first;
 2. verify current branch/head before editing;
 3. inspect the canonical owner(s) for the next roadmap task;
 4. check for intervening commits before writing;
@@ -36,57 +35,46 @@ Target branch:
 feat/v1.0-red-white-competence
 ```
 
-`ROADMAP.md` is the single source of truth for phase status, blockers, next work, and validation state. Update it after green checkpoints that materially change those.
-
-## Small exact slices
-
 For each mechanics/state/lifecycle slice:
 
-1. audit vanilla/source behavior and existing production owners;
+1. audit pinned vanilla/source behavior and existing production owners;
 2. classify the exact missing ownership boundary;
-3. patch the canonical owner rather than adding a rescue wrapper;
-4. add focused deterministic regressions, including rejection/fail-closed behavior where relevant;
-5. keep unsupported composition unavailable rather than approximating it;
-6. run the deterministic CI gate;
+3. patch the canonical owner rather than adding a rescue approximation;
+4. add focused deterministic regressions, including fail-closed behavior;
+5. keep unsupported composition unavailable;
+6. run deterministic CI;
 7. inspect the actual pytest result and selection count;
 8. only then mark the slice GREEN and synchronize this roadmap.
 
-Do not bulk-admit Jokers/actions merely because nearby classes are supported. Audit counters, RNG, economy, card mutation, sell/destruction behavior, lifecycle state, and persistent consequences individually.
+Do not bulk-admit Jokers/actions merely because nearby classes are supported. Audit counters, RNG, economy, card mutation, sale/destruction, lifecycle state, persistent consequences, and information visibility individually.
 
-## Source-audit rule
-
-When exact Balatro behavior is unclear, trace the pinned vanilla implementation or an already-validated canonical repository owner before coding. Do not infer exact mechanics from UI behavior, names, memory, wiki prose, or Python convenience semantics when source-exact behavior is available.
-
-Current vanilla source pin used for audits:
+Pinned vanilla source used for exact audits:
 
 ```text
 GladdonT/balatro-source-code
 895ab3a25bc6f513fa80885eb59951bf8e76bc55
 ```
 
-If that source reference changes, record the new pin before depending on it for deterministic parity work.
-
 ## Fail-closed rule
 
-If exactness cannot be proved at the modeled boundary:
+If exactness cannot be proved:
 
 - reject the transition/action;
 - omit it from the training mask;
 - preserve `None`/unobserved state where applicable;
-- do not silently substitute a related public field;
-- do not add synthetic state merely to make a transition convenient unless source-justified and lifecycle-owned.
+- do not silently substitute related state;
+- do not invent synthetic state unless source-justified and lifecycle-owned.
 
-Examples already enforced:
+Already enforced examples:
 
-- permanent owned deck is `G.playing_cards`, never `G.deck.cards`;
-- partial LuaJIT array reads make owned-deck observation unavailable rather than shorter;
-- future physical draw order remains private;
-- face-down identity remains masked from policy observations;
-- Python `random` is not a substitute for Balatro/LuaJIT RNG.
+- permanent owned deck = `G.playing_cards`, never `G.deck.cards`;
+- partial LuaJIT/TValue reads invalidate owned-deck observation;
+- future physical draw order stays private;
+- face-down identity stays masked;
+- Python `random` is not Balatro RNG;
+- unsupported Joker sale inverse lifecycles stay rejected.
 
-## Deterministic pytest procedure — GitHub Actions is the Work Chat gate
-
-Work Chat does **not** ask the user to pull and run deterministic pytest when GitHub Actions can run it.
+## Deterministic CI procedure
 
 Authoritative workflow:
 
@@ -100,44 +88,17 @@ Current command:
 python -m pytest -q tests/balatro -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2"
 ```
 
-Required procedure after a relevant push:
+After each relevant push:
 
-1. locate the workflow run for the exact pushed commit/head;
-2. wait for `balatro-deterministic-tests` to complete;
-3. require workflow/job conclusion `success`;
-4. inspect the job log's final pytest line;
-5. record exact `passed` and `deselected` counts when reporting a gate;
-6. confirm the intended new test family was actually selected by the `-k` expression;
-7. if new tests were deselected, fix CI selection and rerun before calling the slice GREEN.
+1. locate the workflow run for the exact commit;
+2. require `balatro-deterministic-tests` conclusion `success`;
+3. inspect the final pytest line;
+4. record exact passed/deselected counts;
+5. confirm the intended test family was selected.
 
-A green workflow badge alone is **not sufficient evidence**. Historical example: the first R2 card-order workflow succeeded while six `env_r2` tests were deselected; the selector was corrected to include `env_r2`, and only the corrected run counted.
+A green workflow badge alone is not sufficient. Historical R2 card-order tests were once accidentally deselected; `env_r2` was then added to the CI selector before that slice was called green.
 
-Do not claim local pytest ran unless a real local repository/runtime exists in the current environment.
-
-## Commit/push procedure
-
-The user has authorized pushing completed commits to the remote branch.
-
-- Push coherent completed implementation/test/doc slices without repeatedly asking permission.
-- Prefer separate implementation and focused regression commits when useful for auditability.
-- Do not claim a commit/push exists without GitHub evidence.
-- Do not stack large unrelated mechanics changes behind an unverified gate.
-- Synchronize this roadmap after green checkpoints so another session can resume exactly.
-
-## Live Balatro validation procedure
-
-Do **not** ask the user to run Balatro for deterministic/static questions CI can answer.
-
-Request a Windows/live Balatro run only when uncertainty genuinely depends on live game integration, memory observation, runtime parity, UI/execution behavior, or another condition that source + deterministic tests cannot establish. When one is required, state exactly what run/evidence is needed rather than asking for an open-ended batch.
-
-Standing instruction: **no open-ended live batch** unless a later roadmap gate explicitly requires one.
-
-## Scope/context discipline
-
-- Follow the roadmap's current primary workstream; do not pivot back to Bond coefficient tuning.
-- Do not start PPO/observation training before the roadmap gates permit it.
-- Do not reintroduce retired legacy attempt flags; use the canonical attempt-count interface.
-- If context becomes insufficient to continue safely, stop rather than guessing or making an ungrounded large change. Resume from repository + roadmap truth in the next session.
+The user has authorized pushing coherent completed commits to the remote branch. Do not ask the user to run deterministic pytest when CI can do it. Do not request another open-ended live Balatro batch unless a later parity gate specifically requires one.
 
 ---
 
@@ -158,8 +119,6 @@ Historical gates:
 33760179448  1233 passed, 1594 deselected
 ```
 
-Do not request another open-ended live batch at this stage.
-
 ---
 
 # Phase R — exact headless Balatro environment — ACTIVE
@@ -167,8 +126,6 @@ Do not request another open-ended live batch at this stage.
 The simulator is not authoritative game truth until R5 live/simulator parity passes.
 
 ## R1 — deterministic state/acquisition — SUBSTANTIALLY COMPLETE
-
-Generic acquisition is not “append inventory + subtract money.” Persistent consequences must be exact.
 
 Exact resource-sensitive acquisitions:
 
@@ -180,7 +137,7 @@ Troubadour   hand_size += 2; round_reset_hands -= 1
 Merry Andy   hand_size -= 1; round_reset_discards += 3
 ```
 
-The audited inventory-only score/rule/retrigger Joker set is owned incrementally in `ShopTransitionEngine`, including passive-rule, hand-shape, suit, conditional, money, owned-deck, and retrigger groups.
+The exact inventory-only score/rule/retrigger Joker set is owned incrementally in `ShopTransitionEngine`, including passive-rule, hand-shape, suit, conditional, money, owned-deck, and retrigger groups.
 
 Permanent-deck authority:
 
@@ -190,7 +147,7 @@ Permanent-deck authority:
 - malformed/count-mismatched cards make `owned_deck = None`;
 - Steel Joker, Stone Joker, Driver's License, and Erosion are exact-gated on permanent owned deck.
 
-Key R1 hardening gates:
+Key R1 gates:
 
 ```text
 33788603611  1401 passed, 1594 deselected
@@ -203,9 +160,9 @@ Still fail closed:
 - unknown/unaudited Joker acquisitions;
 - Joker editions, especially Negative;
 - generic voucher acquisition;
-- packs until exact RNG/pack state exists;
-- `SELL_JOKER` until inverse lifecycle effects exist;
-- malformed/noninteger prices.
+- generic packs until their RNG/state is exact;
+- malformed/noninteger prices;
+- generic `SELL_JOKER` for classes whose inverse lifecycle is not owned.
 
 ---
 
@@ -233,21 +190,21 @@ CI 33791916289: 1435 passed, 1594 deselected
 
 ### R2.3 — playing-card creation order/private RNG — GREEN
 
-Exact order only from unique integer live `playing_card` IDs or untouched vanilla one-of-each 52-card structure. Otherwise fail closed. No fake public `sort_id`.
+Exact playing-card creation order is retained privately only when provable from unique integer live `playing_card` IDs or the untouched vanilla one-of-each 52-card structure. No fake public `sort_id`.
 
 ```text
 CI 33795507133: 1461 passed, 1594 deselected
 ```
 
-### R2.4 — complete-deck exact shuffle/deal — GREEN FOR SUPPORTED DECKS
+### R2.4 — complete-deck shuffle/deal — GREEN FOR SUPPORTED DECKS
 
-`deal_supported_round_start()` owns exact physical shuffle/deal while public `deck` remains canonicalized and does not reveal future order. `draw_one_supported_card_to_hand()` uses only an already-owned private physical draw pile.
+`deal_supported_round_start()` owns physical shuffle/deal. Public `deck` remains canonicalized and never exposes future order. Private draw/discard/played zones are validated exact card lists.
 
 ```text
 CI 33803629167: 1563 passed, 1594 deselected
 ```
 
-### R2.5 — round resources/one-shot bonuses — GREEN
+### R2.5 — round resources / one-shot bonuses — GREEN
 
 ```text
 hands_remaining    = max(1, round_reset_hands + round_bonus_hands)
@@ -267,23 +224,18 @@ hands += 3
 discards_remaining = 0
 ```
 
-Unknown lifecycle Jokers fail closed. Burglar acquisition remains fail-closed because a bought Burglar persists into future arbitrary lifecycle states.
+Unknown lifecycle Jokers fail closed. Burglar acquisition remains fail-closed because purchase persists into future arbitrary lifecycle states.
 
-### R2.7 — first-round parity — GREEN
+### R2.7 — round/Small/Big start — GREEN
 
-Vanilla `G.GAME.round` initializes at 0 and first select-blind queues `ease_round(1)` before `new_round()`.
+Vanilla `G.GAME.round` starts at 0; first select-blind queues `ease_round(1)` before `new_round()`.
 
 ```text
 CI 33797071526: 1482 passed, 1594 deselected
-```
-
-### R2.8 — Small/Big Blind start — GREEN
-
-```text
 CI 33798795353: 1497 passed, 1594 deselected
 ```
 
-### R2.9 — Boss lifecycle — ACTIVE
+### R2.8 — Boss lifecycle — ACTIVE
 
 Owned Boss slices:
 
@@ -291,7 +243,7 @@ Owned Boss slices:
 Wall + Violet Vessel            requirement-only             GREEN  CI 33799746434
 Eye + Mouth                     mutable hand-rule             GREEN  CI 33800243393
 Water + Needle                  reversible resources         GREEN  CI 33801195935
-Manacle                         reversible hand size         GREEN  on owned boundaries
+Manacle                         reversible hand size         GREEN
 Goad/Window/Head/Club           static suit card debuffs     GREEN  CI 33803874842
 Plant                           face-card debuffs             GREEN  CI 33804343818
 pseudorandom_element            source-exact selection       GREEN  CI 33805699954
@@ -307,11 +259,10 @@ House + Mark                    deterministic card facing    GREEN  CI 338459525
 Wheel                           keyed per-draw card facing    GREEN  CI 33846232884
 Fish                            temporal post-play facing     GREEN  CI 33846610717
 Pillar                          permanent Ante card history  GREEN  CI 33850320184
+Verdant Leaf                    all-card debuff + sale       GREEN  CI 33855720629
 ```
 
 ### Start-inert Boss family — GREEN
-
-Current audited members:
 
 ```text
 The Psychic
@@ -323,33 +274,21 @@ The Arm
 The Serpent
 ```
 
-They have no additional `Blind:set_blind` / initial `Blind:drawn_to_hand` mutation; downstream effects are owned separately.
+Their start boundary is exact; their downstream effects are separately owned/tested.
 
-### Selected owned Boss semantics
+### Selected semantics already frozen
 
 #### Hook
 
-At `Blind:press_play`:
-
-1. player-selected cards are excluded from candidates;
-2. choose up to two remaining hand cards using keyed `pseudorandom_element(..., "hook")`;
-3. remove first candidate before second selection;
-4. move forced cards to discard;
-5. do not decrement discard allowance;
-6. do not draw replacements;
-7. preserve exact RNG state.
+At `Blind:press_play`, choose up to two non-selected hand cards via keyed `pseudorandom_element(..., "hook")`, removing the first candidate before second selection. Forced discards do not consume discard allowance or draw replacements.
 
 #### Ox
 
-- authoritative target is `G.GAME.current_round.most_played_poker_hand`;
-- observer exposes it and translator canonicalizes names;
-- headless owner uses `BalatroState.round_most_played_hand` and never recomputes it;
-- a match sets money exactly to `0`, including from negative money;
-- missing/invalid target fails closed.
+Uses authoritative `G.GAME.current_round.most_played_poker_hand`; matching hand sets money exactly to `0`, including from negative money. Missing target fails closed.
 
 #### Arm
 
-Vanilla `Blind:debuff_hand` decrements the classified hand level only when level > 1. Canonical scoring derives base Chips/Mult from `BalatroState.hand_levels`; no duplicate Chips/Mult state is used.
+Decrements the classified hand level only when level > 1; scoring derives Chips/Mult from canonical `hand_levels`.
 
 #### Serpent
 
@@ -359,130 +298,88 @@ After at least one play or discard:
 draw_count = min(#remaining_deck, 3)
 ```
 
-Uses authoritative action history and private physical draw order, may grow the hand above nominal capacity, consumes no RNG, and fails closed on unknown history/private-public mismatch.
+May grow hand above nominal capacity, consumes no RNG, and requires authoritative private/public zone state.
 
-```text
-CI 33843165212: 1675 passed, 1594 deselected
-```
+#### House / Mark / Wheel / Fish
 
-### R2.10 — face-down/facing state — GREEN FOR HOUSE/WHEEL/MARK/FISH
+`BalatroCard.face_down` + `facing_observed` are canonical. Policy observations mask face-down identity and modifiers while internal simulation retains identity.
 
-Canonical card state includes:
+Wheel consumes one keyed `wheel` RNG advance per physical draw. Fish is temporal: initial draw face up, post-play draws face down, post-discard draws face up.
 
-```text
-BalatroCard.face_down
-BalatroCard.facing_observed
-```
+#### Pillar
 
-Live observer/translator preserves authoritative facing. Policy observations mask face-down rank/suit/hidden modifiers and `live_id`; internal simulation retains true identity for exact mechanics. Future physical draw order remains private.
+Permanent cards carry exact `played_this_ante` + observation state from `G.playing_cards`. Accepted play marking sets selected permanent cards true; new-Ante reset clears them; missing history fails closed.
 
-#### House + Mark
+### R2.9 — Verdant Leaf / minimum Joker-sale lifecycle — GREEN
 
-```text
-CI 33845952545: 1686 passed, 1595 deselected
-```
+Owned source boundary:
 
-#### Wheel
-
-Per physical drawn card:
-
-```text
-face_down = pseudorandom(pseudoseed("wheel")) < probabilities.normal / 7
-```
-
-One keyed `wheel` RNG advance per physical draw. Current exact boundary requires normal probability state; unsupported probability-modifying composition fails closed.
-
-```text
-CI 33846232884: 1692 passed, 1595 deselected
-```
-
-#### Fish
-
-Temporal behavior is owned atomically rather than inventing a persistent simulator flag:
-
-```text
-initial draw     face up
-post-play draw   new cards face down
-post-discard     new cards face up
-```
-
-```text
-CI 33846610717: 1700 passed, 1595 deselected
-```
-
-### R2.11 — Pillar / permanent `played_this_ante` history — GREEN
-
-Vanilla Pillar depends on each permanent playing card's persistent:
-
-```text
-card.ability.played_this_ante
-```
-
-Owned state/lifecycle:
-
-- canonical card fields track both value and observation exactness;
-- `G.playing_cards` process-memory observation exposes permanent-card history;
-- translator carries that history fail-closed into `BalatroCard`;
-- accepted `PLAY_CARDS` marking sets selected permanent cards `played_this_ante = True` without pretending to own the entire play transition;
-- new-Ante cleanup clears the flag across the permanent deck;
-- pristine fresh Red/White initialization establishes authoritative `False` history only for the exact untouched 52-card base run;
-- live snapshots never replace observed history with pristine defaults;
-- Pillar debuffs exactly the cards marked as played earlier in the current Ante;
-- Pillar cleanup clears transient debuff state while retaining Ante history until the actual new-Ante reset;
-- any missing permanent-card history observation causes Pillar start/mutation to fail closed;
-- public-policy safety remains unchanged: persistent play history does not grant hidden card identity.
+1. Boss start applies Verdant's all-playing-card debuff before the Joker `setting_blind` pass;
+2. exact shuffle/deal preserves the permanent card debuffs into the active hand/draw pile;
+3. selling an audited **inventory-only / static sell-safe** Joker removes it, credits exact nonnegative `sell_cost`, disables Verdant Leaf, and clears every permanent-card debuff;
+4. Eternal Jokers, editions, invalid prices/indexes, resource-sensitive inverse lifecycles, and unsupported Joker classes remain rejected;
+5. `Blind.disabled` is retained across copies/replay state;
+6. generic `SELL_JOKER` remains `PLANNED` and is **not** training-exposed merely because this minimum Verdant path is owned.
 
 Relevant commits:
 
 ```text
-caf0e08  track permanent played-this-ante state
-4c27da8  exact Pillar history debuff
-5e946d4  integrate exact Pillar blind start
-28a500c  Pillar history debuff regressions
-e158a25  observe permanent played-this-ante state
-0ee5195  translate permanent played-this-ante state
-2ece03c  live Pillar history observation regressions
-182bd77  permanent played-this-ante lifecycle
-d51ba14  permanent Ante history lifecycle regressions
-d87701b  enforce Pillar live history in R2 gate
-2bc4c98  remove ungated Pillar history test path
-48f58eb  initialize fresh-run Ante card history
+ee7e5a5  retain blind disabled state
+a96a8e1  own minimum exact Verdant Joker sale
+0a390e9  pin minimum Verdant sale lifecycle
+1130edb  compose exact Verdant Leaf start
+9d99eb8  pin exact Verdant start composition
 ```
 
-Final pre-documentation Pillar/card-history gate:
+Final Verdant gate:
 
 ```text
-CI 33850320184: 1724 passed, 1595 deselected
+CI 33855720629: 1734 passed, 1595 deselected
 ```
 
-### NEXT R2 WORK — VERDANT LEAF / JOKER-SALE LIFECYCLE
+---
 
-The next structural Boss blocker is **Verdant Leaf**.
+## NEXT R2 WORK — AMBER ACORN / HIDDEN JOKER ORDER
 
-Vanilla behavior requires ownership of its all-card debuff state and the lifecycle where selling a Joker disables the Boss restriction. This crosses the currently fail-closed `SELL_JOKER` boundary, so it must not be approximated as a static card debuff.
+Pinned vanilla `Blind:set_blind` behavior:
+
+```text
+if Amber Acorn and Jokers > 0:
+    flip every Joker
+    if Jokers > 1:
+        G.jokers:shuffle("aajk")
+        G.jokers:shuffle("aajk")
+        G.jokers:shuffle("aajk")
+```
+
+Important exactness finding:
+
+- `CardArea:shuffle` calls `pseudoshuffle`;
+- `pseudoshuffle` re-sorts cards by engine `sort_id` before each shuffle;
+- therefore Amber's three calls advance keyed `aajk` state three times, and the final permutation is based on Joker creation/sort order rather than the player's current display order;
+- live memory already exposes each Joker's `sort_id` as item `live_id`, but the headless/public schema does not yet own Amber's hidden flipped/shuffled Joker ordering.
 
 Next implementation order:
 
-1. audit vanilla Verdant Leaf `set_blind`, card debuff, Joker-sale disable, cleanup/defeat, and Chicot interactions;
-2. audit the canonical live `SELL_JOKER` legality/execution path and every persistent inverse effect that can make selling exact or unsafe;
-3. define the minimum headless Joker-sale transition boundary needed by Verdant Leaf;
-4. retain generic `SELL_JOKER` as unavailable until inverse acquisition/lifecycle effects are exact for the sold Joker class;
-5. implement Verdant's all-card debuff only at states where its disable/sale lifecycle is fully owned;
-6. add focused regressions for pre-sale debuff, exact disable-on-sale, cleanup, rejected unsupported sales, copy/isolation, and live parity fields if new observation is required;
-7. keep `SELECT_BLIND` non-training-exposed until the composed strategic boundary is broad enough.
+1. audit Amber cleanup/disable/defeat behavior and exact Joker facing restoration;
+2. define simulator-private authoritative Joker creation/order state without leaking hidden permutation to policy observations;
+3. validate unique exact Joker `sort_id`/`live_id` when reconstructing live Amber state; fail closed otherwise;
+4. implement three source-exact keyed `aajk` shuffle advances;
+5. retain known owned Joker multiset publicly while masking identity-to-position mapping under Amber;
+6. ensure scoring/execution uses the private physical Joker order where order matters;
+7. add focused RNG snapshot/restore, one-Joker, multi-Joker, duplicate/missing-id, cleanup, and policy-leak regressions;
+8. only then compose Amber into `blind_start.py`.
 
-### Current hard blockers / later Boss categories
+### Remaining hard Boss / lifecycle categories after Amber
 
-- Verdant Leaf — **NEXT**, all-card debuff + Joker-sale lifecycle
-- Amber Acorn — Joker flip + seeded Joker-order shuffle
-- Crimson Heart — per-hand random Joker debuff lifecycle
-- Chicot composition, especially pre-deal Manacle
-- prior-round arbitrary zone cleanup
-- active tags
-- voucher blind-start effects
-- shop/reroll RNG
-- pack RNG/state
-- boss-selection RNG
+- Crimson Heart — per-hand random Joker debuff lifecycle;
+- Chicot composition, especially pre-deal Manacle/resource reversal;
+- prior-round arbitrary zone cleanup;
+- active tags;
+- voucher blind-start effects;
+- shop/reroll RNG;
+- pack RNG/state;
+- boss-selection RNG.
 
 `SELECT_BLIND` remains **PLANNED / NOT TRAINING-EXPOSED**.
 
@@ -490,7 +387,16 @@ Next implementation order:
 
 ## R3 — typed strategic action vocabulary — PARTIAL / TIED TO EXACTNESS
 
-Every training-visible action requires exact legality, transition, serialization, and mask representation. `SELECT_BLIND` remains hidden until R2/R3 exact ownership is broad enough.
+Every training-visible action requires exact legality, transition, serialization, and mask representation.
+
+Current important status:
+
+```text
+SELECT_BLIND  PLANNED / hidden from mask
+SELL_JOKER   PLANNED; minimum Verdant static-sale path exists only
+```
+
+Do not widen action exposure until the composed exact lifecycle is broad enough.
 
 ## R4 — deterministic tactical bridge — NOT STARTED
 
@@ -498,7 +404,17 @@ Reuse existing deterministic hand/discard tactical owners while RL initially con
 
 ## R5 — live/simulator parity — NOT STARTED
 
-Priority fixtures: shop paths, blind skip/start/clear, Boss restrictions, lifecycle-sensitive Jokers, owned deck, economy, RNG/shuffle/draw/facing/permanent-card-history parity.
+Priority fixtures:
+
+- shop purchase/hold/end-shop;
+- Joker replacement/sale;
+- reroll/voucher/pack paths;
+- blind skip/start/clear;
+- Boss restrictions and cleanup;
+- lifecycle-sensitive Jokers;
+- owned deck/permanent card history;
+- economy;
+- RNG/shuffle/draw/facing/Joker-order parity.
 
 ## R6 — performance gate — NOT STARTED
 
@@ -540,33 +456,30 @@ R1 deterministic state/acquisition     SUBSTANTIALLY COMPLETE
 R2 RNG / round / Boss lifecycle        ACTIVE
 R2 start-inert family                  GREEN THROUGH SERPENT
 R2 Hook downstream                     GREEN — CI 33839910429
-R2 Ox downstream + live target         GREEN — CI 33841056452
-R2 Arm downstream                      GREEN — CI 33841056452
-R2 Serpent downstream + composition    GREEN — CI 33843165212
-R2 public facing schema/live wiring    GREEN
+R2 Ox + Arm downstream                 GREEN — CI 33841056452
+R2 Serpent downstream                  GREEN — CI 33843165212
 R2 House + Mark facing                 GREEN — CI 33845952545
 R2 Wheel facing RNG                    GREEN — CI 33846232884
 R2 Fish temporal facing                GREEN — CI 33846610717
 R2 Pillar + permanent Ante history     GREEN — CI 33850320184
-NEXT                                   VERDANT LEAF / SELL_JOKER LIFECYCLE
+R2 Verdant + minimum static sale       GREEN — CI 33855720629
+NEXT                                   AMBER ACORN / HIDDEN JOKER ORDER
 SELECT_BLIND                           NOT EXPOSED
 Burglar acquisition                    FAIL-CLOSED
 Generic/unknown acquisitions           FAIL-CLOSED
 Joker editions                         FAIL-CLOSED
 Generic vouchers/packs                 FAIL-CLOSED
-SELL_JOKER                             FAIL-CLOSED / NEXT STRUCTURAL DEPENDENCY
+SELL_JOKER                             PLANNED / MINIMUM VERDANT PATH ONLY
 R4 tactical bridge                     NOT STARTED
 R5 parity                              NOT STARTED
 R6 performance                         NOT STARTED
 Observation/PPO                        NOT STARTED
 ```
 
-Current branch code head immediately before this documentation work:
+Current code head before this documentation commit:
 
 ```text
-48f58eba1a30149ee40455e3de4fefb7f0b63fe4
+9d99eb8d4925ccafeb204b3274478b9fcf32d738
 ```
 
-Documentation commits may sit above that code head without changing mechanics.
-
-The next code written should therefore be **the exact Verdant Leaf / Joker-sale lifecycle audit and minimum canonical ownership needed to support it**. It should **not** be Bond tuning, PPO, or a static approximation that ignores sale/inverse lifecycle effects.
+The next code written should therefore be **Amber Acorn hidden Joker-order/facing ownership**, starting with simulator-private Joker creation/order state and no policy leakage. It should **not** be Bond tuning, PPO, generic `SELL_JOKER`, or a public-list shuffle approximation.
