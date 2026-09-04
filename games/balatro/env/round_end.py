@@ -107,11 +107,17 @@ def _round_end_joker_dollars(run: HeadlessRunState) -> int:
                 )
             data["deck"] = state.owned_deck
         elif type(joker) is DelayedGratificationJoker:
+            discards_used = _require_exact_int(
+                "discards_used", state.discards_used
+            )
             discards_remaining = _require_exact_int(
                 "discards_remaining", state.discards_remaining
             )
+            if discards_used < 0:
+                raise HeadlessTransitionError("discards_used cannot be negative")
             if discards_remaining < 0:
                 raise HeadlessTransitionError("discards_remaining cannot be negative")
+            data["discards_used"] = discards_used
             data["discards_remaining"] = discards_remaining
 
         context = JokerContext(
