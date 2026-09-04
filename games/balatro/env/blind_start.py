@@ -27,7 +27,13 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 
 
 _REQUIREMENT_ONLY_BOSS_NAMES = frozenset({"The Wall", "Violet Vessel"})
-_START_INERT_BOSS_NAMES = frozenset({"The Psychic", "The Flint", "The Tooth", "The Hook"})
+_START_INERT_BOSS_NAMES = frozenset({
+    "The Psychic",
+    "The Flint",
+    "The Tooth",
+    "The Hook",
+    "The Ox",
+})
 _MUTABLE_HAND_RULE_BOSS_NAMES = frozenset({"The Eye", "The Mouth"})
 _RESOURCE_MUTATING_BOSS_NAMES = frozenset({"The Water", "The Needle", "The Manacle"})
 _STATIC_SUIT_DEBUFF_BOSS_NAMES = frozenset({"The Goad", "The Window", "The Head", "The Club"})
@@ -135,11 +141,11 @@ def start_supported_requirement_only_boss(run: HeadlessRunState) -> HeadlessRunS
 def prepare_supported_start_inert_boss_start(run: HeadlessRunState) -> HeadlessRunState:
     """Own only the start boundary for Bosses whose mechanic fires later.
 
-    The Psychic, The Flint, The Tooth, and The Hook do not mutate state in
-    vanilla ``Blind:set_blind`` or ``Blind:drawn_to_hand``. Their actual effects
-    occur later during hand scoring or ``Blind:press_play`` processing.
-    Admitting them here therefore means only that their blind-start lifecycle is
-    exact; downstream effects remain separately owned/tested.
+    The Psychic, The Flint, The Tooth, The Hook, and The Ox do not mutate state
+    in vanilla ``Blind:set_blind`` or initial ``Blind:drawn_to_hand``. Their
+    actual effects occur later during hand scoring or ``Blind:press_play``
+    processing. Admitting them here therefore means only that their blind-start
+    lifecycle is exact; downstream effects remain separately owned/tested.
     """
     _require_boss_blind(run, label="start-inert boss start")
     if run.public.boss_name not in _START_INERT_BOSS_NAMES:
