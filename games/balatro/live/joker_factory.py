@@ -85,6 +85,17 @@ class LiveJokerFactory:
             if value is not None:
                 setattr(joker, field, value)
 
+        # ``Card.debuff`` is public for Jokers and is the authoritative live
+        # source for Crimson Heart. Keep the model spelling aligned with the
+        # existing scorer/copy-projection contract (``debuffed``). Missing state
+        # remains the ordinary non-debuffed default; malformed non-booleans fail
+        # closed by declining to construct a false authoritative value.
+        if "debuff" in data:
+            debuff = data.get("debuff")
+            if not isinstance(debuff, bool):
+                return None
+            setattr(joker, "debuffed", debuff)
+
         allowed_fields = observed_public_joker_state_fields(joker_class.__name__)
         for field in allowed_fields:
             value = public_state.get(field)
