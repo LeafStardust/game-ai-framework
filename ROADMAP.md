@@ -192,7 +192,9 @@ hands_remaining += 3
 discards_remaining = 0
 ```
 
-Unknown lifecycle Jokers fail closed. **Burglar acquisition remains fail-closed** because purchase persists into arbitrary future lifecycle states that are not all yet owned.
+Chicot lifecycle is now source-ordered through the centralized Boss-disable dispatcher for the currently owned Boss set except the pre-deal Manacle case described below.
+
+Unknown lifecycle Jokers fail closed. **Burglar and Chicot acquisitions remain fail-closed** because purchase persists into arbitrary future lifecycle states that are not all yet owned.
 
 ### R2.6 — non-Boss starts — GREEN FOR SUPPORTED STATE
 
@@ -213,7 +215,7 @@ Owned Boss boundaries and downstream mechanics:
 The Wall + Violet Vessel       requirement-only                   GREEN
 The Eye + The Mouth            mutable hand-rule state            GREEN
 The Water + The Needle         reversible round resources         GREEN
-The Manacle                    reversible hand-size mutation      GREEN
+The Manacle                    reversible hand-size mutation      GREEN; PRE-DEAL CHICOT BLOCKED
 The Goad/Window/Head/Club      static suit card debuffs           GREEN
 The Plant                      face-card debuffs                  GREEN
 Cerulean Bell                  forced-selection lifecycle         GREEN
@@ -245,7 +247,9 @@ Representative gates:
 33850320184  Pillar
 33855720629  Verdant Leaf — 1734 passed, 1595 deselected
 33857249827  Amber primitive — 1755 passed, 1595 deselected
-33863345344  current HEAD — 1794 passed, 1595 deselected
+33863345344  Crimson checkpoint — 1794 passed, 1595 deselected
+33865394680  Chicot/Cerulean checkpoint — 1805 passed, 1595 deselected
+33869467530  Chicot Verdant/facing checkpoint — 1815 passed, 1595 deselected
 ```
 
 #### Verdant Leaf — GREEN
@@ -255,6 +259,7 @@ Owned minimum exact sale lifecycle:
 - Boss start debuffs all permanent playing cards;
 - selling an audited static sell-safe Joker credits exact sell value;
 - sale disables Verdant and clears permanent-card debuffs;
+- the same centralized Verdant disable inverse is now used by Chicot;
 - Eternal/edition/resource-sensitive/unsupported sale paths fail closed;
 - generic `SELL_JOKER` remains `PLANNED` and is **not** training-exposed.
 
@@ -283,47 +288,103 @@ Owned source behavior:
 - debuffed Jokers remain visible to cross-Joker mechanics such as Baseball Card;
 - disable cleanup clears Joker debuffs and `prepped` state without consuming RNG.
 
-Latest Crimson-related fixes at HEAD:
-
-```text
-eb3eb8c  keep debuffed Jokers observable to Baseball Card
-b0a26a3  retain debuffed Jokers in projection graph
-CI 33863345344: 1794 passed, 1595 deselected
-```
-
----
-
-# NEXT R2 WORK — CHICOT BOSS-DISABLE COMPOSITION
+#### Chicot / centralized `Blind:disable()` — GREEN EXCEPT PRE-DEAL MANACLE
 
 Pinned vanilla trigger:
 
 ```text
-Chicot: context.setting_blind -> G.GAME.blind:disable()
+Chicot: context.setting_blind -> queue G.GAME.blind:disable()
 ```
 
-Chicot must be audited as a **source-ordered `setting_blind` disable**, not treated as an acquisition-only Joker.
+Owned source ordering:
+
+1. round resources are installed;
+2. Boss `set_blind` mutation occurs;
+3. every Joker receives `setting_blind`;
+4. Burglar/current-round outputs are installed;
+5. the queued Chicot disable executes;
+6. only later does `DRAW_TO_HAND` / `nr{ante}` shuffle/deal occur.
+
+Central dispatcher currently owns exact disable consequences for:
+
+- Wall / Violet requirement restoration;
+- Water / Needle resource restoration;
+- static suit debuff Bosses;
+- Plant;
+- Pillar;
+- Verdant Leaf;
+- House / Wheel / Mark / Fish facing cleanup;
+- Cerulean Bell forced-selection cleanup;
+- Amber Acorn reveal/disable;
+- Crimson Heart debuff/prepped cleanup;
+- Eye / Mouth / Psychic / Flint / Tooth / Hook / Ox / Arm / Serpent simple disable state.
+
+Recent composition fixes:
+
+```text
+8943e36  centralize Verdant disable cleanup
+034f363  admit Verdant through Boss-disable dispatcher
+0540b52  Chicot/Verdant regressions
+99405b7  suppress disabled House/Mark/Wheel facing effects
+ab133f5  avoid Boss-disable/facing import cycle
+ a22bf6a  keep disabled Fish replenishment face-up
+209c68c  Chicot facing Boss regressions
+CI 33869467530: 1815 passed, 1595 deselected
+```
+
+Important exactness details:
+
+- Chicot-disabled Wheel does **not** consume the `wheel` RNG key after the ordinary `nr{ante}` deal;
+- Chicot-disabled House/Mark deal face-up;
+- Chicot-disabled Fish later replenishes face-up after play;
+- `wheel_flipped` is vanilla flip/UI bookkeeping, not a gameplay-state dependency; headless therefore owns the mechanical face-up inverse without inventing a public marker;
+- multiple Chicot disable requests remain fail-closed until repeated-disable event semantics are explicitly owned.
+
+### R2.8 — PRE-DEAL MANACLE / PRIOR PHYSICAL DECK STATE — NEXT
+
+This is now the concrete Chicot blocker.
+
+Vanilla Manacle ordering:
+
+```text
+Blind:set_blind(The Manacle)
+    -> G.hand:change_size(-1)
+setting_blind Jokers
+    -> Chicot queues Blind:disable()
+Blind:disable(The Manacle)
+    -> G.hand:change_size(+1)
+    -> G.FUNCS.draw_from_deck_to_hand(1)
+new_round later event
+    -> G.STATE = DRAW_TO_HAND
+    -> G.deck:shuffle("nr" .. ante)
+    -> ordinary initial draw
+```
+
+The extra Manacle replacement card is therefore drawn **before** the normal new-round shuffle. Exact card identity depends on the physical deck order retained from the prior round/shop boundary.
+
+Do not fake this by drawing from canonical public `deck`, sorting by creation order, or shuffling early.
 
 Implement in this order:
 
-1. audit vanilla `Blind:disable()` effects for every currently supported Boss, especially reversible pre-deal mutations;
-2. define the minimum exact Boss-disable dispatcher/owner rather than calling Boss-specific helpers ad hoc;
-3. compose Chicot during the Joker `setting_blind` pass **after** Boss `set_blind` mutations, matching vanilla ordering;
-4. prove Manacle hand-size restoration, Water/Needle resource restoration, static card-debuff clearing, Verdant clearing, Amber reveal, Crimson Joker-debuff cleanup, Cerulean forced-selection cleanup where applicable, and mutable Boss-state disable semantics;
-5. fail closed for Bosses whose disable inverse is not yet exact;
-6. add focused Chicot regressions for source order, zero/one/multiple Chicot copies where canonical semantics permit, input isolation, RNG non-consumption where appropriate, and Boss-specific cleanup;
-7. only after the disable dispatcher is exact should Chicot acquisition eligibility be reconsidered.
+1. audit vanilla prior-round hand/discard/deck repopulation order (`draw_from_hand_to_discard`, then `draw_from_discard_to_deck`);
+2. define exact headless round-end private-zone repopulation ownership;
+3. prove shop/blind-select transitions preserve that private physical deck order without leaking it publicly;
+4. add a pre-shuffle one-card draw primitive that consumes the retained physical deck tail and updates public canonical deck/hand without RNG;
+5. compose Manacle `Blind:disable()` at Chicot timing with hand-size restore + that pre-shuffle draw;
+6. prove the later `nr{ante}` shuffle includes the remaining cards and does not redraw the pre-shuffle card;
+7. add source-order, input-isolation, replay/restore, and fail-closed regressions;
+8. only then remove the current pre-deal Manacle rejection.
 
 Do **not** expose `SELECT_BLIND` merely because individual Boss starts are increasingly complete.
 
-### Remaining R2 categories after Chicot
+### Remaining R2 categories after Manacle/prior-zone ownership
 
-- prior-round arbitrary zone cleanup/repopulation;
 - active tags;
 - voucher blind-start effects;
 - shop/reroll RNG;
 - pack RNG/state;
 - boss-selection RNG;
-- any remaining Boss disable/defeat cleanup not covered by the Chicot dispatcher.
+- any remaining Boss defeat/round cleanup not already owned.
 
 ---
 
@@ -395,13 +456,16 @@ run lost:        0
 R1 deterministic state/acquisition     SUBSTANTIALLY COMPLETE
 R2 RNG / round / Boss lifecycle        ACTIVE / PRIMARY
 R2 supported Small/Big starts          GREEN
-R2 supported Boss starts/effects       GREEN THROUGH CRIMSON HEART
+R2 supported Boss starts/effects       GREEN THROUGH CURRENT AUDITED SET
 R2 Verdant + minimum static sale       GREEN
 R2 Amber hidden order + reveal         GREEN
 R2 Crimson Heart lifecycle             GREEN
-NEXT                                   CHICOT BOSS-DISABLE COMPOSITION
+R2 Chicot Boss disable                 GREEN EXCEPT PRE-DEAL MANACLE
+R2 facing-Boss Chicot composition      GREEN
+NEXT                                   PRIOR-ROUND PRIVATE DECK ORDER -> MANACLE CHICOT
 SELECT_BLIND                           NOT EXPOSED
 Burglar acquisition                    FAIL-CLOSED
+Chicot acquisition                     FAIL-CLOSED
 Generic/unknown acquisitions           FAIL-CLOSED
 Joker editions                         FAIL-CLOSED
 Generic vouchers/packs                 FAIL-CLOSED
@@ -415,7 +479,7 @@ Observation/PPO                        NOT STARTED
 Current code head before this documentation commit:
 
 ```text
-b0a26a3122936e36458207b6c4204510a4651e7b
+209c68ceee7d44c66a0fbd577be8d38976eb59f2
 ```
 
-The next code written should therefore be **the exact Chicot / Boss-disable composition owner**. It should **not** be Bond tuning, PPO, generic `SELL_JOKER`, or broad action exposure.
+The next code written should therefore be **exact prior-round private-zone/deck repopulation sufficient to support the pre-shuffle Manacle/Chicot draw**. It should **not** be Bond tuning, PPO, generic `SELL_JOKER`, or broad action exposure.
