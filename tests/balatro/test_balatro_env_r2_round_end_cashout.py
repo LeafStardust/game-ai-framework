@@ -126,6 +126,48 @@ def test_env_r2_cashout_accepts_audited_round_end_inert_scoring_jokers():
     assert [type(joker) for joker in result.public.jokers] == [JollyJoker, SteelJoker]
 
 
+def test_env_r2_cashout_pays_exact_golden_cloud9_and_delayed_gratification_rows():
+    from games.balatro.jokers.cloud_9 import Cloud9Joker
+    from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
+    from games.balatro.jokers.golden_joker import GoldenJoker
+
+    run = _cleared_run(money=24, hands_remaining=0, reward=3)
+    run.public.discards_remaining = 2
+    run.public.jokers.extend(
+        [GoldenJoker(), Cloud9Joker(), DelayedGratificationJoker()]
+    )
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    # Vanilla ordering: $24 pre-payout gives exactly $4 interest.  Joker rows are
+    # Golden +$4, Cloud 9 +$4 for the four nines in a base deck, and Delayed
+    # Gratification +$4 for two unused discards.  They do not inflate interest.
+    assert result.public.money == 39
+    assert result.public.discards_remaining == 2
+
+
+def test_env_r2_cashout_cloud9_requires_authoritative_permanent_deck():
+    from games.balatro.jokers.cloud_9 import Cloud9Joker
+
+    run = _cleared_run()
+    run.public.jokers.append(Cloud9Joker())
+    run.public.owned_deck = None
+
+    with pytest.raises(HeadlessTransitionError, match="Cloud 9.*owned_deck"):
+        cash_out_baseline_ordinary_blind(run)
+
+
+def test_env_r2_cashout_delayed_gratification_requires_exact_nonnegative_discards():
+    from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
+
+    run = _cleared_run()
+    run.public.jokers.append(DelayedGratificationJoker())
+    run.public.discards_remaining = -1
+
+    with pytest.raises(HeadlessTransitionError, match="discards_remaining cannot be negative"):
+        cash_out_baseline_ordinary_blind(run)
+
+
 def test_env_r2_cashout_rejects_uncleared_boss_or_wrong_phase():
     run = _cleared_run()
     run.public.score = 99
