@@ -30,7 +30,27 @@ class JokerContext:
 
 
 class Joker(ABC):
-    """Base class for mechanically modeled Balatro Jokers."""
+    """Base class for mechanically modeled Balatro Jokers.
+
+    Balatro's ``Card.debuff`` disables a Joker's ability regardless of which
+    trigger family would otherwise evaluate it.  Keep that rule at the common
+    Joker boundary so Crimson Heart cannot require dozens of per-Joker special
+    cases.  Metadata/edition scoring is handled by the scorer and must likewise
+    check this public ``debuffed`` state before applying an effect.
+    """
+
+    debuffed = False
+
+    def __getattribute__(self, name):
+        if name == "apply":
+            data = object.__getattribute__(self, "__dict__")
+            if bool(data.get("debuffed", False)):
+                return object.__getattribute__(self, "_apply_while_debuffed")
+        return super().__getattribute__(name)
+
+    def _apply_while_debuffed(self, context: JokerContext) -> JokerContext:
+        """A debuffed Joker is present/owned but contributes no ability effect."""
+        return context
 
     @abstractmethod
     def apply(
