@@ -108,6 +108,18 @@ def test_env_r2_amber_defeat_preserves_physical_joker_order_without_rng():
     assert [joker.mult for joker in run.public.jokers] == before_order
 
 
+def test_env_r2_verdant_defeat_clears_all_card_debuffs_without_disabling_blind():
+    run = _boss_run("Verdant Leaf")
+    for card in run.require_playing_card_order():
+        card.debuffed = True
+
+    result = defeat_supported_boss(run)
+
+    assert all(not card.debuffed for card in result.require_playing_card_order())
+    assert result.public.blind.disabled is False
+    assert all(card.debuffed for card in run.require_playing_card_order())
+
+
 def test_env_r2_disabled_supported_boss_does_not_reapply_inverse_cleanup():
     run = _boss_run("The Manacle")
     run.public.blind.disabled = True
@@ -121,7 +133,7 @@ def test_env_r2_disabled_supported_boss_does_not_reapply_inverse_cleanup():
 
 
 def test_env_r2_boss_defeat_rejects_unsupported_or_wrong_boundary():
-    run = _boss_run("Verdant Leaf")
+    run = _boss_run("Crimson Heart")
     with pytest.raises(HeadlessTransitionError, match="not exactly owned"):
         defeat_supported_boss(run)
 
