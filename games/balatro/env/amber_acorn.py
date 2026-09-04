@@ -1,9 +1,9 @@
 """Source-exact hidden Joker ordering for Amber Acorn.
 
 Amber is still not training-exposed. This module owns the exact seeded Joker
-permutation and a narrow headless state mutation for states whose engine creation
-order can be proved or has been retained by the simulator. Policy masking is
-owned separately by ``public_observation_state``.
+permutation, its narrow headless start mutation, and the Amber-specific reveal
+behavior on blind disable. Policy masking is owned separately by
+``public_observation_state``.
 """
 
 from __future__ import annotations
@@ -95,4 +95,30 @@ def apply_amber_acorn_order_effect(run: HeadlessRunState) -> HeadlessRunState:
     next_state.jokers = list(result.order.physical_order)
     next_run.joker_order_state = result.order
     next_run.rng_state = result.rng
+    return next_run
+
+
+def disable_amber_acorn(run: HeadlessRunState) -> HeadlessRunState:
+    """Apply Amber's source-exact blind-disable reveal behavior.
+
+    Vanilla ``Blind:disable`` flips any back-facing Jokers to the front but does
+    not undo Amber's shuffled physical order. The headless model represents the
+    active face-down condition through the active Amber Boss/phase boundary, so
+    disabling the blind only needs to retain the physical order and mark the
+    authoritative blind disabled. Policy observation then exposes that retained
+    order again.
+    """
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    state = run.public
+    if state.boss_name != "Amber Acorn":
+        raise HeadlessTransitionError("Amber disable requires Amber Acorn")
+    if state.blind is None:
+        raise HeadlessTransitionError("Amber disable requires authoritative blind state")
+    if bool(getattr(state.blind, "disabled", False)):
+        raise HeadlessTransitionError("Amber blind is already disabled")
+
+    next_run = run.copy()
+    next_run.require_joker_order_state()
+    next_run.public.blind.disabled = True
     return next_run
