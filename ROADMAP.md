@@ -418,29 +418,76 @@ CI 33873017991: 1838 passed, 1595 deselected
 
 This closes the concrete pre-deal Manacle blocker. The generic training `SELECT_BLIND` action is **still hidden**; completion of one difficult Boss path is not permission to expose an incomplete full-run action graph.
 
-### R2.9 — BLIND CLEAR / ROUND-END ECONOMY -> SHOP — NEXT
+### R2.9 — BLIND CLEAR / ROUND-END ECONOMY -> SHOP — ACTIVE / PARTIAL GREEN
 
-This is now the primary structural blocker for a continuous headless run.
+This remains the primary structural blocker for a continuous headless run, but the ordinary cash-out boundary and a broad Boss subset are now exact.
 
-Current exact owners cover large parts of blind start, play/Boss mechanics, Boss defeat cleanup, card-zone repopulation, and shop-local transitions, but there is no single exact environment owner yet for the source-ordered transition from a cleared blind through cash-out into the next shop/blind-select state.
+Owned source-ordered pieces:
 
-Audit vanilla source and implement incrementally in source order. At minimum classify/own:
+1. cleared-blind validation at `ROUND_EVAL`;
+2. exact permanent-card hand/discard/deck repopulation with retained private physical order;
+3. blind reward payout;
+4. `$1` per unused hand;
+5. base interest from **pre-payout money**, `$1` per `$5`, capped at `$5` for the currently supported economy boundary;
+6. audited end-of-round Joker dollar effects with unsupported identities fail-closed;
+7. exact money mutation and input isolation;
+8. transition to active but intentionally **ungenerated** `SHOP` state;
+9. no premature shop RNG consumption;
+10. ordinary Small/Big blind cash-out;
+11. Boss cash-out for every Boss admitted by the current normal-defeat owner.
 
-1. blind clear detection and `Blind:defeat()` consequences;
-2. Boss-specific defeat cleanup already modeled by specialized owners and any missing cleanup;
-3. played/hand/discard card return and retained physical deck state;
-4. blind reward payout;
-5. remaining-hand cash value;
-6. interest calculation/cap and exact money mutation;
-7. relevant end-of-round Joker effects and fail-closed gating for unsupported identities;
-8. ante/blind-state progression and Boss-clear consequences;
-9. shop-entry phase/state initialization;
-10. preservation of deterministic RNG/private state without generating shop contents early;
-11. focused replay/input-isolation/fail-closed regressions.
+Important Boss cash-out checkpoints:
 
-Do **not** approximate economy or collapse vanilla event ordering merely to reach SHOP.
+```text
+727e61e  compose supported Boss cash-out
+f04579c  cover supported Boss cash-out
+CI 33883025356: 1870 passed, 1595 deselected
 
-After the deterministic round-clear/shop boundary is green, continue with the RNG surfaces required to populate and act in that shop.
+06a3eea  own Amber Acorn normal defeat
+e5289c0  cover Amber Acorn cash-out
+6f7c5b6  replace stale Amber-unsupported regression with direct defeat coverage
+
+a318fc2  separate Verdant disable/sale cleanup from normal defeat
+740a07d  own Verdant Leaf normal defeat
+ce0f84d  direct Verdant normal-defeat regression
+cb579fe  composed Verdant cash-out regression
+CI 33904495156: 1874 passed, 1595 deselected
+```
+
+#### Normal-defeat source correction
+
+Pinned vanilla normal defeat eventually calls:
+
+```text
+Blind:set_blind(nil, nil, true)
+```
+
+The arguments are `(blind=nil, reset=nil, silent=true)`. Therefore **`reset` is false/nil**: vanilla installs a blank active blind and runs the ordinary playing-card and Joker `debuff_card` passes. Do not misread the third `true` as `reset=true`.
+
+Consequences already reflected in R2.9:
+
+- Amber Acorn normal defeat reveals Jokers but preserves the already-shuffled physical Joker order and consumes no new RNG;
+- Verdant Leaf normal defeat clears all permanent-card debuffs without synthesizing a `Blind:disable()` event or setting `disabled=true`;
+- Chicot/disable cleanup remains a distinct lifecycle boundary from normal defeat.
+
+Still under R2.9 audit / fail-closed until exact:
+
+- Crimson Heart normal defeat under the blank-blind Joker debuff pass;
+- House / Wheel / Mark / Fish normal-defeat and round-end physical facing state;
+- any other Boss whose normal-defeat teardown differs from the currently admitted owner;
+- full blind/Ante-state progression after cash-out where not already represented;
+- general end-of-round Joker/economy modifiers outside the audited subset.
+
+Important facing warning:
+
+- vanilla hand -> discard uses `draw_card(..., 'down', ...)`;
+- `CardArea:draw_card_from` does **not** auto-flip a back-facing card when the destination is discard or deck;
+- therefore a face-down playing card can remain physically back-facing through round-end repopulation;
+- do not reuse Chicot's `clear_facing_boss_hand` normal-defeat shortcut without proving the exact source-order facing transition.
+
+Do **not** approximate economy, Boss cleanup, or physical facing merely to reach SHOP.
+
+After the deterministic round-clear/shop boundary is green for the required reachable Boss/state surface, continue with the RNG surfaces required to populate and act in that shop.
 
 ### Remaining R2 categories after R2.9
 
@@ -552,7 +599,9 @@ R2 Crimson Heart lifecycle              GREEN
 R2 Chicot Boss disable                  GREEN FOR CURRENT OWNED BOUNDARY
 R2 retained Manacle+Chicot source order GREEN — CI 33873017991
 R2 round-end private deck retention     GREEN
-NEXT                                    EXACT BLIND CLEAR/CASH-OUT -> SHOP BOUNDARY
+R2 ordinary Small/Big cash-out -> SHOP  GREEN
+R2 supported Boss cash-out -> SHOP      GREEN THROUGH AMBER + VERDANT
+R2.9 remaining normal Boss teardown     ACTIVE — CRIMSON/FACING NEXT
 SELECT_BLIND                            NOT EXPOSED
 Burglar acquisition                     FAIL-CLOSED
 Chicot acquisition                      FAIL-CLOSED
@@ -569,13 +618,13 @@ Observation/PPO                         NOT STARTED
 Current code head before this documentation commit:
 
 ```text
-17bd938792142582221dd2581c25e1cf2774a712
+cb579fedb767ee3ba78691db1d536b38987bf290
 ```
 
 Latest authoritative green deterministic gate:
 
 ```text
-CI 33873017991: 1838 passed, 1595 deselected
+CI 33904495156: 1874 passed, 1595 deselected
 ```
 
-The next code written should therefore be **the exact source-ordered blind-clear / round-end economy / shop-entry boundary, starting with an audit of vanilla defeat/cash-out ordering and existing specialized cleanup owners**. It should **not** be Bond tuning, PPO, broad `SELL_JOKER`, generic action exposure, or a shortcut that approximates economy.
+The next code written should therefore be **continued exact R2.9 normal-defeat/cash-out teardown auditing, starting with Crimson Heart's blank-blind Joker-debuff cleanup and keeping House/Wheel/Mark/Fish fail-closed until physical facing teardown is proved**. It should **not** be Bond tuning, PPO, broad `SELL_JOKER`, generic action exposure, or a shortcut that approximates economy/facing.
