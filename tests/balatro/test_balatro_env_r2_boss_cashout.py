@@ -3,7 +3,9 @@ import pytest
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.boss_cash_out import cash_out_supported_boss
 from games.balatro.env.deal import deal_supported_round_start
+from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.state import BalatroState
 
 
@@ -93,6 +95,35 @@ def test_env_r2_boss_cashout_preserves_pre_payout_interest_with_supported_joker_
     assert result.public.boss_blind_hands == set()
 
 
+def test_env_r2_amber_acorn_cashout_preserves_shuffled_order_and_reveals_it_in_shop():
+    run = _boss_round("Amber Acorn", money=14, reward=5)
+    # Model the already-randomized physical order at ROUND_EVAL.  Normal defeat
+    # flips Jokers face-up but does not restore creation order or draw RNG again.
+    first = FlatMultJoker(1)
+    second = FlatMultJoker(2)
+    third = FlatMultJoker(3)
+    run.public.jokers = [third, first, second]
+    run.joker_order_state = None
+    run = HeadlessRunState(
+        public=run.public,
+        seed=run.seed,
+        rng_state=run.rng_snapshot(),
+        playing_card_order=run.playing_card_order,
+    )
+    run = _finish(run, hands=0)
+    before_rng = run.rng_snapshot()
+    before_order = [joker.mult for joker in run.public.jokers]
+
+    result = cash_out_supported_boss(run)
+    visible = public_observation_state(result.public)
+
+    assert [joker.mult for joker in result.public.jokers] == before_order
+    assert [joker.mult for joker in visible.jokers] == before_order
+    assert result.rng_snapshot() == before_rng
+    assert result.public.phase == "SHOP"
+    assert result.public.money == 21
+
+
 def test_env_r2_boss_cashout_isolates_input_and_rejects_unsupported_cleanup():
     run = _finish(_boss_round("The Psychic"))
     before_money = run.public.money
@@ -108,7 +139,7 @@ def test_env_r2_boss_cashout_isolates_input_and_rejects_unsupported_cleanup():
     assert run.rng_snapshot() == before_rng
     assert result.rng_snapshot() == before_rng
 
-    unsupported = _finish(_boss_round("Amber Acorn"))
+    unsupported = _finish(_boss_round("Verdant Leaf"))
     with pytest.raises(HeadlessTransitionError, match="not exactly owned"):
         cash_out_supported_boss(unsupported)
 
