@@ -22,6 +22,7 @@ from games.balatro.env.card_order import (
     derive_playing_card_order,
     playing_card_order_matches,
 )
+from games.balatro.env.joker_order import JokerOrderError, JokerOrderState
 from games.balatro.env.rng import BalatroRNG
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
@@ -177,6 +178,7 @@ class HeadlessRunState:
     seed: str | int
     rng_state: BalatroRNG | dict[str, Any] | None = None
     playing_card_order: list[BalatroCard] | None = None
+    joker_order_state: JokerOrderState | None = None
     draw_pile: list[BalatroCard] = field(default_factory=list)
     discard_pile: list[BalatroCard] = field(default_factory=list)
     played_pile: list[BalatroCard] = field(default_factory=list)
@@ -285,6 +287,18 @@ class HeadlessRunState:
                     "playing_card_order must reference the authoritative owned cards exactly"
                 )
 
+        if self.joker_order_state is None:
+            self.joker_order_state = JokerOrderState.from_public(self.public.jokers)
+        else:
+            if not isinstance(self.joker_order_state, JokerOrderState):
+                raise HeadlessTransitionError(
+                    "joker_order_state must be JokerOrderState or None"
+                )
+            try:
+                self.joker_order_state.validate_against(self.public.jokers)
+            except JokerOrderError as exc:
+                raise HeadlessTransitionError("invalid retained Joker order state") from exc
+
         for zone_name in ("draw_pile", "discard_pile", "played_pile"):
             zone = getattr(self, zone_name)
             if not isinstance(zone, list):
@@ -336,14 +350,28 @@ class HeadlessRunState:
             )
         return list(self.playing_card_order)
 
+    def require_joker_order_state(self) -> JokerOrderState:
+        """Return exact retained Joker creation/physical order or fail closed."""
+        if self.joker_order_state is None:
+            raise HeadlessTransitionError(
+                "exact Joker creation order is unavailable"
+            )
+        try:
+            self.joker_order_state.validate_against(self.public.jokers)
+        except JokerOrderError as exc:
+            raise HeadlessTransitionError(
+                "retained Joker order is stale relative to owned Jokers"
+            ) from exc
+        return self.joker_order_state
+
     def copy(self) -> "HeadlessRunState":
         """Return an isolated transition snapshot.
 
         A deep copy is intentional here: public ``BalatroState.copy`` is shallow
         for several contained gameplay objects, while a simulator transition must
         never mutate the pre-transition state through shared Joker/shop/card
-        objects.  Python deepcopy memoization also preserves the private
-        playing-card-order links to the corresponding copied public cards.
+        objects.  Python deepcopy memoization preserves the private playing-card
+        and Joker-order links to the corresponding copied public objects.
         """
 
         return deepcopy(self)
@@ -394,6 +422,14 @@ class ShopTransitionEngine:
 
         slot = self._slot(params)
         if action.alias == "BUY_JOKER":
+            purchased = state.shop_jokers[slot]
+            if next_run.joker_order_state is not None:
+                try:
+                    next_run.joker_order_state.acquire(purchased, state.jokers)
+                except JokerOrderError as exc:
+                    raise HeadlessTransitionError(
+                        "cannot retain exact Joker order for purchase"
+                    ) from exc
             self._buy(state, state.shop_jokers, state.jokers, slot)
             self._apply_joker_acquisition_effects(state, state.jokers[-1])
             return next_run
