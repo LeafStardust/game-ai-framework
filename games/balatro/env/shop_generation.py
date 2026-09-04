@@ -1,9 +1,9 @@
 """Exact first R2 slice of normal shop inventory generation.
 
 Vanilla ``create_card_for_shop`` first chooses a card *type* with the keyed
-``cdt{ante}`` pseudorandom stream.  Concrete center selection is a separate and
+``cdt{ante}`` pseudorandom stream. Concrete center selection is a separate and
 substantially wider boundary involving profile unlocks, rarity/pools, editions,
-vouchers and duplicate rules.  This module deliberately owns only the base
+vouchers and duplicate rules. This module deliberately owns only the base
 Red/White type poll and does not manufacture a shop item identity.
 """
 
@@ -38,17 +38,19 @@ def _shop_type_from_polled_rate(polled_rate: float) -> str:
 
     total_rate = sum(rate for _, rate in _BASE_SHOP_RATES)
     value = float(polled_rate)
-    if value < 0.0 or value > total_rate:
+    if value <= 0.0 or value > total_rate:
         raise ValueError("polled_rate is outside the base shop rate range")
 
     check_rate = 0.0
     for card_type, rate in _BASE_SHOP_RATES:
-        check_rate += rate
-        if value <= check_rate and rate > 0:
+        # Vanilla's exact test is:
+        #   polled_rate > check_rate and polled_rate <= check_rate + v.val
+        if value > check_rate and value <= check_rate + rate:
             return card_type
+        check_rate += rate
 
-    # ``pseudorandom`` is strictly below one, so the live path never falls off
-    # the positive-rate tail. Keep malformed/direct calls fail closed anyway.
+    # ``pseudorandom`` is strictly inside this positive-rate envelope for the
+    # live path. Keep malformed/direct calls fail closed anyway.
     raise ValueError("polled_rate did not resolve to a positive-rate shop type")
 
 
