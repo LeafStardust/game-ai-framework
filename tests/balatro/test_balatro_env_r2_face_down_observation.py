@@ -44,7 +44,7 @@ def test_env_r2_face_down_hand_identity_is_masked_without_mutating_internal_stat
     assert state.hand[0].enhancement == "Gold"
     assert state.hand[0].edition == "Foil"
     assert state.hand[0].seal == "Red"
-    assert state.hand[0].debuff is True
+    assert state.hand[0].debuffed is True
     assert state.hand[0].permanent_bonus == 9
     assert state.hand[0].original_suit_nominal == 0.04
 
