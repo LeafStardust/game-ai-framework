@@ -505,24 +505,33 @@ class BalatroScorer:
                 joker
                 for joker in state.jokers
                 if type(joker).__name__ == "BaseballCardJoker"
+                and not bool(getattr(joker, "debuffed", False))
             ]
             for joker in state.jokers:
                 class_name = type(joker).__name__
-                self._apply_joker_pre_effect_edition(context.score, joker)
-                if (
-                    not include_card_chips
-                    or class_name not in self.ON_SCORED_JOKER_CLASS_NAMES
-                    or class_name in self.ALSO_INDEPENDENT_JOKER_CLASS_NAMES
-                ):
-                    context = joker.apply(context)
-                self._fold_x_mult(context.score)
+                joker_debuffed = bool(getattr(joker, "debuffed", False))
+                if not joker_debuffed:
+                    self._apply_joker_pre_effect_edition(context.score, joker)
+                    if (
+                        not include_card_chips
+                        or class_name not in self.ON_SCORED_JOKER_CLASS_NAMES
+                        or class_name in self.ALSO_INDEPENDENT_JOKER_CLASS_NAMES
+                    ):
+                        context = joker.apply(context)
+                    self._fold_x_mult(context.score)
+
+                # A debuffed Joker is mechanically inert, but it remains an
+                # owned Joker with public rarity. Baseball Card still observes
+                # that Uncommon metadata through its OTHER_JOKER interaction.
                 context = self._apply_baseball_card_triggers(
                     context,
                     baseball_cards,
                     joker,
                 )
-                self._apply_joker_polychrome(context.score, joker)
-                self._fold_x_mult(context.score)
+
+                if not joker_debuffed:
+                    self._apply_joker_polychrome(context.score, joker)
+                    self._fold_x_mult(context.score)
 
             score = context.score
 
