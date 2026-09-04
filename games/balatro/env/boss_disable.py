@@ -5,10 +5,9 @@ mutations. Keep those inverses centralized so setting-blind effects cannot pick
 and choose ad-hoc cleanup that diverges from live Balatro.
 
 This dispatcher deliberately supports only Bosses whose disable semantics are
-already exact at the caller's current state. In particular, pre-deal Manacle
-remains unavailable: vanilla restores hand size and immediately draws one card
-*before* the later ``nr{ante}`` round-start shuffle, while headless does not yet
-own arbitrary prior-round physical deck order at that boundary.
+already exact at the caller's current state. Pre-deal Manacle is supported only
+when the caller retains the complete authoritative physical pre-shuffle deck;
+that exactness gate lives in the resource/round-zone owners.
 """
 
 from __future__ import annotations
@@ -118,8 +117,9 @@ def disable_supported_boss(
     """Apply one source-exact ``Blind:disable`` for the currently owned Boss set.
 
     ``pre_deal=True`` is the Chicot setting-blind timing: the disable event runs
-    before the later ``DRAW_TO_HAND``/``nr{ante}`` shuffle event. Any Boss whose
-    disable needs physical pre-shuffle card order must fail closed there.
+    before the later ``DRAW_TO_HAND``/``nr{ante}`` shuffle event. The Manacle path
+    is exact only when the retained physical pre-blind deck can be proved; its
+    resource owner fails closed otherwise.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -141,11 +141,7 @@ def disable_supported_boss(
         return _mark_disabled(restored)
 
     if name == "The Manacle":
-        if pre_deal:
-            raise HeadlessTransitionError(
-                "pre-deal Manacle disable requires unowned pre-shuffle physical deck order"
-            )
-        restored = disable_resource_boss(run)
+        restored = disable_resource_boss(run, pre_deal=pre_deal)
         return _mark_disabled(restored)
 
     if name in _STATIC_SUIT_BOSSES:
