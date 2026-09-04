@@ -263,16 +263,25 @@ def snapshot_payload_from_live_memory(
     return payload, phase, state_complete
 
 
+def _table_fields_with_status(
+    decoder: LuaJITNonGC64Decoder,
+    value: LuaValue | None,
+) -> tuple[dict[str, LuaValue], bool]:
+    """Return decoded table fields plus whether that table was authoritative."""
+    if value is None or value.kind != "table":
+        return {}, False
+    try:
+        return decoder.string_fields(int(value.value)), True
+    except (BalatroProcessMemoryError, LuaJITMemoryError):
+        return {}, False
+
+
 def _table_fields(
     decoder: LuaJITNonGC64Decoder,
     value: LuaValue | None,
 ) -> dict[str, LuaValue]:
-    if value is None or value.kind != "table":
-        return {}
-    try:
-        return decoder.string_fields(int(value.value))
-    except (BalatroProcessMemoryError, LuaJITMemoryError):
-        return {}
+    fields, _ = _table_fields_with_status(decoder, value)
+    return fields
 
 
 def _array_table_values(
@@ -421,7 +430,7 @@ def _normalize_card(
 ) -> dict[str, Any]:
     card = decoder.string_fields(address)
     base = _table_fields(decoder, card.get("base"))
-    ability = _table_fields(decoder, card.get("ability"))
+    ability, ability_observed = _table_fields_with_status(decoder, card.get("ability"))
     config = _table_fields(decoder, card.get("config"))
     center = _table_fields(decoder, config.get("center"))
 
@@ -455,6 +464,12 @@ def _normalize_card(
         "forced_selection": _boolean(ability.get("forced_selection"), False),
         "label": _first_string(card.get("label"), center.get("name")),
     }
+    if ability_observed:
+        result["played_this_ante_observed"] = True
+        result["played_this_ante"] = _boolean(
+            ability.get("played_this_ante"),
+            False,
+        )
 
     geometry = _geometry(decoder, card.get("T"))
     if geometry:
