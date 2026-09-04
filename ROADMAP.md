@@ -23,7 +23,7 @@ For every continuation session:
 
 1. read this `ROADMAP.md` first;
 2. verify current branch/HEAD before editing;
-3. inspect canonical owner(s) for the next task;
+3. inspect canonical owner(s) and pinned vanilla source for the next task;
 4. check for intervening commits before writing;
 5. treat chat/session summaries as navigation only; repository state is authoritative;
 6. add focused fail-closed regressions for every new exactness slice;
@@ -68,7 +68,7 @@ Examples already enforced:
 - Amber Acorn hidden Joker mapping is masked while active;
 - Python `random` is not Balatro RNG;
 - unsupported Joker inverse sale lifecycles remain rejected;
-- pre-deal Manacle/Chicot requires an authoritative retained physical deck and never reconstructs from canonical public `deck`.
+- pre-deal Manacle/Chicot requires authoritative retained physical deck order and never reconstructs it from canonical public `deck`.
 
 ---
 
@@ -101,14 +101,14 @@ Troubadour   hand_size += 2; round_reset_hands -= 1
 Merry Andy   hand_size -= 1; round_reset_discards += 3
 ```
 
-Owned acquisition/state categories include:
+Owned R1 categories include:
 
 - static score/rule/retrigger Jokers audited incrementally;
 - exact money-based and owned-deck-based scoring Jokers;
 - `G.playing_cards` all-or-nothing permanent-deck observation;
 - strict permanent-card decode/count/modifier validation;
 - strict LuaJIT authoritative-array path for `G.playing_cards`;
-- private draw/discard/played-zone type validation;
+- private draw/discard/played-zone validation;
 - exact headless seed/tag/container validation;
 - owned-deck-sensitive scoring acquisitions including Steel Joker, Stone Joker, Driver's License, and Erosion.
 
@@ -124,11 +124,10 @@ Still fail closed:
 
 - unknown/unaudited Joker acquisitions;
 - Joker editions, especially Negative;
-- generic vouchers;
-- generic packs;
+- generic vouchers/packs;
 - malformed/noninteger prices;
 - generic `SELL_JOKER` where inverse lifecycle is not owned;
-- lifecycle acquisitions whose future consequences are not owned across arbitrary reachable states.
+- lifecycle acquisitions whose consequences are not owned across arbitrary reachable states.
 
 ---
 
@@ -154,12 +153,10 @@ CI 33791671797: 1432 passed, 1594 deselected
 
 ### R2.2 — pseudoshuffle — GREEN
 
-Source semantics:
-
 - one keyed pseudoseed advance per shuffle;
 - one LuaJIT stream drives Fisher–Yates;
 - CardArea shuffle re-sorts by creation/`sort_id` order before RNG;
-- repeated keyed `random()` calls are not a valid substitute.
+- repeated keyed `random()` calls are not equivalent.
 
 ```text
 246f442  exact pseudoshuffle
@@ -170,12 +167,10 @@ CI 33791916289: 1435 passed, 1594 deselected
 ### R2.3 — playing-card/Joker creation order — GREEN FOR OWNED CASES
 
 - playing-card creation order retained privately from exact live IDs or pristine base-deck structure;
-- Joker creation and physical orders are separate simulator-owned state;
+- Joker creation and physical order are separate simulator-owned state;
 - simulator acquisitions/removals retain exact Joker creation order;
 - duplicate/missing/noninteger live IDs fail closed;
 - no fake public `sort_id` field.
-
-Important commits:
 
 ```text
 e7b0bb0  derive exact playing-card creation order
@@ -183,11 +178,6 @@ e7b0bb0  derive exact playing-card creation order
 34d88e9  include env_r2 coverage in CI
 7c070b2  retain exact playing-card order in headless state
 2dc47eb  retained-order regressions
-```
-
-Corrected full gate:
-
-```text
 CI 33795507133: 1461 passed, 1594 deselected
 ```
 
@@ -198,19 +188,10 @@ Owned:
 - exact supported-deck shuffle/deal;
 - hidden physical order kept private while public `deck` is canonicalized;
 - exact deck-tail draw direction;
-- exact hand sorting for currently owned card-history cases;
-- exact headless RNG ownership and replay state;
+- exact hand sorting for owned card-history cases;
+- exact headless RNG ownership/replay state;
 - one-shot hand/discard round bonuses consumed in source order;
 - first blind starts from source-correct `round 0 -> 1`.
-
-Important commits:
-
-```text
-0a7f845  exact RNG state in headless runs
-eed926e  headless RNG ownership regressions
-61ec993  exact pristine round-start deal
-2d37016  pristine shuffle/deal regressions
-```
 
 Representative gates:
 
@@ -224,20 +205,20 @@ Representative gates:
 
 ### R2.5 — `setting_blind` Jokers — PARTIAL / EXACT WHERE AUDITED
 
-Burglar lifecycle effect is exact on supported blind starts:
+Burglar lifecycle effect is exact on supported starts:
 
 ```text
 hands_remaining += 3
 discards_remaining = 0
 ```
 
-Chicot `setting_blind` behavior is source-ordered through centralized `Blind:disable()` ownership for the currently supported Boss set, including the retained-deck pre-deal Manacle case described in R2.8.
+Chicot `setting_blind` behavior is source-ordered through centralized `Blind:disable()` ownership for the supported Boss set, including retained-deck pre-deal Manacle.
 
-Unknown lifecycle Jokers fail closed. **Burglar and Chicot acquisitions remain fail-closed** because purchase persists into arbitrary future lifecycle states that are not all yet owned.
+**Burglar and Chicot acquisitions remain fail-closed** because purchase persists into arbitrary future lifecycle states not yet all owned.
 
 ### R2.6 — non-Boss starts — GREEN FOR SUPPORTED STATE
 
-Small/Big blind setup owns:
+Small/Big setup owns:
 
 1. `ease_round(1)` equivalent;
 2. blind target/resource initialization;
@@ -246,35 +227,35 @@ Small/Big blind setup owns:
 5. exact shuffle/deal;
 6. policy-safe public/private card zones.
 
-### R2.7 — Boss lifecycle — ACTIVE / BROAD OWNED SET
+### R2.7 — Boss lifecycle — BROADLY GREEN FOR ALL 28 VANILLA BOSSES
 
-Owned Boss boundaries/downstream mechanics:
+Owned active/start/disable/defeat mechanics cover the full vanilla Boss roster:
 
 ```text
-The Wall + Violet Vessel       requirement-only                   GREEN
-The Eye + The Mouth            mutable hand-rule state            GREEN
-The Water + The Needle         reversible round resources         GREEN
-The Manacle                    hand-size mutation + disable paths GREEN INCLUDING RETAINED PRE-DEAL CHICOT
-The Goad/Window/Head/Club      static suit card debuffs           GREEN
-The Plant                      face-card debuffs                  GREEN
-Cerulean Bell                  forced-selection lifecycle         GREEN
-The Psychic                    hand rejection                     GREEN
-The Flint                      base score halving                 GREEN
-The Tooth                      -$1 per played card                GREEN
-The Hook                       keyed forced discards              GREEN
-The Ox                         target hand -> money = 0           GREEN
-The Arm                        hand-level decrement               GREEN
-The Serpent                    post-action 3-card draw             GREEN
-The House + The Mark           deterministic facing               GREEN
-The Wheel                      keyed per-draw facing RNG           GREEN
-The Fish                       temporal post-play facing           GREEN
-The Pillar                     permanent Ante play history         GREEN
-Verdant Leaf                   all-card debuff + minimum sale     GREEN
-Amber Acorn                    hidden Joker order + reveal         GREEN
-Crimson Heart                  Joker debuff lifecycle              GREEN
+The Wall + Violet Vessel       requirement-only
+The Eye + The Mouth            mutable hand-rule state
+The Water + The Needle         reversible round resources
+The Manacle                    hand-size mutation + retained Chicot paths
+The Goad/Window/Head/Club      static suit card debuffs
+The Plant                      face-card debuffs
+Cerulean Bell                  forced-selection lifecycle
+The Psychic                    hand rejection
+The Flint                      base score halving
+The Tooth                      -$1 per played card
+The Hook                       keyed forced discards
+The Ox                         target hand -> money = 0
+The Arm                        hand-level decrement
+The Serpent                    post-action 3-card draw
+The House + The Mark           deterministic facing
+The Wheel                      keyed per-draw facing RNG
+The Fish                       temporal post-play facing
+The Pillar                     permanent Ante play history
+Verdant Leaf                   all-card debuff + minimum sale
+Amber Acorn                    hidden Joker order + reveal
+Crimson Heart                  Joker debuff lifecycle
 ```
 
-Representative later gates:
+Representative gates:
 
 ```text
 33839910429  Hook
@@ -291,74 +272,57 @@ Representative later gates:
 33869467530  Chicot Verdant/facing checkpoint — 1815 passed, 1595 deselected
 ```
 
-#### Verdant Leaf — GREEN
+#### Verdant Leaf
 
-Owned minimum exact sale lifecycle:
-
-- Boss start debuffs all permanent playing cards;
-- selling an audited static sell-safe Joker credits exact sell value;
+- start debuffs all permanent playing cards;
+- minimum audited static Joker sale credits exact sell value;
 - sale disables Verdant and clears permanent-card debuffs;
-- the same centralized Verdant inverse is used by Chicot;
-- Eternal/edition/resource-sensitive/unsupported sale paths fail closed;
-- generic `SELL_JOKER` remains `PLANNED` and is not training-exposed.
+- Chicot uses the same inverse;
+- unsupported/Eternal/resource-sensitive sale paths fail closed;
+- generic training `SELL_JOKER` remains hidden.
 
-#### Amber Acorn — GREEN FOR CURRENT OWNED BOUNDARY
+#### Amber Acorn
 
-- all owned Jokers become hidden while Amber is active;
-- `G.jokers:shuffle("aajk")` runs three times with source-exact re-sort-before-each-shuffle semantics;
-- hidden physical order is retained internally;
-- policy sees the Joker multiset but not identity-to-position mapping;
-- disable/reveal exposes retained shuffled physical order without restoring pre-Amber order.
+- all owned Jokers hidden while active;
+- `G.jokers:shuffle("aajk")` runs three times with source-exact re-sort-before-each-shuffle;
+- hidden physical order retained internally;
+- policy sees multiset but not identity-to-position mapping;
+- defeat/disable reveals retained physical order without restoring pre-Amber order.
 
-#### Crimson Heart — GREEN FOR CURRENT OWNED BOUNDARY
+#### Crimson Heart
 
 - pre-deal `prepped` state;
-- initial `drawn_to_hand` keyed target selection over retained Joker creation order;
-- previous-target exclusion when two or more Jokers exist;
+- keyed target selection over retained Joker creation order;
+- previous-target exclusion when possible;
 - `press_play` re-arms selection;
 - selected Joker receives public `debuffed` state;
-- debuffed Joker scoring is suppressed but the Joker remains present for cross-Joker mechanics;
-- disable cleanup clears Joker debuffs and `prepped` without consuming RNG.
+- debuffed scoring is suppressed while Joker remains present for cross-Joker mechanics;
+- disable clears debuff/prepped without RNG;
+- normal defeat's blank-blind pass clears selected Joker debuff and installs `prepped=true` without extra RNG.
 
-#### Chicot / centralized `Blind:disable()` — GREEN FOR CURRENT OWNED BOUNDARY
-
-Pinned vanilla trigger:
+Crimson normal-defeat/cash-out correction:
 
 ```text
-Chicot: context.setting_blind -> queue G.GAME.blind:disable()
+8e2fdb3  own Crimson Heart normal defeat
+0ea44f7  direct normal-defeat regression
+3714484  composed cash-out regression
+CI 33905449910: 1876 passed, 1595 deselected
 ```
 
-Owned source ordering:
+#### Chicot / centralized `Blind:disable()`
+
+Pinned ordering:
 
 1. round resources installed;
-2. Boss `set_blind` mutation occurs;
-3. every supported Joker receives `setting_blind`;
-4. Burglar/current-round outputs are installed;
+2. Boss `set_blind` mutation;
+3. supported Jokers receive `setting_blind`;
+4. Burglar outputs installed;
 5. queued Chicot disable executes;
-6. only later does `DRAW_TO_HAND` / normal `nr{ante}` shuffle/deal occur.
+6. only later does `DRAW_TO_HAND` / `nr{ante}` shuffle/deal occur.
 
-Central dispatcher owns exact disable consequences for the currently audited set, including:
+Central dispatcher owns disable consequences for the current full Boss mechanics surface, including retained pre-deal Manacle, static debuffs, facing cleanup, Cerulean, Amber, Crimson, Verdant and simple Boss disable state.
 
-- Wall / Violet target restoration;
-- Water / Needle resource restoration;
-- Manacle hand-size restoration and post-deal draw;
-- retained pre-deal Manacle restoration + physical-tail draw when the prior deck order is authoritative;
-- static suit debuff Bosses;
-- Plant;
-- Pillar;
-- Verdant Leaf;
-- House / Wheel / Mark / Fish facing cleanup;
-- Cerulean Bell forced-selection cleanup;
-- Amber Acorn reveal/disable;
-- Crimson Heart cleanup;
-- Eye / Mouth / Psychic / Flint / Tooth / Hook / Ox / Arm / Serpent simple disable state.
-
-Important exactness details:
-
-- Chicot-disabled Wheel does not consume the `wheel` RNG key after ordinary `nr{ante}` deal;
-- Chicot-disabled House/Mark deal face-up;
-- Chicot-disabled Fish replenishes face-up;
-- multiple Chicot disable requests remain fail-closed until repeated-disable event semantics are explicitly owned.
+Multiple Chicot disable requests remain fail-closed until repeated-disable event semantics are explicitly owned.
 
 ### R2.8 — PRE-DEAL MANACLE / PRIOR PHYSICAL DECK STATE — GREEN
 
@@ -378,118 +342,78 @@ new_round later event
     -> ordinary initial draw
 ```
 
-The replacement card is drawn **before** the normal new-round shuffle. Exact identity therefore depends on the physical deck order retained from the prior round.
+Exact ownership:
 
-Completed ownership sequence:
-
-1. vanilla prior-round hand/discard/deck repopulation order audited;
-2. exact headless round-end private-zone repopulation implemented;
-3. complete retained pre-blind deck partition proved against authoritative `owned_deck`;
-4. pre-shuffle single-card draw consumes retained physical deck tail with no RNG;
-5. centralized Manacle `Blind:disable()` restores hand size and performs that retained tail draw at Chicot timing;
-6. later `nr{ante}` shuffle re-sorts and shuffles **only the remaining cards**;
-7. pre-drawn card remains outside the shuffle, appears exactly once in the final hand, and cannot be redrawn;
-8. deterministic/input-isolation/fail-closed partition regressions are green.
-
-Important commits/gates:
+- retained prior-round private deck order;
+- pre-shuffle tail draw at Chicot timing;
+- later shuffle only of remaining cards;
+- no duplicate/redrawn pre-drawn card;
+- fail closed without authoritative retained deck.
 
 ```text
-088a545 / 7939fa0 / 3569b58 / e4c386e  retained round-end/private-deck ownership
 CI 33870571411: 1821 passed, 1595 deselected
-
-4c2365b  retained pre-blind physical-tail draw
-973cda3  retained pre-blind draw regressions
 CI 33871756000: 1824 passed, 1595 deselected
-
-5d05eba  pre-deal Manacle resource inverse
-915da68  central Boss-disable admission
-dee9e58  pre-deal Manacle disable regressions
-6981ecc  preserve explicit missing-retained-deck rejection
 CI 33872332123: 1828 passed, 1595 deselected
-
-accf6ed  post-Manacle `nr{ante}` continuation
-a3d6e71  no-redraw/partition/determinism regressions
 CI 33872735051: 1833 passed, 1595 deselected
-
-656bcbc  full retained Manacle+Chicot blind-start mechanics owner
-17bd938  end-to-end retained Manacle+Chicot regressions
 CI 33873017991: 1838 passed, 1595 deselected
 ```
 
-This closes the concrete pre-deal Manacle blocker. The generic training `SELECT_BLIND` action is **still hidden**; completion of one difficult Boss path is not permission to expose an incomplete full-run action graph.
+Generic training `SELECT_BLIND` remains hidden.
 
-### R2.9 — BLIND CLEAR / ROUND-END ECONOMY -> SHOP — ACTIVE / PARTIAL GREEN
+### R2.9 — BLIND CLEAR / ROUND-END ECONOMY -> SHOP — BOSS TEARDOWN CLOSED / PROGRESSION ACTIVE
 
-This remains the primary structural blocker for a continuous headless run, but the ordinary cash-out boundary and a broad Boss subset are now exact.
-
-Owned source-ordered pieces:
+Owned source-ordered cash-out pieces:
 
 1. cleared-blind validation at `ROUND_EVAL`;
 2. exact permanent-card hand/discard/deck repopulation with retained private physical order;
 3. blind reward payout;
 4. `$1` per unused hand;
-5. base interest from **pre-payout money**, `$1` per `$5`, capped at `$5` for the currently supported economy boundary;
+5. base interest from pre-payout money, `$1` per `$5`, capped at `$5` for current economy boundary;
 6. audited end-of-round Joker dollar effects with unsupported identities fail-closed;
-7. exact money mutation and input isolation;
-8. transition to active but intentionally **ungenerated** `SHOP` state;
+7. exact money mutation/input isolation;
+8. active but intentionally ungenerated `SHOP` state;
 9. no premature shop RNG consumption;
-10. ordinary Small/Big blind cash-out;
-11. Boss cash-out for every Boss admitted by the current normal-defeat owner.
+10. Small/Big cash-out;
+11. Boss cash-out across all 28 vanilla Bosses through the normal-defeat owner.
 
-Important Boss cash-out checkpoints:
-
-```text
-727e61e  compose supported Boss cash-out
-f04579c  cover supported Boss cash-out
-CI 33883025356: 1870 passed, 1595 deselected
-
-06a3eea  own Amber Acorn normal defeat
-e5289c0  cover Amber Acorn cash-out
-6f7c5b6  replace stale Amber-unsupported regression with direct defeat coverage
-
-a318fc2  separate Verdant disable/sale cleanup from normal defeat
-740a07d  own Verdant Leaf normal defeat
-ce0f84d  direct Verdant normal-defeat regression
-cb579fe  composed Verdant cash-out regression
-CI 33904495156: 1874 passed, 1595 deselected
-```
-
-#### Normal-defeat source correction
-
-Pinned vanilla normal defeat eventually calls:
+Normal-defeat source correction:
 
 ```text
 Blind:set_blind(nil, nil, true)
 ```
 
-The arguments are `(blind=nil, reset=nil, silent=true)`. Therefore **`reset` is false/nil**: vanilla installs a blank active blind and runs the ordinary playing-card and Joker `debuff_card` passes. Do not misread the third `true` as `reset=true`.
+Arguments are `(blind=nil, reset=nil, silent=true)`: the third `true` is **silent**, not `reset=true`. Normal defeat installs a blank active blind and executes ordinary permanent-card/Joker debuff passes.
 
-Consequences already reflected in R2.9:
+Facing-state normal-defeat audit is closed:
 
-- Amber Acorn normal defeat reveals Jokers but preserves the already-shuffled physical Joker order and consumes no new RNG;
-- Verdant Leaf normal defeat clears all permanent-card debuffs without synthesizing a `Blind:disable()` event or setting `disabled=true`;
-- Chicot/disable cleanup remains a distinct lifecycle boundary from normal defeat.
+- `Blind:defeat()` does **not** run `Blind:disable()`'s explicit House/Wheel/Mark/Fish hand-card flip cleanup;
+- back-facing cards may physically remain back-facing through hand -> discard -> deck repopulation;
+- `new_round()` clears `wheel_flipped` on all permanent playing cards;
+- `CardArea:emplace` flips a back-facing card when entering a normal hand unless the **current** Blind asks it to stay flipped;
+- therefore old House/Wheel/Mark/Fish orientation is not a cross-round gameplay dependency and no synthetic public/private facing field is required solely for normal defeat/cash-out;
+- normal defeat intentionally performs no synthetic face-up mutation.
 
-Still under R2.9 audit / fail-closed until exact:
+Facing closure commits/gate:
 
-- Crimson Heart normal defeat under the blank-blind Joker debuff pass;
-- House / Wheel / Mark / Fish normal-defeat and round-end physical facing state;
-- any other Boss whose normal-defeat teardown differs from the currently admitted owner;
-- full blind/Ante-state progression after cash-out where not already represented;
+```text
+2da4ac4  own facing-state Boss normal defeat
+be352a5  direct facing-state defeat regressions
+a55cb2a  composed facing-state cash-out regressions
+db64bab  compare copied cash-out cards by stable semantic content
+CI 33906956546: 1884 passed, 1595 deselected
+```
+
+The normal-defeat owner now accounts for **all 28 vanilla Boss names**. R2.9 Boss teardown/cash-out is therefore closed for the currently modeled roster.
+
+Still under R2.9 / fail-closed until exact:
+
+- full blind/Ante-state progression after cash-out and shop exit;
+- source-exact Small -> Big -> Boss -> next-Ante state progression;
 - general end-of-round Joker/economy modifiers outside the audited subset.
 
-Important facing warning:
+Do not fold asynchronous vanilla events into the wrong strategic action merely for convenience. Cash-out and leaving the shop remain separate lifecycle/action boundaries unless pinned source proves otherwise.
 
-- vanilla hand -> discard uses `draw_card(..., 'down', ...)`;
-- `CardArea:draw_card_from` does **not** auto-flip a back-facing card when the destination is discard or deck;
-- therefore a face-down playing card can remain physically back-facing through round-end repopulation;
-- do not reuse Chicot's `clear_facing_boss_hand` normal-defeat shortcut without proving the exact source-order facing transition.
-
-Do **not** approximate economy, Boss cleanup, or physical facing merely to reach SHOP.
-
-After the deterministic round-clear/shop boundary is green for the required reachable Boss/state surface, continue with the RNG surfaces required to populate and act in that shop.
-
-### Remaining R2 categories after R2.9
+### Remaining R2 categories after R2.9 progression
 
 - shop generation RNG;
 - reroll RNG;
@@ -497,17 +421,14 @@ After the deterministic round-clear/shop boundary is green for the required reac
 - voucher lifecycle where needed;
 - active-tag generation/application where needed;
 - Boss-selection RNG/progression;
-- any remaining Boss defeat/end-round cleanup discovered by R2.9;
 - fixed-seed replay across multi-round trajectories.
 
 ---
 
 ## R3 — typed strategic action vocabulary — PARTIAL / TIED TO EXACTNESS
 
-Current important status:
-
 ```text
-END_SHOP      supported where exact shop transition exists
+END_SHOP      supported only where exact transition exists
 BUY_*         only exact audited subsets become legal
 SELECT_BLIND  PLANNED / HIDDEN
 SELL_JOKER    PLANNED / minimum Verdant path only
@@ -518,7 +439,7 @@ PACK actions  PARTIAL/PLANNED
 
 Every training-visible action requires stable canonical ID, deterministic legality, exact transition, serialization representation, and mask representation.
 
-Do not widen `SELECT_BLIND` merely because many individual start helpers are green.
+Do not widen `SELECT_BLIND` merely because individual start helpers are green.
 
 ---
 
@@ -528,7 +449,7 @@ Reuse existing deterministic hand/discard tactical owners while RL initially con
 
 ## R5 — live/simulator parity — NOT STARTED
 
-Priority parity fixtures:
+Priority fixtures:
 
 - shop purchase/hold/end-shop;
 - Joker replacement/sale;
@@ -552,8 +473,8 @@ Measure steps/sec, runs/minute, parallel scaling, tactical-bridge cost, and seri
 - deterministic reset/step API;
 - all initial strategic actions have exact legality + execution tests;
 - Red/White run proceeds reset -> terminal entirely headlessly;
-- fixed-seed replay is deterministic;
-- representative live parity fixtures are green;
+- fixed-seed replay deterministic;
+- representative live parity fixtures green;
 - throughput supports automated training;
 - environment version stored in trajectory metadata.
 
@@ -592,16 +513,14 @@ run lost:        0
 R1 deterministic state/acquisition      SUBSTANTIALLY COMPLETE
 R2 RNG / round / Boss lifecycle         ACTIVE / PRIMARY
 R2 supported Small/Big starts           GREEN
-R2 supported Boss starts/effects        GREEN THROUGH CURRENT AUDITED SET
-R2 Verdant + minimum static sale        GREEN
-R2 Amber hidden order + reveal          GREEN
-R2 Crimson Heart lifecycle              GREEN
-R2 Chicot Boss disable                  GREEN FOR CURRENT OWNED BOUNDARY
+R2 all 28 Boss mechanics surface        BROADLY GREEN
+R2 Chicot Boss disable                  GREEN FOR OWNED BOUNDARY
 R2 retained Manacle+Chicot source order GREEN — CI 33873017991
 R2 round-end private deck retention     GREEN
 R2 ordinary Small/Big cash-out -> SHOP  GREEN
-R2 supported Boss cash-out -> SHOP      GREEN THROUGH AMBER + VERDANT
-R2.9 remaining normal Boss teardown     ACTIVE — CRIMSON/FACING NEXT
+R2 all-Boss normal defeat/cash-out      GREEN — CI 33906956546
+R2.9 Boss teardown                      CLOSED FOR 28 VANILLA BOSSES
+R2.9 post-cashout blind/Ante progression ACTIVE — NEXT
 SELECT_BLIND                            NOT EXPOSED
 Burglar acquisition                     FAIL-CLOSED
 Chicot acquisition                      FAIL-CLOSED
@@ -618,13 +537,13 @@ Observation/PPO                         NOT STARTED
 Current code head before this documentation commit:
 
 ```text
-cb579fedb767ee3ba78691db1d536b38987bf290
+db64bab17c10b2be02ccf107ab740354e4d11955
 ```
 
 Latest authoritative green deterministic gate:
 
 ```text
-CI 33904495156: 1874 passed, 1595 deselected
+CI 33906956546: 1884 passed, 1595 deselected
 ```
 
-The next code written should therefore be **continued exact R2.9 normal-defeat/cash-out teardown auditing, starting with Crimson Heart's blank-blind Joker-debuff cleanup and keeping House/Wheel/Mark/Fish fail-closed until physical facing teardown is proved**. It should **not** be Bond tuning, PPO, broad `SELL_JOKER`, generic action exposure, or a shortcut that approximates economy/facing.
+The next code written should therefore be **exact R2.9 post-cashout shop-exit / blind-state / Ante progression auditing and implementation**, starting from pinned vanilla `toggle_shop`, end-round Ante mutation, and blind-state transitions. It should **not** be Bond tuning, PPO, broad action exposure, generic shop RNG, or an approximation that moves Ante/blind mutation to a more convenient but source-inaccurate boundary.
