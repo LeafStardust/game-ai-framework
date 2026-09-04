@@ -97,7 +97,7 @@ def test_env_r2_boss_cashout_preserves_pre_payout_interest_with_supported_joker_
 
 def test_env_r2_amber_acorn_cashout_preserves_shuffled_order_and_reveals_it_in_shop():
     run = _boss_round("Amber Acorn", money=14, reward=5)
-    # Model the already-randomized physical order at ROUND_EVAL.  Normal defeat
+    # Model the already-randomized physical order at ROUND_EVAL. Normal defeat
     # flips Jokers face-up but does not restore creation order or draw RNG again.
     first = FlatMultJoker(1)
     second = FlatMultJoker(2)
@@ -124,6 +124,24 @@ def test_env_r2_amber_acorn_cashout_preserves_shuffled_order_and_reveals_it_in_s
     assert result.public.money == 21
 
 
+def test_env_r2_verdant_leaf_cashout_clears_all_card_debuffs_without_disable_event():
+    run = _boss_round("Verdant Leaf", money=14, reward=5)
+    for card in run.require_playing_card_order():
+        card.debuffed = True
+    run = _finish(run, hands=0)
+    assert all(card.debuffed for card in run.require_playing_card_order())
+
+    result = cash_out_supported_boss(run)
+
+    assert all(not card.debuffed for card in result.require_playing_card_order())
+    assert result.public.blind.disabled is False
+    assert result.public.phase == "SHOP"
+    assert len(result.draw_pile) == 52
+    # $14 + $5 reward + $2 pre-payout interest.
+    assert result.public.money == 21
+    assert all(card.debuffed for card in run.require_playing_card_order())
+
+
 def test_env_r2_boss_cashout_isolates_input_and_rejects_unsupported_cleanup():
     run = _finish(_boss_round("The Psychic"))
     before_money = run.public.money
@@ -139,7 +157,7 @@ def test_env_r2_boss_cashout_isolates_input_and_rejects_unsupported_cleanup():
     assert run.rng_snapshot() == before_rng
     assert result.rng_snapshot() == before_rng
 
-    unsupported = _finish(_boss_round("Verdant Leaf"))
+    unsupported = _finish(_boss_round("Crimson Heart"))
     with pytest.raises(HeadlessTransitionError, match="not exactly owned"):
         cash_out_supported_boss(unsupported)
 
