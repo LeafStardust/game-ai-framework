@@ -86,4 +86,6 @@ def test_env_r2_base_shop_type_mapping_rejects_malformed_direct_rolls():
     with pytest.raises(ValueError, match="outside"):
         _shop_type_from_polled_rate(-0.1)
     with pytest.raises(ValueError, match="outside"):
+        _shop_type_from_polled_rate(0.0)
+    with pytest.raises(ValueError, match="outside"):
         _shop_type_from_polled_rate(28.1)
