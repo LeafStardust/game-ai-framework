@@ -1,5 +1,6 @@
 import pytest
 
+from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.env.boss_draw import apply_cerulean_bell_drawn_to_hand
 from games.balatro.env.deal import deal_supported_round_start
@@ -12,6 +13,7 @@ def _dealt_cerulean(seed: str = "TESTSEED") -> HeadlessRunState:
     state.deck_name = "RED"
     state.stake_name = "WHITE"
     state.boss_name = "Cerulean Bell"
+    state.blind = Blind(BlindType.BOSS, 20000)
     state.phase = "DRAW_TO_HAND"
     state.hand_size = 8
     return deal_supported_round_start(HeadlessRunState(public=state, seed=seed))
