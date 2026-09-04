@@ -106,6 +106,9 @@ def test_env_r2_multiple_chicot_boss_disable_requests_fail_closed():
 def test_env_r2_chicot_disables_amber_after_hidden_order_effect_without_rng_reversal():
     run = _run(boss_name="Amber Acorn")
     run.public.jokers = [ChicotJoker()]
+    # Amber requires simulator-retained Joker creation/physical order. Rebuild
+    # the run after installing the Joker so private order matches public state.
+    run = HeadlessRunState(public=run.public, seed="CHICOT")
     before_rng = run.rng_snapshot()
 
     result = prepare_supported_amber_acorn_start(run)
