@@ -1,7 +1,7 @@
 """Exact private blind-progression ownership for R2.9.
 
 Balatro keeps Small/Big/Boss selection status outside the policy-facing card and
-score observation.  Headless simulation still needs that state to reproduce the
+score observation. Headless simulation still needs that state to reproduce the
 source lifecycle exactly, so this module owns it privately instead of adding
 engine-internal blind-status fields to :class:`BalatroState`.
 
@@ -12,13 +12,14 @@ that occurs after a won blind has entered ``ROUND_EVAL``:
 * a Boss win increments Ante immediately (before cash-out/shop);
 * a Boss win clears ``round_bonus.next_hands`` and ``round_bonus.discards``.
 
-It does **not** model ``cash_out -> reset_blinds()`` yet.  That boundary also
+It does **not** model ``cash_out -> reset_blinds()`` yet. That boundary also
 regenerates tag choices and calls ``get_new_boss()``, so it remains behind exact
 R2 RNG ownership for those pools.
 """
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -88,22 +89,24 @@ def _normalize_blind_type(blind_type: str) -> str:
 
 def finalize_won_round_progression(
     run: "HeadlessRunState",
+    progression: BlindProgressionState,
     *,
     blind_type: str,
-) -> "HeadlessRunState":
+) -> tuple["HeadlessRunState", BlindProgressionState]:
     """Apply the exact deterministic blind-state part of vanilla ``end_round``.
 
-    This function intentionally begins at the stable public ``ROUND_EVAL``
-    boundary used by the existing cash-out primitives.  Boss teardown mechanics
-    remain owned separately; this owner only records the source progression that
-    must already have happened by the time round evaluation is visible.
+    The private progression state is explicit in this primitive's input/output so
+    this source-order slice can be validated before it is installed into the
+    broader run container. Boss teardown mechanics remain owned separately; this
+    owner only records progression that must already have occurred by the time
+    ``ROUND_EVAL`` is visible.
     """
-    # Local import avoids a module cycle: HeadlessRunState stores this private
-    # progression object, while the transition module owns the run container.
     from games.balatro.env.transition import HeadlessRunState
 
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
+    if not isinstance(progression, BlindProgressionState):
+        raise TypeError("progression must be BlindProgressionState")
 
     state = run.public
     if str(state.phase).upper() != "ROUND_EVAL":
@@ -114,13 +117,8 @@ def finalize_won_round_progression(
         raise BlindProgressionError(
             "won-round progression requires the blind target to be met"
         )
-    if run.blind_progression is None:
-        raise BlindProgressionError(
-            "exact private blind progression state is unavailable"
-        )
 
     normalized = _normalize_blind_type(blind_type)
-    progression = run.blind_progression
     if progression.blind_on_deck != normalized:
         raise BlindProgressionError(
             "blind type does not match private blind_on_deck"
@@ -131,12 +129,7 @@ def finalize_won_round_progression(
         )
 
     next_run = run.copy()
-    next_progression = next_run.blind_progression
-    if next_progression is None:  # defensive; copy preserves the object
-        raise BlindProgressionError(
-            "exact private blind progression state was lost during copy"
-        )
-
+    next_progression = deepcopy(progression)
     next_progression.set_status(normalized, "Defeated")
 
     if normalized == "Boss":
@@ -144,4 +137,4 @@ def finalize_won_round_progression(
         next_run.round_bonus_hands = 0
         next_run.round_bonus_discards = 0
 
-    return next_run
+    return next_run, next_progression
