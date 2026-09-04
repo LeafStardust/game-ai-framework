@@ -38,6 +38,12 @@ def _same_objects(left: list[BalatroCard], right: list[BalatroCard]) -> bool:
 
 def _require_exact_round_end_partition(run: HeadlessRunState) -> None:
     state = run.public
+    # Once the current deck is only the still-drawable subset, permanent-card
+    # truth must come from owned_deck. Never fall back to the partial public deck.
+    if state.owned_deck is None:
+        raise HeadlessTransitionError(
+            "round-end repopulation requires authoritative owned_deck"
+        )
     order = run.require_playing_card_order()
 
     if run.played_pile:
@@ -104,6 +110,10 @@ def repopulate_round_end_deck(run: HeadlessRunState) -> HeadlessRunState:
 def require_full_retained_preblind_deck(run: HeadlessRunState) -> None:
     """Prove that BLIND_SELECT retains all permanent cards in physical deck order."""
     state = run.public
+    if state.owned_deck is None:
+        raise HeadlessTransitionError(
+            "retained pre-blind deck requires authoritative owned_deck"
+        )
     if state.hand or state.discard_pile or run.discard_pile or run.played_pile:
         raise HeadlessTransitionError(
             "retained pre-blind deck requires empty hand/discard/play zones"
