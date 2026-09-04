@@ -26,8 +26,6 @@ Retain deterministic mechanics/state/legality/tactical execution, Bond features,
 
 ## L — live stabilization — COMPLETE
 
-L3 froze the environment contract:
-
 ```text
 BALATRO_ENV_CONTRACT_VERSION = "l3-v1"
 CI 33758680261: 1223 passed, 1594 deselected
@@ -65,7 +63,7 @@ Hard fail-closed surfaces include:
 - `SELL_JOKER` until inverse lifecycle effects exist
 - malformed/noninteger prices
 
-Exact resource-sensitive acquisitions currently include:
+Exact resource-sensitive acquisitions include:
 
 ```text
 Juggler      hand_size += 1
@@ -198,10 +196,11 @@ Unknown lifecycle identities fail closed. Burglar acquisition itself remains fai
 
 ### R2.7 — first-round counter parity — GREEN
 
-Vanilla `G.GAME.round` begins at `0`; selecting the first blind increments it before `new_round()`. First start is `0 → 1`.
+Vanilla `G.GAME.round` begins at `0`; `G.FUNCS.select_blind` queues `ease_round(1)` before `new_round()`. First start is exactly `0 → 1`.
 
 ```text
 CI 33797071526: 1482 passed, 1594 deselected
+CI 33796012173: 1467 passed, 1594 deselected
 ```
 
 ### R2.8 — Small/Big Blind start — GREEN
@@ -210,7 +209,6 @@ CI 33797071526: 1482 passed, 1594 deselected
 
 ```text
 CI 33798795353: 1497 passed, 1594 deselected
-CI 33796012173: 1467 passed, 1594 deselected
 ```
 
 ### R2.9 — Boss blind lifecycle — ACTIVE
@@ -232,8 +230,6 @@ The Eye
 The Mouth
 CI 33800243393: 1518 passed, 1594 deselected
 ```
-
-Start initializes the canonical empty mutable Boss hand restriction/history state.
 
 #### R2.9c — Water / Needle reversible resources — GREEN
 
@@ -260,12 +256,6 @@ The Goad    → Spades
 The Window  → Diamonds
 The Head    → Hearts
 The Club    → Clubs
-```
-
-```text
-8af8dae  own static suit Boss card debuffs
-0baef57  compose static suit Boss start lifecycle
-3262dcc  regressions
 CI 33803874842: 1583 passed, 1594 deselected
 ```
 
@@ -279,16 +269,7 @@ CI 33804343818: 1593 passed, 1594 deselected
 
 #### R2.9g — exact `pseudorandom_element` — GREEN
 
-Source-correct semantics:
-
-```lua
-math.randomseed(seed)
-collect candidates
-sort by value.sort_id when present, otherwise key
-choose exactly one math.random(#keys)
-```
-
-No Fisher–Yates shuffle occurs inside `pseudorandom_element`.
+Source-correct semantics: seed once, sort candidates by `sort_id`/key, choose one LuaJIT random index. No Fisher–Yates shuffle occurs inside `pseudorandom_element`.
 
 ```text
 08153fc  match vanilla pseudorandom_element selection
@@ -296,94 +277,113 @@ No Fisher–Yates shuffle occurs inside `pseudorandom_element`.
 CI 33805699954: 1598 passed, 1594 deselected
 ```
 
-Superseded exploratory commits `cf87867` / `8a6a351` are not authoritative.
+#### R2.9h — Cerulean Bell — GREEN
 
-#### R2.9h — Cerulean Bell start/drawn_to_hand/cleanup — GREEN
-
-Exact ownership:
+Exact start/deal, creation-order-sorted hand candidates, `pseudorandom_element("cerulean_bell")`, forced-selection state, and disable/defeat cleanup are owned.
 
 ```text
-ordinary Boss pre-deal lifecycle
-→ exact shuffle/deal
-→ sort current hand candidates by retained playing-card creation/sort_id order
-→ pseudorandom_element("cerulean_bell")
-→ set exactly one card.forced_selection
-```
-
-One existing forced card consumes no RNG; multiple pre-existing forced cards fail closed. `Blind:disable()` / `Blind:defeat()` cleanup clears forced selection across the authoritative permanent deck.
-
-```text
-07662ee  own drawn_to_hand selection
-0da847b  standalone regressions
-9a9b125  compose full start
-9f5872a  full-start regressions
-ffb804c  own cleanup
-aea440d  cleanup regressions
-CI 33806003643: 1604 passed, 1594 deselected
-CI 33806391869: 1610 passed, 1594 deselected
 CI 33806527436: 1614 passed, 1594 deselected
 ```
 
-#### R2.9i — Psychic / Flint / Tooth start-inert Boss start — GREEN
+#### R2.9i — start-inert Boss start family — GREEN FOR AUDITED MEMBERS
 
-Vanilla confirms these Bosses add no extra state during `Blind:set_blind` or `Blind:drawn_to_hand`.
+Current audited members:
 
 ```text
-7e85cf0  classify start-inert Boss starts
-fa329ff  pin classification
-CI 33809819965: 1622 passed, 1594 deselected
+The Psychic
+The Flint
+The Tooth
+The Hook
 ```
 
-#### R2.9j — The Psychic downstream play/scoring semantics — GREEN
-
-**Semantic correction:** “Must play 5 cards” is not an action-legality ban in vanilla Balatro. Plays of 1–4 cards are accepted, then `Blind:debuff_hand` rejects the hand for scoring. Those plays can therefore deliberately burn/cycle a hand.
-
-Canonical ownership is reused rather than duplicated:
-
-- `boss_play_action_is_legal()` keeps the play admissible;
-- `boss_hand_is_debuffed()` triggers for fewer than five played cards;
-- `LiveFinalJokerScoreOutcomeModel` / `BossBaseScoreScorerMixin` project the accepted play as exactly zero score;
-- five-card plays follow ordinary scoring.
+They add no extra mutation during `Blind:set_blind` / initial `Blind:drawn_to_hand`; downstream mechanics are owned separately.
 
 ```text
-89ffd84  pin Psychic downstream scoring semantics
+7e85cf0  initial classification
+fa329ff  initial regressions
+efc54b0  classify Hook as start-inert
+503ed85  include Hook in start-inert regression set
+CI 33839910429: 1643 passed, 1594 deselected
+```
+
+#### R2.9j — The Psychic downstream — GREEN
+
+1–4 card plays remain legal but are rejected by `Blind:debuff_hand` for scoring; five-card plays score normally.
+
+```text
+89ffd84
 CI 33838722781: 1625 passed, 1594 deselected
 ```
 
-#### R2.9k — The Flint downstream scoring semantics — GREEN
-
-Vanilla `Blind:modify_hand` rounds each current base component to half:
+#### R2.9k — The Flint downstream — GREEN
 
 ```text
 base Mult  = max(floor(mult * 0.5 + 0.5), 1)
 base Chips = max(floor(chips * 0.5 + 0.5), 0)
 ```
 
-For positive integral base values this is exact ceil-halving. Existing `BossBaseScoreScorerMixin` already applies the transform at the correct boundary **before ordinary scoring-card/Joker additions**; no duplicate mechanics owner was added.
+Existing canonical scoring ownership applies this before ordinary card/Joker additions.
 
 ```text
-df4537b  pin Flint downstream scoring semantics
+df4537b
 CI 33838934769: 1628 passed, 1594 deselected
 ```
 
-#### R2.9l — The Tooth downstream press-play economy — GREEN
+#### R2.9l — The Tooth downstream — GREEN
 
-Vanilla `Blind:press_play` charges exactly `$1` for each played card. There was no existing exact Python owner, so `games/balatro/env/boss_play.py` now owns only that narrow source boundary.
-
-Exact contract:
-
-- active only for The Tooth at `SELECTING_HAND`;
-- requires canonical `PLAY_CARDS` with 1–5 unique authoritative current-hand card objects;
-- `money -= number_of_played_cards`;
-- negative money is allowed, matching vanilla `ease_dollars` behavior;
-- no RNG or card-zone mutation;
-- wrong boss/action/phase or copied/non-authoritative cards fail closed.
+At `Blind:press_play`, money decreases exactly `$1` per played card; negative money is allowed.
 
 ```text
-6e13894  own Tooth press-play economy
-27956b0  pin Tooth downstream economy semantics
+6e13894  exact Tooth press-play owner
+27956b0  regressions
 CI 33839102154: 1635 passed, 1594 deselected
 ```
+
+#### R2.9m — The Hook downstream forced discards — GREEN
+
+Exact `Blind:press_play` ownership:
+
+1. player's chosen play cards are excluded from Hook candidates because vanilla has already moved them to `G.play`;
+2. select up to two remaining hand cards with keyed `pseudorandom_element(..., pseudoseed("hook"))`;
+3. remove the first selected candidate before the second draw;
+4. move forced cards to discard in visible-hand order;
+5. do **not** decrement `discards_remaining`;
+6. do **not** draw replacements or change phase;
+7. preserve exact RNG snapshot/replay state.
+
+Current narrow implementation fails closed when Joker/seal discard triggers would need additional lifecycle ownership.
+
+```text
+80c0136  own Hook forced-discard boundary
+0f94698  pin Hook press-play forced discards
+efc54b0  classify Hook as start-inert
+503ed85  corrected start-inert regression
+CI 33839910429: 1643 passed, 1594 deselected
+```
+
+#### R2.9n — The Ox downstream economy — HEADLESS GREEN; LIVE TARGET WIRING ACTIVE
+
+Vanilla `Blind:debuff_hand` compares the classified hand against the fixed public `G.GAME.current_round.most_played_poker_hand`. On a match it executes `ease_dollars(-G.GAME.dollars, true)`, making money exactly `0` even from a negative balance.
+
+Headless exact owner:
+
+- `games/balatro/env/boss_hand.py::apply_ox_debuff_hand_economy`
+- uses canonical `BalatroState.round_most_played_hand` only;
+- **does not recompute** the target from mutable aggregate hand counters;
+- missing/invalid target fails closed;
+- disabled Boss is inert.
+
+```text
+0940a54  own Ox debuff-hand economy
+5eb7964  pin Ox economy regressions
+CI 33840439252: 1649 passed, 1594 deselected
+```
+
+Remaining work before Ox is fully classified:
+
+1. expose authoritative `G.GAME.current_round.most_played_poker_hand` from the process-memory observer into the existing translator path;
+2. add observer/translator regressions proving live `"Pair"` → canonical `PAIR` and missing/invalid values remain unknown;
+3. classify The Ox as start-inert only after that live/public field path is green.
 
 ### Current R2 fail-closed boundary
 
@@ -395,7 +395,8 @@ Known hard blockers include:
 - **Verdant Leaf** — all-card debuff plus Joker-sale lifecycle
 - **Amber Acorn** — Joker flip + seeded Joker-order shuffle
 - face-down families (Wheel/House/Mark/Fish) — exact facing and round-event ownership
-- The Hook and other action-time/random Boss effects not yet owned by the headless transition boundary
+- Crimson Heart — per-hand random Joker debuff lifecycle
+- The Arm — poker-hand level decrement lifecycle not yet audited into R2 owner
 - Chicot Boss-disable composition, especially pre-deal Manacle
 - prior-round zone cleanup for arbitrary trajectories
 - active tag effects
@@ -405,19 +406,17 @@ Known hard blockers include:
 - boss-selection RNG
 - remaining modeled random effects
 
-### NEXT R2 WORK — ACTION-TIME BOSS EFFECTS
+### NEXT R2 WORK — COMPLETE OX PUBLIC-STATE PATH, THEN THE ARM
 
-The start-inert Psychic / Flint / Tooth downstream audit is complete and green. The next coherent R2 work is the **action-time Boss family**, starting with **The Hook** because exact `pseudorandom_element` is already owned.
+Immediate order:
 
-Before admitting The Hook, source-audit and own the complete press-play consequence in vanilla order:
+1. wire `current_round.most_played_poker_hand` through live process-memory observation;
+2. gate Ox observer/translator parity tests;
+3. add Ox to the exact start-inert Boss set;
+4. sync this roadmap with the resulting CI;
+5. then source-audit **The Arm**, whose downstream effect is deterministic hand-level decrement when the played hand level is above 1.
 
-1. determine the exact candidate set from the current hand after the player's chosen play is committed/highlighted;
-2. use keyed `pseudorandom_element(..., pseudoseed("hook"))` for each forced discard with correct candidate removal between selections;
-3. reproduce the exact forced-discard zone transition and confirm whether replacement draw is suppressed on this Boss-forced path;
-4. preserve RNG snapshot/replay equivalence;
-5. fail closed if private physical-zone ownership is insufficient.
-
-Only after that slice is green should the next action-time Boss be admitted. Do not skip to face-down/Pillar/Verdant/Amber/Chicot paths by approximation.
+Do not skip to face-down/Pillar/Verdant/Amber/Chicot paths by approximation.
 
 ---
 
@@ -504,11 +503,12 @@ R2.9e Goad/Window/Head/Club                      GREEN — CI 33803874842
 R2.9f Plant                                      GREEN — CI 33804343818
 R2.9g pseudorandom_element                       GREEN — CI 33805699954
 R2.9h Cerulean Bell                              GREEN — CI 33806527436
-R2.9i Psychic/Flint/Tooth blind start            GREEN — CI 33809819965
+R2.9i start-inert Boss family                    GREEN THROUGH HOOK — CI 33839910429
 R2.9j Psychic downstream                         GREEN — CI 33838722781
 R2.9k Flint downstream                           GREEN — CI 33838934769
 R2.9l Tooth downstream                           GREEN — CI 33839102154
-The Hook action-time lifecycle                    NEXT / NOT YET OWNED
+R2.9m Hook downstream                            GREEN — CI 33839910429
+R2.9n Ox downstream                              HEADLESS GREEN — CI 33840439252; LIVE TARGET WIRING ACTIVE
 SELECT_BLIND                                      NOT EXPOSED
 Burglar acquisition                              FAIL-CLOSED
 Generic/unknown acquisitions                     FAIL-CLOSED
@@ -524,7 +524,7 @@ Observation/PPO                                  NOT STARTED
 Current branch code head immediately before this roadmap synchronization:
 
 ```text
-27956b0dc4af8df5c6b05094b9e04e39685ba594
+5eb7964967871522b09ddf11694ec2d6b60e47fa
 ```
 
-The next code written should therefore be the **source-audited The Hook action-time transition**, or a prerequisite exact card-zone owner discovered by that audit. It should **not** be Bond tuning, PPO, or an approximation of another blocked Boss lifecycle.
+The next code written should therefore be the **exact live/public Ox target wiring and regression gate**, followed by **The Arm** only after Ox is fully green. It should **not** be Bond tuning, PPO, or an approximation of another blocked Boss lifecycle.
