@@ -5,6 +5,7 @@ from games.balatro.env.blind_progression import (
     BlindProgressionState,
     enter_blind_select_progression,
     finalize_won_round_progression,
+    reset_blinds_after_boss_cashout,
 )
 from games.balatro.env.transition import HeadlessRunState
 from games.balatro.state import BalatroState
@@ -129,6 +130,93 @@ def test_env_r2_private_blind_progression_validates_canonical_state():
         BlindProgressionState(blind_ante=True)
     with pytest.raises(BlindProgressionError, match="at least 1"):
         BlindProgressionState(blind_ante=0)
+
+
+def test_env_r2_boss_reset_blinds_restores_upcoming_state_for_new_ante():
+    progression = BlindProgressionState(
+        small_status="Defeated",
+        big_status="Skipped",
+        boss_status="Defeated",
+        blind_on_deck="Boss",
+        blind_ante=4,
+        boss_name="The Hook",
+        boss_rerolled=True,
+    )
+
+    result = reset_blinds_after_boss_cashout(
+        progression,
+        current_ante=5,
+        next_boss_name="The Ox",
+    )
+
+    assert result.small_status == "Upcoming"
+    assert result.big_status == "Upcoming"
+    assert result.boss_status == "Upcoming"
+    assert result.blind_on_deck == "Small"
+    assert result.blind_ante == 5
+    assert result.boss_name == "The Ox"
+    assert result.boss_rerolled is False
+
+
+def test_env_r2_boss_reset_blinds_isolates_input_and_requires_source_order_ante():
+    progression = BlindProgressionState(
+        small_status="Defeated",
+        big_status="Defeated",
+        boss_status="Defeated",
+        blind_on_deck="Boss",
+        blind_ante=3,
+        boss_name="The Hook",
+    )
+
+    result = reset_blinds_after_boss_cashout(
+        progression,
+        current_ante=4,
+        next_boss_name="The Wall",
+    )
+
+    assert result is not progression
+    assert progression.boss_status == "Defeated"
+    assert progression.blind_ante == 3
+    assert progression.boss_name == "The Hook"
+
+    with pytest.raises(BlindProgressionError, match="exactly one above"):
+        reset_blinds_after_boss_cashout(
+            progression,
+            current_ante=5,
+            next_boss_name="The Wall",
+        )
+
+
+def test_env_r2_boss_reset_blinds_rejects_nonboss_or_nondefeated_boundary():
+    wrong_blind = BlindProgressionState(
+        small_status="Defeated",
+        big_status="Defeated",
+        boss_status="Upcoming",
+        blind_on_deck="Big",
+        blind_ante=3,
+        boss_name="The Hook",
+    )
+    with pytest.raises(BlindProgressionError, match="blind_on_deck"):
+        reset_blinds_after_boss_cashout(
+            wrong_blind,
+            current_ante=4,
+            next_boss_name="The Ox",
+        )
+
+    not_defeated = BlindProgressionState(
+        small_status="Defeated",
+        big_status="Defeated",
+        boss_status="Current",
+        blind_on_deck="Boss",
+        blind_ante=3,
+        boss_name="The Hook",
+    )
+    with pytest.raises(BlindProgressionError, match="defeated Boss"):
+        reset_blinds_after_boss_cashout(
+            not_defeated,
+            current_ante=4,
+            next_boss_name="The Ox",
+        )
 
 
 def test_env_r2_blind_select_prefers_small_then_big_then_boss_in_source_order():
