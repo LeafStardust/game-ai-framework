@@ -3,6 +3,7 @@ import pytest
 from games.balatro.env.blind_progression import (
     BlindProgressionError,
     BlindProgressionState,
+    enter_blind_select_progression,
     finalize_won_round_progression,
 )
 from games.balatro.env.transition import HeadlessRunState
@@ -128,3 +129,91 @@ def test_env_r2_private_blind_progression_validates_canonical_state():
         BlindProgressionState(blind_ante=True)
     with pytest.raises(BlindProgressionError, match="at least 1"):
         BlindProgressionState(blind_ante=0)
+
+
+def test_env_r2_blind_select_prefers_small_then_big_then_boss_in_source_order():
+    fresh = BlindProgressionState(
+        small_status="Upcoming",
+        big_status="Upcoming",
+        boss_status="Upcoming",
+        blind_on_deck="Small",
+        boss_name="The Hook",
+    )
+    selected_small = enter_blind_select_progression(fresh)
+    assert selected_small.blind_on_deck == "Small"
+    assert selected_small.small_status == "Select"
+
+    after_small = BlindProgressionState(
+        small_status="Defeated",
+        big_status="Upcoming",
+        boss_status="Upcoming",
+        blind_on_deck="Small",
+        boss_name="The Hook",
+    )
+    selected_big = enter_blind_select_progression(after_small)
+    assert selected_big.blind_on_deck == "Big"
+    assert selected_big.big_status == "Select"
+
+    after_big = BlindProgressionState(
+        small_status="Defeated",
+        big_status="Defeated",
+        boss_status="Upcoming",
+        blind_on_deck="Big",
+        boss_name="The Hook",
+    )
+    selected_boss = enter_blind_select_progression(after_big)
+    assert selected_boss.blind_on_deck == "Boss"
+    assert selected_boss.boss_status == "Select"
+
+
+def test_env_r2_blind_select_treats_skipped_and_hidden_nonboss_blinds_as_terminal():
+    progression = BlindProgressionState(
+        small_status="Skipped",
+        big_status="Hide",
+        boss_status="Upcoming",
+        blind_on_deck="Small",
+        boss_name="The Hook",
+    )
+
+    result = enter_blind_select_progression(progression)
+
+    assert result.blind_on_deck == "Boss"
+    assert result.boss_status == "Select"
+
+
+def test_env_r2_blind_select_rejects_stale_current_or_unreset_defeated_boss():
+    current = BlindProgressionState(
+        small_status="Current",
+        big_status="Upcoming",
+        boss_status="Upcoming",
+    )
+    with pytest.raises(BlindProgressionError, match="still Current"):
+        enter_blind_select_progression(current)
+
+    defeated_boss = BlindProgressionState(
+        small_status="Defeated",
+        big_status="Defeated",
+        boss_status="Defeated",
+        blind_on_deck="Boss",
+        boss_name="The Hook",
+    )
+    with pytest.raises(BlindProgressionError, match="reset_blinds"):
+        enter_blind_select_progression(defeated_boss)
+
+
+def test_env_r2_blind_select_isolates_progression_input():
+    progression = BlindProgressionState(
+        small_status="Defeated",
+        big_status="Upcoming",
+        boss_status="Upcoming",
+        blind_on_deck="Small",
+        boss_name="The Hook",
+    )
+
+    result = enter_blind_select_progression(progression)
+
+    assert result is not progression
+    assert progression.blind_on_deck == "Small"
+    assert progression.big_status == "Upcoming"
+    assert result.blind_on_deck == "Big"
+    assert result.big_status == "Select"
