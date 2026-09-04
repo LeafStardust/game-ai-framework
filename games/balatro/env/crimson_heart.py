@@ -1,11 +1,14 @@
 """Exact Crimson Heart Joker-debuff lifecycle primitives.
 
-Vanilla owns Crimson Heart in two Blind callbacks:
+Vanilla owns Crimson Heart across the blind/start/play/draw lifecycle:
 
-* ``Blind:press_play`` arms ``self.prepped`` when at least one Joker exists;
-* ``Blind:drawn_to_hand`` clears existing Joker debuffs, excludes the previously
-  debuffed Joker when there are at least two Jokers, then chooses one candidate
-  with ``pseudorandom_element(..., pseudoseed('crimson_heart'))``.
+* ``Blind:set_blind`` leaves the generic ``self.prepped = true`` state in place;
+* the Joker ``setting_blind`` pass runs after that Boss state is installed;
+* the initial ``Blind:drawn_to_hand`` chooses one Joker;
+* ``Blind:press_play`` re-arms ``self.prepped`` when at least one Joker exists;
+* the next ``Blind:drawn_to_hand`` clears existing Joker debuffs, excludes the
+  previously debuffed Joker when there are at least two Jokers, then chooses one
+  candidate with ``pseudorandom_element(..., pseudoseed('crimson_heart'))``.
 
 The Blind's ``prepped`` bit is simulator-private mechanics state. Joker debuff
 state itself is public and lives on each Joker as ``debuffed``.
@@ -14,6 +17,7 @@ state itself is public and lives on each Joker as ``debuffed``.
 from __future__ import annotations
 
 from games.balatro.actions import PLAY_CARDS, BalatroAction
+from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
@@ -39,6 +43,36 @@ def set_crimson_heart_prepped(
     next_run = run.copy()
     setattr(next_run.public.blind, "prepped", value)
     return next_run
+
+
+def prepare_supported_crimson_heart_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own Crimson Heart's exact pre-deal Boss lifecycle.
+
+    The common blind-start owner installs round resources first. Crimson Heart
+    has no additional ``Blind:set_blind`` mutation beyond the generic
+    ``prepped = true`` state, which must exist before the Joker ``setting_blind``
+    pass. Importing the common helpers lazily avoids a module cycle while keeping
+    the source ordering owned by the established blind-start implementation.
+    """
+    from games.balatro.env.blind_start import (
+        _begin_predeal_lifecycle,
+        _finish_predeal_lifecycle,
+        _require_boss_blind,
+    )
+
+    _require_boss_blind(run, label="Crimson Heart boss start")
+    _require_crimson(run)
+
+    next_run = _begin_predeal_lifecycle(run)
+    setattr(next_run.public.blind, "prepped", True)
+    return _finish_predeal_lifecycle(next_run)
+
+
+def start_supported_crimson_heart(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose Crimson pre-deal, exact deal, and initial drawn-to-hand target."""
+    prepared = prepare_supported_crimson_heart_start(run)
+    dealt = deal_supported_round_start(prepared)
+    return apply_crimson_heart_drawn_to_hand(dealt)
 
 
 def arm_crimson_heart_after_play(
