@@ -8,7 +8,7 @@ is a later R2 owner and must not be approximated here.
 Supported boundary:
 
 * an already-cleared Small or Big Blind at the round-evaluation/cash-out screen;
-* only audited Jokers whose R1 model is inert at end-of-round/cash-out;
+* only audited Jokers that are inert at end-of-round/cash-out;
 * no tags or vouchers that can contribute dollars or modify interest;
 * baseline interest: $1 per $5 of pre-payout money, capped at $5;
 * blind reward plus $1 for each unused hand;
@@ -30,19 +30,26 @@ from games.balatro.env.transition import (
     HeadlessRunState,
     HeadlessTransitionError,
 )
+from games.balatro.jokers.drunkard import DrunkardJoker
+from games.balatro.jokers.merry_andy import MerryAndyJoker
+from games.balatro.jokers.stuntman import StuntmanJoker
+from games.balatro.jokers.troubadour import TroubadourJoker
 
 
 _BASE_INTEREST_AMOUNT = 1
 _BASE_INTEREST_CAP = 25
 
-# These identities were admitted in R1 specifically because their owned state is
-# static scoring/rule/retrigger state (or an acquisition-time resource mutation
-# already installed in canonical state).  None owns a vanilla end-of-round dollar,
-# destruction, decay, or counter transition.  Keep special lifecycle acquisitions
-# outside this tuple until their round-end behavior is separately classified.
+# These identities have no vanilla end-of-round dollar, destruction, decay, or
+# counter transition.  Resource-sensitive Jokers below mutate persistent/current
+# capacities at acquisition/round start, not during cash-out; those effects are
+# already installed in canonical state by their existing owners.
 _ROUND_END_INERT_JOKER_TYPES = (
     *_EXACT_R1_JOKER_ACQUISITION_TYPES,
     *_OWNED_DECK_SCORING_TYPES,
+    StuntmanJoker,
+    DrunkardJoker,
+    TroubadourJoker,
+    MerryAndyJoker,
 )
 
 
