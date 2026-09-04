@@ -266,6 +266,17 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             ):
                 return None
 
+            played_observed = card.get("played_this_ante_observed", False)
+            if not isinstance(played_observed, bool):
+                return None
+            if played_observed:
+                if not isinstance(card.get("played_this_ante"), bool):
+                    return None
+            elif "played_this_ante" in card:
+                # The value is meaningful only with an authoritative observation
+                # marker; accepting it otherwise would collapse unknown into false.
+                return None
+
             live_id = card.get("live_id", card.get("id", index))
             try:
                 result.append(self._card(card, live_id))
@@ -315,6 +326,11 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         enhancement, edition, seal = modifier.get("enhancement"), modifier.get("edition"), modifier.get("seal")
         facing = card.get("facing")
         facing_observed = isinstance(facing, str) and facing in {"front", "back"}
+        played_observed = card.get("played_this_ante_observed") is True
+        played_value = card.get("played_this_ante")
+        if not isinstance(played_value, bool):
+            played_observed = False
+            played_value = False
         return BalatroCard(
             rank=self.RANKS.get(rank, rank), suit=self.SUITS.get(suit, suit),
             enhancement=self.ENHANCEMENTS.get(enhancement, enhancement),
@@ -324,6 +340,8 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             forced_selection=bool(card.get("forced_selection", False)),
             face_down=(facing == "back") if facing_observed else False,
             facing_observed=facing_observed,
+            played_this_ante_observed=played_observed,
+            played_this_ante=played_value if played_observed else False,
         )
 
     def _translate_hand_levels(self, state: BalatroState, hands: dict) -> None:
