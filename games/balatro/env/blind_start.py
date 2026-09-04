@@ -15,6 +15,7 @@ from games.balatro.env.boss_debuffs import (
 )
 from games.balatro.env.boss_draw import apply_cerulean_bell_drawn_to_hand
 from games.balatro.env.boss_resources import apply_resource_boss_start
+from games.balatro.env.card_history import initialize_pristine_played_this_ante_history
 from games.balatro.env.deal import (
     deal_pristine_round_start,
     deal_supported_round_start,
@@ -331,7 +332,8 @@ def prepare_pristine_first_small_blind(run: HeadlessRunState) -> HeadlessRunStat
             "pristine first blind requires zero pending round bonuses"
         )
 
-    return prepare_supported_nonboss_blind_start(run)
+    initialized = initialize_pristine_played_this_ante_history(run)
+    return prepare_supported_nonboss_blind_start(initialized)
 
 
 def start_pristine_first_small_blind(run: HeadlessRunState) -> HeadlessRunState:
