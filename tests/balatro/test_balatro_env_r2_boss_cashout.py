@@ -31,6 +31,20 @@ def _finish(run: HeadlessRunState, *, score: int = 120, hands: int = 1) -> Headl
     return dealt
 
 
+def _card_signature(card):
+    return (
+        card.live_id,
+        card.rank,
+        card.suit,
+        card.enhancement,
+        card.edition,
+        card.seal,
+        card.permanent_bonus,
+        card.debuffed,
+        card.forced_selection,
+    )
+
+
 def test_env_r2_simple_boss_cashout_pays_and_enters_ungenerated_shop():
     run = _finish(_boss_round("The Psychic", money=14, reward=5), hands=1)
 
@@ -166,7 +180,7 @@ def test_env_r2_crimson_heart_cashout_clears_joker_debuff_without_extra_rng():
 def test_env_r2_facing_state_boss_cashout_repopulates_exactly_without_extra_rng(boss_name):
     run = _finish(_boss_round(boss_name, money=14, reward=5), hands=0)
     before_rng = run.rng_snapshot()
-    permanent_ids = {id(card) for card in run.require_playing_card_order()}
+    permanent_cards = sorted(_card_signature(card) for card in run.require_playing_card_order())
 
     result = cash_out_supported_boss(run)
 
@@ -174,7 +188,7 @@ def test_env_r2_facing_state_boss_cashout_repopulates_exactly_without_extra_rng(
     assert result.public.money == 21
     assert result.public.hand == []
     assert len(result.draw_pile) == 52
-    assert {id(card) for card in result.draw_pile} == permanent_ids
+    assert sorted(_card_signature(card) for card in result.draw_pile) == permanent_cards
     assert result.rng_snapshot() == before_rng
     assert run.public.phase == "ROUND_EVAL"
 
