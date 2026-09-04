@@ -251,6 +251,8 @@ class LiveJokerScoreProjector:
     @classmethod
     def _has_complete_baseball_rarity_metadata(cls, state) -> bool:
         for candidate in getattr(state, "jokers", []):
+            if bool(getattr(candidate, "debuffed", False)):
+                continue
             if type(candidate).__name__ == "BaseballCardJoker":
                 continue
             rarity = str(getattr(candidate, "rarity", "") or "").upper()
@@ -273,7 +275,8 @@ class LiveJokerScoreProjector:
         return tuple(
             self._joker_name(joker)
             for joker in getattr(state, "jokers", [])
-            if not self.supports_in_state(joker, state)
+            if not bool(getattr(joker, "debuffed", False))
+            and not self.supports_in_state(joker, state)
         )
 
     def score(
@@ -303,14 +306,19 @@ class LiveJokerScoreProjector:
         safe_state.jokers = deepcopy(list(getattr(state, "jokers", [])))
 
         all_jokers = list(getattr(safe_state, "jokers", []))
-        supported = [
+        active_jokers = [
             joker
             for joker in all_jokers
+            if not bool(getattr(joker, "debuffed", False))
+        ]
+        supported = [
+            joker
+            for joker in active_jokers
             if self.supports_in_state(joker, safe_state)
         ]
         unsupported = tuple(
             self._joker_name(joker)
-            for joker in all_jokers
+            for joker in active_jokers
             if not self.supports_in_state(joker, safe_state)
         )
 
