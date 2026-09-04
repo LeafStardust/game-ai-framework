@@ -20,7 +20,6 @@ from games.balatro.env.boss_debuffs import (
     clear_static_suit_boss_debuff,
 )
 from games.balatro.env.boss_draw import clear_cerulean_bell_forced_selection
-from games.balatro.env.boss_facing import clear_facing_boss_hand
 from games.balatro.env.boss_resources import disable_resource_boss
 from games.balatro.env.crimson_heart import disable_crimson_heart
 from games.balatro.env.joker_sale import clear_verdant_leaf_debuff
@@ -51,6 +50,24 @@ def _mark_disabled(run: HeadlessRunState) -> HeadlessRunState:
     if next_run.public.blind is None:
         raise HeadlessTransitionError("Boss disable requires authoritative blind state")
     next_run.public.blind.disabled = True
+    return next_run
+
+
+def _clear_facing_boss_hand(run: HeadlessRunState) -> HeadlessRunState:
+    """Mirror Blind:disable flipping every current hand card face up.
+
+    ``wheel_flipped`` itself is UI/bookkeeping-only in vanilla and is cleared by
+    the same disable path. Headless does not persist that marker, so the exact
+    mechanical inverse is the authoritative face-up hand state retained here.
+    Keeping this tiny cleanup local avoids a dependency cycle through
+    ``boss_facing -> blind_start -> round_lifecycle -> boss_disable``.
+    """
+    if run.public.boss_name not in _FACING_BOSSES:
+        raise HeadlessTransitionError("facing cleanup requires a facing Boss")
+    next_run = run.copy()
+    for card in next_run.public.hand:
+        card.face_down = False
+        card.facing_observed = True
     return next_run
 
 
@@ -147,7 +164,7 @@ def disable_supported_boss(
         return clear_verdant_leaf_debuff(run)
 
     if name in _FACING_BOSSES:
-        cleared = clear_facing_boss_hand(run)
+        cleared = _clear_facing_boss_hand(run)
         return _mark_disabled(cleared)
 
     if name == "Cerulean Bell":
