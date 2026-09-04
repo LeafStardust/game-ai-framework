@@ -72,6 +72,14 @@ def deterministic_card_stays_face_down(state, card: BalatroCard) -> bool:
     raise HeadlessTransitionError("Boss is not in the deterministic facing set")
 
 
+def _mark_current_hand_face_up(run: HeadlessRunState) -> HeadlessRunState:
+    next_run = run.copy()
+    for card in next_run.public.hand:
+        card.face_down = False
+        card.facing_observed = True
+    return next_run
+
+
 def apply_deterministic_facing_to_current_hand(run: HeadlessRunState) -> HeadlessRunState:
     """Apply exact House/Mark facing to every card just drawn into the hand.
 
@@ -87,6 +95,8 @@ def apply_deterministic_facing_to_current_hand(run: HeadlessRunState) -> Headles
         raise HeadlessTransitionError(
             "deterministic facing draw requires SELECTING_HAND phase"
         )
+    if bool(getattr(state.blind, "disabled", False)):
+        return _mark_current_hand_face_up(run)
 
     decisions = [deterministic_card_stays_face_down(state, card) for card in state.hand]
 
@@ -144,6 +154,9 @@ def _initial_draw_creation_indices(run: HeadlessRunState) -> list[int]:
 def start_supported_wheel(run: HeadlessRunState) -> HeadlessRunState:
     """Compose exact Wheel start, physical deal order, and per-card keyed RNG."""
     prepared = prepare_supported_wheel_start(run)
+    if bool(getattr(prepared.public.blind, "disabled", False)):
+        return _mark_current_hand_face_up(deal_supported_round_start(prepared))
+
     physical_draw_indices = _initial_draw_creation_indices(prepared)
     dealt = deal_supported_round_start(prepared)
     next_run = dealt.copy()
@@ -174,14 +187,6 @@ def prepare_supported_fish_start(run: HeadlessRunState) -> HeadlessRunState:
     if run.public.boss_name != "The Fish":
         raise HeadlessTransitionError("Fish boss start requires The Fish")
     return _apply_common_predeal_lifecycle(run)
-
-
-def _mark_current_hand_face_up(run: HeadlessRunState) -> HeadlessRunState:
-    next_run = run.copy()
-    for card in next_run.public.hand:
-        card.face_down = False
-        card.facing_observed = True
-    return next_run
 
 
 def start_supported_fish(run: HeadlessRunState) -> HeadlessRunState:
@@ -277,8 +282,4 @@ def clear_facing_boss_hand(run: HeadlessRunState) -> HeadlessRunState:
     if run.public.boss_name not in _FACING_BOSS_NAMES:
         raise HeadlessTransitionError("facing cleanup requires a facing Boss")
 
-    next_run = run.copy()
-    for card in next_run.public.hand:
-        card.face_down = False
-        card.facing_observed = True
-    return next_run
+    return _mark_current_hand_face_up(run)
