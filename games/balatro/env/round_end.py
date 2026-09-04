@@ -8,15 +8,16 @@ is a later R2 owner and must not be approximated here.
 Supported boundary:
 
 * an already-cleared Small or Big Blind at the round-evaluation/cash-out screen;
-* only audited Jokers that are inert at end-of-round/cash-out;
+* audited Jokers whose end-of-round behavior is either inert or exactly modeled;
 * no tags or vouchers that can contribute dollars or modify interest;
 * baseline interest: $1 per $5 of pre-payout money, capped at $5;
 * blind reward plus $1 for each unused hand;
+* exact Golden Joker, Cloud 9, and Delayed Gratification dollar bonuses;
 * exact permanent-card repopulation through :mod:`round_zones`;
 * transition to an active but not-yet-generated SHOP.
 
-Everything else fails closed.  In particular, Boss defeat, Joker dollar bonuses
-or decay/counter lifecycles, Voucher/tag economy modifiers, negative-money
+Everything else fails closed.  In particular, Boss defeat, unaudited Joker
+cash-out/decay/counter lifecycles, Voucher/tag economy modifiers, negative-money
 edge cases, and shop RNG are not silently folded into this helper.
 """
 
@@ -30,7 +31,11 @@ from games.balatro.env.transition import (
     HeadlessRunState,
     HeadlessTransitionError,
 )
+from games.balatro.joker import JokerContext
+from games.balatro.jokers.cloud_9 import Cloud9Joker
+from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
+from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
@@ -52,6 +57,15 @@ _ROUND_END_INERT_JOKER_TYPES = (
     MerryAndyJoker,
 )
 
+# These identities are not inert at cash-out.  Their canonical modeled classes
+# expose deterministic ROUND_ENDED dollar effects whose complete inputs are
+# already authoritative in the current R2 state boundary.
+_ROUND_END_DOLLAR_JOKER_TYPES = (
+    GoldenJoker,
+    Cloud9Joker,
+    DelayedGratificationJoker,
+)
+
 
 def _require_exact_int(name: str, value: object) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
@@ -69,6 +83,50 @@ def baseline_interest_dollars(money: int) -> int:
     if money < 5:
         return 0
     return _BASE_INTEREST_AMOUNT * min(money // 5, _BASE_INTEREST_CAP // 5)
+
+
+def _round_end_joker_dollars(run: HeadlessRunState) -> int:
+    """Return exact modeled Joker dollar rows for the current round evaluation.
+
+    Vanilla calculates Joker dollar bonuses before displaying interest, but the
+    interest row still reads the pre-payout ``G.GAME.dollars`` value.  This helper
+    therefore returns a separate subtotal and never mutates public money.
+    """
+    state = run.public
+    total = 0
+
+    for joker in state.jokers:
+        if type(joker) not in _ROUND_END_DOLLAR_JOKER_TYPES:
+            continue
+
+        data: dict[str, object] = {}
+        if type(joker) is Cloud9Joker:
+            if state.owned_deck is None:
+                raise HeadlessTransitionError(
+                    "Cloud 9 cash-out requires authoritative owned_deck"
+                )
+            data["deck"] = state.owned_deck
+        elif type(joker) is DelayedGratificationJoker:
+            discards_remaining = _require_exact_int(
+                "discards_remaining", state.discards_remaining
+            )
+            if discards_remaining < 0:
+                raise HeadlessTransitionError("discards_remaining cannot be negative")
+            data["discards_remaining"] = discards_remaining
+
+        context = JokerContext(
+            state=state,
+            trigger="ROUND_ENDED",
+            data=data,
+        )
+        joker.apply(context)
+
+        money = context.data.get("money", 0)
+        delayed = context.data.get("delayed_gratification_money", 0)
+        total += _require_exact_int("Joker cash-out dollars", money)
+        total += _require_exact_int("Joker cash-out dollars", delayed)
+
+    return total
 
 
 def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
@@ -117,10 +175,14 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     if blind_reward < 0:
         raise HeadlessTransitionError("blind reward cannot be negative")
 
+    supported_joker_types = (
+        *_ROUND_END_INERT_JOKER_TYPES,
+        *_ROUND_END_DOLLAR_JOKER_TYPES,
+    )
     unsupported_jokers = [
         type(joker).__name__
         for joker in state.jokers
-        if type(joker) not in _ROUND_END_INERT_JOKER_TYPES
+        if type(joker) not in supported_joker_types
     ]
     if unsupported_jokers:
         raise HeadlessTransitionError(
@@ -149,9 +211,12 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
         )
 
     # Vanilla interest is evaluated against G.GAME.dollars before blind reward,
-    # unused-hand dollars, interest, and other evaluation rows are paid.
+    # unused-hand dollars, Joker dollar rows, interest, and other evaluation rows
+    # are paid.  Keep Joker dollars as a separate subtotal so they cannot inflate
+    # this same round's interest.
     interest = baseline_interest_dollars(money)
-    payout = blind_reward + hands_remaining + interest
+    joker_dollars = _round_end_joker_dollars(run)
+    payout = blind_reward + hands_remaining + joker_dollars + interest
 
     next_run = repopulate_round_end_deck(run)
     next_state = next_run.public
