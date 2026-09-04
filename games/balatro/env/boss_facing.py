@@ -254,17 +254,17 @@ def _draw_fish_replenishment(
 def draw_fish_post_play_cards(run: HeadlessRunState) -> HeadlessRunState:
     """Mirror Fish ``press_play`` → draw → ``drawn_to_hand`` atomically.
 
-    ``press_play`` sets ``prepped=true``; every card in the immediately following
-    ordinary capacity-limited replenishment therefore stays face down. Vanilla
-    ``drawn_to_hand`` then clears ``prepped``. Because no stable action boundary
-    exists inside that temporary flag lifetime, the simulator owns the whole
-    effect atomically instead of inventing persistent private state.
+    ``press_play`` sets ``prepped=true`` only while the Boss is active; every
+    card in the immediately following replenishment therefore stays face down.
+    A disabled Fish skips ``press_play`` entirely, so its replenishment remains
+    ordinary face-up. Vanilla ``drawn_to_hand`` then clears ``prepped``.
     """
     if _require_round_play_history(run.public) <= 0:
         raise HeadlessTransitionError(
             "Fish post-play draw requires authoritative evidence of a played hand"
         )
-    return _draw_fish_replenishment(run, face_down=True)
+    disabled = bool(getattr(run.public.blind, "disabled", False))
+    return _draw_fish_replenishment(run, face_down=not disabled)
 
 
 def draw_fish_post_discard_cards(run: HeadlessRunState) -> HeadlessRunState:
