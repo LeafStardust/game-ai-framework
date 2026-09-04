@@ -162,6 +162,23 @@ def test_env_r2_crimson_heart_cashout_clears_joker_debuff_without_extra_rng():
     assert getattr(run.public.blind, "prepped", False) is False
 
 
+@pytest.mark.parametrize("boss_name", ["The House", "The Wheel", "The Mark", "The Fish"])
+def test_env_r2_facing_state_boss_cashout_repopulates_exactly_without_extra_rng(boss_name):
+    run = _finish(_boss_round(boss_name, money=14, reward=5), hands=0)
+    before_rng = run.rng_snapshot()
+    permanent_ids = {id(card) for card in run.require_playing_card_order()}
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.phase == "SHOP"
+    assert result.public.money == 21
+    assert result.public.hand == []
+    assert len(result.draw_pile) == 52
+    assert {id(card) for card in result.draw_pile} == permanent_ids
+    assert result.rng_snapshot() == before_rng
+    assert run.public.phase == "ROUND_EVAL"
+
+
 def test_env_r2_boss_cashout_isolates_input_and_rejects_unsupported_cleanup():
     run = _finish(_boss_round("The Psychic"))
     before_money = run.public.money
