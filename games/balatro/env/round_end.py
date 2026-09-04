@@ -8,27 +8,42 @@ is a later R2 owner and must not be approximated here.
 Supported boundary:
 
 * an already-cleared Small or Big Blind at the round-evaluation/cash-out screen;
-* no owned Jokers, tags, or vouchers that could contribute end-of-round dollars,
-  modify interest, or mutate lifecycle state;
+* only audited Jokers whose R1 model is inert at end-of-round/cash-out;
+* no tags or vouchers that can contribute dollars or modify interest;
 * baseline interest: $1 per $5 of pre-payout money, capped at $5;
 * blind reward plus $1 for each unused hand;
 * exact permanent-card repopulation through :mod:`round_zones`;
 * transition to an active but not-yet-generated SHOP.
 
-Everything else fails closed.  In particular, Boss defeat, Joker dollar bonuses,
-Voucher/tag economy modifiers, negative-money economy edge cases, and shop RNG
-are not silently folded into this helper.
+Everything else fails closed.  In particular, Boss defeat, Joker dollar bonuses
+or decay/counter lifecycles, Voucher/tag economy modifiers, negative-money
+edge cases, and shop RNG are not silently folded into this helper.
 """
 
 from __future__ import annotations
 
 from games.balatro.blinds.blind import BlindType
 from games.balatro.env.round_zones import repopulate_round_end_deck
-from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.transition import (
+    _EXACT_R1_JOKER_ACQUISITION_TYPES,
+    _OWNED_DECK_SCORING_TYPES,
+    HeadlessRunState,
+    HeadlessTransitionError,
+)
 
 
 _BASE_INTEREST_AMOUNT = 1
 _BASE_INTEREST_CAP = 25
+
+# These identities were admitted in R1 specifically because their owned state is
+# static scoring/rule/retrigger state (or an acquisition-time resource mutation
+# already installed in canonical state).  None owns a vanilla end-of-round dollar,
+# destruction, decay, or counter transition.  Keep special lifecycle acquisitions
+# outside this tuple until their round-end behavior is separately classified.
+_ROUND_END_INERT_JOKER_TYPES = (
+    *_EXACT_R1_JOKER_ACQUISITION_TYPES,
+    *_OWNED_DECK_SCORING_TYPES,
+)
 
 
 def _require_exact_int(name: str, value: object) -> int:
@@ -97,11 +112,15 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     if blind_reward < 0:
         raise HeadlessTransitionError("blind reward cannot be negative")
 
-    # Fail closed around every currently represented owner that can make vanilla
-    # round-evaluation/cash-out diverge from the baseline formula.
-    if state.jokers:
+    unsupported_jokers = [
+        type(joker).__name__
+        for joker in state.jokers
+        if type(joker) not in _ROUND_END_INERT_JOKER_TYPES
+    ]
+    if unsupported_jokers:
         raise HeadlessTransitionError(
-            "baseline cash-out does not yet own end-of-round Joker effects"
+            "baseline cash-out does not yet own end-of-round Joker effects: "
+            + ", ".join(unsupported_jokers)
         )
     if state.vouchers:
         raise HeadlessTransitionError(
