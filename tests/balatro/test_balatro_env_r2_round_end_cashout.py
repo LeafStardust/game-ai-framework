@@ -113,6 +113,19 @@ def test_env_r2_cashout_supports_big_blind_baseline_too():
     assert result.public.money == 15
 
 
+def test_env_r2_cashout_accepts_audited_round_end_inert_scoring_jokers():
+    from games.balatro.jokers.jolly_joker import JollyJoker
+    from games.balatro.jokers.steel_joker import SteelJoker
+
+    run = _cleared_run()
+    run.public.jokers.extend([JollyJoker(), SteelJoker()])
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    assert result.public.money == 21
+    assert [type(joker) for joker in result.public.jokers] == [JollyJoker, SteelJoker]
+
+
 def test_env_r2_cashout_rejects_uncleared_boss_or_wrong_phase():
     run = _cleared_run()
     run.public.score = 99
@@ -140,12 +153,12 @@ def test_env_r2_cashout_rejects_unowned_economy_and_lifecycle_modifiers():
     with pytest.raises(HeadlessTransitionError, match="Voucher economy"):
         cash_out_baseline_ordinary_blind(run)
 
-    run = _cleared_run()
-    # Any Joker is blocked here until its end-of-round/economy behavior has been
-    # classified, even when that Joker happens to be inert at cash-out.
-    from games.balatro.jokers.jolly_joker import JollyJoker
+    # Burglar is exact at setting_blind but remains a separately classified
+    # lifecycle acquisition; do not infer round-end admissibility from that.
+    from games.balatro.jokers.burglar import BurglarJoker
 
-    run.public.jokers.append(JollyJoker())
+    run = _cleared_run()
+    run.public.jokers.append(BurglarJoker())
     with pytest.raises(HeadlessTransitionError, match="end-of-round Joker"):
         cash_out_baseline_ordinary_blind(run)
 
