@@ -1,10 +1,10 @@
-"""Exact private card-zone repopulation at Balatro's round-end boundary.
+"""Exact private card-zone movement around Balatro round/blind boundaries.
 
-This module owns only the mechanical card movement needed to retain the physical
-``G.deck.cards`` order across cash-out/shop/blind-select. It deliberately does
-not own end-of-round card/Joker effects, economy, Boss defeat, or shop entry.
-Those higher-level transitions must call this primitive only after every played
-card has already returned to the discard area.
+This module owns only mechanical card movement needed to retain the physical
+``G.deck.cards`` order across cash-out/shop/blind-select and consume that order
+when a source mechanic draws before the next normal shuffle. It deliberately
+does not own end-of-round card/Joker effects, economy, Boss defeat, or shop
+entry. Higher-level transitions must compose these primitives in source order.
 
 Pinned vanilla movement semantics:
 
@@ -16,11 +16,12 @@ Pinned vanilla movement semantics:
   explicit card, ``remove_card`` removes the *last* discard card and deck
   ``emplace`` appends. The complete discard area is therefore appended to the
   existing deck in reverse order.
+* ``draw_from_deck_to_hand(1)`` removes the physical deck tail. This matters for
+  Chicot disabling The Manacle because that draw occurs before the later
+  ``G.deck:shuffle("nr" .. ante)`` event.
 
-That physical order is normally irrelevant because the next ``CardArea:shuffle``
-re-sorts by ``sort_id`` first. Chicot disabling The Manacle is the important
-exception: vanilla draws one card from this retained deck *before* the normal
-``nr{ante}`` shuffle.
+The retained physical order is otherwise normally irrelevant because the next
+``CardArea:shuffle`` re-sorts by ``sort_id`` before consuming shuffle RNG.
 """
 
 from __future__ import annotations
@@ -129,3 +130,34 @@ def require_full_retained_preblind_deck(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "retained pre-blind deck is not the complete permanent deck"
         )
+
+
+def draw_one_retained_preblind_card(run: HeadlessRunState) -> HeadlessRunState:
+    """Draw the retained physical deck tail before the normal round-start shuffle.
+
+    This is the exact card-movement primitive needed by vanilla Manacle
+    ``Blind:disable`` at Chicot timing.  It intentionally consumes no RNG and
+    never reconstructs physical order from the canonical public ``deck``.
+
+    The caller owns hand-size restoration and later ``nr{ante}`` shuffle/deal.
+    This primitive owns only one tail removal, one hand emplacement, and public
+    deck canonicalization.
+    """
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    if run.public.phase != "BLIND_SELECT":
+        raise HeadlessTransitionError(
+            "retained pre-blind draw requires BLIND_SELECT phase"
+        )
+    if run.public.hand_size <= 0:
+        raise HeadlessTransitionError(
+            "retained pre-blind draw requires positive hand capacity"
+        )
+    require_full_retained_preblind_deck(run)
+
+    next_run = run.copy()
+    next_state = next_run.public
+    card = next_run.draw_pile.pop()
+    next_state.hand.append(card)
+    next_state.deck = sorted(next_run.draw_pile, key=_public_card_sort_key)
+    return next_run
