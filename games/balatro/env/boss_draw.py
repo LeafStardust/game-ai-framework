@@ -22,15 +22,22 @@ def apply_cerulean_bell_drawn_to_hand(run: HeadlessRunState) -> HeadlessRunState
     ``math.random(#hand)`` draw. For permanent playing cards, the simulator's
     retained creation order is the exact relative ``sort_id`` order.
 
-    This owner intentionally assumes an active, non-disabled Cerulean Bell. The
-    currently supported blind-start path rejects Chicot and other unowned Boss
-    disable lifecycles before reaching this boundary.
+    ``Blind:disable`` makes later Blind callbacks inert. Chicot can queue that
+    disable during ``setting_blind`` before the initial deal, so the composed
+    drawn-to-hand owner must return without RNG or forced-selection mutation when
+    the authoritative Blind is already disabled.
     """
     state = run.public
     if state.boss_name != "Cerulean Bell":
         raise HeadlessTransitionError(
             "Cerulean Bell drawn-to-hand effect requires Cerulean Bell"
         )
+    if state.blind is None:
+        raise HeadlessTransitionError(
+            "Cerulean Bell drawn-to-hand effect requires authoritative blind state"
+        )
+    if bool(getattr(state.blind, "disabled", False)):
+        return run.copy()
     if state.phase != "SELECTING_HAND":
         raise HeadlessTransitionError(
             "Cerulean Bell drawn-to-hand effect requires SELECTING_HAND phase"
