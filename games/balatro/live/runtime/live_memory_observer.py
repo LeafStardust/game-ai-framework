@@ -153,6 +153,7 @@ def snapshot_payload_from_live_memory(
     ectoplasm_penalty = max(1, _integer(game.get("ecto_minus"), 1))
     round_reset_discards = _number(round_resets.get("discards"))
     round_reset_hands = _number(round_resets.get("hands"))
+    round_most_played_hand = _string(current_round.get("most_played_poker_hand"))
     current_tag = blind_tags.get(str(normalized_blind.get("type") or "").lower())
     if current_tag:
         normalized_blind["tag"] = current_tag
@@ -228,6 +229,11 @@ def snapshot_payload_from_live_memory(
             "chips": _integer(blind.get("chips"), 0),
             "hands_left": _integer(current_round.get("hands_left"), 0),
             "discards_left": _integer(current_round.get("discards_left"), 0),
+            **(
+                {"most_played_poker_hand": round_most_played_hand}
+                if round_most_played_hand
+                else {}
+            ),
             **(
                 {"discards_used": int(discards_used)}
                 if (
