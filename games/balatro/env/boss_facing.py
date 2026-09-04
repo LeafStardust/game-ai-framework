@@ -13,7 +13,10 @@ from games.balatro.env.blind_start import (
     _apply_common_predeal_lifecycle,
     _require_boss_blind,
 )
-from games.balatro.env.deal import deal_supported_round_start
+from games.balatro.env.deal import (
+    deal_supported_round_start,
+    draw_one_supported_card_to_hand,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.hand_rules import card_is_face, hand_rules_for_state
 
@@ -85,7 +88,6 @@ def apply_deterministic_facing_to_current_hand(run: HeadlessRunState) -> Headles
             "deterministic facing draw requires SELECTING_HAND phase"
         )
 
-    # Validate the full transition before cloning/mutating anything.
     decisions = [deterministic_card_stays_face_down(state, card) for card in state.hand]
 
     next_run = run.copy()
@@ -130,14 +132,7 @@ def prepare_supported_wheel_start(run: HeadlessRunState) -> HeadlessRunState:
 
 
 def _initial_draw_creation_indices(run: HeadlessRunState) -> list[int]:
-    """Recover exact physical initial-draw order without leaking it publicly.
-
-    ``deal_supported_round_start`` already owns the real ``nr{ante}`` shuffle.
-    The Wheel's RNG check occurs after each physical card is removed from that
-    shuffled deck but before the hand is sorted. Replaying the same shuffle on an
-    isolated copy gives only the creation-order indices of those physical draws;
-    it does not alter the returned run's RNG or expose future draw order.
-    """
+    """Recover exact physical initial-draw order without leaking it publicly."""
     order = run.require_playing_card_order()
     replay = run.copy()
     physical_indices = list(range(len(order)))
@@ -147,13 +142,7 @@ def _initial_draw_creation_indices(run: HeadlessRunState) -> list[int]:
 
 
 def start_supported_wheel(run: HeadlessRunState) -> HeadlessRunState:
-    """Compose exact Wheel start, physical deal order, and per-card keyed RNG.
-
-    Source order is preserved even though the generic deal helper sorts the final
-    hand before returning: the physical creation indices are replayed from the
-    pre-deal snapshot, then the *real returned run* consumes one independent
-    ``pseudorandom(pseudoseed('wheel'))`` result per physically drawn card.
-    """
+    """Compose exact Wheel start, physical deal order, and per-card keyed RNG."""
     prepared = prepare_supported_wheel_start(run)
     physical_draw_indices = _initial_draw_creation_indices(prepared)
     dealt = deal_supported_round_start(prepared)
@@ -179,14 +168,112 @@ def start_supported_wheel(run: HeadlessRunState) -> HeadlessRunState:
     return next_run
 
 
-def clear_facing_boss_hand(run: HeadlessRunState) -> HeadlessRunState:
-    """Mirror facing cleanup performed by ``Blind:disable``/Boss defeat.
+def prepare_supported_fish_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own The Fish's start lifecycle before its later press-play effect."""
+    _require_boss_blind(run, label="Fish boss start")
+    if run.public.boss_name != "The Fish":
+        raise HeadlessTransitionError("Fish boss start requires The Fish")
+    return _apply_common_predeal_lifecycle(run)
 
-    Vanilla flips every remaining face-down hand card face up for The Wheel,
-    The House, The Mark, and The Fish. ``wheel_flipped`` is UI/deck-preview
-    bookkeeping; no additional headless mechanical state is required once the
-    authoritative facing value itself is owned.
+
+def _mark_current_hand_face_up(run: HeadlessRunState) -> HeadlessRunState:
+    next_run = run.copy()
+    for card in next_run.public.hand:
+        card.face_down = False
+        card.facing_observed = True
+    return next_run
+
+
+def start_supported_fish(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose Fish blind start and its ordinary face-up initial draw.
+
+    Vanilla initializes ``Blind.prepped`` to nil for The Fish.  The initial draw
+    therefore does not stay flipped.  We mark facing authoritative after the
+    exact generalized shuffle/deal without introducing simulator-only prep state.
     """
+    prepared = prepare_supported_fish_start(run)
+    dealt = deal_supported_round_start(prepared)
+    return _mark_current_hand_face_up(dealt)
+
+
+def _fish_replenishment_creation_indices(run: HeadlessRunState) -> list[int]:
+    """Return creation indices of the exact cards ordinary draw-to-hand will move."""
+    state = run.public
+    if state.phase != "SELECTING_HAND":
+        raise HeadlessTransitionError("Fish replenishment requires SELECTING_HAND phase")
+    if state.boss_name != "The Fish":
+        raise HeadlessTransitionError("Fish replenishment requires The Fish")
+    if len(run.draw_pile) != len(state.deck):
+        raise HeadlessTransitionError(
+            "Fish private draw pile and public remaining deck size disagree"
+        )
+    if {id(card) for card in run.draw_pile} != {id(card) for card in state.deck}:
+        raise HeadlessTransitionError(
+            "Fish private draw pile and public remaining deck cards disagree"
+        )
+
+    creation_order = run.require_playing_card_order()
+    creation_index = {id(card): index for index, card in enumerate(creation_order)}
+    free_capacity = max(state.hand_size - len(state.hand), 0)
+    draw_count = min(len(run.draw_pile), free_capacity)
+    try:
+        return [creation_index[id(run.draw_pile[-1 - offset])] for offset in range(draw_count)]
+    except KeyError as exc:
+        raise HeadlessTransitionError(
+            "Fish draw pile contains card outside authoritative playing-card order"
+        ) from exc
+
+
+def _draw_fish_replenishment(
+    run: HeadlessRunState,
+    *,
+    face_down: bool,
+) -> HeadlessRunState:
+    draw_indices = _fish_replenishment_creation_indices(run)
+    next_run = run.copy()
+
+    # Reuse the already-audited ordinary capacity-limited draw owner. Repeated
+    # one-card moves preserve physical tail order and end with the same canonical
+    # sorted hand while keeping this facing layer independent from card sorting.
+    for _ in draw_indices:
+        next_run = draw_one_supported_card_to_hand(next_run)
+
+    next_order = next_run.require_playing_card_order()
+    for creation_index in draw_indices:
+        card = next_order[creation_index]
+        card.face_down = face_down
+        card.facing_observed = True
+    return next_run
+
+
+def draw_fish_post_play_cards(run: HeadlessRunState) -> HeadlessRunState:
+    """Mirror Fish ``press_play`` → draw → ``drawn_to_hand`` atomically.
+
+    ``press_play`` sets ``prepped=true``; every card in the immediately following
+    ordinary capacity-limited replenishment therefore stays face down. Vanilla
+    ``drawn_to_hand`` then clears ``prepped``. Because no stable action boundary
+    exists inside that temporary flag lifetime, the simulator owns the whole
+    effect atomically instead of inventing persistent private state.
+    """
+    if _require_round_play_history(run.public) <= 0:
+        raise HeadlessTransitionError(
+            "Fish post-play draw requires authoritative evidence of a played hand"
+        )
+    return _draw_fish_replenishment(run, face_down=True)
+
+
+def draw_fish_post_discard_cards(run: HeadlessRunState) -> HeadlessRunState:
+    """Mirror Fish discard replenishment, which occurs with ``prepped`` cleared."""
+    discards_used = run.public.discards_used
+    if isinstance(discards_used, bool) or not isinstance(discards_used, int) or discards_used <= 0:
+        raise HeadlessTransitionError(
+            "Fish post-discard draw requires authoritative evidence of a discard"
+        )
+    return _draw_fish_replenishment(run, face_down=False)
+
+
+def clear_facing_boss_hand(run: HeadlessRunState) -> HeadlessRunState:
+    """Mirror facing cleanup performed by ``Blind:disable``/Boss defeat."""
     if run.public.boss_name not in _FACING_BOSS_NAMES:
         raise HeadlessTransitionError("facing cleanup requires a facing Boss")
 
