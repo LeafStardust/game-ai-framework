@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from games.balatro.blinds.blind import BlindType
 from games.balatro.env.boss_debuffs import (
+    apply_pillar_history_debuff,
     apply_plant_face_debuff,
     apply_static_suit_boss_debuff,
 )
@@ -248,6 +249,23 @@ def prepare_supported_plant_start(run: HeadlessRunState) -> HeadlessRunState:
 def start_supported_plant(run: HeadlessRunState) -> HeadlessRunState:
     """Compose The Plant face-card debuff lifecycle with exact shuffle/deal."""
     prepared = prepare_supported_plant_start(run)
+    return deal_supported_round_start(prepared)
+
+
+def prepare_supported_pillar_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own The Pillar's source-ordered permanent Ante-history debuff start."""
+    _require_boss_blind(run, label="Pillar boss start")
+    if run.public.boss_name != "The Pillar":
+        raise HeadlessTransitionError("Pillar boss start requires The Pillar")
+
+    next_run = _begin_predeal_lifecycle(run)
+    next_run = apply_pillar_history_debuff(next_run)
+    return _finish_predeal_lifecycle(next_run)
+
+
+def start_supported_pillar(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose The Pillar history debuff lifecycle with exact shuffle/deal."""
+    prepared = prepare_supported_pillar_start(run)
     return deal_supported_round_start(prepared)
 
 
