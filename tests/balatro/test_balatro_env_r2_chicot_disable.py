@@ -4,8 +4,10 @@ from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.blind_start import (
     prepare_supported_amber_acorn_start,
     prepare_supported_nonboss_blind_start,
+    prepare_supported_requirement_only_boss_start,
     prepare_supported_resource_boss_start,
 )
+from games.balatro.env.boss_disable import disable_supported_boss
 from games.balatro.env.crimson_heart import prepare_supported_crimson_heart_start
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.burglar import BurglarJoker
@@ -13,14 +15,19 @@ from games.balatro.jokers.chicot import ChicotJoker
 from games.balatro.state import BalatroState
 
 
-def _run(*, boss_name: str | None, blind_type: BlindType = BlindType.BOSS) -> HeadlessRunState:
+def _run(
+    *,
+    boss_name: str | None,
+    blind_type: BlindType = BlindType.BOSS,
+    requirement: int = 20000,
+) -> HeadlessRunState:
     state = BalatroState()
     state.deck_name = "RED"
     state.stake_name = "WHITE"
     state.phase = "BLIND_SELECT"
     state.ante = 4
     state.round = 8
-    state.blind = Blind(blind_type, 20000)
+    state.blind = Blind(blind_type, requirement)
     state.boss_name = boss_name
     state.round_reset_hands_observed = True
     state.round_reset_hands = 4
@@ -59,6 +66,49 @@ def test_env_r2_chicot_needle_restores_source_stored_hands_before_draw_phase():
     assert result.boss_hands_sub is None
     assert result.public.blind.disabled is True
     assert result.public.phase == "DRAW_TO_HAND"
+
+
+@pytest.mark.parametrize(
+    ("boss_name", "inflated_requirement", "restored_requirement"),
+    [
+        ("The Wall", 40000, 20000),
+        ("Violet Vessel", 60000, 20000),
+    ],
+)
+def test_env_r2_chicot_restores_requirement_only_boss_target(
+    boss_name: str,
+    inflated_requirement: int,
+    restored_requirement: int,
+):
+    run = _run(boss_name=boss_name, requirement=inflated_requirement)
+    run.public.jokers = [ChicotJoker()]
+
+    result = prepare_supported_requirement_only_boss_start(run)
+
+    assert result.public.blind.disabled is True
+    assert result.public.blind.requirement == restored_requirement
+    assert result.public.blind_score == restored_requirement
+    assert result.public.phase == "DRAW_TO_HAND"
+    assert run.public.blind.requirement == inflated_requirement
+    assert run.public.blind_score == 0
+
+
+def test_env_r2_requirement_boss_disable_rejects_unsynchronized_or_nondivisible_target():
+    run = _run(boss_name="The Wall", requirement=40000)
+    run.public.blind_score = 39999
+    with pytest.raises(
+        HeadlessTransitionError,
+        match="synchronized active target state",
+    ):
+        disable_supported_boss(run, pre_deal=True)
+
+    run = _run(boss_name="Violet Vessel", requirement=40001)
+    run.public.blind_score = 40001
+    with pytest.raises(
+        HeadlessTransitionError,
+        match="not exactly divisible",
+    ):
+        disable_supported_boss(run, pre_deal=True)
 
 
 def test_env_r2_chicot_predeal_manacle_fails_closed_without_prior_physical_deck_order():
