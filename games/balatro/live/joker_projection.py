@@ -250,9 +250,10 @@ class LiveJokerScoreProjector:
 
     @classmethod
     def _has_complete_baseball_rarity_metadata(cls, state) -> bool:
+        # Baseball Card observes the rarity of an owned Joker even when Crimson
+        # Heart debuffs that Joker. Debuff suppresses the candidate's own ability;
+        # it does not remove its public rarity from OTHER_JOKER interactions.
         for candidate in getattr(state, "jokers", []):
-            if bool(getattr(candidate, "debuffed", False)):
-                continue
             if type(candidate).__name__ == "BaseballCardJoker":
                 continue
             rarity = str(getattr(candidate, "rarity", "") or "").upper()
@@ -327,10 +328,29 @@ class LiveJokerScoreProjector:
         else:
             safe_cards = list(cards or [])
 
-        projected_jokers = project_independent_copy_jokers(
+        projected_active = project_independent_copy_jokers(
             supported,
             safe_state,
         )
+        projected_by_source_id = {
+            id(source): projected
+            for source, projected in zip(supported, projected_active)
+        }
+        projected_jokers = []
+        for joker in all_jokers:
+            if bool(getattr(joker, "debuffed", False)):
+                # Keep disabled Jokers in the interaction graph so passive
+                # metadata consumers (notably Baseball Card) can still observe
+                # rarity/order while Joker.apply and edition effects stay inert.
+                projected_jokers.append(joker)
+                continue
+            projected = projected_by_source_id.get(id(joker))
+            if projected is not None:
+                projected_jokers.append(projected)
+            # Active unsupported Jokers remain omitted from the score branch and
+            # are reported through unsupported_jokers, preserving fail-closed
+            # projection without allowing their unknown ability to execute.
+
         safe_state.jokers = projected_jokers
         hand_rules = hand_rules_for_state(safe_state)
         joker_data = self._prepare_hand_play(
@@ -396,6 +416,7 @@ class LiveJokerScoreProjector:
             joker
             for joker in jokers
             if type(joker).__name__ in self.HAND_PLAYED_CLASS_NAMES
+            and not bool(getattr(joker, "debuffed", False))
         ]
         if not active:
             return {}
@@ -465,6 +486,7 @@ class LiveJokerScoreProjector:
             joker
             for joker in jokers
             if type(joker).__name__ in self.SCORING_ECONOMY_CLASS_NAMES
+            and not bool(getattr(joker, "debuffed", False))
         ]
         if not active:
             return
@@ -488,6 +510,7 @@ class LiveJokerScoreProjector:
             1
             for joker in jokers
             if type(joker).__name__ == "SeltzerJoker"
+            and not bool(getattr(joker, "debuffed", False))
             and int(getattr(joker, "rounds_remaining", 0) or 0) > 0
         )
 
@@ -495,6 +518,8 @@ class LiveJokerScoreProjector:
     def _consume_seltzer_hand(jokers) -> None:
         for joker in jokers:
             if type(joker).__name__ != "SeltzerJoker":
+                continue
+            if bool(getattr(joker, "debuffed", False)):
                 continue
             remaining = int(getattr(joker, "rounds_remaining", 0) or 0)
             if remaining > 0:
@@ -504,6 +529,7 @@ class LiveJokerScoreProjector:
     def _requires_card_isolation(cls, jokers) -> bool:
         return any(
             type(joker).__name__ in cls.CARD_MUTATING_CLASS_NAMES
+            and not bool(getattr(joker, "debuffed", False))
             for joker in jokers
         )
 
