@@ -1,10 +1,11 @@
 """Exact first R2 slices of normal shop inventory generation.
 
 Vanilla ``create_card_for_shop`` first chooses a card *type* with the keyed
-``cdt{ante}`` pseudorandom stream. Concrete center selection is a separate and
-substantially wider boundary involving profile unlocks, rarity/pools, editions,
-vouchers and duplicate rules. This module deliberately owns only the base
-Red/White main-shop type sequence and does not manufacture shop item identities.
+``cdt{ante}`` pseudorandom stream. Joker slots then roll rarity with
+``rarity{ante}sho`` before constructing/culling the concrete center pool.
+Concrete identity selection is a wider boundary involving profile unlocks,
+used-center/Showman state, Ante gates, Planet softlocks, editions and vouchers.
+This module deliberately stops before that pool/identity boundary.
 """
 
 from __future__ import annotations
@@ -26,18 +27,20 @@ _BASE_MAIN_SHOP_SLOTS = 2
 
 @dataclass(frozen=True)
 class ShopCardTypePoll:
-    """One exact type poll plus the isolated successor RNG state."""
-
     run: HeadlessRunState
     card_type: str
 
 
 @dataclass(frozen=True)
 class ShopMainTypeSequence:
-    """The two base main-shop slot types plus isolated successor RNG state."""
-
     run: HeadlessRunState
     card_types: tuple[str, str]
+
+
+@dataclass(frozen=True)
+class ShopJokerRarityPoll:
+    run: HeadlessRunState
+    rarity: int
 
 
 def _shop_type_from_polled_rate(polled_rate: float) -> str:
@@ -52,13 +55,21 @@ def _shop_type_from_polled_rate(polled_rate: float) -> str:
 
     check_rate = 0.0
     for card_type, rate in _BASE_SHOP_RATES:
-        # Vanilla's exact test is:
-        #   polled_rate > check_rate and polled_rate <= check_rate + v.val
         if value > check_rate and value <= check_rate + rate:
             return card_type
         check_rate += rate
 
     raise ValueError("polled_rate did not resolve to a positive-rate shop type")
+
+
+def _joker_rarity_from_roll(roll: float) -> int:
+    """Map vanilla's ordinary Joker rarity roll to rarity id 1/2/3."""
+    if isinstance(roll, bool) or not isinstance(roll, (int, float)):
+        raise TypeError("rarity roll must be numeric")
+    value = float(roll)
+    if value < 0.0 or value > 1.0:
+        raise ValueError("rarity roll must be within [0, 1]")
+    return 3 if value > 0.95 else 2 if value > 0.7 else 1
 
 
 def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
@@ -67,13 +78,13 @@ def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
 
     state = run.public
     if state.phase != "SHOP" or not state.shop_active:
-        raise HeadlessTransitionError("base shop type poll requires an active SHOP")
+        raise HeadlessTransitionError("base shop generation requires an active SHOP")
     if not isinstance(state.ante, int) or isinstance(state.ante, bool) or state.ante < 1:
-        raise HeadlessTransitionError("base shop type poll requires a positive exact Ante")
+        raise HeadlessTransitionError("base shop generation requires a positive exact Ante")
     if state.vouchers:
-        raise HeadlessTransitionError("base shop type poll does not own voucher-modified rates")
+        raise HeadlessTransitionError("base shop generation does not own voucher modifiers")
     if run.tags:
-        raise HeadlessTransitionError("base shop type poll does not own active Tag shop effects")
+        raise HeadlessTransitionError("base shop generation does not own active Tag shop effects")
     if any(
         (
             state.shop_jokers,
@@ -82,7 +93,7 @@ def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
             state.shop_vouchers,
         )
     ):
-        raise HeadlessTransitionError("base shop type poll requires ungenerated inventory")
+        raise HeadlessTransitionError("base shop generation requires ungenerated inventory")
 
 
 def poll_base_shop_card_type(run: HeadlessRunState) -> ShopCardTypePoll:
@@ -92,18 +103,14 @@ def poll_base_shop_card_type(run: HeadlessRunState) -> ShopCardTypePoll:
     next_run = run.copy()
     total_rate = sum(rate for _, rate in _BASE_SHOP_RATES)
     polled_rate = next_run.rng.random(f"cdt{run.public.ante}") * total_rate
-    return ShopCardTypePoll(
-        run=next_run,
-        card_type=_shop_type_from_polled_rate(polled_rate),
-    )
+    return ShopCardTypePoll(next_run, _shop_type_from_polled_rate(polled_rate))
 
 
 def poll_base_main_shop_types(run: HeadlessRunState) -> ShopMainTypeSequence:
     """Poll the exact two normal main-shop slot types in source order.
 
-    Vanilla initializes ``G.GAME.shop.joker_max = 2`` and, when entering an
-    ordinary unloaded shop, calls ``create_card_for_shop(G.shop_jokers)`` once
-    per missing main-shop slot. Each call advances the same ``cdt{ante}`` node.
+    Vanilla initializes ``G.GAME.shop.joker_max = 2`` and calls
+    ``create_card_for_shop(G.shop_jokers)`` once per missing main-shop slot.
     Booster and voucher areas are distinct generation paths and remain unowned.
     """
     _validate_base_shop_boundary(run)
@@ -115,7 +122,19 @@ def poll_base_main_shop_types(run: HeadlessRunState) -> ShopMainTypeSequence:
         polled_rate = next_run.rng.random(f"cdt{run.public.ante}") * total_rate
         card_types.append(_shop_type_from_polled_rate(polled_rate))
 
-    return ShopMainTypeSequence(
-        run=next_run,
-        card_types=(card_types[0], card_types[1]),
-    )
+    return ShopMainTypeSequence(next_run, (card_types[0], card_types[1]))
+
+
+def poll_base_shop_joker_rarity(run: HeadlessRunState) -> ShopJokerRarityPoll:
+    """Poll ordinary shop Joker rarity before concrete pool construction.
+
+    ``create_card_for_shop`` calls ``create_card(..., key_append='sho')``. For a
+    Joker, vanilla ``get_current_pool`` therefore consumes
+    ``pseudorandom('rarity' .. ante .. 'sho')`` and maps it to Common/Uncommon/
+    Rare ids 1/2/3. Legendary rarity is not reachable through this ordinary path.
+    """
+    _validate_base_shop_boundary(run)
+
+    next_run = run.copy()
+    roll = next_run.rng.random(f"rarity{run.public.ante}sho")
+    return ShopJokerRarityPoll(next_run, _joker_rarity_from_roll(roll))
