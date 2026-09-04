@@ -34,6 +34,9 @@ def test_env_r2_face_down_hand_identity_is_masked_without_mutating_internal_stat
     assert observation.hand[1] == visible
     assert observation.hand[1] is not visible
 
+    observation.hand[1].rank = "2"
+    assert state.hand[1].rank == "K"
+
     assert state.hand[0] is hidden
     assert state.hand[0].rank == "A"
     assert state.hand[0].suit == "Spades"
@@ -46,14 +49,23 @@ def test_env_r2_face_down_hand_identity_is_masked_without_mutating_internal_stat
     assert state.hand[0].original_suit_nominal == 0.04
 
 
-def test_env_r2_face_up_observation_preserves_historical_copy_behavior():
+def test_env_r2_face_up_observation_preserves_values_and_isolates_hand_cards():
     state = BalatroState()
+    state.money = 17
+    state.ante = 3
+    state.round = 5
     state.hand = [BalatroCard("Q", "Diamonds", live_id=22)]
     state.deck = [BalatroCard("2", "Clubs", live_id=23)]
 
     observation = EnvStateFrame(state=state).observation()
 
-    assert observation == state
     assert observation is not state
+    assert observation.money == state.money
+    assert observation.ante == state.ante
+    assert observation.round == state.round
+    assert observation.hand == state.hand
+    assert observation.deck == state.deck
     assert observation.hand[0] is not state.hand[0]
-    assert observation.deck[0] is not state.deck[0]
+    # Deck cards retain the historical shallow-copy behavior; only policy-visible
+    # hand cards need object isolation for facing/selection mutations.
+    assert observation.deck[0] is state.deck[0]
