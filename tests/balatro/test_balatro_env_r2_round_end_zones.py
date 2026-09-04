@@ -1,6 +1,7 @@
 import pytest
 
 from games.balatro.env.round_zones import (
+    draw_one_retained_preblind_card,
     repopulate_round_end_deck,
     require_full_retained_preblind_deck,
 )
@@ -27,6 +28,18 @@ def _partitioned_run() -> tuple[HeadlessRunState, list]:
     run.discard_pile = list(discard)
     run.public.discard_pile = list(discard)
     return run, order
+
+
+def _retained_preblind_run() -> HeadlessRunState:
+    run, _ = _partitioned_run()
+    run = repopulate_round_end_deck(run)
+    run.public.phase = "BLIND_SELECT"
+    require_full_retained_preblind_deck(run)
+    return run
+
+
+def _identity(card) -> tuple[str, str]:
+    return card.rank, card.suit
 
 
 def test_env_r2_round_end_repopulation_pins_hand_then_reverse_discard_order():
@@ -122,3 +135,50 @@ def test_env_r2_retained_preblind_deck_requires_complete_permanent_partition():
     residual_hand.public.hand.append(residual_hand.draw_pile[-1])
     with pytest.raises(HeadlessTransitionError, match="empty hand/discard/play zones"):
         require_full_retained_preblind_deck(residual_hand)
+
+
+def test_env_r2_retained_preblind_draw_consumes_physical_tail_without_rng():
+    run = _retained_preblind_run()
+    expected = _identity(run.draw_pile[-1])
+    before_rng = run.rng_snapshot()
+    before_size = len(run.draw_pile)
+
+    result = draw_one_retained_preblind_card(run)
+
+    assert [_identity(card) for card in result.public.hand] == [expected]
+    assert len(result.draw_pile) == before_size - 1
+    assert expected not in [_identity(card) for card in result.draw_pile]
+    assert {_identity(card) for card in result.public.deck} == {
+        _identity(card) for card in result.draw_pile
+    }
+    assert [_identity(card) for card in result.public.deck] != [
+        _identity(card) for card in result.draw_pile
+    ]
+    assert result.rng_snapshot() == before_rng
+
+
+def test_env_r2_retained_preblind_draw_isolates_input_snapshot():
+    run = _retained_preblind_run()
+    before_draw = [_identity(card) for card in run.draw_pile]
+    before_public = [_identity(card) for card in run.public.deck]
+
+    result = draw_one_retained_preblind_card(run)
+
+    assert result is not run
+    assert run.public.hand == []
+    assert [_identity(card) for card in run.draw_pile] == before_draw
+    assert [_identity(card) for card in run.public.deck] == before_public
+
+
+def test_env_r2_retained_preblind_draw_fails_closed_without_exact_retained_order():
+    run = _retained_preblind_run()
+    run.draw_pile.pop()
+    run.public.deck = list(run.draw_pile)
+
+    with pytest.raises(HeadlessTransitionError, match="complete permanent deck"):
+        draw_one_retained_preblind_card(run)
+
+    wrong_phase = _retained_preblind_run()
+    wrong_phase.public.phase = "DRAW_TO_HAND"
+    with pytest.raises(HeadlessTransitionError, match="BLIND_SELECT"):
+        draw_one_retained_preblind_card(wrong_phase)
