@@ -10,6 +10,7 @@ their now-irrelevant stored reversal values as the Blind is torn down.
 from __future__ import annotations
 
 from games.balatro.env.deal import draw_one_supported_card_to_hand
+from games.balatro.env.round_zones import draw_one_retained_preblind_card
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
@@ -74,8 +75,18 @@ def apply_resource_boss_start(run: HeadlessRunState) -> HeadlessRunState:
     return next_run
 
 
-def disable_resource_boss(run: HeadlessRunState) -> HeadlessRunState:
-    """Mirror audited ``Blind:disable`` restoration and clear private state."""
+def disable_resource_boss(
+    run: HeadlessRunState,
+    *,
+    pre_deal: bool = False,
+) -> HeadlessRunState:
+    """Mirror audited ``Blind:disable`` restoration and clear private state.
+
+    ``pre_deal=True`` is the Chicot setting-blind timing. For The Manacle,
+    vanilla restores one hand-size slot and immediately draws the retained
+    physical deck tail before the later ``nr{ante}`` shuffle. Post-deal Manacle
+    disable instead draws from the already-shuffled physical pile.
+    """
     state = run.public
     next_run = run.copy()
     next_state = next_run.public
@@ -103,12 +114,10 @@ def disable_resource_boss(run: HeadlessRunState) -> HeadlessRunState:
         if amount != 1:
             raise HeadlessTransitionError("Manacle stored hand_size_sub must equal one")
 
-        # Vanilla Blind:disable performs change_size(+1) and immediately
-        # draw_from_deck_to_hand(1). The latter is exact only once headless owns
-        # the shuffled physical draw pile (post initial deal). Pre-deal disable,
-        # e.g. future Chicot support during setting_blind, remains fail-closed.
         next_state.hand_size += amount
         next_run.boss_hand_size_sub = None
+        if pre_deal:
+            return draw_one_retained_preblind_card(next_run)
         return draw_one_supported_card_to_hand(next_run)
 
     raise HeadlessTransitionError("boss has no audited reversible resource disable")
