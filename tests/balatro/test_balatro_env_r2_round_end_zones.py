@@ -14,6 +14,9 @@ def _partitioned_run() -> tuple[HeadlessRunState, list]:
     state.stake_name = "WHITE"
     run = HeadlessRunState(public=state, seed="ROUND-END-ZONES")
     order = run.require_playing_card_order()
+    # Real post-deal headless state has authoritative permanent ownership even
+    # while public deck is only the still-drawable subset.
+    run.public.owned_deck = list(order)
 
     draw = list(order[:40])
     hand = list(order[40:45])
@@ -65,6 +68,14 @@ def test_env_r2_round_end_repopulation_isolates_input_and_does_not_consume_rng()
     assert run.public.discard_pile == before_discard
     assert run.rng_snapshot() == before_rng
     assert result.rng_snapshot() == before_rng
+
+
+def test_env_r2_round_end_repopulation_requires_authoritative_owned_deck():
+    run, _ = _partitioned_run()
+    run.public.owned_deck = None
+
+    with pytest.raises(HeadlessTransitionError, match="authoritative owned_deck"):
+        repopulate_round_end_deck(run)
 
 
 def test_env_r2_round_end_repopulation_rejects_unreturned_play_cards():
