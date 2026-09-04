@@ -8,6 +8,7 @@ ordering and rejecting unclassified modifier surfaces.
 from __future__ import annotations
 
 from games.balatro.blinds.blind import BlindType
+from games.balatro.env.amber_acorn import apply_amber_acorn_order_effect
 from games.balatro.env.boss_debuffs import (
     apply_pillar_history_debuff,
     apply_plant_face_debuff,
@@ -292,6 +293,31 @@ def prepare_supported_verdant_leaf_start(run: HeadlessRunState) -> HeadlessRunSt
 def start_supported_verdant_leaf(run: HeadlessRunState) -> HeadlessRunState:
     """Compose exact Verdant pre-deal debuff with shuffle/deal."""
     prepared = prepare_supported_verdant_leaf_start(run)
+    return deal_supported_round_start(prepared)
+
+
+def prepare_supported_amber_acorn_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own Amber Acorn's source-ordered hidden Joker permutation at blind start.
+
+    Vanilla applies Amber's Joker flip/shuffle inside ``Blind:set_blind`` after
+    round resources are installed and before the Joker ``setting_blind`` pass.
+    The hidden physical permutation is retained internally while policy-facing
+    observation masking prevents identity-to-position leakage.
+    """
+    _require_boss_blind(run, label="Amber Acorn boss start")
+    if run.public.boss_name != "Amber Acorn":
+        raise HeadlessTransitionError("Amber Acorn boss start requires Amber Acorn")
+    if getattr(run.public.blind, "disabled", False):
+        raise HeadlessTransitionError("Amber Acorn start requires active blind state")
+
+    next_run = _begin_predeal_lifecycle(run)
+    next_run = apply_amber_acorn_order_effect(next_run)
+    return _finish_predeal_lifecycle(next_run)
+
+
+def start_supported_amber_acorn(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose exact Amber pre-deal Joker permutation with shuffle/deal."""
+    prepared = prepare_supported_amber_acorn_start(run)
     return deal_supported_round_start(prepared)
 
 
