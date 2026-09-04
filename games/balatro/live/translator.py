@@ -313,6 +313,8 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         modifier = card.get("modifier") or card
         rank, suit = str(value["rank"]), str(value["suit"])
         enhancement, edition, seal = modifier.get("enhancement"), modifier.get("edition"), modifier.get("seal")
+        facing = card.get("facing")
+        facing_observed = isinstance(facing, str) and facing in {"front", "back"}
         return BalatroCard(
             rank=self.RANKS.get(rank, rank), suit=self.SUITS.get(suit, suit),
             enhancement=self.ENHANCEMENTS.get(enhancement, enhancement),
@@ -320,6 +322,8 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             live_id=live_id, debuffed=bool(card.get("debuff", False)),
             permanent_bonus=int(card.get("permanent_bonus", 0) or 0),
             forced_selection=bool(card.get("forced_selection", False)),
+            face_down=(facing == "back") if facing_observed else False,
+            facing_observed=facing_observed,
         )
 
     def _translate_hand_levels(self, state: BalatroState, hands: dict) -> None:
