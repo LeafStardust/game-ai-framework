@@ -93,8 +93,6 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
         raise HeadlessTransitionError(
             "baseline cash-out currently supports Small/Big blinds only"
         )
-    if state.blind_is_boss:
-        raise HeadlessTransitionError("baseline cash-out does not own Boss defeat")
 
     score = _require_exact_int("score", state.score)
     requirement = _require_exact_int(
