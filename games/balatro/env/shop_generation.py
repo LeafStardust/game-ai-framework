@@ -1,10 +1,10 @@
-"""Exact first R2 slice of normal shop inventory generation.
+"""Exact first R2 slices of normal shop inventory generation.
 
 Vanilla ``create_card_for_shop`` first chooses a card *type* with the keyed
 ``cdt{ante}`` pseudorandom stream. Concrete center selection is a separate and
 substantially wider boundary involving profile unlocks, rarity/pools, editions,
 vouchers and duplicate rules. This module deliberately owns only the base
-Red/White type poll and does not manufacture a shop item identity.
+Red/White main-shop type sequence and does not manufacture shop item identities.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ _BASE_SHOP_RATES: tuple[tuple[str, float], ...] = (
     ("Base", 0.0),
     ("Spectral", 0.0),
 )
+_BASE_MAIN_SHOP_SLOTS = 2
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,14 @@ class ShopCardTypePoll:
 
     run: HeadlessRunState
     card_type: str
+
+
+@dataclass(frozen=True)
+class ShopMainTypeSequence:
+    """The two base main-shop slot types plus isolated successor RNG state."""
+
+    run: HeadlessRunState
+    card_types: tuple[str, str]
 
 
 def _shop_type_from_polled_rate(polled_rate: float) -> str:
@@ -49,23 +58,10 @@ def _shop_type_from_polled_rate(polled_rate: float) -> str:
             return card_type
         check_rate += rate
 
-    # ``pseudorandom`` is strictly inside this positive-rate envelope for the
-    # live path. Keep malformed/direct calls fail closed anyway.
     raise ValueError("polled_rate did not resolve to a positive-rate shop type")
 
 
-def poll_base_shop_card_type(run: HeadlessRunState) -> ShopCardTypePoll:
-    """Poll one source-exact base shop card type without choosing an identity.
-
-    This boundary is intentionally restricted to the ordinary unmodified shop
-    rates initialized by vanilla for a normal run:
-
-    ``Joker=20, Tarot=4, Planet=4, Playing Card=0, Spectral=0``.
-
-    Vouchers and active Tags are rejected because they can alter shop rates,
-    card type, slots, price, edition or creation behavior. Concrete item identity
-    generation remains unavailable after this function returns.
-    """
+def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
 
@@ -78,9 +74,6 @@ def poll_base_shop_card_type(run: HeadlessRunState) -> ShopCardTypePoll:
         raise HeadlessTransitionError("base shop type poll does not own voucher-modified rates")
     if run.tags:
         raise HeadlessTransitionError("base shop type poll does not own active Tag shop effects")
-
-    # This primitive begins at the same ungenerated-shop boundary used by the
-    # current cash-out owners. It never overwrites already-materialized inventory.
     if any(
         (
             state.shop_jokers,
@@ -91,10 +84,38 @@ def poll_base_shop_card_type(run: HeadlessRunState) -> ShopCardTypePoll:
     ):
         raise HeadlessTransitionError("base shop type poll requires ungenerated inventory")
 
+
+def poll_base_shop_card_type(run: HeadlessRunState) -> ShopCardTypePoll:
+    """Poll one source-exact base shop card type without choosing an identity."""
+    _validate_base_shop_boundary(run)
+
     next_run = run.copy()
     total_rate = sum(rate for _, rate in _BASE_SHOP_RATES)
-    polled_rate = next_run.rng.random(f"cdt{state.ante}") * total_rate
+    polled_rate = next_run.rng.random(f"cdt{run.public.ante}") * total_rate
     return ShopCardTypePoll(
         run=next_run,
         card_type=_shop_type_from_polled_rate(polled_rate),
+    )
+
+
+def poll_base_main_shop_types(run: HeadlessRunState) -> ShopMainTypeSequence:
+    """Poll the exact two normal main-shop slot types in source order.
+
+    Vanilla initializes ``G.GAME.shop.joker_max = 2`` and, when entering an
+    ordinary unloaded shop, calls ``create_card_for_shop(G.shop_jokers)`` once
+    per missing main-shop slot. Each call advances the same ``cdt{ante}`` node.
+    Booster and voucher areas are distinct generation paths and remain unowned.
+    """
+    _validate_base_shop_boundary(run)
+
+    next_run = run.copy()
+    card_types: list[str] = []
+    total_rate = sum(rate for _, rate in _BASE_SHOP_RATES)
+    for _ in range(_BASE_MAIN_SHOP_SLOTS):
+        polled_rate = next_run.rng.random(f"cdt{run.public.ante}") * total_rate
+        card_types.append(_shop_type_from_polled_rate(polled_rate))
+
+    return ShopMainTypeSequence(
+        run=next_run,
+        card_types=(card_types[0], card_types[1]),
     )
