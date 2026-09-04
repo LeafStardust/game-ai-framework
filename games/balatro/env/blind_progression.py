@@ -8,11 +8,11 @@ engine-internal blind-status fields to :class:`BalatroState`.
 Owned deterministic slices:
 
 * won ``end_round`` progression after the blind has entered ``ROUND_EVAL``;
+* the deterministic state mutation of Boss ``cash_out -> reset_blinds()`` once
+  an exact next-Boss selection has already been supplied;
 * BLIND_SELECT choice after shop exit for an already-valid blind-state set.
 
-Boss ``cash_out -> reset_blinds()`` is deliberately not owned here yet. That
-boundary regenerates tag choices and calls ``get_new_boss()``, so a defeated Boss
-must be reset through the exact RNG owner before BLIND_SELECT may continue.
+Boss-pool selection and post-Boss tag regeneration remain separate R2 RNG owners.
 """
 
 from __future__ import annotations
@@ -137,6 +137,57 @@ def finalize_won_round_progression(
         next_run.round_bonus_discards = 0
 
     return next_run, next_progression
+
+
+def reset_blinds_after_boss_cashout(
+    progression: BlindProgressionState,
+    *,
+    current_ante: int,
+    next_boss_name: str,
+) -> BlindProgressionState:
+    """Apply vanilla ``reset_blinds()`` after exact next-Boss selection.
+
+    Vanilla reaches this point during Boss cash-out *after* ``end_round`` has
+    already advanced Ante. ``cash_out`` records the new Ante as ``blind_ante``;
+    ``reset_blinds`` then restores all three statuses to ``Upcoming``, points
+    ``blind_on_deck`` at Small, installs the newly selected Boss and clears the
+    boss-rerolled flag.
+
+    Tag choices and the RNG/pool logic that chooses ``next_boss_name`` are not
+    performed here; callers must supply that result from their exact owners.
+    """
+    if not isinstance(progression, BlindProgressionState):
+        raise TypeError("progression must be BlindProgressionState")
+    if isinstance(current_ante, bool) or not isinstance(current_ante, int):
+        raise BlindProgressionError("current_ante must be an exact integer")
+    if current_ante < 2:
+        raise BlindProgressionError(
+            "Boss reset requires the post-win Ante to be at least 2"
+        )
+    if not isinstance(next_boss_name, str) or not next_boss_name.strip():
+        raise BlindProgressionError("next_boss_name must be a non-empty string")
+    if progression.blind_on_deck != "Boss":
+        raise BlindProgressionError(
+            "reset_blinds requires Boss as private blind_on_deck"
+        )
+    if progression.boss_status != "Defeated":
+        raise BlindProgressionError(
+            "reset_blinds requires defeated Boss status"
+        )
+    if current_ante != progression.blind_ante + 1:
+        raise BlindProgressionError(
+            "post-Boss current_ante must be exactly one above blind_ante"
+        )
+
+    next_progression = deepcopy(progression)
+    next_progression.small_status = "Upcoming"
+    next_progression.big_status = "Upcoming"
+    next_progression.boss_status = "Upcoming"
+    next_progression.blind_on_deck = "Small"
+    next_progression.blind_ante = current_ante
+    next_progression.boss_name = next_boss_name
+    next_progression.boss_rerolled = False
+    return next_progression
 
 
 def enter_blind_select_progression(
