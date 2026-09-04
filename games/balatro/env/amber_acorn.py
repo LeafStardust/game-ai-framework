@@ -2,15 +2,15 @@
 
 Amber is still not training-exposed. This module owns the exact seeded Joker
 permutation and a narrow headless state mutation for states whose engine creation
-order can be proved. Policy masking is owned separately by
-``public_observation_state``.
+order can be proved or has been retained by the simulator. Policy masking is
+owned separately by ``public_observation_state``.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from games.balatro.env.joker_order import JokerOrderState, JokerOrderError
+from games.balatro.env.joker_order import JokerOrderError, JokerOrderState
 from games.balatro.env.rng import BalatroRNG
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
@@ -76,9 +76,8 @@ def apply_amber_acorn_order_effect(run: HeadlessRunState) -> HeadlessRunState:
 
     This is the ``Blind:set_blind`` ordering effect only. The caller is
     responsible for invoking it in source order between baseline blind setup and
-    the Joker ``setting_blind`` pass. Multi-Joker states require exact engine
-    ``sort_id`` values (live ``joker.live_id``) until headless acquisition-order
-    retention is integrated into :class:`HeadlessRunState`.
+    the Joker ``setting_blind`` pass. Exact creation order may come either from
+    unique live engine ids or from simulator-retained acquisition order.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -90,13 +89,10 @@ def apply_amber_acorn_order_effect(run: HeadlessRunState) -> HeadlessRunState:
 
     next_run = run.copy()
     next_state = next_run.public
-    order = JokerOrderState.from_public(next_state.jokers)
-    if order is None:
-        raise HeadlessTransitionError(
-            "exact Amber Joker creation order is unavailable"
-        )
+    order = next_run.require_joker_order_state()
 
     result = apply_amber_acorn_shuffle(order, next_run.rng, next_state.jokers)
     next_state.jokers = list(result.order.physical_order)
+    next_run.joker_order_state = result.order
     next_run.rng_state = result.rng
     return next_run
