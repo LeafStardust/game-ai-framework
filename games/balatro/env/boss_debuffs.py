@@ -7,7 +7,8 @@ Current exact base-deck families:
 
 * Goad / Window / Head / Club: suit debuffs;
 * The Plant: ``card:is_face(true)`` debuff, including Pareidolia making every
-  playing card a face card.
+  playing card a face card;
+* The Pillar: cards whose permanent ``ability.played_this_ante`` history is true.
 
 These helpers intentionally support only the untouched base 52-card rank/suit
 composition with no suit/rank-changing enhancement or other persistent card
@@ -161,6 +162,54 @@ def clear_plant_face_debuff(run: HeadlessRunState) -> HeadlessRunState:
     if any(card.debuffed for card in cards if card not in expected):
         raise HeadlessTransitionError(
             "Plant cleanup encountered unowned card debuff"
+        )
+
+    next_run = run.copy()
+    for card in next_run.require_playing_card_order():
+        card.debuffed = False
+    return next_run
+
+
+def apply_pillar_history_debuff(run: HeadlessRunState) -> HeadlessRunState:
+    """Apply The Pillar's exact ``played_this_ante`` pre-deal card debuff.
+
+    Vanilla's predicate is simply ``card.ability.played_this_ante``.  A missing
+    value is authoritative false only when the permanent card's ability table was
+    actually observed (or the simulator itself has owned that card's history).
+    Therefore every permanent card must carry ``played_this_ante_observed`` before
+    this Boss can be simulated exactly.
+    """
+    if run.public.boss_name != "The Pillar":
+        raise HeadlessTransitionError("Pillar debuff requires The Pillar boss")
+    cards = _require_exact_base_permanent_cards(run, label="Pillar history debuff")
+    if any(not card.played_this_ante_observed for card in cards):
+        raise HeadlessTransitionError(
+            "Pillar history debuff requires authoritative played-this-ante state"
+        )
+
+    next_run = run.copy()
+    for card in next_run.require_playing_card_order():
+        card.debuffed = card.played_this_ante
+    return next_run
+
+
+def clear_pillar_history_debuff(run: HeadlessRunState) -> HeadlessRunState:
+    """Clear only the transient debuffs proven to belong to The Pillar.
+
+    Permanent ``played_this_ante`` history is intentionally retained here. Vanilla
+    clears that history only at the Ante transition after defeating the Boss, not
+    when the Blind's transient debuff state is disabled.
+    """
+    if run.public.boss_name != "The Pillar":
+        raise HeadlessTransitionError("Pillar cleanup requires The Pillar boss")
+    cards = run.require_playing_card_order()
+    if len(cards) != 52 or any(not card.played_this_ante_observed for card in cards):
+        raise HeadlessTransitionError(
+            "Pillar cleanup requires authoritative permanent-card history"
+        )
+    if any(card.debuffed != card.played_this_ante for card in cards):
+        raise HeadlessTransitionError(
+            "Pillar cleanup encountered unowned card debuff"
         )
 
     next_run = run.copy()
