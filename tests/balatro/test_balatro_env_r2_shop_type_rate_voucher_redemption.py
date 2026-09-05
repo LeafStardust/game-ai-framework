@@ -52,8 +52,11 @@ def test_env_r2_shop_type_rate_redemption_changes_only_target_future_weight(
         planet_rate=planet_before,
     )
     run.public.shop_vouchers = [_voucher(key)]
-    run.public.shop_jokers = [object()]
-    run.public.shop_consumables = [object()]
+    # Use value-stable sentinels here. HeadlessRunState.copy() deliberately
+    # deep-copies the public state, so raw object() identity is not a valid way
+    # to assert that unrelated visible shop entries were semantically unchanged.
+    run.public.shop_jokers = ["JOKER-SENTINEL"]
+    run.public.shop_consumables = ["CONSUMABLE-SENTINEL"]
     before_rng = run.rng_snapshot()
     before_jokers = list(run.public.shop_jokers)
     before_consumables = list(run.public.shop_consumables)
@@ -77,6 +80,8 @@ def test_env_r2_shop_type_rate_redemption_changes_only_target_future_weight(
     assert run.public.tarot_rate == tarot_before
     assert run.public.planet_rate == planet_before
     assert run.public.shop_vouchers[0].center_key == key
+    assert run.public.shop_jokers == before_jokers
+    assert run.public.shop_consumables == before_consumables
     assert run.rng_snapshot() == before_rng
 
 
