@@ -150,6 +150,10 @@ def snapshot_payload_from_live_memory(
     blind_tags = _normalize_blind_tags(decoder, round_resets.get("blind_tags"))
     normalized_blind = _normalize_blind(decoder, blind, game)
     joker_unlocks = _normalize_joker_unlocks(decoder, root.get("P_CENTERS"))
+    owned_vouchers, vouchers_observed = _normalize_used_vouchers(
+        decoder,
+        game.get("used_vouchers"),
+    )
     ectoplasm_penalty = max(1, _integer(game.get("ecto_minus"), 1))
     round_reset_discards = _number(round_resets.get("discards"))
     round_reset_hands = _number(round_resets.get("hands"))
@@ -212,6 +216,8 @@ def snapshot_payload_from_live_memory(
         "stake": STAKE_NAMES.get(stake_id, str(stake_id)),
         "last_tarot_planet": _string(game.get("last_tarot_planet")),
         "joker_unlocks": joker_unlocks,
+        "vouchers_observed": vouchers_observed,
+        **({"vouchers": owned_vouchers} if vouchers_observed else {}),
         "ectoplasm_hand_size_penalty": ectoplasm_penalty,
         "round_reset_discards_observed": round_reset_discards is not None,
         **(
@@ -422,6 +428,27 @@ def _normalize_joker_unlocks(
             "unlocked": _boolean(center.get("unlocked"), False),
         }
     return result
+
+
+def _normalize_used_vouchers(
+    decoder: LuaJITNonGC64Decoder,
+    value: LuaValue | None,
+) -> tuple[list[str], bool]:
+    """Return exact redeemed Voucher keys or an unobserved fail-closed state."""
+    fields, observed = _table_fields_with_status(decoder, value)
+    if not observed:
+        return [], False
+
+    result: list[str] = []
+    for key, flag in fields.items():
+        if not isinstance(key, str) or not key.startswith("v_") or len(key) <= 2:
+            return [], False
+        if flag.kind != "boolean":
+            return [], False
+        if bool(flag.value):
+            result.append(key)
+    result.sort()
+    return result, True
 
 
 def _normalize_card(
