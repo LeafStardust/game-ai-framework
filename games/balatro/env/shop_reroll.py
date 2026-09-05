@@ -38,7 +38,12 @@ class PaidBaseShopReroll:
     items: tuple[GeneratedShopJokerItem | GeneratedShopConsumableItem, ...]
 
 
-def _validate_paid_base_reroll(run: HeadlessRunState) -> None:
+def validate_paid_base_reroll(run: HeadlessRunState) -> None:
+    """Validate the exact ordinary paid-reroll boundary.
+
+    This is the single mechanics owner used by both legality/masking code and
+    ``reroll_base_main_shop``.  Callers must not duplicate these conditions.
+    """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
     state = run.public
@@ -75,15 +80,24 @@ def _validate_paid_base_reroll(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "paid reroll requires a complete current-capacity main shop"
         )
-    if state.shop_boosters or state.shop_vouchers:
-        raise HeadlessTransitionError(
-            "paid reroll boundary does not yet compose booster/voucher shop areas"
-        )
+
+    # Vanilla reroll only replaces cards in G.shop_jokers, the shared main-shop
+    # area. Booster and Voucher areas are independent and remain untouched, so
+    # their presence is not a reason to reject an otherwise exact reroll.
+
+
+def can_reroll_base_main_shop(run: HeadlessRunState) -> bool:
+    """Return whether the exact ordinary paid-reroll transition is available."""
+    try:
+        validate_paid_base_reroll(run)
+    except (TypeError, HeadlessTransitionError):
+        return False
+    return True
 
 
 def reroll_base_main_shop(run: HeadlessRunState) -> PaidBaseShopReroll:
     """Perform one exact ordinary paid reroll and regenerate all main slots."""
-    _validate_paid_base_reroll(run)
+    validate_paid_base_reroll(run)
 
     previous_cost = run.reroll_cost
     next_run = run.copy()
