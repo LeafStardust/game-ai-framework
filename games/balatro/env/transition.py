@@ -17,6 +17,7 @@ from typing import Any
 from games.balatro.card import BalatroCard
 from games.balatro.deck_rules import starting_deck_size_for_name
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.blind_progression import BlindProgressionState
 from games.balatro.env.card_order import (
     derive_playing_card_order,
     playing_card_order_matches,
@@ -202,6 +203,7 @@ class HeadlessRunState:
     rng_state: BalatroRNG | dict[str, Any] | None = None
     playing_card_order: list[BalatroCard] | None = None
     joker_order_state: JokerOrderState | None = None
+    blind_progression_state: BlindProgressionState | None = None
     draw_pile: list[BalatroCard] = field(default_factory=list)
     discard_pile: list[BalatroCard] = field(default_factory=list)
     played_pile: list[BalatroCard] = field(default_factory=list)
@@ -260,6 +262,13 @@ class HeadlessRunState:
             raise HeadlessTransitionError("vouchers must not contain duplicate center keys")
         self._require_int("round_bonus_hands", self.round_bonus_hands)
         self._require_int("round_bonus_discards", self.round_bonus_discards)
+
+        if self.blind_progression_state is not None and not isinstance(
+            self.blind_progression_state, BlindProgressionState
+        ):
+            raise HeadlessTransitionError(
+                "blind_progression_state must be BlindProgressionState or None"
+            )
 
         if self.boss_hands_sub is not None:
             self._require_int("boss_hands_sub", self.boss_hands_sub)
@@ -370,6 +379,11 @@ class HeadlessRunState:
                 "retained Joker order is stale relative to owned Jokers"
             ) from exc
         return self.joker_order_state
+
+    def require_blind_progression_state(self) -> BlindProgressionState:
+        if self.blind_progression_state is None:
+            raise HeadlessTransitionError("exact blind progression state is unavailable")
+        return self.blind_progression_state
 
     def copy(self) -> "HeadlessRunState":
         return deepcopy(self)
