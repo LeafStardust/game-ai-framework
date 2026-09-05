@@ -158,6 +158,12 @@ def snapshot_payload_from_live_memory(
     round_reset_discards = _number(round_resets.get("discards"))
     round_reset_hands = _number(round_resets.get("hands"))
     joker_generation_edition_rate = _number(game.get("edition_rate"))
+    shop_inflation = _exact_integral_number(game.get("inflation"), minimum=0)
+    shop_discount_percent = _exact_integral_number(
+        game.get("discount_percent"),
+        minimum=0,
+        maximum=100,
+    )
     round_most_played_hand = _string(current_round.get("most_played_poker_hand"))
     current_tag = blind_tags.get(str(normalized_blind.get("type") or "").lower())
     if current_tag:
@@ -222,6 +228,18 @@ def snapshot_payload_from_live_memory(
         **(
             {"joker_generation_edition_rate": float(joker_generation_edition_rate)}
             if joker_generation_edition_rate is not None
+            else {}
+        ),
+        "shop_inflation_observed": shop_inflation is not None,
+        **(
+            {"shop_inflation": shop_inflation}
+            if shop_inflation is not None
+            else {}
+        ),
+        "shop_discount_percent_observed": shop_discount_percent is not None,
+        **(
+            {"shop_discount_percent": shop_discount_percent}
+            if shop_discount_percent is not None
             else {}
         ),
         "ectoplasm_hand_size_penalty": ectoplasm_penalty,
@@ -845,6 +863,26 @@ def _number(value: LuaValue | None) -> int | float | None:
     if value is None or value.kind not in {"integer", "number"}:
         return None
     return value.value
+
+
+def _exact_integral_number(
+    value: LuaValue | None,
+    *,
+    minimum: int | None = None,
+    maximum: int | None = None,
+) -> int | None:
+    """Return an exact integral Lua number inside the requested bounds."""
+    number = _number(value)
+    if number is None or isinstance(number, bool):
+        return None
+    if isinstance(number, float) and not number.is_integer():
+        return None
+    integer = int(number)
+    if minimum is not None and integer < minimum:
+        return None
+    if maximum is not None and integer > maximum:
+        return None
+    return integer
 
 
 def _integer(value: LuaValue | None, default: int) -> int:
