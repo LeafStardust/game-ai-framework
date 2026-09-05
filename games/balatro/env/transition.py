@@ -25,6 +25,7 @@ from games.balatro.env.card_order import (
 from games.balatro.env.joker_order import JokerOrderError, JokerOrderState
 from games.balatro.env.rng import BalatroRNG
 from games.balatro.env.voucher_capabilities import (
+    EXACT_ANTE_VOUCHER_KEYS,
     EXACT_DISCOUNT_VOUCHER_KEYS,
     EXACT_EDITION_RATE_VOUCHER_KEYS,
     EXACT_INTEREST_CAP_VOUCHER_KEYS,
@@ -456,6 +457,9 @@ class ShopTransitionEngine:
             key = self._voucher_key(item)
             if not self._voucher_redemption_is_exact(next_run, item, slot):
                 raise HeadlessTransitionError("Voucher redemption effect is not exact")
+            if key in EXACT_ANTE_VOUCHER_KEYS:
+                from games.balatro.env.ante_voucher_redemption import redeem_exact_ante_voucher
+                return redeem_exact_ante_voucher(next_run, slot=slot)
             if key in EXACT_DISCOUNT_VOUCHER_KEYS:
                 from games.balatro.env.discount_voucher_redemption import redeem_exact_discount_voucher
                 return redeem_exact_discount_voucher(next_run, slot)
@@ -527,6 +531,9 @@ class ShopTransitionEngine:
             key = cls._voucher_key(item)
         except HeadlessTransitionError:
             return False
+        if key in EXACT_ANTE_VOUCHER_KEYS:
+            from games.balatro.env.ante_voucher_redemption import ante_voucher_redemption_is_exact
+            return ante_voucher_redemption_is_exact(run, slot=slot)
         if key in EXACT_DISCOUNT_VOUCHER_KEYS:
             from games.balatro.env.discount_voucher_redemption import discount_voucher_redemption_is_exact
             return discount_voucher_redemption_is_exact(run, slot)
