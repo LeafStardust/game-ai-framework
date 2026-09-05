@@ -172,7 +172,7 @@ def test_rl_aliases_preserve_canonical_production_action_ids():
         assert contract_for(alias).action_id == action_id
 
 
-def test_unfrozen_and_unavailable_capabilities_never_enter_training_mask():
+def test_unavailable_capabilities_never_enter_training_mask():
     exposed_aliases = {contract.alias for contract in training_action_contracts()}
 
     for alias in (
@@ -180,8 +180,16 @@ def test_unfrozen_and_unavailable_capabilities_never_enter_training_mask():
         "REROLL_BOSS",
     ):
         assert alias not in exposed_aliases
+        contract = contract_for(alias)
+        assert contract.status is CapabilityStatus.UNAVAILABLE
+        assert contract.action_id is None
 
-    assert contract_for("REROLL_BOSS").status is CapabilityStatus.UNAVAILABLE
-    assert contract_for("REROLL_BOSS").action_id is None
-    assert contract_for("BUY_CARD").status is CapabilityStatus.PLANNED
-    assert contract_for("BUY_CARD").action_id is None
+
+def test_buy_card_is_explicitly_unavailable_without_canonical_production_owner():
+    contract = contract_for("BUY_CARD")
+
+    assert contract.status is CapabilityStatus.UNAVAILABLE
+    assert contract.action_id is None
+    assert contract.legality_owner is None
+    assert contract.execution_owner is None
+    assert "No dedicated canonical BUY_CARD" in contract.note
