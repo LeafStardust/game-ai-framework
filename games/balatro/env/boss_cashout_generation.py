@@ -13,6 +13,7 @@ BLIND_SELECT observation/state owner.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 
 from games.balatro.env.blind_progression import (
@@ -51,10 +52,9 @@ def generate_post_boss_cashout_choices(
 ) -> PostBossCashoutGeneration:
     """Generate Small Tag -> Big Tag -> next Boss, then apply ``reset_blinds``.
 
-    Preconditions describe the internal exact boundary produced after the owned
-    Boss payout/teardown subset: the public state is an active, ungenerated SHOP;
-    ``end_round`` has already increased Ante by one; and private Boss progression
-    still records the just-defeated Boss at the preceding ``blind_ante``.
+    Legacy callers may pass progression explicitly when the run has no retained
+    private owner. If the run already retains progression, the explicit argument
+    must match exactly. The successor run always retains the reset progression.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -64,6 +64,10 @@ def generate_post_boss_cashout_choices(
         raise TypeError("boss_selection must be BossSelectionState")
     if not isinstance(tag_profile, TagProfileState):
         raise TypeError("tag_profile must be TagProfileState")
+    if run.blind_progression_state is not None and run.blind_progression_state != progression:
+        raise BlindProgressionError(
+            "explicit blind progression conflicts with retained run progression"
+        )
 
     state = run.public
     if state.phase != "SHOP" or not state.shop_active:
@@ -124,6 +128,7 @@ def generate_post_boss_cashout_choices(
         current_ante=state.ante,
         next_boss_name=next_boss.boss_name,
     )
+    next_run.blind_progression_state = deepcopy(next_progression)
 
     return PostBossCashoutGeneration(
         run=next_run,
