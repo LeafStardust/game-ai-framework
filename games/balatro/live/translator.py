@@ -1,6 +1,9 @@
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.live.consumable_factory import LiveConsumableFactory
+from games.balatro.live.consumable_generation_pool_translation import (
+    translate_consumable_generation_pool_payload,
+)
 from games.balatro.live.interfaces import BalatroStateTranslator
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.protocol import LiveBalatroSnapshot
@@ -110,6 +113,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             )
         except (TypeError, ValueError):
             state.joker_generation_edition_rate = 1.0
+        translate_consumable_generation_pool_payload(state, payload)
         visible_hands = payload.get("visible_poker_hands")
         state.visible_poker_hands = (
             tuple(str(name) for name in visible_hands)
