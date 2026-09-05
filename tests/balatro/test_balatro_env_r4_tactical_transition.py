@@ -1,7 +1,13 @@
+from types import SimpleNamespace
+
 import pytest
 
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.env.deal import deal_supported_round_start
-from games.balatro.env.tactical_transition import apply_supported_tactical_discard
+from games.balatro.env.tactical_transition import (
+    apply_planned_tactical_step,
+    apply_supported_tactical_discard,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
 
@@ -58,7 +64,6 @@ def test_env_r4_baseline_discard_moves_in_visible_order_updates_counters_and_ref
     assert result.public.phase == "SELECTING_HAND"
     assert result.rng_snapshot() == rng_before
 
-    # Transition ownership is copy-on-write.
     assert len(run.public.hand) == 8
     assert len(run.public.deck) == 44
     assert run.public.discard_pile == []
@@ -112,8 +117,6 @@ def test_env_r4_baseline_discard_fails_closed_on_boss_or_joker_callbacks():
         apply_supported_tactical_discard(boss_run, (0,))
 
     joker_run = _dealt_run()
-    # The first slice intentionally rejects the whole Joker callback surface,
-    # including otherwise inert identities, until exact discard dispatch owns it.
     joker_run.public.jokers = [object()]
     with pytest.raises(HeadlessTransitionError, match="Joker discard callbacks"):
         apply_supported_tactical_discard(joker_run, (0,))
@@ -125,3 +128,73 @@ def test_env_r4_baseline_discard_requires_authoritative_private_draw_zone():
 
     with pytest.raises(HeadlessTransitionError, match="private/public draw zones"):
         apply_supported_tactical_discard(run, (0,))
+
+
+class _DiscardPlanner:
+    def __init__(self, indices):
+        self.indices = tuple(indices)
+        self.observation = None
+
+    def plan(self, state):
+        self.observation = state
+        return SimpleNamespace(
+            action=BalatroAction(
+                DISCARD_CARDS,
+                cards=[state.hand[index] for index in self.indices],
+            )
+        )
+
+
+class _PlayPlanner:
+    def plan(self, state):
+        return SimpleNamespace(action=BalatroAction(PLAY_CARDS, cards=[state.hand[0]]))
+
+
+def test_env_r4_planner_bridge_executes_discard_by_public_visible_positions():
+    run = _dealt_run(seed="BRIDGE")
+    selected = [_card_signature(run.public.hand[index]) for index in (0, 2)]
+    planner = _DiscardPlanner((2, 0))
+
+    result = apply_planned_tactical_step(run, planner)
+
+    assert [_card_signature(card) for card in result.public.discard_pile[-2:]] == selected
+    assert result.public.discards_remaining == 2
+    assert planner.observation is not run.public
+
+
+def test_env_r4_planner_bridge_masks_face_down_identity_before_selection():
+    run = _dealt_run(seed="MASK")
+    hidden_signature = _card_signature(run.public.hand[0])
+    run.public.hand[0].face_down = True
+    planner = _DiscardPlanner((0,))
+
+    result = apply_planned_tactical_step(run, planner)
+
+    observed = planner.observation.hand[0]
+    assert observed.face_down is True
+    assert observed.rank == "?"
+    assert observed.suit == "?"
+    assert observed.live_id is None
+    assert _card_signature(result.public.discard_pile[-1]) == hidden_signature
+
+
+def test_env_r4_planner_bridge_keeps_play_fail_closed_until_exact_resolution_exists():
+    run = _dealt_run(seed="PLAY-CLOSED")
+    before = _state_signature(run)
+
+    with pytest.raises(HeadlessTransitionError, match="Play execution is not exact"):
+        apply_planned_tactical_step(run, _PlayPlanner())
+
+    assert _state_signature(run) == before
+
+
+def test_env_r4_planner_bridge_rejects_selected_card_not_from_observation():
+    run = _dealt_run(seed="FOREIGN")
+
+    class ForeignPlanner:
+        def plan(self, state):
+            foreign = state.hand[0].__class__("A", "Spades")
+            return SimpleNamespace(action=BalatroAction(DISCARD_CARDS, cards=[foreign]))
+
+    with pytest.raises(HeadlessTransitionError, match="outside its public observation"):
+        apply_planned_tactical_step(run, ForeignPlanner())
