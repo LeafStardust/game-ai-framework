@@ -58,6 +58,11 @@ SELL_JOKER_EXECUTION_OWNER = (
     "games.balatro.live.injected.action_dispatcher."
     "LiveMemoryInjectedActionDispatcher.dispatch"
 )
+SKIP_PACK_LEGALITY_OWNER = "games.balatro.env.pack.can_skip_pack_exact"
+SKIP_PACK_EXECUTION_OWNER = (
+    "games.balatro.live.injected.action_dispatcher."
+    "LiveMemoryInjectedActionDispatcher.dispatch"
+)
 SKIP_BLIND_LEGALITY_OWNER = "games.balatro.env.skip_blind.can_skip_blind_exact"
 SKIP_BLIND_EXECUTION_OWNER = (
     "games.balatro.live.injected.action_dispatcher."
@@ -159,8 +164,10 @@ STRATEGIC_ACTION_CONTRACTS: tuple[StrategicActionContract, ...] = (
     StrategicActionContract(
         "SKIP_PACK",
         SKIP_BOOSTER,
-        CapabilityStatus.PLANNED,
-        note="Canonical production action exists; deterministic legality owner is not frozen yet.",
+        CapabilityStatus.SUPPORTED,
+        SKIP_PACK_LEGALITY_OWNER,
+        SKIP_PACK_EXECUTION_OWNER,
+        "Exact offered-pack skip with explicit SHOP/BLIND_SELECT return origin and Red Card mutation.",
     ),
     StrategicActionContract(
         "USE_CONSUMABLE",

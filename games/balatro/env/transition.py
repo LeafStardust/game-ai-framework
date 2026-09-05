@@ -218,6 +218,7 @@ class HeadlessRunState:
     skips: int = 0
     tags: list[str] = field(default_factory=list)
     pack_choices: list[Any] = field(default_factory=list)
+    pack_return_phase: str | None = None
 
     def __post_init__(self) -> None:
         if str(self.public.deck_name).upper() != "RED":
@@ -335,6 +336,10 @@ class HeadlessRunState:
             raise HeadlessTransitionError("tags must contain only strings")
         if not isinstance(self.pack_choices, list):
             raise HeadlessTransitionError("pack_choices must be a list")
+        if self.pack_return_phase not in {None, "SHOP", "BLIND_SELECT"}:
+            raise HeadlessTransitionError(
+                "pack_return_phase must be SHOP, BLIND_SELECT, or None"
+            )
         self._require_nonnegative_int("base_reroll_cost", self.base_reroll_cost)
         self._require_nonnegative_int("reroll_cost", self.reroll_cost)
         self._require_nonnegative_int("skips", self.skips)
