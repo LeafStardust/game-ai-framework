@@ -1,6 +1,7 @@
 import pytest
 
 from games.balatro.env.shop_consumable_items import (
+    OrdinaryShopConsumableDescriptor,
     describe_base_shop_consumable_from_records,
     materialize_base_shop_consumable_descriptor,
 )
