@@ -128,6 +128,8 @@ def generate_post_boss_cashout_choices(
         current_ante=state.ante,
         next_boss_name=next_boss.boss_name,
     )
+    next_progression.small_tag = small_tag
+    next_progression.big_tag = big_tag
     next_run.blind_progression_state = deepcopy(next_progression)
 
     return PostBossCashoutGeneration(

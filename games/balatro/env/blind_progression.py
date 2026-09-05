@@ -47,6 +47,8 @@ class BlindProgressionState:
     blind_ante: int = 1
     boss_name: str | None = None
     boss_rerolled: bool = False
+    small_tag: str | None = None
+    big_tag: str | None = None
 
     def __post_init__(self) -> None:
         for field_name in ("small_status", "big_status", "boss_status"):
@@ -68,6 +70,12 @@ class BlindProgressionState:
             raise BlindProgressionError("boss_name must be a string or None")
         if not isinstance(self.boss_rerolled, bool):
             raise BlindProgressionError("boss_rerolled must be a boolean")
+        for field_name in ("small_tag", "big_tag"):
+            value = getattr(self, field_name)
+            if value is not None and (not isinstance(value, str) or not value.strip()):
+                raise BlindProgressionError(
+                    f"{field_name} must be a non-empty Tag key or None"
+                )
 
     def status_for(self, blind_type: str) -> str:
         normalized = _normalize_blind_type(blind_type)
@@ -206,6 +214,8 @@ def reset_blinds_after_boss_cashout(
     next_progression.blind_ante = current_ante
     next_progression.boss_name = next_boss_name
     next_progression.boss_rerolled = False
+    next_progression.small_tag = None
+    next_progression.big_tag = None
     return next_progression
 
 

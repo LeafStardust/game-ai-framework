@@ -75,6 +75,8 @@ def test_env_r2_post_boss_generation_applies_reset_blinds_after_choices():
     assert progression.blind_ante == 2
     assert progression.boss_name == "The House"
     assert progression.boss_rerolled is False
+    assert progression.small_tag == result.small_tag == "tag_buffoon"
+    assert progression.big_tag == result.big_tag == "tag_meteor"
     assert result.boss_selection.usage_counts["bl_hook"] == 1
     assert result.boss_selection.usage_counts["bl_house"] == 1
     assert sum(result.boss_selection.usage_counts.values()) == 2
