@@ -61,8 +61,9 @@ class BlindProgressionState:
             )
         if isinstance(self.blind_ante, bool) or not isinstance(self.blind_ante, int):
             raise BlindProgressionError("blind_ante must be an exact integer")
-        if self.blind_ante < 1:
-            raise BlindProgressionError("blind_ante must be at least 1")
+        # Hieroglyph and Petroglyph can drive round_resets.ante to zero or below.
+        # The private progression mirror therefore accepts every exact integer;
+        # individual lifecycle transitions still enforce source-order relations.
         if self.boss_name is not None and not isinstance(self.boss_name, str):
             raise BlindProgressionError("boss_name must be a string or None")
         if not isinstance(self.boss_rerolled, bool):
@@ -153,6 +154,10 @@ def reset_blinds_after_boss_cashout(
     ``blind_on_deck`` at Small, installs the newly selected Boss and clears the
     boss-rerolled flag.
 
+    Hieroglyph/Petroglyph can make both the defeated and post-win Ante zero or
+    negative, so the exact invariant is relational (``current = blind + 1``),
+    not a minimum numeric Ante.
+
     Tag choices and the RNG/pool logic that chooses ``next_boss_name`` are not
     performed here; callers must supply that result from their exact owners.
     """
@@ -160,10 +165,6 @@ def reset_blinds_after_boss_cashout(
         raise TypeError("progression must be BlindProgressionState")
     if isinstance(current_ante, bool) or not isinstance(current_ante, int):
         raise BlindProgressionError("current_ante must be an exact integer")
-    if current_ante < 2:
-        raise BlindProgressionError(
-            "Boss reset requires the post-win Ante to be at least 2"
-        )
     if not isinstance(next_boss_name, str) or not next_boss_name.strip():
         raise BlindProgressionError("next_boss_name must be a non-empty string")
     if progression.blind_on_deck != "Boss":
