@@ -1,9 +1,10 @@
 """Authoritative live producer for vanilla Joker-generation eligibility.
 
-This module mirrors only the dynamic eligibility predicates from Balatro's
-``get_current_pool('Joker', rarity, ...)``.  Static center ordering remains owned
-by the running game's ``G.P_JOKER_RARITY_POOLS``; the headless static catalogue
-is not used to guess profile/runtime eligibility.
+This module mirrors the dynamic eligibility predicates from Balatro's
+``get_current_pool('Joker', rarity, ...)`` and emits the existing public
+``joker_generation_pools`` record contract.  Static center identity/order comes
+from the running game's ``G.P_JOKER_RARITY_POOLS``; profile/runtime eligibility
+is never guessed from the Python catalogue.
 
 Any incomplete mechanics-critical table read returns ``None``.  Callers must then
 report ``joker_generation_pool_observed = False``.
@@ -24,13 +25,14 @@ _SHOWMAN_CENTER = "j_showman"
 def observe_joker_generation_pools(
     decoder: LuaJITNonGC64Decoder,
     root: dict[str, LuaValue],
-) -> dict[int, list[str]] | None:
-    """Return exact currently eligible Joker center keys by rarity, or ``None``.
+) -> dict[int, list[dict[str, object]]] | None:
+    """Return exact currently eligible Joker center records, or ``None``.
 
-    The returned lists preserve the live game's rarity-pool order while omitting
-    entries that vanilla would replace with ``UNAVAILABLE``.  The headless pool
-    owner later restores those unavailable positions against its audited static
-    rarity catalogue before consuming identity RNG.
+    Records preserve the running game's rarity-pool order and match the existing
+    translator/state contract: ``rarity``, ``key``, ``unlocked``,
+    ``no_pool_flag`` and ``yes_pool_flag``.  Centers vanilla would replace with
+    ``UNAVAILABLE`` are omitted; the headless static catalogue restores their
+    positions when ``eligible_keys`` are supplied to the identity RNG owner.
     """
 
     try:
@@ -44,32 +46,36 @@ def observe_joker_generation_pools(
             root.get("P_JOKER_RARITY_POOLS"),
         )
 
-        result: dict[int, list[str]] = {}
+        result: dict[int, list[dict[str, object]]] = {}
         for rarity in _REQUIRED_RARITIES:
-            eligible: list[str] = []
+            eligible: list[dict[str, object]] = []
             for center_value in rarity_pools[rarity]:
                 center = _required_table_fields(decoder, center_value)
                 key = _required_string(center.get("key"))
+                unlocked = _optional_boolean(center.get("unlocked"))
+                no_pool_flag = _optional_string(center.get("no_pool_flag"))
+                yes_pool_flag = _optional_string(center.get("yes_pool_flag"))
 
-                unlocked = center.get("unlocked")
-                if rarity != 4 and _explicit_false(unlocked):
+                if rarity != 4 and unlocked is False:
                     continue
-
                 if _lua_truthy(used_jokers.get(key)) and not showman_present:
                     continue
-
-                no_pool_flag = _optional_string(center.get("no_pool_flag"))
                 if no_pool_flag is not None and _lua_truthy(pool_flags.get(no_pool_flag)):
                     continue
-
-                yes_pool_flag = _optional_string(center.get("yes_pool_flag"))
                 if yes_pool_flag is not None and not _lua_truthy(pool_flags.get(yes_pool_flag)):
                     continue
-
                 if _lua_truthy(banned_keys.get(key)):
                     continue
 
-                eligible.append(key)
+                eligible.append(
+                    {
+                        "rarity": rarity,
+                        "key": key,
+                        "unlocked": unlocked,
+                        "no_pool_flag": no_pool_flag,
+                        "yes_pool_flag": yes_pool_flag,
+                    }
+                )
 
             result[rarity] = eligible
         return result
@@ -139,7 +145,7 @@ def _required_string(value: LuaValue | None) -> str:
 
 
 def _optional_string(value: LuaValue | None) -> str | None:
-    if value is None:
+    if value is None or value.kind == "nil":
         return None
     if value.kind != "string":
         raise LuaJITMemoryError("optional runtime flag is not a string")
@@ -149,8 +155,12 @@ def _optional_string(value: LuaValue | None) -> str | None:
     return text
 
 
-def _explicit_false(value: LuaValue | None) -> bool:
-    return value is not None and value.kind == "boolean" and value.value is False
+def _optional_boolean(value: LuaValue | None) -> bool | None:
+    if value is None or value.kind == "nil":
+        return None
+    if value.kind != "boolean":
+        raise LuaJITMemoryError("optional runtime boolean is not a boolean")
+    return bool(value.value)
 
 
 def _lua_truthy(value: LuaValue | None) -> bool:
