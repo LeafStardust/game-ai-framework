@@ -77,7 +77,8 @@ Examples already enforced:
 - pre-deal Manacle/Chicot requires authoritative retained physical deck order;
 - shop Joker generation requires authoritative dynamic eligibility;
 - malformed Joker generation catalogues are rejected all-or-nothing;
-- generated Negative Jokers do not imply Negative acquisition is legal.
+- generated Negative Jokers do not imply Negative acquisition is legal;
+- malformed Tarot/Planet eligibility records are rejected before shop RNG advances.
 
 ---
 
@@ -299,184 +300,144 @@ Spectral  0
 - two ordinary main-shop slots;
 - voucher/Tag rate modifiers and already-generated inventory fail closed.
 
-## Ordinary Joker rarity RNG — GREEN
+## Ordinary Joker generation — GREEN THROUGH METADATA MATERIALIZATION
 
-Key:
+Owned source-exact slices:
 
-```text
-rarity{ante}sho
-```
+- rarity key `rarity{ante}sho` with Common/Uncommon/Rare thresholds;
+- all 150 vanilla Joker centers pinned in mechanically significant order;
+- authoritative runtime dynamic eligibility from `G.P_JOKER_RARITY_POOLS`, unlocks, used-Joker suppression, Showman, pool flags, bans, and immutable center cost;
+- entire rarity 1–4 canonical catalogue validated all-or-nothing;
+- identity key `Joker{rarity}sho` plus source-compatible resampling;
+- base ordinary edition key `edisho{ante}` and exact threshold order;
+- descriptor composition in rarity -> center/cost -> edition order;
+- exact `Card:set_cost()` pricing from authoritative inflation and discount percent;
+- edition surcharges for Foil/Holographic/Polychrome/Negative;
+- generic `GeneratedShopJokerItem` materialization without fabricating strategy Joker objects;
+- insertion into the shared two-slot main-shop area while BUY_JOKER legality remains independently fail-closed.
 
-Thresholds:
-
-```text
-Common    <= 0.70
-Uncommon  >  0.70
-Rare      >  0.95
-```
-
-Legendary is not reachable through this ordinary path.
-
-## Frozen vanilla Joker centre order — GREEN
-
-- all 150 vanilla Joker centers pinned in mechanically significant global order;
-- Common 61 / Uncommon 64 / Rare 20 / Legendary 5;
-- source spellings retained exactly;
-- rarity pools preserve global center order.
-
-Key commits:
+Key commits/gates:
 
 ```text
-f85364a  base shop Joker rarity RNG
-f8712ae  rarity regressions
-ff011d2  freeze vanilla Joker pool order
-41f26f1  pin vanilla Joker catalogue
-```
-
-## Dynamic Joker eligibility observation — GREEN
-
-Live authoritative owner:
-
-```text
-games/balatro/live/runtime/joker_generation_pool_observer.py
-```
-
-It reads and applies the runtime predicates required by vanilla pool construction:
-
-- rarity-pool order from `G.P_JOKER_RARITY_POOLS`;
-- unlock state;
-- `G.GAME.used_jokers` duplicate suppression;
-- Showman override;
-- `no_pool_flag` / `yes_pool_flag` against `G.GAME.pool_flags`;
-- `G.GAME.banned_keys`.
-
-Critical reads are all-or-nothing. Incomplete runtime state yields no authoritative pool.
-
-Canonical state schema uses string rarity keys:
-
-```text
-"1", "2", "3", "4"
-```
-
-Recent schema defect and repair:
-
-```text
-4997f52  fix canonical string rarity lookup
-ad31609  fix observer→translator regression expectation
-b13fadd  pin canonical state→shop bridge
-CI 33941331764: 1962 passed, 1595 deselected
-```
-
-The headless bridge now validates the **entire** rarity 1–4 catalogue before using any selected rarity, including record rarity/key/metadata types and duplicate keys:
-
-```text
-fdcb329  validate observed Joker pools all-or-nothing
-12c4724  regress malformed unrelated rarities/metadata/duplicates
+4997f52  canonical Joker rarity keys
+fdcb329  all-rarity canonical validation
+12c4724  malformed unrelated-rarity regressions
+05ffd67  base edition RNG
+3339309  edition threshold regressions
+fbc8aad  ordinary Joker descriptor composition
+015daa4  descriptor source-order regression
 CI 33941827707: 1973 passed, 1595 deselected
 ```
 
-## Concrete Joker center identity / resampling — GREEN
+Generated Negative editions are valid generation metadata. **Negative acquisition remains fail-closed** until its slot-capacity consequence is exact.
 
-Given authoritative eligible keys:
+## Tarot/Planet center order + identity RNG — GREEN
 
-- unavailable rarity-pool positions stay literal `UNAVAILABLE`;
-- initial key: `Joker{rarity}sho`;
-- resamples: `Joker{rarity}sho_resample2`, `...3`, etc.;
-- all-unavailable fallback remains vanilla `j_joker`.
-
-Center selection does not guess profile state.
-
-## Ordinary Joker edition RNG — GREEN FOR BASE RATE
-
-Vanilla ordinary shop Joker creation occurs inside:
+Pinned vanilla center order:
 
 ```text
-create_card(..., key_append='sho')
+Tarot   22 centers
+Planet  12 centers
 ```
 
-Edition key:
+`get_current_pool` position semantics are reproduced exactly:
+
+- ineligible source positions remain literal `UNAVAILABLE`;
+- identity keys are `Tarotsho{ante}` / `Planetsho{ante}`;
+- resamples use `_resample2`, `_resample3`, ...;
+- all-unavailable fallbacks are vanilla `c_strength` for Tarot and `c_pluto` for Planet.
 
 ```text
-edisho{ante}
+ddcca52  own Tarot/Planet shop identity RNG
+ac0d768  pin identity/resample regressions
 ```
 
-Non-guaranteed `_mod=1`, Negative-allowed thresholds use one draw in this source order:
+## Live Tarot/Planet eligibility observation — GREEN IN OBSERVER LAYER
+
+Authoritative observer:
 
 ```text
-Negative      roll > 1 - 0.003              (not scaled by edition_rate)
-Polychrome    roll > 1 - 0.006*edition_rate
-Holographic   roll > 1 - 0.020*edition_rate
-Foil          roll > 1 - 0.040*edition_rate
-None          otherwise
+games/balatro/live/runtime/consumable_generation_pool_observer.py
 ```
 
-The current base boundary rejects vouchers and active Tags and therefore requires exact `edition_rate == 1.0`.
+It reads exact runtime eligibility inputs:
+
+- `G.P_CENTER_POOLS.Tarot` / `Planet` order;
+- unlock state;
+- used-card duplicate suppression and Showman override;
+- pool flags;
+- banned keys;
+- Planet softlocks against authoritative hand `played` counts;
+- immutable center base costs.
+
+Critical arrays/maps are all-or-nothing; malformed or transiently unreadable state returns no authoritative pool.
 
 ```text
-05ffd67  own base shop Joker edition RNG
-3339309  pin threshold/order/RNG regressions
-CI 33941586989: 1967 passed, 1595 deselected
+9fd86ff  observe Tarot and Planet generation pools
+bc68ecb  live eligibility regressions
+CI 33943525506: 2014 passed, 1595 deselected
 ```
 
-Generated Negative editions are valid generation state. **Negative acquisition remains fail-closed** until its slot-capacity consequence is owned.
+Important architectural status: this observer is **not yet fully wired into canonical live snapshot -> translator -> `BalatroState` -> headless shop generation state**. Do not treat isolated observer success as canonical state ownership.
 
-## Ordinary Joker descriptor composition — GREEN
+## Tarot/Planet pricing + metadata materialization — GREEN FOR EXPLICIT AUTHORITATIVE RECORDS
 
-`games/balatro/env/shop_joker_generation.py` now composes the Joker-specific part of vanilla `create_card(..., 'sho')`:
-
-1. rarity;
-2. authoritative eligible center + exact resampling;
-3. edition.
-
-It returns a deterministic descriptor containing:
+Current exact isolated bridge:
 
 ```text
-center_key
-rarity
-edition
-resamples
-post-generation RNG state
+games/balatro/env/shop_consumable_items.py
 ```
 
-It intentionally does **not** yet instantiate a Python Joker, set a shop price, place inventory, or imply purchase legality.
+Owned:
+
+- all supplied eligible records validated before any RNG consumption;
+- exact selected center base cost carried through identity RNG;
+- vanilla empty-pool fallback costs pinned at `$3` for Strength and Pluto;
+- ordinary Tarot/Planet pricing uses exact `Card:set_cost()` with no edition surcharge;
+- authoritative inflation and discount-percent gates are required;
+- generic `GeneratedShopConsumableItem` metadata representation;
+- no automatic insertion into public inventory;
+- no widening of purchase legality.
 
 ```text
-fbc8aad  compose ordinary shop Joker descriptor
-015daa4  pin descriptor source-order/RNG regression
-CI 33941690306: 1970 passed, 1595 deselected
+77d276a  materialize exact Tarot and Planet shop items
+b327291  pricing/materialization/fail-closed regressions
+CI 33944049829: 2028 passed, 1595 deselected
 ```
 
-## Current R2.10 blocker — PRICE + INVENTORY MATERIALIZATION
+## Current R2.10 blocker — CANONICAL CONSUMABLE POOL WIRING
 
-A descriptor is not yet an actual shop card. Before ordinary Joker slots become generated public inventory, own source-exact pricing and safe materialization.
-
-Pinned vanilla `Card:set_cost()` formula:
+The next structural boundary is to connect the already-green live Tarot/Planet eligibility observer into the canonical state path without weakening all-or-nothing semantics:
 
 ```text
-extra_cost = inflation
-+ 3 if Holographic
-+ 2 if Foil
-+ 5 if Polychrome
-+ 5 if Negative
-
-cost = max(
-    1,
-    floor((base_cost + extra_cost + 0.5) * (100 - discount_percent) / 100)
-)
+live runtime observer
+    -> LiveBalatroSnapshot payload
+    -> DefaultBalatroStateTranslator
+    -> BalatroState authoritative Tarot/Planet generation catalogue
+    -> headless state bridge
+    -> existing identity + pricing/materialization owners
 ```
 
-Immediate next work:
+Exact requirements:
 
-1. audit/freeze authoritative base costs for all ordinary Joker centers, or provide an equally exact canonical owner;
-2. own inflation and discount-percent state needed by `Card:set_cost()`;
-3. add exact price regressions for unedited/Foil/Holographic/Polychrome/Negative cases;
-4. define a generated shop-item representation that can carry center identity, rarity, edition, and exact price without requiring every center to be constructible as a strategy Joker object;
-5. insert generated Joker items into `shop_jokers` only after identity + edition + price are exact;
-6. keep purchase legality independently fail-closed for unsupported identities/editions;
-7. then compose both ordinary main-shop slots in source order;
-8. after Joker slots, own Tarot/Planet identity generation before declaring base main-shop generation complete.
+1. add explicit canonical observation marker + Tarot/Planet generation records to `BalatroState`;
+2. preserve both Tarot and Planet catalogues together and reject malformed partial structures;
+3. wire `observe_consumable_generation_pools()` into the normal live snapshot producer;
+4. translate records without silently dropping malformed entries;
+5. add an all-or-nothing headless bridge analogous to Joker generation-state validation;
+6. prove malformed data cannot advance RNG;
+7. retain immutable base cost from the authoritative record used for the selected center;
+8. keep profile/runtime eligibility out of headless guesses.
 
-Do **not** skip directly from descriptor to a generic fabricated Joker object. Some Jokers require dynamic constructor/lifecycle state and must remain unsupported until that state is owned.
+After canonical pool wiring is green:
+
+1. compose each of the two ordinary main-shop slots in source order from type -> Joker/Tarot/Planet identity -> pricing -> generic metadata item;
+2. insert Joker or consumable metadata into the shared two-slot area;
+3. verify exact post-generation RNG state for mixed slot-type sequences;
+4. keep gameplay-object construction and purchase legality independent;
+5. then audit reroll generation against the same shop-generation owner.
+
+Do **not** jump to voucher/booster generation, generic purchase expansion, or PPO before the base two-slot main shop path is exact.
 
 ---
 
@@ -562,15 +523,15 @@ R2 deal/round resources                      GREEN
 R2 Boss lifecycle                            BROADLY GREEN — 28 VANILLA BOSSES OWNED
 R2 cashout/blind/Ante progression            GREEN FOR NORMAL OWNED CHAIN
 R2.10 shop type RNG                          GREEN
-R2.10 Joker rarity RNG                       GREEN
-R2.10 150-center order                       GREEN
-R2.10 dynamic eligibility observer           GREEN
-R2.10 canonical pool bridge                  GREEN
-R2.10 all-rarity fail-closed validation      GREEN — CI 33941827707
-R2.10 center identity/resampling             GREEN
-R2.10 base edition RNG                       GREEN — CI 33941586989
-R2.10 ordinary Joker descriptor              GREEN — CI 33941690306
-R2.10 Joker price/materialization            NEXT
+R2.10 Joker rarity/center/order              GREEN
+R2.10 Joker dynamic eligibility              GREEN
+R2.10 Joker edition RNG                      GREEN
+R2.10 Joker descriptor/pricing/materialize   GREEN
+R2.10 Tarot/Planet center identity RNG       GREEN
+R2.10 Tarot/Planet live eligibility observer GREEN — OBSERVER LAYER
+R2.10 Tarot/Planet price/materialization     GREEN — EXPLICIT RECORD BOUNDARY
+R2.10 canonical Tarot/Planet pool wiring     NEXT
+R2.10 two-slot mixed shop composition        AFTER CANONICAL POOL WIRING
 R3 training vocabulary                       PARTIAL
 R4 tactical bridge                           NOT STARTED
 R5 parity harness                             NOT STARTED
@@ -583,27 +544,26 @@ PPO                                          NOT STARTED
 Current code head before this documentation commit:
 
 ```text
-12c472464b830e9ddab78d235a226c4c4db5d0c6
+b327291a839c5ea57d009022bd3698e03cdb7cac
 ```
 
 Latest authoritative green deterministic gate:
 
 ```text
-CI 33941827707
-1973 passed, 1595 deselected
+CI 33944049829
+2028 passed, 1595 deselected
 ```
 
 No live Balatro run is required at this checkpoint.
 
 ## Exact next development action
 
-Continue **R2.10 normal shop generation** at the pricing/materialization boundary:
+Continue **R2.10 normal shop generation** at the canonical Tarot/Planet eligibility boundary:
 
-1. pin exact ordinary Joker base-cost ownership;
-2. pin/validate inflation and discount-percent inputs;
-3. implement exact `Card:set_cost()` equivalent for generated Joker descriptors;
-4. test edition surcharges and fail-closed modifiers;
-5. create a generic exact generated-shop-item representation rather than forcing every selected center through `LiveJokerFactory`;
-6. only then populate `shop_jokers` and compose both ordinary main-shop slots.
+1. wire live Tarot/Planet eligibility into snapshot -> translator -> canonical state;
+2. validate Tarot+Planet records all-or-nothing in the headless bridge;
+3. consume that canonical bridge through the existing identity/pricing/materialization owners;
+4. add malformed/partial-state/RNG-isolation regressions;
+5. after green, compose both ordinary main-shop slots in source order.
 
 Do **not** start PPO, observation encoding, Bond tuning, or an open-ended live run.
