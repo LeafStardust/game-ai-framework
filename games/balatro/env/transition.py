@@ -26,6 +26,7 @@ from games.balatro.env.rng import BalatroRNG
 from games.balatro.env.voucher_capabilities import (
     EXACT_DISCOUNT_VOUCHER_KEYS,
     EXACT_EDITION_RATE_VOUCHER_KEYS,
+    EXACT_INTEREST_CAP_VOUCHER_KEYS,
     EXACT_REROLL_COST_VOUCHER_KEYS,
     EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS,
 )
@@ -242,20 +243,14 @@ class HeadlessRunState:
         if not isinstance(self.public.round_reset_hands_observed, bool):
             raise HeadlessTransitionError("round_reset_hands_observed must be a boolean")
         if self.public.round_reset_hands_observed:
-            self._require_nonnegative_int(
-                "round_reset_hands",
-                self.public.round_reset_hands,
-            )
+            self._require_nonnegative_int("round_reset_hands", self.public.round_reset_hands)
         self._require_nonnegative_int("discards_remaining", self.public.discards_remaining)
         self._require_nonnegative_int("joker_slots", self.public.joker_slots)
         self._require_nonnegative_int("consumable_slots", self.public.consumable_slots)
         if not isinstance(self.public.round_reset_discards_observed, bool):
             raise HeadlessTransitionError("round_reset_discards_observed must be a boolean")
         if self.public.round_reset_discards_observed:
-            self._require_nonnegative_int(
-                "round_reset_discards",
-                self.public.round_reset_discards,
-            )
+            self._require_nonnegative_int("round_reset_discards", self.public.round_reset_discards)
         if not isinstance(self.public.vouchers, list):
             raise HeadlessTransitionError("vouchers must be a list")
         if any(not isinstance(key, str) or not key for key in self.public.vouchers):
@@ -268,28 +263,18 @@ class HeadlessRunState:
         if self.boss_hands_sub is not None:
             self._require_int("boss_hands_sub", self.boss_hands_sub)
             if self.public.boss_name != "The Needle":
-                raise HeadlessTransitionError(
-                    "boss_hands_sub is only valid for The Needle"
-                )
+                raise HeadlessTransitionError("boss_hands_sub is only valid for The Needle")
         if self.boss_discards_sub is not None:
             self._require_nonnegative_int("boss_discards_sub", self.boss_discards_sub)
             if self.public.boss_name != "The Water":
-                raise HeadlessTransitionError(
-                    "boss_discards_sub is only valid for The Water"
-                )
+                raise HeadlessTransitionError("boss_discards_sub is only valid for The Water")
         if self.boss_hand_size_sub is not None:
             self._require_nonnegative_int("boss_hand_size_sub", self.boss_hand_size_sub)
             if self.public.boss_name != "The Manacle":
-                raise HeadlessTransitionError(
-                    "boss_hand_size_sub is only valid for The Manacle"
-                )
+                raise HeadlessTransitionError("boss_hand_size_sub is only valid for The Manacle")
         if sum(
             value is not None
-            for value in (
-                self.boss_hands_sub,
-                self.boss_discards_sub,
-                self.boss_hand_size_sub,
-            )
+            for value in (self.boss_hands_sub, self.boss_discards_sub, self.boss_hand_size_sub)
         ) > 1:
             raise HeadlessTransitionError(
                 "only one reversible boss resource adjustment may be active"
@@ -319,9 +304,7 @@ class HeadlessRunState:
             self.joker_order_state = JokerOrderState.from_public(self.public.jokers)
         else:
             if not isinstance(self.joker_order_state, JokerOrderState):
-                raise HeadlessTransitionError(
-                    "joker_order_state must be JokerOrderState or None"
-                )
+                raise HeadlessTransitionError("joker_order_state must be JokerOrderState or None")
             try:
                 self.joker_order_state.validate_against(self.public.jokers)
             except JokerOrderError as exc:
@@ -358,17 +341,14 @@ class HeadlessRunState:
 
     @property
     def rng(self) -> BalatroRNG:
-        """Return the exact deterministic RNG owner for this run."""
         if not isinstance(self.rng_state, BalatroRNG):
             raise HeadlessTransitionError("headless RNG owner is unavailable")
         return self.rng_state
 
     def rng_snapshot(self) -> dict[str, Any]:
-        """Return the bit-preserving RNG payload required for replay/restore."""
         return self.rng.snapshot()
 
     def require_playing_card_order(self) -> list[BalatroCard]:
-        """Return the exact private playing-card creation order or fail closed."""
         if self.playing_card_order is None:
             raise HeadlessTransitionError(
                 "exact playing-card creation order is unavailable for shuffle"
@@ -380,11 +360,8 @@ class HeadlessRunState:
         return list(self.playing_card_order)
 
     def require_joker_order_state(self) -> JokerOrderState:
-        """Return exact retained Joker creation/physical order or fail closed."""
         if self.joker_order_state is None:
-            raise HeadlessTransitionError(
-                "exact Joker creation order is unavailable"
-            )
+            raise HeadlessTransitionError("exact Joker creation order is unavailable")
         try:
             self.joker_order_state.validate_against(self.public.jokers)
         except JokerOrderError as exc:
@@ -394,15 +371,6 @@ class HeadlessRunState:
         return self.joker_order_state
 
     def copy(self) -> "HeadlessRunState":
-        """Return an isolated transition snapshot.
-
-        A deep copy is intentional here: public ``BalatroState.copy`` is shallow
-        for several contained gameplay objects, while a simulator transition must
-        never mutate the pre-transition state through shared Joker/shop/card
-        objects.  Python deepcopy memoization preserves the private playing-card
-        and Joker-order links to the corresponding copied public objects.
-        """
-
         return deepcopy(self)
 
 
@@ -413,7 +381,6 @@ class ShopTransitionEngine:
         state = run.public
         if state.phase != "SHOP" or not state.shop_active:
             return ()
-
         actions: list[EnvAction] = []
         if len(state.jokers) < state.joker_slots:
             actions.extend(
@@ -434,14 +401,12 @@ class ShopTransitionEngine:
             if self._voucher_redemption_is_exact(run, item, slot)
             and self._is_affordable(state, item)
         )
-
         actions.append(EnvAction.from_alias("END_SHOP"))
         return tuple(actions)
 
     def step(self, run: HeadlessRunState, action: EnvAction) -> HeadlessRunState:
         if action not in self.legal_actions(run):
             raise HeadlessTransitionError(f"illegal shop transition: {action.alias}")
-
         next_run = run.copy()
         state = next_run.public
         params = action.payload()
@@ -477,23 +442,17 @@ class ShopTransitionEngine:
             if not self._voucher_redemption_is_exact(next_run, item, slot):
                 raise HeadlessTransitionError("Voucher redemption effect is not exact")
             if key in EXACT_DISCOUNT_VOUCHER_KEYS:
-                from games.balatro.env.discount_voucher_redemption import (
-                    redeem_exact_discount_voucher,
-                )
-
+                from games.balatro.env.discount_voucher_redemption import redeem_exact_discount_voucher
                 return redeem_exact_discount_voucher(next_run, slot)
             if key in EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS:
-                from games.balatro.env.shop_type_rate_voucher_redemption import (
-                    redeem_exact_shop_type_rate_voucher,
-                )
-
+                from games.balatro.env.shop_type_rate_voucher_redemption import redeem_exact_shop_type_rate_voucher
                 return redeem_exact_shop_type_rate_voucher(next_run, slot)
             if key in EXACT_REROLL_COST_VOUCHER_KEYS:
-                from games.balatro.env.reroll_voucher_redemption import (
-                    redeem_exact_reroll_voucher,
-                )
-
+                from games.balatro.env.reroll_voucher_redemption import redeem_exact_reroll_voucher
                 return redeem_exact_reroll_voucher(next_run, slot)
+            if key in EXACT_INTEREST_CAP_VOUCHER_KEYS:
+                from games.balatro.env.interest_cap_voucher_redemption import redeem_exact_interest_cap_voucher
+                return redeem_exact_interest_cap_voucher(next_run, slot)
             price = self._price(item)
             if price < 0 or state.money < price:
                 raise HeadlessTransitionError("shop item is not affordable")
@@ -502,7 +461,6 @@ class ShopTransitionEngine:
             state.vouchers.append(key)
             self._apply_voucher_redemption_effects(state, key)
             return next_run
-
         raise HeadlessTransitionError(f"unimplemented shop transition: {action.alias}")
 
     @staticmethod
@@ -544,10 +502,7 @@ class ShopTransitionEngine:
 
     @classmethod
     def _voucher_redemption_is_exact(
-        cls,
-        run: HeadlessRunState,
-        item: Any,
-        slot: int,
+        cls, run: HeadlessRunState, item: Any, slot: int
     ) -> bool:
         state = run.public
         try:
@@ -555,23 +510,17 @@ class ShopTransitionEngine:
         except HeadlessTransitionError:
             return False
         if key in EXACT_DISCOUNT_VOUCHER_KEYS:
-            from games.balatro.env.discount_voucher_redemption import (
-                discount_voucher_redemption_is_exact,
-            )
-
+            from games.balatro.env.discount_voucher_redemption import discount_voucher_redemption_is_exact
             return discount_voucher_redemption_is_exact(run, slot)
         if key in EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS:
-            from games.balatro.env.shop_type_rate_voucher_redemption import (
-                shop_type_rate_voucher_redemption_is_exact,
-            )
-
+            from games.balatro.env.shop_type_rate_voucher_redemption import shop_type_rate_voucher_redemption_is_exact
             return shop_type_rate_voucher_redemption_is_exact(run, slot)
         if key in EXACT_REROLL_COST_VOUCHER_KEYS:
-            from games.balatro.env.reroll_voucher_redemption import (
-                reroll_voucher_redemption_is_exact,
-            )
-
+            from games.balatro.env.reroll_voucher_redemption import reroll_voucher_redemption_is_exact
             return reroll_voucher_redemption_is_exact(run, slot)
+        if key in EXACT_INTEREST_CAP_VOUCHER_KEYS:
+            from games.balatro.env.interest_cap_voucher_redemption import interest_cap_voucher_redemption_is_exact
+            return interest_cap_voucher_redemption_is_exact(run, slot)
         if key not in (_EXACT_RESOURCE_VOUCHER_KEYS | EXACT_EDITION_RATE_VOUCHER_KEYS):
             return False
         if key in state.vouchers:
@@ -580,10 +529,7 @@ class ShopTransitionEngine:
             return False
         if key in _HAND_ALLOWANCE_VOUCHER_KEYS and not state.round_reset_hands_observed:
             return False
-        if (
-            key in _DISCARD_ALLOWANCE_VOUCHER_KEYS
-            and not state.round_reset_discards_observed
-        ):
+        if key in _DISCARD_ALLOWANCE_VOUCHER_KEYS and not state.round_reset_discards_observed:
             return False
         return True
 
