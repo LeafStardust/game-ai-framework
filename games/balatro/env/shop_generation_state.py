@@ -26,11 +26,12 @@ def eligible_joker_keys_from_state(run: HeadlessRunState, rarity: int) -> tuple[
     if not state.joker_generation_pool_observed:
         raise HeadlessTransitionError("Joker generation pool is not authoritatively observed")
     pools = state.joker_generation_pools
-    if not isinstance(pools, dict) or rarity not in pools:
+    rarity_key = str(rarity)
+    if not isinstance(pools, dict) or rarity_key not in pools:
         raise HeadlessTransitionError(
             f"authoritative Joker generation pool is missing rarity {rarity}"
         )
-    records = pools[rarity]
+    records = pools[rarity_key]
     if not isinstance(records, list):
         raise HeadlessTransitionError("authoritative Joker generation rarity pool must be a list")
 
