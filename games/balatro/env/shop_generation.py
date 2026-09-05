@@ -32,7 +32,6 @@ _BASE_SHOP_RATES: tuple[tuple[str, float], ...] = (
     ("Spectral", 0.0),
 )
 _BASE_MAIN_SHOP_SLOTS = 2
-_BASE_JOKER_EDITION_RATE = 1.0
 
 
 @dataclass(frozen=True)
@@ -241,24 +240,22 @@ def poll_base_shop_joker_center(
 def poll_base_shop_joker_edition(run: HeadlessRunState) -> ShopJokerEditionPoll:
     """Poll the exact edition assigned by ordinary base-shop Joker creation.
 
-    Only Voucher ownership explicitly classified as neutral to ordinary shop
-    generation may pass this boundary. Canonical edition rate must still report
-    the vanilla base rate exactly; Hone/Glow Up remain rejected upstream.
-    Negative may be generated even though Negative purchase semantics remain
-    fail-closed.
+    The base boundary validates that current owned Vouchers and the canonical
+    ``joker_generation_edition_rate`` agree exactly. Hone and Glow Up therefore
+    remain safe here while changing the Foil/Holographic/Polychrome thresholds
+    exactly as vanilla does. Negative remains unscaled by edition rate.
     """
     _validate_base_shop_boundary(run)
     rate = run.public.joker_generation_edition_rate
     if isinstance(rate, bool) or not isinstance(rate, (int, float)):
         raise HeadlessTransitionError("base shop Joker edition rate must be numeric")
-    if float(rate) != _BASE_JOKER_EDITION_RATE:
-        raise HeadlessTransitionError(
-            "base shop Joker edition RNG does not own edition-rate modifiers"
-        )
+    exact_rate = float(rate)
+    if exact_rate < 0.0:
+        raise HeadlessTransitionError("base shop Joker edition rate cannot be negative")
 
     next_run = run.copy()
     roll = next_run.rng.random(f"edisho{run.public.ante}")
     return ShopJokerEditionPoll(
         next_run,
-        _joker_edition_from_roll(roll, _BASE_JOKER_EDITION_RATE),
+        _joker_edition_from_roll(roll, exact_rate),
     )
