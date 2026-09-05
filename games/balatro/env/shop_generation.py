@@ -6,6 +6,12 @@ Vanilla ``create_card_for_shop`` first chooses a card *type* with the keyed
 Concrete identity selection additionally depends on exact dynamic pool
 eligibility. This module accepts that eligibility only when supplied explicitly;
 it does not guess profile unlocks, duplicate suppression, bans or pool flags.
+
+Ordinary Joker creation also rolls its edition inside the same vanilla
+``create_card(..., key_append='sho')`` call. The base boundary below therefore
+owns the exact ``edisho{ante}`` edition poll as a separate composable primitive;
+Negative generation is modeled here without implying Negative acquisition is
+training-safe.
 """
 
 from __future__ import annotations
@@ -25,6 +31,7 @@ _BASE_SHOP_RATES: tuple[tuple[str, float], ...] = (
     ("Spectral", 0.0),
 )
 _BASE_MAIN_SHOP_SLOTS = 2
+_BASE_JOKER_EDITION_RATE = 1.0
 
 
 @dataclass(frozen=True)
@@ -51,6 +58,12 @@ class ShopJokerCenterPoll:
     center_key: str
     rarity: int
     resamples: int
+
+
+@dataclass(frozen=True)
+class ShopJokerEditionPoll:
+    run: HeadlessRunState
+    edition: str | None
 
 
 def _shop_type_from_polled_rate(polled_rate: float) -> str:
@@ -80,6 +93,37 @@ def _joker_rarity_from_roll(roll: float) -> int:
     if value < 0.0 or value > 1.0:
         raise ValueError("rarity roll must be within [0, 1]")
     return 3 if value > 0.95 else 2 if value > 0.7 else 1
+
+
+def _joker_edition_from_roll(roll: float, edition_rate: float) -> str | None:
+    """Map vanilla ``poll_edition`` for an ordinary shop Joker.
+
+    This is the non-guaranteed, ``_mod=1``, Negative-allowed path used by
+    ``create_card(..., key_append='sho')``. Source ordering is significant:
+    Negative is tested first and is not scaled by ``G.GAME.edition_rate``;
+    Polychrome, Holographic, and Foil are then tested cumulatively against the
+    same single random draw.
+    """
+    if isinstance(roll, bool) or not isinstance(roll, (int, float)):
+        raise TypeError("edition roll must be numeric")
+    if isinstance(edition_rate, bool) or not isinstance(edition_rate, (int, float)):
+        raise TypeError("edition_rate must be numeric")
+    value = float(roll)
+    rate = float(edition_rate)
+    if value < 0.0 or value > 1.0:
+        raise ValueError("edition roll must be within [0, 1]")
+    if rate < 0.0:
+        raise ValueError("edition_rate cannot be negative")
+
+    if value > 1.0 - 0.003:
+        return "Negative"
+    if value > 1.0 - 0.006 * rate:
+        return "Polychrome"
+    if value > 1.0 - 0.02 * rate:
+        return "Holographic"
+    if value > 1.0 - 0.04 * rate:
+        return "Foil"
+    return None
 
 
 def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
@@ -189,3 +233,28 @@ def poll_base_shop_joker_center(
         center = pool[index]
 
     return ShopJokerCenterPoll(next_run, center, rarity, resamples)
+
+
+def poll_base_shop_joker_edition(run: HeadlessRunState) -> ShopJokerEditionPoll:
+    """Poll the exact edition assigned by ordinary base-shop Joker creation.
+
+    The currently owned base boundary rejects vouchers and active Tags, so
+    edition-rate modifiers are intentionally unavailable here. Canonical state
+    must therefore report the vanilla base rate exactly. Negative may be
+    generated even though Negative purchase semantics remain fail-closed.
+    """
+    _validate_base_shop_boundary(run)
+    rate = run.public.joker_generation_edition_rate
+    if isinstance(rate, bool) or not isinstance(rate, (int, float)):
+        raise HeadlessTransitionError("base shop Joker edition rate must be numeric")
+    if float(rate) != _BASE_JOKER_EDITION_RATE:
+        raise HeadlessTransitionError(
+            "base shop Joker edition RNG does not own edition-rate modifiers"
+        )
+
+    next_run = run.copy()
+    roll = next_run.rng.random(f"edisho{run.public.ante}")
+    return ShopJokerEditionPoll(
+        next_run,
+        _joker_edition_from_roll(roll, _BASE_JOKER_EDITION_RATE),
+    )
