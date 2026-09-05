@@ -1,14 +1,14 @@
 """Exact normal ``get_next_voucher_key(false)`` selection primitive.
 
 Vanilla obtains an authoritative source-position pool from
-``get_current_pool('Voucher')``.  Every original Voucher position remains present
+``get_current_pool('Voucher')``. Every original Voucher position remains present
 as either its center key or ``UNAVAILABLE``; if every position is unavailable,
 ``get_current_pool`` replaces the pool with ``{'v_blank'}``.
 
-Normal run/Ante voucher selection then performs ``pseudorandom_element`` with
-``pseudoseed('Voucher' .. ante)`` and retries unavailable positions with
-``Voucher{ante}_resample2``, ``...3``, etc.  Voucher Tag deliberately uses a
-different ``Voucher_fromtag`` key and is outside this first boundary.
+Normal run Voucher selection then performs ``pseudorandom_element`` with
+``pseudoseed('Voucher')`` and retries unavailable positions with
+``Voucher_resample2``, ``Voucher_resample3``, etc. Voucher Tag deliberately uses
+the different ``Voucher_fromtag`` key and is outside this boundary.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 
 
 _UNAVAILABLE = "UNAVAILABLE"
+_NORMAL_POOL_KEY = "Voucher"
 
 
 @dataclass(frozen=True)
@@ -69,17 +70,13 @@ def poll_normal_voucher_key(
     """Select the exact normal current-round Voucher from a canonical source pool."""
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
-    state = run.public
-    if type(state.ante) is not int or state.ante < 1:
-        raise HeadlessTransitionError("normal Voucher selection requires positive exact Ante")
 
     validated = _validated_voucher_pool(pool)
 
     # Validate before copying/advancing RNG so malformed observed catalogues are
     # a zero-side-effect failure boundary.
     next_run = run.copy()
-    pool_key = f"Voucher{state.ante}"
-    index = next_run.rng.pseudorandom_element_index(len(validated), pool_key)
+    index = next_run.rng.pseudorandom_element_index(len(validated), _NORMAL_POOL_KEY)
     center = validated[index]
     source_it = 1
     resamples = 0
@@ -88,7 +85,7 @@ def poll_normal_voucher_key(
         resamples += 1
         index = next_run.rng.pseudorandom_element_index(
             len(validated),
-            f"{pool_key}_resample{source_it}",
+            f"{_NORMAL_POOL_KEY}_resample{source_it}",
         )
         center = validated[index]
 
