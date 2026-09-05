@@ -157,8 +157,8 @@ def test_env_r2_paid_reroll_rejects_incomplete_main_shop():
 
 def test_env_r2_paid_reroll_preserves_independent_booster_and_voucher_areas():
     run = _generated_run()
-    booster = object()
-    voucher = object()
+    booster = {"kind": "booster", "key": "p_arcana_normal_1"}
+    voucher = {"kind": "voucher", "key": "v_overstock_norm"}
     run.public.shop_boosters.append(booster)
     run.public.shop_vouchers.append(voucher)
 
