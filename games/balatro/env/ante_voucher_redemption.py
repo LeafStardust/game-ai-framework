@@ -12,9 +12,7 @@ from __future__ import annotations
 from games.balatro.env.blind_progression import BlindProgressionState
 from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
-
-
-EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
+from games.balatro.env.voucher_capabilities import EXACT_ANTE_VOUCHER_KEYS
 
 
 def _validate_exact_redeem_boundary(
