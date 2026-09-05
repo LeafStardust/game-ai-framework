@@ -70,7 +70,8 @@ def _validated_voucher_pool(pool: Sequence[str]) -> tuple[str, ...]:
     # so reject rather than looping forever or substituting a fabricated Voucher.
     if available == 0:
         raise HeadlessTransitionError(
-            "all-ineligible Voucher pool requires vanilla j_joker fallback"
+            "Voucher pool must contain an available/fallback center; "
+            "all-ineligible input requires vanilla j_joker fallback"
         )
     return tuple(result)
 
