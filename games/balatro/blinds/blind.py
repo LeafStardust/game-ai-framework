@@ -18,12 +18,20 @@ class Blind:
         reward: int = 0,
         modifiers: list[BlindModifier] | None = None,
         disabled: bool = False,
+        tag_key: str | None = None,
     ):
+        if tag_key is not None and not isinstance(tag_key, str):
+            raise TypeError("tag_key must be a string or None")
+        normalized_tag = tag_key.strip().lower() if tag_key is not None else None
+        if tag_key is not None and not normalized_tag:
+            raise ValueError("tag_key must be a non-empty string when observed")
+
         self.type = blind_type
         self.requirement = requirement
         self.reward = reward
         self.modifiers = modifiers or []
         self.disabled = bool(disabled)
+        self.tag_key = normalized_tag
 
 
     def apply_modifiers(
@@ -51,6 +59,7 @@ class Blind:
             self.reward,
             self.modifiers.copy(),
             disabled=self.disabled,
+            tag_key=self.tag_key,
         )
 
 

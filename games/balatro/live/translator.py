@@ -405,7 +405,16 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         if blind is None: return
         blind_type_name = str(blind.get("type", "SMALL")).upper()
         blind_type = BlindType.__members__.get(blind_type_name, BlindType.SMALL)
-        state.blind = Blind(blind_type, int(blind.get("score", blind.get("chips", 0))), int(blind.get("reward", 0)))
+        raw_tag = blind.get("tag")
+        tag_key = None
+        if isinstance(raw_tag, str) and raw_tag.strip():
+            tag_key = raw_tag.strip().lower()
+        state.blind = Blind(
+            blind_type,
+            int(blind.get("score", blind.get("chips", 0))),
+            int(blind.get("reward", 0)),
+            tag_key=tag_key,
+        )
         if blind_type == BlindType.BOSS:
             state.boss_name = blind.get("name")
             boss_name = str(state.boss_name or "")

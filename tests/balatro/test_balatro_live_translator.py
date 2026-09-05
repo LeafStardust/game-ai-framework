@@ -200,3 +200,29 @@ def test_translator_preserves_current_round_hand_counts_while_selecting_hand():
 
     assert state.round_hand_play_counts["PAIR"] == 2
     assert state.round_hand_play_counts["FLUSH"] == 1
+
+def test_translator_preserves_public_blind_skip_tag_identity_and_copy():
+    snapshot = LiveBalatroSnapshot(
+        sequence=1,
+        phase="BLIND_SELECT",
+        state_complete=True,
+        payload={
+            "blind": {
+                "type": "SMALL",
+                "status": "SELECT",
+                "name": "Small Blind",
+                "score": 300,
+                "reward": 3,
+                "tag": "TAG_STANDARD",
+            }
+        },
+    )
+
+    state = DefaultBalatroStateTranslator().translate(snapshot)
+
+    assert state.blind is not None
+    assert state.blind.tag_key == "tag_standard"
+    copied = state.copy()
+    assert copied.blind is not state.blind
+    assert copied.blind.tag_key == "tag_standard"
+
