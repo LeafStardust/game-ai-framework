@@ -39,9 +39,8 @@ EXACT_DISCOUNT_VOUCHER_KEYS = frozenset(
 )
 
 # Resource Vouchers are neutral to ordinary main-shop generation. Hone/Glow Up
-# modify only the ordinary Joker edition poll. Clearance Sale/Liquidation modify
-# the common Card:set_cost discount percentage. Each mutable relationship is
-# validated independently below before any shop RNG may be consumed.
+# modify the ordinary Joker edition poll. Clearance Sale/Liquidation modify card
+# pricing but not the shop type/rarity/center/edition RNG streams themselves.
 SHOP_BASE_GENERATION_VOUCHER_KEYS = (
     EXACT_RESOURCE_VOUCHER_KEYS
     | EXACT_EDITION_RATE_VOUCHER_KEYS
@@ -114,22 +113,31 @@ def expected_shop_discount_percent_for_vouchers(
 
 
 def shop_generation_vouchers_are_exact(state: BalatroState) -> bool:
-    """Return whether all owned Voucher-driven shop state is exact."""
+    """Return whether Voucher effects consumed by shop RNG are exact.
+
+    Discount ownership is structurally admitted here because Clearance/Liquidation
+    do not alter the type/rarity/center/edition random streams. The observed
+    ``discount_percent`` is deliberately validated by the separate pricing gate
+    at boundaries that actually materialize prices.
+    """
     expected_rate = expected_joker_edition_rate_for_vouchers(state)
-    expected_discount = expected_shop_discount_percent_for_vouchers(state)
-    if expected_rate is None or expected_discount is None:
+    if expected_rate is None:
         return False
 
     rate = state.joker_generation_edition_rate
     if isinstance(rate, bool) or not isinstance(rate, (int, float)):
         return False
-    if float(rate) != expected_rate:
-        return False
+    return float(rate) == expected_rate
 
+
+def shop_pricing_vouchers_are_exact(state: BalatroState) -> bool:
+    """Return whether Voucher-derived shop pricing state is authoritative/exact."""
+    if not shop_generation_vouchers_are_exact(state):
+        return False
+    expected_discount = expected_shop_discount_percent_for_vouchers(state)
+    if expected_discount is None:
+        return False
     if state.shop_discount_percent_observed is not True:
         return False
     discount = state.shop_discount_percent
-    if type(discount) is not int or discount != expected_discount:
-        return False
-
-    return True
+    return type(discount) is int and discount == expected_discount
