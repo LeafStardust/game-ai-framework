@@ -83,11 +83,12 @@ class TagProfileState:
 def _tag_pool(ante: int, profile: TagProfileState) -> list[str]:
     if isinstance(ante, bool) or not isinstance(ante, int):
         raise TagSelectionError("ante must be an exact integer")
-    if ante < 1:
-        raise TagSelectionError("ante must be at least 1")
     if not isinstance(profile, TagProfileState):
         raise TypeError("profile must be TagProfileState")
 
+    # Vanilla uses the literal round_resets.ante for Tag min-Ante eligibility and
+    # for the keyed pool name.  Hieroglyph/Petroglyph can make that value zero or
+    # negative; do not clamp or reject it here.
     pool: list[str] = []
     available = 0
     for meta in _TAG_METADATA:
