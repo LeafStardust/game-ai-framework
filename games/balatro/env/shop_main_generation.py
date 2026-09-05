@@ -1,10 +1,10 @@
-"""Source-ordered exact generation for the two ordinary main-shop slots.
+"""Source-ordered exact generation for ordinary main-shop slots.
 
 Vanilla calls ``create_card_for_shop(G.shop_jokers)`` once per missing slot and
 immediately emplaces each result. Emplacement alone does not call ``add_to_deck``
-or mutate ``G.GAME.used_jokers``, so it does not change slot-two pool eligibility.
-The headless boundary can therefore keep publication atomic while preserving RNG
-order: fully generate slot one, fully generate slot two, then publish both items.
+or mutate ``G.GAME.used_jokers``, so later slot pool eligibility is unchanged by
+cards merely remaining visible in the shop. The headless boundary can therefore
+keep publication atomic while preserving RNG order.
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ from games.balatro.env.shop_items import (
 from games.balatro.env.shop_joker_generation import generate_ordinary_shop_joker_descriptor
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import (
+    expected_main_shop_slots_for_vouchers,
     shop_generation_vouchers_are_exact,
     shop_pricing_vouchers_are_exact,
 )
@@ -41,11 +42,17 @@ GeneratedMainShopItem = GeneratedShopJokerItem | GeneratedShopConsumableItem
 @dataclass(frozen=True)
 class GeneratedMainShop:
     run: HeadlessRunState
-    items: tuple[GeneratedMainShopItem, GeneratedMainShopItem]
+    items: tuple[GeneratedMainShopItem, ...]
+
+
+@dataclass(frozen=True)
+class GeneratedMainShopAddition:
+    run: HeadlessRunState
+    item: GeneratedMainShopItem
 
 
 def _preflight_main_shop_generation(run: HeadlessRunState) -> None:
-    """Validate every state source a two-slot base shop may consume before RNG."""
+    """Validate every state source an ungenerated normal shop may consume."""
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
     state = run.public
@@ -55,6 +62,8 @@ def _preflight_main_shop_generation(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "main shop generation does not own current Voucher modifiers"
         )
+    if expected_main_shop_slots_for_vouchers(state) is None:
+        raise HeadlessTransitionError("main shop slot count is not exact")
     if run.tags:
         raise HeadlessTransitionError("main shop generation does not own active Tag modifiers")
     if any((state.shop_jokers, state.shop_consumables, state.shop_boosters, state.shop_vouchers)):
@@ -77,7 +86,7 @@ def _preflight_main_shop_generation(run: HeadlessRunState) -> None:
             "main shop pricing does not match current Voucher ownership"
         )
 
-    # Either slot may become any positive-rate type. Validate all candidate
+    # Any slot may become any positive-rate type. Validate all candidate
     # canonical catalogues before the first cdt{ante} node advances.
     for rarity in (1, 2, 3, 4):
         eligible_joker_keys_from_state(run, rarity)
@@ -103,23 +112,75 @@ def _generate_one_main_shop_item(
     )
 
 
+def _insert_generated_main_item(
+    run: HeadlessRunState,
+    item: GeneratedMainShopItem,
+) -> HeadlessRunState:
+    if isinstance(item, GeneratedShopJokerItem):
+        return insert_generated_shop_joker_item(run, item)
+    if isinstance(item, GeneratedShopConsumableItem):
+        return insert_generated_shop_consumable_item(run, item)
+    raise HeadlessTransitionError("unsupported generated main-shop item")
+
+
 def generate_base_main_shop(run: HeadlessRunState) -> GeneratedMainShop:
-    """Generate and atomically publish the two vanilla base main-shop cards."""
+    """Generate and atomically publish every current normal main-shop slot."""
     _preflight_main_shop_generation(run)
 
-    first_run, first_item = _generate_one_main_shop_item(run)
-    second_run, second_item = _generate_one_main_shop_item(first_run)
+    slot_count = expected_main_shop_slots_for_vouchers(run.public)
+    if slot_count is None:
+        raise HeadlessTransitionError("main shop slot count is not exact")
 
-    published = second_run
-    for item in (first_item, second_item):
-        if isinstance(item, GeneratedShopJokerItem):
-            published = insert_generated_shop_joker_item(published, item)
-        elif isinstance(item, GeneratedShopConsumableItem):
-            published = insert_generated_shop_consumable_item(published, item)
-        else:  # defensive boundary for future item kinds
-            raise HeadlessTransitionError("unsupported generated main-shop item")
+    generated_run = run
+    items: list[GeneratedMainShopItem] = []
+    for _ in range(slot_count):
+        generated_run, item = _generate_one_main_shop_item(generated_run)
+        items.append(item)
+
+    published = generated_run
+    for item in items:
+        published = _insert_generated_main_item(published, item)
 
     return GeneratedMainShop(
         run=published,
-        items=(first_item, second_item),
+        items=tuple(items),
     )
+
+
+def generate_one_base_main_shop_addition(run: HeadlessRunState) -> GeneratedMainShopAddition:
+    """Generate one ``change_shop_size(+1)`` replenishment in exact RNG order.
+
+    ``create_card_for_shop`` does not consult already-visible main-shop cards,
+    booster cards, or the current Voucher offer when choosing the new card. The
+    lower-level generator intentionally requires an otherwise ungenerated shop,
+    so this composition creates an isolated generation view, advances exactly one
+    card's RNG there, then restores the untouched visible inventories and inserts
+    only that generated card. Persistent owned state and generation catalogues are
+    retained throughout.
+    """
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    state = run.public
+    if state.phase != "SHOP" or not state.shop_active:
+        raise HeadlessTransitionError("main shop addition requires active SHOP")
+
+    existing_jokers = list(state.shop_jokers)
+    existing_consumables = list(state.shop_consumables)
+    existing_boosters = list(state.shop_boosters)
+    existing_vouchers = list(state.shop_vouchers)
+
+    generation_view = run.copy()
+    generation_view.public.shop_jokers = []
+    generation_view.public.shop_consumables = []
+    generation_view.public.shop_boosters = []
+    generation_view.public.shop_vouchers = []
+    _preflight_main_shop_generation(generation_view)
+
+    generated_run, item = _generate_one_main_shop_item(generation_view)
+    generated_run.public.shop_jokers = existing_jokers
+    generated_run.public.shop_consumables = existing_consumables
+    generated_run.public.shop_boosters = existing_boosters
+    generated_run.public.shop_vouchers = existing_vouchers
+    published = _insert_generated_main_item(generated_run, item)
+
+    return GeneratedMainShopAddition(run=published, item=item)
