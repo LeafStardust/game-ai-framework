@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-"""Read the public live Joker-generation catalogue without exposing RNG state."""
+"""Read public live generation catalogues without exposing RNG state."""
 
 import hashlib
 import json
 
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.runtime import live_memory_observer
+from games.balatro.live.runtime.voucher_generation_pool_observer import (
+    observe_voucher_generation_pool,
+)
 
 
 _RARITY_NAMES = {1: "COMMON", 2: "UNCOMMON", 3: "RARE"}
@@ -223,11 +226,11 @@ def observe_joker_generation_state(decoder, root, payload: dict, phase: str) -> 
 class JokerGenerationPoolLiveMemoryObserver(
     live_memory_observer.LiveMemoryBalatroObserver
 ):
-    """Canonical production observer enriched with public Joker-generation state.
+    """Canonical production observer enriched with public generation state.
 
     This is explicit composition at the observation boundary rather than package-
-    time mutation. The enriched catalogue participates in the observer fingerprint
-    so sequence changes remain authoritative when public generation eligibility
+    time mutation. Enriched catalogues participate in the observer fingerprint so
+    sequence changes remain authoritative when public generation eligibility
     changes.
     """
 
@@ -244,6 +247,19 @@ class JokerGenerationPoolLiveMemoryObserver(
                 phase,
             )
         )
+        voucher_pool = observe_voucher_generation_pool(decoder, root)
+        if voucher_pool is None:
+            payload["voucher_generation_pool_observed"] = False
+            payload.pop("voucher_generation_pool", None)
+        else:
+            payload["voucher_generation_pool_observed"] = True
+            payload["voucher_generation_pool"] = [
+                {
+                    **dict(record),
+                    "requires": list(record.get("requires", [])),
+                }
+                for record in voucher_pool
+            ]
 
         fingerprint_source = {
             "phase": phase,
