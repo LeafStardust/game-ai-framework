@@ -398,6 +398,13 @@ class ShopTransitionEngine:
         if state.phase != "SHOP" or not state.shop_active:
             return ()
         actions: list[EnvAction] = []
+        from games.balatro.env.joker_sale import can_sell_joker_exact
+
+        actions.extend(
+            EnvAction.from_alias("SELL_JOKER", {"joker_index": joker_index})
+            for joker_index in range(len(state.jokers))
+            if can_sell_joker_exact(run, joker_index)
+        )
         if len(state.jokers) < state.joker_slots:
             actions.extend(
                 EnvAction.from_alias("BUY_JOKER", {"slot": slot})
@@ -426,6 +433,14 @@ class ShopTransitionEngine:
         next_run = run.copy()
         state = next_run.public
         params = action.payload()
+
+        if action.alias == "SELL_JOKER":
+            from games.balatro.env.joker_sale import sell_joker_exact
+
+            joker_index = params.get("joker_index")
+            if isinstance(joker_index, bool) or not isinstance(joker_index, int):
+                raise HeadlessTransitionError("Joker sale requires integer joker_index")
+            return sell_joker_exact(run, joker_index)
 
         if action.alias == "END_SHOP":
             state.shop_active = False

@@ -4,7 +4,12 @@ from games.balatro.env.joker_sale import (
     can_sell_joker_exact,
     sell_joker_exact,
 )
-from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.actions import EnvAction
+from games.balatro.env.transition import (
+    HeadlessRunState,
+    HeadlessTransitionError,
+    ShopTransitionEngine,
+)
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.state import BalatroState
@@ -88,3 +93,39 @@ def test_env_r3_exact_sale_rejects_non_run_input():
     assert not can_sell_joker_exact(object(), 0)
     with pytest.raises(TypeError, match="HeadlessRunState"):
         sell_joker_exact(object(), 0)
+
+
+def test_env_r3_shop_backend_masks_and_executes_only_exact_joker_sales():
+    first = FlatMultJoker()
+    first.sell_cost = 2
+    first.live_id = 10
+    second = FlatMultJoker()
+    second.sell_cost = 4
+    second.live_id = 20
+    run = _shop_run(first)
+    run.public.jokers.append(second)
+    run.joker_order_state = None
+    run = HeadlessRunState(public=run.public, seed="SELL-MASK")
+    action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    engine = ShopTransitionEngine()
+
+    assert action in engine.legal_actions(run)
+    result = engine.step(run, action)
+
+    assert result.public.money == 9
+    assert result.public.jokers == [result.public.jokers[0]]
+    assert result.public.jokers[0].live_id == 20
+    result.require_joker_order_state()
+    assert [joker.live_id for joker in result.joker_order_state.creation_order] == [20]
+    assert [joker.live_id for joker in result.joker_order_state.physical_order] == [20]
+    assert [joker.live_id for joker in run.public.jokers] == [10, 20]
+
+
+def test_env_r3_shop_backend_masks_resource_sensitive_sale():
+    run = _shop_run(JugglerJoker())
+    action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    engine = ShopTransitionEngine()
+
+    assert action not in engine.legal_actions(run)
+    with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
+        engine.step(run, action)

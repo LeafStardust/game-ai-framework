@@ -57,7 +57,30 @@ def _validate_static_joker_identity(
     sell_cost = getattr(joker, "sell_cost", None)
     if isinstance(sell_cost, bool) or not isinstance(sell_cost, int) or sell_cost < 0:
         raise HeadlessTransitionError("Joker sale requires exact nonnegative sell_cost")
+    if run.joker_order_state is not None:
+        run.require_joker_order_state()
     return sell_cost
+
+
+def _sell_static_joker(
+    run: HeadlessRunState,
+    joker_index: int,
+    sell_cost: int,
+) -> HeadlessRunState:
+    """Apply the shared exact inventory and private-order removal."""
+    next_run = run.copy()
+    next_state = next_run.public
+    sold = next_state.jokers[joker_index]
+    if next_run.joker_order_state is not None:
+        try:
+            next_run.joker_order_state.remove(sold, next_state.jokers)
+        except Exception as exc:
+            raise HeadlessTransitionError(
+                "cannot retain exact Joker order after sale"
+            ) from exc
+    next_state.money += sell_cost
+    next_state.jokers.pop(joker_index)
+    return next_run
 
 
 def validate_joker_sale_exact(run: HeadlessRunState, joker_index: int) -> None:
@@ -88,10 +111,7 @@ def sell_joker_exact(run: HeadlessRunState, joker_index: int) -> HeadlessRunStat
     validate_joker_sale_exact(run, joker_index)
     sell_cost = _validate_static_joker_identity(run, joker_index)
 
-    next_run = run.copy()
-    next_run.public.money += sell_cost
-    next_run.public.jokers.pop(joker_index)
-    return next_run
+    return _sell_static_joker(run, joker_index, sell_cost)
 
 
 def _permanent_cards(run: HeadlessRunState) -> list[BalatroCard]:
@@ -205,8 +225,5 @@ def sell_static_joker_during_verdant(
             "Verdant Joker sale requires active owned all-card debuff"
         )
 
-    next_run = run.copy()
-    next_state = next_run.public
-    next_state.money += sell_cost
-    next_state.jokers.pop(joker_index)
+    next_run = _sell_static_joker(run, joker_index, sell_cost)
     return clear_verdant_leaf_debuff(next_run)
