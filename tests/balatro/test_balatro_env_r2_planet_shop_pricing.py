@@ -19,6 +19,8 @@ def _run() -> HeadlessRunState:
     state.shop_inflation_observed = True
     state.shop_discount_percent = 25
     state.shop_discount_percent_observed = True
+    state.vouchers_observed = True
+    state.vouchers = ["v_clearance_sale"]
     return HeadlessRunState(public=state, seed="PLANET-COST")
 
 
