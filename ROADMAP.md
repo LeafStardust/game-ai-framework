@@ -65,41 +65,37 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 ```text
 Branch: feat/v1.0-red-white-competence
 Verified code HEAD before this roadmap sync:
-d903106a28a43bcfa985339c4ca6a8c5bd874e09
-  test(balatro): pin exact ante voucher redemption
+83a900efff0dc81b984a93df6710324ae125bbaa
+  fix(balatro): construct generated ante voucher fixtures
 
 Latest verified code-head CI:
-33966224227
-2239 passed, 1595 deselected
+33967536736
+2257 passed, 1595 deselected
 ```
 
-The Hieroglyph/Petroglyph downstream audit has now materially advanced beyond the previous Overstock checkpoint. Exact pre-Ante Boss/tag progression and Red/White base blind requirements now preserve literal Ante zero/negative semantics, and an internal exact Hieroglyph/Petroglyph redemption primitive is green. The family is **still not training-visible** because vanilla redemption also mutates private `round_resets.blind_ante`; the existing `BlindProgressionState` owner is not yet installed in the generic `HeadlessRunState` consumed by `ShopTransitionEngine`.
+The Hieroglyph/Petroglyph integration is now closed through the canonical shop action path. `HeadlessRunState` retains the existing canonical `BlindProgressionState`; Ante-Voucher redemption updates public Ante/allowances and private `blind_ante` atomically; valid ownership is neutral for unrelated shop-generation capability checks; and `ShopTransitionEngine.legal_actions()` exposes `BUY_VOUCHER` only when progression, allowance observations, price, upgrade prerequisites, and affordability are exact.
 
-## Recent closure commits
+## Latest closure commits
 
 ```text
-# previous interest-cap / shop-size closure
-7d4bc1e  test(balatro): cover interest cap voucher shop transitions
-3922b97  feat(balatro): own Overstock shop-size capability
-4821e7b  feat(balatro): expose exact Overstock shop transition
-ad333bc  test(balatro): keep cashout unsupported voucher fixture exact
-e46ee55  test(balatro): align reroll capacity rejection wording
+# retained blind progression + internal redemption integration
+31aca80  test(balatro): cover retained ante voucher progression
 
-# Hieroglyph / Petroglyph downstream progression audit
-4f44c2e  test(balatro): correct pre-Ante boss vector
-2344224  test(balatro): compose pre-Ante boss cashout progression
-197ae83  feat(balatro): own exact Red White base blind amount
-6f7be4a  test(balatro): pin Red White pre-Ante blind amounts
-
-# exact internal Ante-Voucher redemption boundary
-49bb5c7  feat(balatro): own exact ante voucher redemption primitive
-d903106  test(balatro): pin exact ante voucher redemption
+# Ante-Voucher capability / canonical BUY_VOUCHER path
+4a3a4e4  feat(balatro): classify exact ante voucher capability
+b5ffda2  refactor(balatro): centralize ante voucher capability
+d7618ff  feat(balatro): expose exact ante voucher shop transition
+6a7c5ef  test(balatro): cover ante voucher shop transition
+83a900e  fix(balatro): construct generated ante voucher fixtures
 ```
+
+The failed collection run `33967491685` was test-fixture-only: it referenced a nonexistent helper. Production semantics were unchanged; `83a900e` corrected the test to construct the repository's real immutable `GeneratedShopVoucherItem`. Full CI then passed.
 
 ## Immediate development position
 
 - R1 deterministic state/acquisition: **SUBSTANTIALLY COMPLETE**.
-- R2 RNG/lifecycle/shop generation: **ACTIVE — PRIMARY WORKSTREAM**.
+- R2 RNG/lifecycle/shop generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
+- R3 typed strategic action vocabulary: **PARTIAL — NEXT PRIMARY WORKSTREAM**.
 - Exact Balatro/LuaJIT RNG + pseudoshuffle: **GREEN**.
 - Exact playing-card/Joker private ordering for owned cases: **GREEN**.
 - Exact normal round/blind/Boss lifecycle across audited Red/White paths: **BROADLY GREEN**.
@@ -108,19 +104,62 @@ d903106  test(balatro): pin exact ante voucher redemption
 - Exact normal main-shop generation + paid reroll with variable supported capacity: **GREEN**.
 - Exact Joker/Tarot/Planet normal shop generation owned slices: **GREEN**.
 - Exact Voucher runtime eligibility, identity polling, metadata/pricing, and separate Voucher slot publication: **GREEN**.
-- Complete 32-Voucher redemption-effect classification: **COMPLETE**.
-- Exact resource/capacity Voucher group: **GREEN — 8 VOUCHERS**.
-- Exact Joker edition-rate family: **GREEN — Hone / Glow Up**.
-- Exact discount family: **GREEN — Clearance Sale / Liquidation**.
-- Exact shop type-rate family: **GREEN — Tarot Merchant/Tycoon + Planet Merchant/Tycoon**.
-- Exact reroll-cost family: **GREEN — Reroll Surplus / Reroll Glut**.
-- Exact interest-cap family: **GREEN — Seed Money / Money Tree**.
-- Exact main-shop-size family: **GREEN — Overstock / Overstock Plus**.
-- Hieroglyph/Petroglyph direct redemption primitive: **GREEN INTERNALLY, NOT TRAINING-EXPOSED**.
-- Supported Voucher state through ordinary cash-out/new-shop entry: **GREEN FOR CURRENT TRAINING-SUPPORTED FAMILIES**.
-- Remaining 10 Voucher centers: **FAIL CLOSED AT TRAINING BOUNDARY UNTIL THEIR FULL EFFECTS ARE OWNED**.
+- Exact Hieroglyph/Petroglyph canonical training purchase: **GREEN**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **NOT CURRENTLY REQUIRED**.
+
+---
+
+# Foundation status
+
+```text
+A–K symbolic/mechanical baseline      COMPLETE
+L live stabilization                 COMPLETE
+L3 environment freeze                COMPLETE
+R0 headless environment architecture COMPLETE
+R1 deterministic state/acquisition   SUBSTANTIALLY COMPLETE
+R2 RNG/lifecycle/shop generation     BROADLY GREEN / SPECIFIC GAPS REMAIN
+R3 typed action vocabulary           PARTIAL — NEXT PRIMARY WORKSTREAM
+R4 deterministic tactical bridge     NOT STARTED
+R5 live/simulator parity harness      NOT STARTED
+R6 environment performance gate      NOT STARTED
+O observation/action encoding        NOT STARTED
+B0 RL baseline infrastructure        NOT STARTED
+PPO strategic learner                NOT STARTED
+```
+
+The simulator is **not authoritative game truth** until representative R5 live/simulator parity passes.
+
+---
+
+# R1 — deterministic state/acquisition
+
+## Owned
+
+- Red Deck / White Stake canonical state validation.
+- Strict public/private card-zone ownership.
+- Permanent owned-deck truth from `G.playing_cards` with all-or-nothing LuaJIT/TValue decoding.
+- Next-round hand/discard allowances where required.
+- Exact resource-sensitive Joker acquisition effects for the currently admitted group.
+- Broad static score/rule/retrigger Joker acquisition groups whose acquisition is inventory-only.
+- Owned-deck-dependent scoring Jokers only when permanent deck state is authoritative.
+- Exact supported Voucher acquisition effects listed below.
+- Fail-closed malformed/noninteger prices.
+
+## Still fail closed
+
+- unknown/unaudited Joker acquisitions;
+- Joker editions whose acquisition changes capacity semantics, especially Negative;
+- generic `SELL_JOKER` inverse lifecycle where inverse effects are unowned;
+- unsupported pack/card-shop/Voucher mechanics described below.
+
+Representative gates:
+
+```text
+33788603611  1401 passed, 1594 deselected
+33789894797  1405 passed, 1594 deselected
+33790592775  1424 passed, 1594 deselected
+```
 
 ---
 
@@ -183,61 +222,16 @@ v_overstock_norm
 v_overstock_plus
 ```
 
-`games/balatro/env/voucher_capabilities.py` is the canonical per-boundary capability owner. Exact generation capability is distinct from exact redemption/cash-out capability; never replace these checks with a blanket `if state.vouchers` rule.
-
-### Remaining training-unsupported Voucher centers
+## Ante / round allowance
 
 ```text
-v_omen_globe
-v_telescope
-v_observatory
-v_blank
-v_magic_trick
-v_illusion
 v_hieroglyph
 v_petroglyph
-v_directors_cut
-v_retcon
 ```
 
-Their current blockers are real mechanics boundaries, not missing allowlist entries:
+`games/balatro/env/voucher_capabilities.py` is the canonical per-boundary capability owner. Exact generation capability is distinct from exact redemption/cash-out capability; never replace these checks with a blanket `if state.vouchers` rule.
 
-- Omen Globe depends on Spectral generation inside Arcana packs;
-- Telescope / Observatory depend on Celestial pack/Planet lifecycle and Observatory held-Planet scoring;
-- Blank has progression/unlock semantics rather than an ordinary immediate gameplay modifier;
-- Magic Trick / Illusion require exact playing-card shop generation, purchase, and modifier generation;
-- Hieroglyph / Petroglyph now have exact direct redemption and downstream nonpositive-Ante primitives, but training purchase still requires private `BlindProgressionState` / `round_resets.blind_ante` ownership inside the generic run container;
-- Director's Cut / Retcon require exact Boss-reroll action/state ownership.
-
----
-
-# Canonical Voucher invariants
-
-Voucher ownership must be structurally valid, duplicate-free, and authoritative when nonempty (`vouchers_observed is True`). Upgrade Vouchers never infer hidden base ownership from numeric state. Observed ownership and every canonical numeric modifier it implies must agree exactly. Unsupported modifiers reject before RNG is consumed.
-
-Canonical state currently consumed by exact Voucher families includes:
-
-```text
-joker_generation_edition_rate
-shop_discount_percent
-shop_discount_percent_observed
-tarot_rate
-planet_rate
-interest_cap
-interest_cap_observed
-HeadlessRunState.base_reroll_cost
-HeadlessRunState.reroll_cost
-```
-
-Main-shop capacity is reconstructed exactly from authoritative Voucher ownership rather than exposed as a redundant public field:
-
-```text
-no Overstock                     2 slots
-Overstock                        3 slots
-Overstock + Overstock Plus       4 slots
-```
-
-Owned upgrade progression:
+### Canonical upgrade progression
 
 ```text
 Glow Up         requires Hone
@@ -247,26 +241,14 @@ Planet Tycoon   requires Planet Merchant
 Reroll Glut     requires Reroll Surplus
 Money Tree      requires Seed Money
 Overstock Plus  requires Overstock
-Petroglyph      requires Hieroglyph   # internal exact primitive only so far
+Petroglyph      requires Hieroglyph
 ```
 
-### Seed Money / Money Tree
+Voucher ownership remains an ordered list because redemption order is observable/replay-relevant. Membership/prerequisite checks may be set-like, but transitions append in canonical redemption order and never normalize the list into a set.
 
-```text
-base interest cap                $25
-Seed Money                       $50
-Seed Money + Money Tree         $100
-```
+### Hieroglyph / Petroglyph — canonical shop path exact
 
-The authoritative cap is reconstructed from complete Voucher history, with explicit observed numeric state required to agree when present. Ordinary round cash-out consumes the same canonical cap. Unsupported interest/challenge modifiers remain fail closed.
-
-### Overstock / Overstock Plus
-
-Pinned vanilla redemption calls `change_shop_size(1)` for each Voucher. Exact headless behavior therefore derives 2/3/4 main-shop slots from authoritative Voucher history, uses that capacity for initial generation and paid rerolls, and preserves the family across cash-out/new-shop entry. Incomplete current-capacity shops fail closed before reroll RNG is consumed.
-
-### Hieroglyph / Petroglyph — internal boundary now exact
-
-Pinned vanilla redemption does all of the following:
+Pinned vanilla redemption:
 
 ```text
 both:
@@ -283,98 +265,46 @@ Petroglyph:
   current discards_left -= 1
 ```
 
-`games/balatro/env/ante_voucher_redemption.py` now owns those direct mutations with strict observed/reducible allowance checks and exact private `BlindProgressionState` input. It supports literal Ante 0 -> -1 and consumes no RNG. It deliberately remains an **internal primitive** until progression state is installed into the generic run container and `BUY_VOUCHER` can update it atomically.
-
-### Existing exact families
-
-- Hone / Glow Up: edition generation rate 1.0 → 2.0 → 4.0.
-- Clearance Sale / Liquidation: 0% → 25% → 50%; supported visible inventory is repriced from immutable base cost.
-- Tarot / Planet Merchant/Tycoon: canonical type rates feed future main-shop type polling.
-- Reroll Surplus / Glut: persistent base reroll cost $5 → $3 → $1, with current paid reroll cost tracked separately.
-- Resource/capacity families update canonical slots/round allowances where their full downstream use is already owned.
-
----
-
-# Fail-closed rule
-
-If exactness cannot be proved:
-
-- reject the transition/action;
-- omit it from the training mask;
-- retain `None`/unobserved state where applicable;
-- do not silently substitute related state;
-- do not invent hidden/public state merely for simulator convenience.
-
-Examples already enforced:
-
-- partial LuaJIT/TValue permanent-deck reads invalidate `owned_deck`;
-- future draw order remains private;
-- Amber Acorn hidden Joker mapping is masked while active;
-- unsupported Joker inverse sale lifecycles remain rejected;
-- pre-deal Manacle/Chicot requires authoritative retained physical deck order;
-- malformed Joker/Tarot/Planet/Voucher catalogues are rejected all-or-nothing;
-- generated Negative Jokers do not imply Negative acquisition is legal;
-- canonical generation catalogues may not be overwritten by legacy wrappers;
-- shop generation preflights dependencies before first type RNG;
-- Voucher selection never falls back to a guessed/static Python catalogue;
-- unsupported Voucher centers never become legal merely because identity/price/slot are known;
-- duplicate, malformed, or unobserved nonempty Voucher ownership is rejected;
-- Voucher upgrade ownership/state mismatches are rejected rather than repaired by inference;
-- discount redemption is hidden when current generated prices are stale or pricing paths are unowned;
-- ordinary cash-out rejects unsupported Voucher generation/pricing/economy state rather than erasing it;
-- Ante Voucher redemption rejects stale private `blind_ante` instead of deriving it from public Ante;
-- Ante Voucher redemption rejects unobserved or irreducible current/persistent hand/discard allowances;
-- Magic Trick remains a regression fixture for unsupported playing-card-shop effects now that Overstock is exact;
-- tests must mark authoritative empty/zero observations explicitly instead of relying on defaults.
-
----
-
-# Foundation status
+Canonical ownership now is:
 
 ```text
-A–K symbolic/mechanical baseline      COMPLETE
-L live stabilization                 COMPLETE
-L3 environment freeze                COMPLETE
-R0 headless environment architecture COMPLETE
-R1 deterministic state/acquisition   SUBSTANTIALLY COMPLETE
-R2 RNG/lifecycle/shop generation     ACTIVE — PRIMARY WORKSTREAM
-R3 typed action vocabulary           PARTIAL / TIED TO EXACTNESS
-R4 deterministic tactical bridge     NOT STARTED
-R5 live/simulator parity harness      NOT STARTED
-R6 environment performance gate      NOT STARTED
-O observation/action encoding        NOT STARTED
-B0 RL baseline infrastructure        NOT STARTED
-PPO strategic learner                NOT STARTED
+HeadlessRunState.blind_progression_state
+        ↓
+ante_voucher_redemption.py
+        ↓
+ShopTransitionEngine legal mask + BUY_VOUCHER execution
 ```
 
-The simulator is **not authoritative game truth** until representative R5 live/simulator parity passes.
+The path fails closed when retained progression is absent/stale, the required current/persistent allowance is unobserved or irreducible, price is malformed/unaffordable, or Petroglyph lacks Hieroglyph. Successful redemption consumes no RNG and atomically updates public and private state.
 
----
+Valid Hieroglyph/Petroglyph ownership is neutral for unrelated shop generation rates/capacity/pricing. Impossible `Petroglyph without Hieroglyph` ownership invalidates the Voucher capability boundary.
 
-# R1 — deterministic state/acquisition — SUBSTANTIALLY COMPLETE
-
-Owned resource-sensitive Joker acquisitions include Juggler, Stuntman, Drunkard, Troubadour, and Merry Andy. Broad static score/rule/retrigger Joker groups, money-based scoring, owned-deck scoring, permanent `G.playing_cards` observation, strict card decoding, authoritative array completeness, private card zones, and next-round hand/discard allowances are owned where current transitions require them.
-
-Still fail closed where not globally owned:
-
-- unknown/unaudited Joker acquisitions;
-- Joker editions whose acquisition changes capacity semantics, especially Negative;
-- unsupported Voucher effects;
-- pack lifecycle paths not yet exact;
-- malformed/noninteger prices;
-- generic SELL_JOKER inverse lifecycle where inverse effects are unowned.
-
-Representative R1 gates:
+### Remaining training-unsupported Voucher centers
 
 ```text
-33788603611  1401 passed, 1594 deselected
-33789894797  1405 passed, 1594 deselected
-33790592775  1424 passed, 1594 deselected
+v_omen_globe
+v_telescope
+v_observatory
+v_blank
+v_magic_trick
+v_illusion
+v_directors_cut
+v_retcon
 ```
+
+These are blocked by real mechanics:
+
+- Omen Globe: Spectral generation inside Arcana packs.
+- Telescope / Observatory: Celestial pack/Planet lifecycle and Observatory held-Planet scoring.
+- Blank: progression/unlock semantics rather than an ordinary immediate gameplay modifier.
+- Magic Trick / Illusion: exact playing-card shop generation, purchase, and modifier generation.
+- Director's Cut / Retcon: exact Boss-reroll action/state ownership.
+
+Do not promote any of these through a blanket allowlist.
 
 ---
 
-# R2 — RNG + lifecycle + shop generation — ACTIVE
+# R2 — RNG + lifecycle + shop generation
 
 ## RNG / shuffle / ordering — GREEN
 
@@ -397,13 +327,13 @@ Owned:
 
 The environment owns audited Red/White blind start, draw, resource modification, Boss active effects, disable/defeat restoration, and round resolution across all 28 vanilla Bosses. Hidden-information behavior remains masked correctly.
 
-The Hieroglyph/Petroglyph downstream audit additionally owns literal nonpositive Ante behavior in:
+Literal nonpositive Ante behavior is owned in:
 
-- normal Boss selection (`max(1, ante)` only where vanilla clamps the minimum-Ante eligibility test; showdown logic uses literal Ante);
-- normal Tag selection and its seeded `Tag{ante}` keys;
+- normal Boss selection (`max(1, ante)` only where vanilla actually clamps minimum-Ante eligibility);
+- normal Tag selection and seeded `Tag{ante}` keys;
 - pre-Ante Boss cash-out tag/Boss regeneration;
-- Red/White base blind amount (`Ante < 1 -> 100`, Ante 1–8 exact table, endless >8 fail closed);
-- blind progression state where `blind_ante` may be zero or negative.
+- Red/White base blind amount (`Ante < 1 -> 100`, Ante 1–8 exact table; unsupported endless states fail closed);
+- retained blind progression state.
 
 Representative gates:
 
@@ -414,8 +344,9 @@ Representative gates:
 33873017991  1838 passed, 1595 deselected
 33905449910  1876 passed, 1595 deselected
 33915588784  1924 passed, 1595 deselected
-33965599236  2233 passed, 1595 deselected   pre-Ante + Red/White blind amount closure
-33966224227  2239 passed, 1595 deselected   exact internal Ante-Voucher redemption
+33965599236  2233 passed, 1595 deselected   pre-Ante + base blind closure
+33966224227  2239 passed, 1595 deselected   internal Ante-Voucher redemption
+33967536736  2257 passed, 1595 deselected   canonical Ante-Voucher shop integration
 ```
 
 Generic training `SELECT_BLIND` remains tied to end-to-end strategic-action ownership even though internal lifecycle primitives are substantially broader.
@@ -428,77 +359,64 @@ Owned slices include:
 - ordinary Joker rarity/center/edition generation for authoritative catalogues;
 - Tarot/Planet normal generation;
 - variable 2/3/4-card supported main-shop capacity;
-- paid shop reroll at the current exact capacity;
+- paid shop reroll at current exact capacity;
 - centralized `Card:set_cost`-compatible pricing;
 - generated visible-shop repricing from immutable base metadata;
 - Voucher eligibility/identity polling;
 - Voucher runtime metadata + exact price;
 - separate normal Voucher slot publication;
-- supported Voucher state carried through ordinary shop generation and cash-out;
-- all currently-supported Voucher effects consumed by their canonical downstream owners.
+- supported Voucher state through shop generation and ordinary cash-out;
+- all supported Voucher effects consumed by their canonical downstream owners.
 
 Representative later gates:
 
 ```text
-33941827707  1973 passed, 1595 deselected
-33943525506  2014 passed, 1595 deselected
-33945779690  2057 passed, 1595 deselected
-33952322285  2110 passed, 1595 deselected
 33956949501  2133 passed, 1595 deselected   Hone / Glow Up
 33959454017  2155 passed, 1595 deselected   discount pricing
 33960365203  2165 passed, 1595 deselected   discount redemption
 33961839253  2208 passed, 1595 deselected   reroll Voucher lifecycle
 33962480568  2209 passed, 1595 deselected   Voucher-preserving cashout
-33964088221  2 failed, 2222 passed          stale Overstock-era fixtures
 33964693188  2224 passed, 1595 deselected   interest-cap + Overstock closure
-33965599236  2233 passed, 1595 deselected   Hieroglyph/Petroglyph downstream progression audit
-33966224227  2239 passed, 1595 deselected   internal exact Ante-Voucher redemption
+33965599236  2233 passed, 1595 deselected   Hieroglyph/Petroglyph downstream audit
+33967536736  2257 passed, 1595 deselected   Hieroglyph/Petroglyph canonical purchase
 ```
 
 ---
 
-# Next work — install private blind progression into the run container
+# Fail-closed rule
 
-The immediate blocker to training-visible Hieroglyph/Petroglyph is now structural, not mechanical.
+If exactness cannot be proved:
 
-Vanilla redemption mutates:
+- reject the transition/action;
+- omit it from the training mask;
+- retain `None`/unobserved state where applicable;
+- do not silently substitute related state;
+- do not invent hidden/public state merely for simulator convenience.
 
-```text
-public/canonical:
-  ante
-  round_resets.hands or round_resets.discards
-  current hands_left or discards_left
-  voucher ownership
-  money/shop Voucher slot
+Examples already enforced:
 
-private progression:
-  round_resets.blind_ante
-```
-
-`BlindProgressionState` already owns the private blind statuses / `blind_on_deck` / `blind_ante` / Boss identity semantics, but it is currently passed explicitly through progression helpers rather than stored in `HeadlessRunState`. `ShopTransitionEngine.step(run, BUY_VOUCHER)` therefore cannot yet update public + private progression atomically.
-
-Immediate implementation order:
-
-1. install an optional exact `BlindProgressionState` owner in `HeadlessRunState` (or otherwise integrate the existing owner canonically; do **not** create a duplicate progression model);
-2. legacy/manually-constructed run states with no authoritative progression must remain valid but fail closed for actions that require it;
-3. validate retained progression against public state only at boundaries where a source invariant actually exists; do not invent a universal `blind_ante == ante` rule across Boss `end_round` intermediate states;
-4. update Boss cash-out/tag/Boss progression compositions to preserve/use the same retained progression owner rather than parallel copies;
-5. wire `v_hieroglyph` / `v_petroglyph` into `voucher_capabilities.py` only at the exact boundaries whose downstream consequences are now owned;
-6. route `ShopTransitionEngine` Ante Voucher legality/execution through `ante_voucher_redemption.py` and atomically replace retained progression;
-7. keep Petroglyph upgrade ownership strict (`v_hieroglyph` required);
-8. add focused tests proving legal mask visibility only when progression + allowance observations are authoritative, plus nonpositive-Ante persistence through next blind/tag/Boss generation;
-9. run the full deterministic CI and inspect the pytest count;
-10. synchronize this roadmap after green.
-
-Do **not** expose Hieroglyph/Petroglyph by adding them to a blanket Voucher allowlist before the generic run container can retain the private `blind_ante` mutation.
-
-If progression integration reveals a conflicting owner or missing serialization boundary, stop at that exact blocker rather than adding a wrapper/rescue layer.
+- partial LuaJIT/TValue permanent-deck reads invalidate `owned_deck`;
+- future draw order remains private;
+- Amber Acorn hidden Joker mapping is masked while active;
+- unsupported Joker inverse sale lifecycles remain rejected;
+- pre-deal Manacle/Chicot requires authoritative retained physical deck order;
+- malformed Joker/Tarot/Planet/Voucher catalogues reject all-or-nothing;
+- generated Negative Jokers do not imply Negative acquisition is legal;
+- shop generation preflights dependencies before first type RNG;
+- Voucher selection never falls back to a guessed/static Python catalogue;
+- unsupported Voucher centers never become legal merely because identity/price/slot are known;
+- duplicate, malformed, or unobserved nonempty Voucher ownership is rejected;
+- Voucher upgrade ownership/state mismatches are rejected rather than repaired by inference;
+- ordinary cash-out rejects unsupported Voucher generation/pricing/economy state rather than erasing it;
+- Ante Voucher redemption rejects stale/missing private `blind_ante` ownership;
+- Ante Voucher redemption rejects unobserved or irreducible current/persistent allowances;
+- tests must mark authoritative empty/zero observations explicitly instead of relying on defaults.
 
 ---
 
-# R3 — typed strategic action vocabulary — PARTIAL
+# R3 — typed strategic action vocabulary — PARTIAL / NEXT PRIMARY WORKSTREAM
 
-Target actions include:
+Target strategic actions:
 
 ```text
 END_SHOP
@@ -515,7 +433,40 @@ SKIP_BLIND
 SELECT_BLIND
 ```
 
-Only actions with exact legality, transition, serialization, and mask ownership may become training-visible.
+Every training-visible action requires:
+
+1. canonical production action identifier;
+2. frozen legality owner;
+3. exact headless transition owner;
+4. deterministic serialization/replay representation;
+5. mask representation;
+6. focused live/simulator parity fixture before the simulator becomes training truth.
+
+## Current exposure posture
+
+- `END_SHOP`: supported/frozen.
+- exact owned `BUY_JOKER` subset: supported through shop engine.
+- exact owned `BUY_VOUCHER` subset, now including Hieroglyph/Petroglyph: supported through shop engine.
+- exact held-consumable purchase subset: supported through shop engine.
+- `REROLL_SHOP`: internal deterministic mechanics are broadly implemented, but contract/training exposure still requires canonical legality/execution ownership audit.
+- `SELECT_BLIND`: internal lifecycle is broadly implemented, but contract/training exposure still requires end-to-end composition/legality audit.
+- `SKIP_BLIND`: internal skip/Tag paths exist for audited cases; contract/training exposure remains to be frozen.
+- `SELL_JOKER`, pack actions, and generic consumable use remain incomplete at their exact lifecycle boundaries.
+
+## Immediate next work — strategic-action exposure audit
+
+Proceed in this order unless repository inspection reveals a concrete blocker:
+
+1. audit **REROLL_SHOP** first because exact paid reroll mechanics, capacity, Voucher-modified base cost, generation, and RNG are already broadly owned;
+2. locate and freeze the canonical production legality owner and execution owner; do not invent a parallel RL action;
+3. prove the headless transition and live action use the same affordability/cost/capacity semantics;
+4. expose it in `env_contract.py` only after those owners are exact;
+5. add focused contract/action-mask/replay regressions and full deterministic CI;
+6. then audit **SELECT_BLIND** end-to-end, composing the existing exact blind progression/start/Boss/draw owners rather than adding a synthetic pre-RNG action;
+7. then audit **SKIP_BLIND** for the same contract-level ownership;
+8. synchronize this roadmap after every green action exposure.
+
+If REROLL_SHOP inspection finds a missing authoritative state or semantic mismatch, stop at that exact blocker and repair the canonical owner before exposing the action.
 
 ---
 
@@ -525,7 +476,16 @@ Reuse existing deterministic tactical/hand-play owners while RL controls strateg
 
 # R5 — live/simulator parity harness — NOT STARTED
 
-Required before treating the simulator as authoritative training truth. Priority fixtures include shop generation/purchase/reroll, Voucher redemption, blind start/clear, representative Bosses, RNG/shuffle/draw, owned-deck composition, and economy transitions.
+Required before treating the simulator as authoritative training truth. Priority fixtures:
+
+- shop generation/purchase/reroll;
+- Voucher redemption;
+- blind start/clear;
+- blind skip/Tag flow;
+- representative Bosses;
+- RNG/shuffle/draw;
+- owned-deck composition;
+- economy transitions.
 
 # R6 — environment performance gate — NOT STARTED
 
