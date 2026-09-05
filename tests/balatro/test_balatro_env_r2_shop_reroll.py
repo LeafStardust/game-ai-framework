@@ -1,7 +1,10 @@
 import pytest
 
 from games.balatro.env.shop_main_generation import generate_base_main_shop
-from games.balatro.env.shop_reroll import reroll_base_main_shop
+from games.balatro.env.shop_reroll import (
+    can_reroll_base_main_shop,
+    reroll_base_main_shop,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.chaos_the_clown import ChaosTheClownJoker
 from games.balatro.jokers.credit_card import CreditCardJoker
@@ -101,6 +104,16 @@ def test_env_r2_paid_rerolls_progress_cost_one_dollar_each_time():
     assert second.run.public.money == 9
 
 
+def test_env_r2_paid_reroll_legality_uses_same_exact_validator_as_transition():
+    run = _generated_run()
+    assert can_reroll_base_main_shop(run)
+
+    run.public.money = 4
+    assert not can_reroll_base_main_shop(run)
+    with pytest.raises(HeadlessTransitionError, match="cannot afford"):
+        reroll_base_main_shop(run)
+
+
 def test_env_r2_paid_reroll_rejects_unaffordable_cost_without_mutation():
     run = _generated_run()
     run.public.money = 4
@@ -119,25 +132,40 @@ def test_env_r2_paid_reroll_rejects_unaffordable_cost_without_mutation():
 def test_env_r2_paid_reroll_rejects_free_reroll_and_bankruptcy_modifiers():
     run = _generated_run()
     run.public.jokers.append(ChaosTheClownJoker())
+    assert not can_reroll_base_main_shop(run)
     with pytest.raises(HeadlessTransitionError, match="free-reroll"):
         reroll_base_main_shop(run)
 
     run = _generated_run()
     run.public.jokers.append(CreditCardJoker())
+    assert not can_reroll_base_main_shop(run)
     with pytest.raises(HeadlessTransitionError, match="bankruptcy"):
         reroll_base_main_shop(run)
 
 
-def test_env_r2_paid_reroll_rejects_incomplete_or_auxiliary_shop_areas():
+def test_env_r2_paid_reroll_rejects_incomplete_main_shop():
     run = _generated_run()
     if run.public.shop_jokers:
         run.public.shop_jokers.pop()
     else:
         run.public.shop_consumables.pop()
+
+    assert not can_reroll_base_main_shop(run)
     with pytest.raises(HeadlessTransitionError, match="complete current-capacity main shop"):
         reroll_base_main_shop(run)
 
+
+def test_env_r2_paid_reroll_preserves_independent_booster_and_voucher_areas():
     run = _generated_run()
-    run.public.shop_boosters.append(object())
-    with pytest.raises(HeadlessTransitionError, match="booster/voucher"):
-        reroll_base_main_shop(run)
+    booster = object()
+    voucher = object()
+    run.public.shop_boosters.append(booster)
+    run.public.shop_vouchers.append(voucher)
+
+    assert can_reroll_base_main_shop(run)
+    result = reroll_base_main_shop(run)
+
+    assert result.run.public.shop_boosters == [booster]
+    assert result.run.public.shop_vouchers == [voucher]
+    assert run.public.shop_boosters == [booster]
+    assert run.public.shop_vouchers == [voucher]
