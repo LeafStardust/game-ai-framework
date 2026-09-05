@@ -59,7 +59,7 @@ def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -
         raise HeadlessTransitionError(f"{label} with active tags is not yet owned")
     if not blind_start_vouchers_are_exact(state):
         raise HeadlessTransitionError(
-            f"{label} requires exact supported voucher ownership"
+            f"{label} requires exact supported vouchers ownership"
         )
     if state.hand or state.discard_pile or run.draw_pile or run.discard_pile or run.played_pile:
         raise HeadlessTransitionError(f"{label} requires empty transition card zones")
