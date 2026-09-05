@@ -22,15 +22,9 @@ from dataclasses import dataclass
 from games.balatro.env.joker_centers import current_joker_pool_from_eligible_keys
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import shop_generation_vouchers_are_exact
+from games.balatro.state import BalatroState
 
 
-_BASE_SHOP_RATES: tuple[tuple[str, float], ...] = (
-    ("Joker", 20.0),
-    ("Tarot", 4.0),
-    ("Planet", 4.0),
-    ("Base", 0.0),
-    ("Spectral", 0.0),
-)
 _BASE_MAIN_SHOP_SLOTS = 2
 
 
@@ -66,18 +60,48 @@ class ShopJokerEditionPoll:
     edition: str | None
 
 
-def _shop_type_from_polled_rate(polled_rate: float) -> str:
+def _shop_rates_for_state(state: BalatroState) -> tuple[tuple[str, float], ...]:
+    """Return vanilla normal-shop weights from exact canonical run state."""
+    if not isinstance(state, BalatroState):
+        raise TypeError("state must be BalatroState")
+    tarot = state.tarot_rate
+    planet = state.planet_rate
+    for name, value in (("tarot_rate", tarot), ("planet_rate", planet)):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise HeadlessTransitionError(f"base shop {name} must be numeric")
+        if float(value) < 0.0:
+            raise HeadlessTransitionError(f"base shop {name} cannot be negative")
+    return (
+        ("Joker", 20.0),
+        ("Tarot", float(tarot)),
+        ("Planet", float(planet)),
+        ("Base", 0.0),
+        ("Spectral", 0.0),
+    )
+
+
+def _shop_type_from_polled_rate(
+    polled_rate: float,
+    rates: tuple[tuple[str, float], ...] | None = None,
+) -> str:
     """Map vanilla's weighted ``polled_rate`` to its first matching shop type."""
     if isinstance(polled_rate, bool) or not isinstance(polled_rate, (int, float)):
         raise TypeError("polled_rate must be numeric")
+    active_rates = rates or (
+        ("Joker", 20.0),
+        ("Tarot", 4.0),
+        ("Planet", 4.0),
+        ("Base", 0.0),
+        ("Spectral", 0.0),
+    )
 
-    total_rate = sum(rate for _, rate in _BASE_SHOP_RATES)
+    total_rate = sum(rate for _, rate in active_rates)
     value = float(polled_rate)
     if value <= 0.0 or value > total_rate:
-        raise ValueError("polled_rate is outside the base shop rate range")
+        raise ValueError("polled_rate is outside the shop rate range")
 
     check_rate = 0.0
-    for card_type, rate in _BASE_SHOP_RATES:
+    for card_type, rate in active_rates:
         if value > check_rate and value <= check_rate + rate:
             return card_type
         check_rate += rate
@@ -139,6 +163,7 @@ def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "base shop generation does not own current voucher modifiers"
         )
+    _shop_rates_for_state(state)
     if run.tags:
         raise HeadlessTransitionError("base shop generation does not own active Tag shop effects")
     if any(
@@ -157,9 +182,10 @@ def poll_base_shop_card_type(run: HeadlessRunState) -> ShopCardTypePoll:
     _validate_base_shop_boundary(run)
 
     next_run = run.copy()
-    total_rate = sum(rate for _, rate in _BASE_SHOP_RATES)
+    rates = _shop_rates_for_state(run.public)
+    total_rate = sum(rate for _, rate in rates)
     polled_rate = next_run.rng.random(f"cdt{run.public.ante}") * total_rate
-    return ShopCardTypePoll(next_run, _shop_type_from_polled_rate(polled_rate))
+    return ShopCardTypePoll(next_run, _shop_type_from_polled_rate(polled_rate, rates))
 
 
 def poll_base_main_shop_types(run: HeadlessRunState) -> ShopMainTypeSequence:
@@ -173,10 +199,11 @@ def poll_base_main_shop_types(run: HeadlessRunState) -> ShopMainTypeSequence:
 
     next_run = run.copy()
     card_types: list[str] = []
-    total_rate = sum(rate for _, rate in _BASE_SHOP_RATES)
+    rates = _shop_rates_for_state(run.public)
+    total_rate = sum(rate for _, rate in rates)
     for _ in range(_BASE_MAIN_SHOP_SLOTS):
         polled_rate = next_run.rng.random(f"cdt{run.public.ante}") * total_rate
-        card_types.append(_shop_type_from_polled_rate(polled_rate))
+        card_types.append(_shop_type_from_polled_rate(polled_rate, rates))
 
     return ShopMainTypeSequence(next_run, (card_types[0], card_types[1]))
 
