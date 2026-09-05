@@ -21,6 +21,7 @@ from dataclasses import dataclass
 
 from games.balatro.env.joker_centers import current_joker_pool_from_eligible_keys
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.voucher_capabilities import shop_generation_vouchers_are_exact
 
 
 _BASE_SHOP_RATES: tuple[tuple[str, float], ...] = (
@@ -135,8 +136,10 @@ def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("base shop generation requires an active SHOP")
     if not isinstance(state.ante, int) or isinstance(state.ante, bool) or state.ante < 1:
         raise HeadlessTransitionError("base shop generation requires a positive exact Ante")
-    if state.vouchers:
-        raise HeadlessTransitionError("base shop generation does not own voucher modifiers")
+    if not shop_generation_vouchers_are_exact(state):
+        raise HeadlessTransitionError(
+            "base shop generation does not own current Voucher modifiers"
+        )
     if run.tags:
         raise HeadlessTransitionError("base shop generation does not own active Tag shop effects")
     if any(
@@ -238,10 +241,11 @@ def poll_base_shop_joker_center(
 def poll_base_shop_joker_edition(run: HeadlessRunState) -> ShopJokerEditionPoll:
     """Poll the exact edition assigned by ordinary base-shop Joker creation.
 
-    The currently owned base boundary rejects vouchers and active Tags, so
-    edition-rate modifiers are intentionally unavailable here. Canonical state
-    must therefore report the vanilla base rate exactly. Negative may be
-    generated even though Negative purchase semantics remain fail-closed.
+    Only Voucher ownership explicitly classified as neutral to ordinary shop
+    generation may pass this boundary. Canonical edition rate must still report
+    the vanilla base rate exactly; Hone/Glow Up remain rejected upstream.
+    Negative may be generated even though Negative purchase semantics remain
+    fail-closed.
     """
     _validate_base_shop_boundary(run)
     rate = run.public.joker_generation_edition_rate
