@@ -65,25 +65,25 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 ```text
 Branch: feat/v1.0-red-white-competence
 Code HEAD before this roadmap sync:
-cacff79e399ae9aca6176ea1d237f8f1c89cc898
-  feat(balatro): observe live joker edition rates
+75fec9b3365655c223a8a20b06484e51744c6d07
+  test(balatro): pin exact current prices for discount transitions
 
-Voucher edition-rate family:
-a92185a  feat(balatro): add joker edition rate capability
-af05c6d  feat(balatro): redeem exact joker edition rate vouchers
-b3f02a0  test(balatro): pin exact joker edition rates
-52156b9  test(balatro): pin edition upgrade thresholds
-a2d5c9e  fix(balatro): fail closed on edition rate mismatch
-2d63733  test(balatro): cover edition rate mismatch guards
-bcae2f0  test(balatro): cover live edition rate translation
-cacff79  feat(balatro): observe live joker edition rates
+Discount pricing/redemption closure:
+314ebfd  feat(balatro): own exact generated shop repricing
+c226882  feat(balatro): own exact discount voucher redemption
+bc65332  test(balatro): pin exact discount voucher redemption
+d9bf876  test(balatro): fix liquidation foil price expectation
+cc4bf73  feat(balatro): expose exact discount voucher shop transitions
+c1d96d8  test(balatro): cover discount voucher shop transitions
+b072fb3  fix(balatro): require exact current shop prices before discount redemption
+75fec9b  test(balatro): pin exact current prices for discount transitions
 
 Latest verified code-head CI:
-33956949501
-2133 passed, 1595 deselected
+33960365203
+2165 passed, 1595 deselected
 ```
 
-Hone / Glow Up is now a closed exact Voucher family. The environment owns the persistent Joker-edition-rate state, redemption semantics, stacking, generation thresholds, replay/RNG behavior, mismatch guards, translation, and live observation required to preserve that state across live/headless boundaries.
+Clearance Sale / Liquidation is now a closed exact Voucher family for the currently owned generated-shop surface. The environment owns authoritative discount state, source-compatible Card:set_cost arithmetic, current-price consistency, immediate visible-shop repricing, future generated-shop pricing, affordability/debit integration, ownership progression, live translation, and zero-RNG redemption behavior. Unsupported Booster or legacy visible inventory still blocks discount redemption rather than being approximated.
 
 ## Immediate development position
 
@@ -100,6 +100,7 @@ Hone / Glow Up is now a closed exact Voucher family. The environment owns the pe
 - Exact resource/capacity Voucher redemption group: **GREEN — 8 VOUCHERS**.
 - Owned-Voucher generation integration for the supported resource group: **GREEN**.
 - Exact Joker edition-rate Voucher family (Hone / Glow Up): **GREEN — 2 VOUCHERS**.
+- Exact discount Voucher family (Clearance Sale / Liquidation): **GREEN — 2 VOUCHERS ON OWNED GENERATED-SHOP SURFACE**.
 - Remaining Voucher effect families: **FAIL CLOSED UNTIL THEIR DOWNSTREAM EFFECTS ARE OWNED**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **NOT CURRENTLY REQUIRED**.
@@ -124,6 +125,13 @@ v_palette
 ```text
 v_hone
 v_glow_up
+```
+
+### Shop discount group
+
+```text
+v_clearance_sale
+v_liquidation
 ```
 
 `games/balatro/env/voucher_capabilities.py` remains the canonical capability boundary. Exact generation capability is distinct from exact redemption capability; do not replace per-boundary capability checks with a blanket `if state.vouchers` bypass.
@@ -157,6 +165,40 @@ Owned behavior:
 - live observer + translator preserve the rate exactly;
 - no hidden Voucher ownership is inferred from the observed rate alone.
 
+## Clearance Sale / Liquidation exactness contract
+
+Canonical state:
+
+```text
+shop_discount_percent
+shop_discount_percent_observed
+```
+
+Owned behavior:
+
+- no discount Voucher -> exact 0%;
+- Clearance Sale ownership -> exact 25%;
+- Clearance Sale + Liquidation ownership -> exact 50%;
+- Liquidation without Clearance Sale fails closed;
+- pricing uses one canonical `vanilla_card_cost` owner with edition surcharge and inflation;
+- Planet normal-shop price applies its x2 multiplier **after** discounted Card:set_cost arithmetic;
+- generated Joker/Tarot/Planet/Voucher metadata retain immutable base cost for deterministic repricing;
+- redemption pays the purchased Voucher at its old visible price, removes it, records ownership, then reprices remaining visible generated shop inventory;
+- current visible generated prices must already match the authoritative pre-redemption discount state;
+- redemption consumes no RNG;
+- ownership/discount mismatches fail closed;
+- active Tag effects, Booster inventory, or legacy/non-generated visible price representations block redemption until those price paths are exact.
+
+Canonical owners:
+
+```text
+games/balatro/env/shop_pricing.py
+games/balatro/env/shop_repricing.py
+games/balatro/env/discount_voucher_redemption.py
+games/balatro/env/transition.py
+games/balatro/env/voucher_capabilities.py
+```
+
 ## Fail-closed rule
 
 If exactness cannot be proved:
@@ -182,7 +224,8 @@ Examples already enforced:
 - unsupported Voucher centers never become legal merely because identity, price, and shop slot are known;
 - duplicate/malformed/unobserved nonempty Voucher ownership is rejected;
 - unsupported Voucher modifiers remain rejected even when other owned Vouchers are supported;
-- Voucher upgrade ownership/state mismatches are rejected rather than repaired by inference.
+- Voucher upgrade ownership/state mismatches are rejected rather than repaired by inference;
+- discount Voucher redemption is hidden when current generated prices are stale, Booster pricing is unowned, or visible inventory is legacy/non-generated.
 
 ---
 
@@ -275,12 +318,15 @@ Owned slices include:
 - ordinary Joker rarity/center/edition generation for authoritative eligibility catalogues;
 - Tarot/Planet normal generation;
 - shop reroll for owned generation boundaries;
-- strict pricing preflight;
+- strict centralized Card:set_cost-compatible pricing;
+- generated visible-shop repricing from immutable base metadata;
 - Voucher eligibility/identity polling;
 - Voucher runtime metadata + exact price;
 - separate one-normal-Voucher shop slot publication;
 - supported owned-Voucher state carried through future ordinary shop generation;
-- canonical Joker-edition-rate state consumed by Joker edition generation.
+- canonical Joker-edition-rate state consumed by Joker edition generation;
+- canonical discount state consumed by generated Joker/Tarot/Planet/Voucher pricing;
+- exact Clearance/Liquidation purchase transaction on the owned generated-shop surface.
 
 Representative later gates:
 
@@ -291,46 +337,50 @@ Representative later gates:
 33952322285  2110 passed, 1595 deselected
 33956063668  2117 passed, 1595 deselected
 33956949501  2133 passed, 1595 deselected   Hone / Glow Up + live edition rate
+33959454017  2155 passed, 1595 deselected   discount pricing / generated repricing
+33960365203  2165 passed, 1595 deselected   exact discount redemption + shop action integration
 ```
 
 ---
 
-# Next work — pricing/discount Voucher family audit
+# Next work — shop type-rate Voucher family audit
 
-Hone / Glow Up is closed. The next family to audit is **Clearance Sale / Liquidation**, because it is mechanically coherent but only safe if a single exact discount state drives every affected price/affordability/execution boundary.
+Clearance Sale / Liquidation is closed on the exact generated-shop surface. The next coherent family is:
 
-Do **not** implement a cosmetic/display-only discount.
+```text
+v_tarot_merchant
+v_tarot_tycoon
+v_planet_merchant
+v_planet_tycoon
+```
+
+Pinned vanilla redemption directly changes `G.GAME.tarot_rate` or `G.GAME.planet_rate`; the current headless shop type poll still uses fixed base rates (`Joker=20`, `Tarot=4`, `Planet=4`). Do **not** admit these Vouchers until one canonical rate state drives every affected type-poll boundary.
 
 Immediate audit order:
 
-1. inspect pinned vanilla `Clearance Sale` / `Liquidation` redemption semantics;
-2. identify the canonical headless/public state for the current shop price multiplier;
-3. inspect every affected price path:
-   - Joker shop items;
-   - Tarot/Planet/playing-card shop items;
-   - Voucher price publication;
-   - booster-pack price publication;
-   - legality/affordability checks;
-   - purchase execution/debit;
-   - reroll/shop regeneration persistence;
-4. confirm live observer/translator can preserve the multiplier exactly;
-5. if pricing is fragmented, centralize the pricing owner **before** admitting the Vouchers;
-6. implement exact redemption only after all downstream consumers agree;
-7. enforce Clearance Sale = `min(current_multiplier, 0.75)` and Liquidation = `min(current_multiplier, 0.5)` exactly as vanilla does;
-8. add ownership/multiplier mismatch guards analogous to Hone / Glow Up where required;
-9. add focused redemption, future-generation, affordability/execution, replay/RNG-isolation, and fail-closed tests;
-10. run full deterministic CI and synchronize this roadmap after green.
+1. inspect pinned vanilla center configs and redemption ordering for all four Vouchers;
+2. establish canonical public/headless `tarot_rate` and `planet_rate` state, with explicit observation flags if live reads can be unavailable;
+3. wire live observer + translator to `G.GAME.tarot_rate` / `G.GAME.planet_rate` fail-closed;
+4. replace fixed Tarot/Planet constants in normal-shop type weighting with exact canonical rates while preserving Joker/Base/Spectral semantics;
+5. confirm type-rate changes affect only future shop type selection and do not retroactively reroll/reprice current visible cards;
+6. enforce upgrade progression:
+   - Tarot Tycoon requires Tarot Merchant;
+   - Planet Tycoon requires Planet Merchant;
+7. make ownership↔rate mismatch fail closed, analogous to edition-rate/discount families;
+8. prove supported rate Vouchers compose with resource, edition-rate, and discount Vouchers without changing unrelated RNG nodes;
+9. add deterministic type-boundary/reference tests at base, Merchant, and Tycoon rates;
+10. expose BUY_VOUCHER only after all downstream type-generation consumers use the canonical rates;
+11. run full deterministic CI and synchronize this roadmap after green.
 
-If Clearance/Liquidation exposes missing price ownership that is too broad for one safe slice, close that canonical pricing dependency first rather than approximating the Voucher family.
+If these rates are also consumed by another generation path outside the normal main shop, audit and own that downstream consumer before calling the family closed.
 
-## Subsequent Voucher families after pricing audit
+## Subsequent Voucher families after type-rate audit
 
 Likely order, subject to source audit:
 
-1. **Clearance Sale / Liquidation** — discount pricing;
-2. **Tarot Merchant / Tarot Tycoon** and **Planet Merchant / Planet Tycoon** — shop type-rate modifiers;
-3. **Reroll Surplus / Reroll Glut** — persistent reroll cost;
-4. remaining economy/pack/special families only after their downstream lifecycle is exact.
+1. **Tarot Merchant / Tarot Tycoon + Planet Merchant / Planet Tycoon** — shop type-rate modifiers;
+2. **Reroll Surplus / Reroll Glut** — persistent reroll cost;
+3. remaining economy/pack/special families only after their downstream lifecycle is exact.
 
 The next family is selected by exact downstream ownership, not convenience.
 
