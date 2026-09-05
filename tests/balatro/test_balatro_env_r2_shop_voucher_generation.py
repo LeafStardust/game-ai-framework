@@ -24,17 +24,26 @@ def test_env_r2_normal_voucher_single_fallback_is_exact_and_input_isolated():
     assert result.resamples == 0
     assert run.rng_snapshot() == before
     assert result.run.rng_snapshot() != before
-    assert "Voucher1" in result.run.rng.nodes
+    assert "Voucher" in result.run.rng.nodes
 
 
-def test_env_r2_normal_voucher_uses_voucher_ante_key():
+def test_env_r2_normal_voucher_key_is_not_ante_scoped():
     first = poll_normal_voucher_key(_run("VOUCHER-ANTE", ante=1), ["v_blank"])
     second = poll_normal_voucher_key(_run("VOUCHER-ANTE", ante=2), ["v_blank"])
 
-    assert "Voucher1" in first.run.rng.nodes
-    assert "Voucher2" not in first.run.rng.nodes
-    assert "Voucher2" in second.run.rng.nodes
-    assert "Voucher1" not in second.run.rng.nodes
+    assert "Voucher" in first.run.rng.nodes
+    assert "Voucher" in second.run.rng.nodes
+    assert "Voucher1" not in first.run.rng.nodes
+    assert "Voucher2" not in second.run.rng.nodes
+    assert first.run.rng_snapshot() == second.run.rng_snapshot()
+
+
+def test_env_r2_normal_voucher_does_not_invent_an_ante_precondition():
+    first = poll_normal_voucher_key(_run("VOUCHER-NO-ANTE", ante=0), ["v_blank"])
+    second = poll_normal_voucher_key(_run("VOUCHER-NO-ANTE", ante=9), ["v_blank"])
+
+    assert first.center_key == second.center_key == "v_blank"
+    assert first.run.rng_snapshot() == second.run.rng_snapshot()
 
 
 def test_env_r2_normal_voucher_retries_unavailable_with_source_resample_suffix():
@@ -42,7 +51,7 @@ def test_env_r2_normal_voucher_retries_unavailable_with_source_resample_suffix()
     seed = None
     for candidate in range(1, 10000):
         rng = BalatroRNG(candidate)
-        if rng.pseudorandom_element_index(2, "Voucher1") == 0:
+        if rng.pseudorandom_element_index(2, "Voucher") == 0:
             seed = candidate
             break
     assert seed is not None
@@ -54,8 +63,8 @@ def test_env_r2_normal_voucher_retries_unavailable_with_source_resample_suffix()
 
     assert result.center_key == "v_blank"
     assert result.resamples >= 1
-    assert "Voucher1" in result.run.rng.nodes
-    assert "Voucher1_resample2" in result.run.rng.nodes
+    assert "Voucher" in result.run.rng.nodes
+    assert "Voucher_resample2" in result.run.rng.nodes
 
 
 def test_env_r2_normal_voucher_replay_is_deterministic():
@@ -85,15 +94,5 @@ def test_env_r2_normal_voucher_rejects_malformed_pool_before_rng(pool, match):
 
     with pytest.raises(HeadlessTransitionError, match=match):
         poll_normal_voucher_key(run, pool)
-
-    assert run.rng_snapshot() == before
-
-
-def test_env_r2_normal_voucher_rejects_invalid_ante_before_rng():
-    run = _run(ante=0)
-    before = run.rng_snapshot()
-
-    with pytest.raises(HeadlessTransitionError, match="positive exact Ante"):
-        poll_normal_voucher_key(run, ["v_blank"])
 
     assert run.rng_snapshot() == before
