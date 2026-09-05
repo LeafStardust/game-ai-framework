@@ -16,9 +16,9 @@ def _run(seed: str = "SHOP-JOKER") -> HeadlessRunState:
     state.ante = 1
     state.joker_generation_pool_observed = True
     state.joker_generation_pools = {
-        "1": [{"rarity": 1, "key": "j_joker"}],
-        "2": [{"rarity": 2, "key": "j_stencil"}],
-        "3": [{"rarity": 3, "key": "j_dna"}],
+        "1": [{"rarity": 1, "key": "j_joker", "cost": 2}],
+        "2": [{"rarity": 2, "key": "j_stencil", "cost": 8}],
+        "3": [{"rarity": 3, "key": "j_dna", "cost": 8}],
         "4": [],
     }
     state.joker_generation_edition_rate = 1.0
@@ -33,9 +33,16 @@ def test_env_r2_ordinary_shop_joker_descriptor_is_deterministic_and_source_order
     result = generate_ordinary_shop_joker_descriptor(first)
     repeated = generate_ordinary_shop_joker_descriptor(second)
 
-    assert (result.center_key, result.rarity, result.edition, result.resamples) == (
+    assert (
+        result.center_key,
+        result.rarity,
+        result.base_cost,
+        result.edition,
+        result.resamples,
+    ) == (
         repeated.center_key,
         repeated.rarity,
+        repeated.base_cost,
         repeated.edition,
         repeated.resamples,
     )
@@ -43,12 +50,12 @@ def test_env_r2_ordinary_shop_joker_descriptor_is_deterministic_and_source_order
     assert first.rng_snapshot() == before
     assert result.run.rng_snapshot() != before
 
-    expected_center = {
-        1: "j_joker",
-        2: "j_stencil",
-        3: "j_dna",
+    expected = {
+        1: ("j_joker", 2),
+        2: ("j_stencil", 8),
+        3: ("j_dna", 8),
     }[result.rarity]
-    assert result.center_key == expected_center
+    assert (result.center_key, result.base_cost) == expected
     assert result.resamples >= 0
     assert result.edition in {None, "Foil", "Holographic", "Polychrome", "Negative"}
 
@@ -63,6 +70,14 @@ def test_env_r2_ordinary_shop_joker_descriptor_requires_authoritative_pool():
     run.public.joker_generation_pool_observed = False
 
     with pytest.raises(HeadlessTransitionError, match="not authoritatively observed"):
+        generate_ordinary_shop_joker_descriptor(run)
+
+
+def test_env_r2_ordinary_shop_joker_descriptor_rejects_missing_cost():
+    run = _run()
+    del run.public.joker_generation_pools["1"][0]["cost"]
+
+    with pytest.raises(HeadlessTransitionError, match="invalid center cost"):
         generate_ordinary_shop_joker_descriptor(run)
 
 
