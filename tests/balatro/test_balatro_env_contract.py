@@ -12,6 +12,7 @@ from games.balatro.actions import (
     SKIP_BOOSTER,
     USE_CONSUMABLE,
 )
+from games.balatro.env.actions import EnvAction, validate_training_action
 from games.balatro.env_contract import (
     BALATRO_ENV_CONTRACT_VERSION,
     CapabilityStatus,
@@ -37,11 +38,30 @@ def test_only_frozen_actions_are_training_exposed():
         "BUY_VOUCHER": BUY_VOUCHER,
         "BUY_CONSUMABLE": BUY_CONSUMABLE,
         "OPEN_PACK": BUY_BOOSTER,
+        "REROLL_SHOP": REFRESH_SHOP,
     }
     assert all(
         contract.legality_owner and contract.execution_owner
         for contract in training_action_contracts()
     )
+
+
+def test_reroll_shop_uses_canonical_action_and_dedicated_exact_owners():
+    contract = contract_for("REROLL_SHOP")
+
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == REFRESH_SHOP
+    assert contract.legality_owner == (
+        "games.balatro.env.shop_reroll.can_reroll_base_main_shop"
+    )
+    assert contract.execution_owner == (
+        "games.balatro.live.injected.action_dispatcher."
+        "LiveMemoryInjectedActionDispatcher.dispatch"
+    )
+
+    action = EnvAction.from_alias("REROLL_SHOP")
+    assert action.action_id == REFRESH_SHOP
+    validate_training_action(action)
 
 
 def test_rl_aliases_preserve_canonical_production_action_ids():
@@ -62,7 +82,6 @@ def test_unfrozen_and_unavailable_capabilities_never_enter_training_mask():
     exposed_aliases = {contract.alias for contract in training_action_contracts()}
 
     for alias in (
-        "REROLL_SHOP",
         "SELL_JOKER",
         "BUY_CARD",
         "CHOOSE_PACK_OPTION",
