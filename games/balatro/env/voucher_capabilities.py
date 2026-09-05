@@ -24,18 +24,10 @@ EXACT_RESOURCE_VOUCHER_KEYS = frozenset(
     }
 )
 
-EXACT_EDITION_RATE_VOUCHER_KEYS = frozenset(
-    {
-        "v_hone",
-        "v_glow_up",
-    }
-)
+EXACT_EDITION_RATE_VOUCHER_KEYS = frozenset({"v_hone", "v_glow_up"})
 
 EXACT_DISCOUNT_VOUCHER_KEYS = frozenset(
-    {
-        "v_clearance_sale",
-        "v_liquidation",
-    }
+    {"v_clearance_sale", "v_liquidation"}
 )
 
 EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS = frozenset(
@@ -48,24 +40,23 @@ EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS = frozenset(
 )
 
 EXACT_REROLL_COST_VOUCHER_KEYS = frozenset(
-    {
-        "v_reroll_surplus",
-        "v_reroll_glut",
-    }
+    {"v_reroll_surplus", "v_reroll_glut"}
 )
 
-# Resource Vouchers are neutral to ordinary main-shop generation. Hone/Glow Up
-# modify the ordinary Joker edition poll. Clearance Sale/Liquidation modify card
-# pricing but not shop RNG. Merchant/Tycoon Vouchers modify the Tarot/Planet
-# weights consumed by the ordinary ``create_card_for_shop`` type poll itself.
-# Reroll Surplus/Glut modify reroll pricing only; they are neutral to the item RNG
-# once their separate persistent/current reroll-cost state is proved exact.
+# Seed Money / Money Tree are exact only for boundaries that explicitly validate
+# ``interest_cap``. They are neutral to shop RNG/pricing, but ownership alone
+# must never make cash-out exact when the cap is unobserved or inconsistent.
+EXACT_INTEREST_CAP_VOUCHER_KEYS = frozenset(
+    {"v_seed_money", "v_money_tree"}
+)
+
 SHOP_BASE_GENERATION_VOUCHER_KEYS = (
     EXACT_RESOURCE_VOUCHER_KEYS
     | EXACT_EDITION_RATE_VOUCHER_KEYS
     | EXACT_DISCOUNT_VOUCHER_KEYS
     | EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS
     | EXACT_REROLL_COST_VOUCHER_KEYS
+    | EXACT_INTEREST_CAP_VOUCHER_KEYS
 )
 
 
@@ -84,13 +75,9 @@ def _owned_supported_vouchers(state: BalatroState) -> set[str] | None:
     return set(vouchers)
 
 
-def expected_joker_edition_rate_for_vouchers(
-    state: BalatroState,
-) -> float | None:
-    """Return the exact vanilla edition rate implied by supported ownership."""
+def expected_joker_edition_rate_for_vouchers(state: BalatroState) -> float | None:
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
-
     owned = _owned_supported_vouchers(state)
     if owned is None:
         return None
@@ -103,13 +90,9 @@ def expected_joker_edition_rate_for_vouchers(
     return 1.0
 
 
-def expected_shop_discount_percent_for_vouchers(
-    state: BalatroState,
-) -> int | None:
-    """Return vanilla ``G.GAME.discount_percent`` implied by exact ownership."""
+def expected_shop_discount_percent_for_vouchers(state: BalatroState) -> int | None:
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
-
     owned = _owned_supported_vouchers(state)
     if owned is None:
         return None
@@ -123,16 +106,8 @@ def expected_shop_discount_percent_for_vouchers(
 
 
 def expected_tarot_rate_for_vouchers(state: BalatroState) -> float | None:
-    """Return vanilla ``G.GAME.tarot_rate`` implied by exact ownership.
-
-    Pinned vanilla assigns ``4 * center.config.extra`` on redemption. Tarot
-    Merchant uses ``9.6/4`` and Tarot Tycoon uses ``32/4``, producing exact
-    conceptual rates 9.6 and 32. Tycoon without Merchant is impossible and fails
-    closed rather than trusting a numeric rate alone.
-    """
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
-
     owned = _owned_supported_vouchers(state)
     if owned is None:
         return None
@@ -146,10 +121,8 @@ def expected_tarot_rate_for_vouchers(state: BalatroState) -> float | None:
 
 
 def expected_planet_rate_for_vouchers(state: BalatroState) -> float | None:
-    """Return vanilla ``G.GAME.planet_rate`` implied by exact ownership."""
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
-
     owned = _owned_supported_vouchers(state)
     if owned is None:
         return None
@@ -163,15 +136,8 @@ def expected_planet_rate_for_vouchers(state: BalatroState) -> float | None:
 
 
 def expected_base_reroll_cost_for_vouchers(state: BalatroState) -> int | None:
-    """Return vanilla persistent ``round_resets.reroll_cost`` for exact ownership.
-
-    Red/White starts from $5. Reroll Surplus subtracts $2 from the persistent
-    reset cost and Reroll Glut, which requires Surplus, subtracts another $2.
-    Other exact Voucher families are neutral to reroll cost.
-    """
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
-
     owned = _owned_supported_vouchers(state)
     if owned is None:
         return None
@@ -182,6 +148,52 @@ def expected_base_reroll_cost_for_vouchers(state: BalatroState) -> int | None:
     if "v_reroll_surplus" in owned:
         return 3
     return 5
+
+
+def expected_interest_cap_for_vouchers(state: BalatroState) -> int | None:
+    """Return vanilla normal-mode interest cap implied by exact ownership.
+
+    Base Red/White is $25. Seed Money assigns $50 and Money Tree, which requires
+    Seed Money, assigns $100. This helper validates ownership progression only;
+    consumers that depend on live cap state must separately require agreement
+    with ``state.interest_cap``.
+    """
+    if not isinstance(state, BalatroState):
+        raise TypeError("state must be BalatroState")
+    owned = _owned_supported_vouchers(state)
+    if owned is None:
+        return None
+    if "v_money_tree" in owned and "v_seed_money" not in owned:
+        return None
+    if "v_money_tree" in owned:
+        return 100
+    if "v_seed_money" in owned:
+        return 50
+    return 25
+
+
+def interest_cap_vouchers_are_exact(state: BalatroState) -> bool:
+    """Return whether the cash-out interest cap is exact for this state.
+
+    With authoritative Voucher ownership and no interest-cap Voucher, the normal
+    Red/White base cap of $25 is mechanically fixed. Once Seed Money or Money
+    Tree is owned, the direct G.GAME.interest_cap observation/persisted headless
+    value is required and must agree with ownership.
+    """
+    expected = expected_interest_cap_for_vouchers(state)
+    if expected is None:
+        return False
+    owned = set(state.vouchers) if isinstance(state.vouchers, list) else set()
+    owns_interest_modifier = bool(owned & EXACT_INTEREST_CAP_VOUCHER_KEYS)
+    if not owns_interest_modifier:
+        if state.interest_cap_observed is True:
+            return type(state.interest_cap) is int and state.interest_cap == expected
+        return True
+    return (
+        state.interest_cap_observed is True
+        and type(state.interest_cap) is int
+        and state.interest_cap == expected
+    )
 
 
 def shop_generation_vouchers_are_exact(state: BalatroState) -> bool:
@@ -220,7 +232,6 @@ def shop_generation_vouchers_are_exact(state: BalatroState) -> bool:
 
 
 def shop_pricing_vouchers_are_exact(state: BalatroState) -> bool:
-    """Return whether Voucher-derived shop pricing state is authoritative/exact."""
     if not shop_generation_vouchers_are_exact(state):
         return False
     expected_discount = expected_shop_discount_percent_for_vouchers(state)
