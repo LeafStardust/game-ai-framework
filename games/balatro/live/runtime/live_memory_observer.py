@@ -157,6 +157,7 @@ def snapshot_payload_from_live_memory(
     ectoplasm_penalty = max(1, _integer(game.get("ecto_minus"), 1))
     round_reset_discards = _number(round_resets.get("discards"))
     round_reset_hands = _number(round_resets.get("hands"))
+    joker_generation_edition_rate = _number(game.get("edition_rate"))
     round_most_played_hand = _string(current_round.get("most_played_poker_hand"))
     current_tag = blind_tags.get(str(normalized_blind.get("type") or "").lower())
     if current_tag:
@@ -218,6 +219,11 @@ def snapshot_payload_from_live_memory(
         "joker_unlocks": joker_unlocks,
         "vouchers_observed": vouchers_observed,
         **({"vouchers": owned_vouchers} if vouchers_observed else {}),
+        **(
+            {"joker_generation_edition_rate": float(joker_generation_edition_rate)}
+            if joker_generation_edition_rate is not None
+            else {}
+        ),
         "ectoplasm_hand_size_penalty": ectoplasm_penalty,
         "round_reset_discards_observed": round_reset_discards is not None,
         **(
