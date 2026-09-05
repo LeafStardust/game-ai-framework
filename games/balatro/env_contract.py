@@ -166,8 +166,12 @@ STRATEGIC_ACTION_CONTRACTS: tuple[StrategicActionContract, ...] = (
     StrategicActionContract(
         "BUY_CARD",
         None,
-        CapabilityStatus.PLANNED,
-        note="No dedicated canonical BUY_CARD production identifier exists yet.",
+        CapabilityStatus.UNAVAILABLE,
+        note=(
+            "No dedicated canonical BUY_CARD production identifier or live shop "
+            "legality/execution owner exists in the frozen Red/White surface; "
+            "Magic Trick/Illusion playing-card shop mechanics remain unsupported."
+        ),
     ),
     StrategicActionContract(
         "CHOOSE_PACK_OPTION",
