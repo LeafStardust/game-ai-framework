@@ -25,6 +25,7 @@ EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS = frozenset(
 EXACT_REROLL_COST_VOUCHER_KEYS = frozenset({"v_reroll_surplus", "v_reroll_glut"})
 EXACT_INTEREST_CAP_VOUCHER_KEYS = frozenset({"v_seed_money", "v_money_tree"})
 EXACT_SHOP_SIZE_VOUCHER_KEYS = frozenset({"v_overstock_norm", "v_overstock_plus"})
+EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 
 SHOP_BASE_GENERATION_VOUCHER_KEYS = (
     EXACT_RESOURCE_VOUCHER_KEYS
@@ -34,6 +35,7 @@ SHOP_BASE_GENERATION_VOUCHER_KEYS = (
     | EXACT_REROLL_COST_VOUCHER_KEYS
     | EXACT_INTEREST_CAP_VOUCHER_KEYS
     | EXACT_SHOP_SIZE_VOUCHER_KEYS
+    | EXACT_ANTE_VOUCHER_KEYS
 )
 
 
@@ -49,7 +51,10 @@ def _owned_supported_vouchers(state: BalatroState) -> set[str] | None:
         return None
     if any(key not in SHOP_BASE_GENERATION_VOUCHER_KEYS for key in vouchers):
         return None
-    return set(vouchers)
+    owned = set(vouchers)
+    if "v_petroglyph" in owned and "v_hieroglyph" not in owned:
+        return None
+    return owned
 
 
 def expected_joker_edition_rate_for_vouchers(state: BalatroState) -> float | None:
