@@ -1,15 +1,13 @@
 """Exact internal redemption primitive for Hieroglyph / Petroglyph.
 
-This owner deliberately keeps ``BlindProgressionState`` explicit.  Vanilla
-redemption mutates both policy-visible run state (Ante and round allowances) and
-private ``G.GAME.round_resets.blind_ante``.  Until that private progression state
-is installed in the generic training run container, this primitive must not be
-mistaken for training-visible ``BUY_VOUCHER`` ownership.
+Vanilla redemption mutates both policy-visible run state (Ante and round
+allowances) and private ``G.GAME.round_resets.blind_ante``. The generic
+``HeadlessRunState`` now retains the existing canonical ``BlindProgressionState``
+owner, so this shop primitive requires and updates that state directly rather
+than accepting a parallel progression argument.
 """
 
 from __future__ import annotations
-
-from copy import deepcopy
 
 from games.balatro.env.blind_progression import BlindProgressionState
 from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
@@ -21,17 +19,15 @@ EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 
 def _validate_exact_redeem_boundary(
     run: HeadlessRunState,
-    progression: BlindProgressionState,
     *,
     slot: int,
-) -> tuple[GeneratedShopVoucherItem, str]:
+) -> tuple[GeneratedShopVoucherItem, str, BlindProgressionState]:
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
-    if not isinstance(progression, BlindProgressionState):
-        raise TypeError("progression must be BlindProgressionState")
     if isinstance(slot, bool) or not isinstance(slot, int):
         raise HeadlessTransitionError("Voucher slot must be an exact integer")
 
+    progression = run.require_blind_progression_state()
     state = run.public
     if state.phase != "SHOP" or state.shop_active is not True:
         raise HeadlessTransitionError("Ante Voucher redemption requires active SHOP")
@@ -56,10 +52,9 @@ def _validate_exact_redeem_boundary(
     if isinstance(state.ante, bool) or not isinstance(state.ante, int):
         raise HeadlessTransitionError("Ante must be an exact integer")
 
-    # At an active normal shop, source round_resets.blind_ante tracks the same
-    # current Ante.  Boss cash-out reset_blinds and each Ante Voucher move both
-    # fields together.  A disagreement means the private progression snapshot is
-    # stale and redemption cannot be reproduced exactly.
+    # At an active normal shop after reset_blinds, vanilla blind_ante tracks the
+    # same current Ante. A disagreement means the private progression snapshot is
+    # stale; never repair it from the public value.
     if progression.blind_ante != state.ante:
         raise HeadlessTransitionError(
             "private blind Ante is stale relative to public Ante"
@@ -88,18 +83,17 @@ def _validate_exact_redeem_boundary(
                 "Petroglyph requires a reducible exact current discard allowance"
             )
 
-    return item, key
+    return item, key, progression
 
 
 def ante_voucher_redemption_is_exact(
     run: HeadlessRunState,
-    progression: BlindProgressionState,
     *,
     slot: int,
 ) -> bool:
-    """Return whether the internal Hieroglyph/Petroglyph redemption is exact."""
+    """Return whether retained-state Hieroglyph/Petroglyph redemption is exact."""
     try:
-        _validate_exact_redeem_boundary(run, progression, slot=slot)
+        _validate_exact_redeem_boundary(run, slot=slot)
     except (TypeError, HeadlessTransitionError):
         return False
     return True
@@ -107,28 +101,18 @@ def ante_voucher_redemption_is_exact(
 
 def redeem_exact_ante_voucher(
     run: HeadlessRunState,
-    progression: BlindProgressionState,
     *,
     slot: int,
-) -> tuple[HeadlessRunState, BlindProgressionState]:
-    """Apply pinned vanilla Hieroglyph/Petroglyph direct state effects.
+) -> HeadlessRunState:
+    """Apply pinned vanilla Hieroglyph/Petroglyph direct state effects exactly.
 
-    Source order/effects represented here:
-
-    * pay and consume the shop Voucher;
-    * ``ease_ante(-1)`` -> persistent Ante decreases by one;
-    * ``round_resets.blind_ante`` decreases by one;
-    * Hieroglyph decreases both persistent and current hands by one;
-    * Petroglyph (requiring Hieroglyph) decreases both persistent and current
-      discards by one;
-    * used-Voucher ownership is appended.
-
-    No RNG is consumed.  Inputs are never mutated.
+    The successor run atomically contains both public mutations and the matching
+    private ``blind_ante`` mutation. No RNG is consumed; the input is untouched.
     """
-    item, key = _validate_exact_redeem_boundary(run, progression, slot=slot)
+    item, key, _ = _validate_exact_redeem_boundary(run, slot=slot)
 
     next_run = run.copy()
-    next_progression = deepcopy(progression)
+    next_progression = next_run.require_blind_progression_state()
     state = next_run.public
 
     state.money -= item.price
@@ -146,4 +130,4 @@ def redeem_exact_ante_voucher(
         state.round_reset_discards -= 1
         state.discards_remaining -= 1
 
-    return next_run, next_progression
+    return next_run
