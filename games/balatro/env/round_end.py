@@ -229,6 +229,14 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     next_state.money = money + payout
     next_state.phase = "SHOP"
     next_state.shop_active = True
+    # This cash-out boundary rejects every currently modeled source of nonzero
+    # pricing state. In normal Red/White, challenge inflation is absent and no
+    # discount voucher/tag is active, so the direct Card:set_cost inputs are
+    # authoritatively zero for the shop we are entering.
+    next_state.shop_inflation_observed = True
+    next_state.shop_inflation = 0
+    next_state.shop_discount_percent_observed = True
+    next_state.shop_discount_percent = 0
 
     # Shop inventory generation is deliberately not part of this transition.
     # Keep the containers exact and empty until the R2 shop-RNG owner fills them.
