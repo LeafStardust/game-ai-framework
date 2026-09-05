@@ -42,7 +42,7 @@ def validate_paid_base_reroll(run: HeadlessRunState) -> None:
     """Validate the exact ordinary paid-reroll boundary.
 
     This is the single mechanics owner used by both legality/masking code and
-    ``reroll_base_main_shop``.  Callers must not duplicate these conditions.
+    ``reroll_base_main_shop``. Callers must not duplicate these conditions.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -112,10 +112,20 @@ def reroll_base_main_shop(run: HeadlessRunState) -> PaidBaseShopReroll:
 
     # G.shop_jokers is the shared physical main-shop area. Canonical state splits
     # that area by item category, so both category lists must be cleared together.
+    # The generic main-shop generator deliberately requires every shop area empty;
+    # isolate generation from the independent booster/Voucher areas, then restore
+    # those areas without letting them influence main-shop RNG or capacity.
+    existing_boosters = list(next_run.public.shop_boosters)
+    existing_vouchers = list(next_run.public.shop_vouchers)
     next_run.public.shop_jokers = []
     next_run.public.shop_consumables = []
+    next_run.public.shop_boosters = []
+    next_run.public.shop_vouchers = []
 
     generated: GeneratedMainShop = generate_base_main_shop(next_run)
+    generated.run.public.shop_boosters = existing_boosters
+    generated.run.public.shop_vouchers = existing_vouchers
+
     return PaidBaseShopReroll(
         run=generated.run,
         previous_cost=previous_cost,
