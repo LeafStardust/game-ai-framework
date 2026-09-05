@@ -27,6 +27,8 @@ _POOLS = {
     4: [],
 }
 
+_CANONICAL_POOLS = {str(rarity): records for rarity, records in _POOLS.items()}
+
 
 def _translate(payload):
     snapshot = LiveBalatroSnapshot(
@@ -49,7 +51,7 @@ def test_env_r2_live_joker_pool_enrichment_round_trips_into_canonical_state():
 
     state = _translate(payload)
     assert state.joker_generation_pool_observed is True
-    assert state.joker_generation_pools == _POOLS
+    assert state.joker_generation_pools == _CANONICAL_POOLS
 
 
 def test_env_r2_live_joker_pool_incomplete_observation_clears_stale_catalogue():
