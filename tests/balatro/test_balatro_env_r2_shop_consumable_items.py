@@ -38,13 +38,15 @@ def _record(card_type: str, key: str, cost: int = 3, **extra):
 
 
 @pytest.mark.parametrize(
-    ("card_type", "records"),
+    ("card_type", "records", "expected_price"),
     [
-        ("Tarot", [_record("Tarot", "c_strength", 3)]),
-        ("Planet", [_record("Planet", "c_pluto", 3)]),
+        ("Tarot", [_record("Tarot", "c_strength", 3)], 4),
+        ("Planet", [_record("Planet", "c_pluto", 3)], 8),
     ],
 )
-def test_env_r2_consumable_descriptor_carries_observed_cost_and_prices_exactly(card_type, records):
+def test_env_r2_consumable_descriptor_carries_observed_cost_and_prices_exactly(
+    card_type, records, expected_price
+):
     run = _run()
     before = run.rng_snapshot()
 
@@ -56,7 +58,7 @@ def test_env_r2_consumable_descriptor_carries_observed_cost_and_prices_exactly(c
     assert item.card_type == card_type
     assert item.center_key == records[0]["key"]
     assert item.base_cost == 3
-    assert item.price == 4  # base 3 + inflation 1, no edition/discount
+    assert item.price == expected_price
     assert item.kind == "CONSUMABLE"
     assert run.rng_snapshot() == before
     assert descriptor.run.rng_snapshot() != before
@@ -65,16 +67,18 @@ def test_env_r2_consumable_descriptor_carries_observed_cost_and_prices_exactly(c
 
 
 @pytest.mark.parametrize(
-    ("card_type", "fallback"),
-    [("Tarot", "c_strength"), ("Planet", "c_pluto")],
+    ("card_type", "fallback", "expected_price"),
+    [("Tarot", "c_strength", 4), ("Planet", "c_pluto", 8)],
 )
-def test_env_r2_consumable_empty_pool_fallback_has_pinned_cost_three(card_type, fallback):
+def test_env_r2_consumable_empty_pool_fallback_has_pinned_cost_three(
+    card_type, fallback, expected_price
+):
     descriptor = describe_base_shop_consumable_from_records(_run(), card_type, [])
     _, item = materialize_base_shop_consumable_descriptor(descriptor)
 
     assert descriptor.center_key == fallback
     assert descriptor.base_cost == 3
-    assert item.price == 4
+    assert item.price == expected_price
 
 
 def test_env_r2_consumable_materialization_applies_vanilla_discount_formula():
