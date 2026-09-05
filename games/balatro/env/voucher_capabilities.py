@@ -118,10 +118,12 @@ def shop_generation_vouchers_are_exact(state: BalatroState) -> bool:
     Discount ownership is structurally admitted here because Clearance/Liquidation
     do not alter the type/rarity/center/edition random streams. The observed
     ``discount_percent`` is deliberately validated by the separate pricing gate
-    at boundaries that actually materialize prices.
+    at boundaries that actually materialize prices. Structurally impossible
+    discount progression (Liquidation without Clearance) still fails closed.
     """
     expected_rate = expected_joker_edition_rate_for_vouchers(state)
-    if expected_rate is None:
+    expected_discount = expected_shop_discount_percent_for_vouchers(state)
+    if expected_rate is None or expected_discount is None:
         return False
 
     rate = state.joker_generation_edition_rate
