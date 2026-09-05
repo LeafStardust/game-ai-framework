@@ -1,13 +1,13 @@
-"""Exact pricing for the currently owned normal unmodified shop boundary.
+"""Exact Balatro ``Card:set_cost`` pricing for generated shop Jokers.
 
-Vanilla ``Card:set_cost`` computes a card's purchase price from immutable center
-base cost, run inflation, edition surcharge, and discount percentage. The current
-Red Deck / White Stake normal-mode base-shop generator explicitly rejects voucher
-and active-Tag modifiers and does not model challenge inflation, so the owned
-boundary is exactly ``inflation=0`` and ``discount_percent=0``.
+Vanilla pricing consumes immutable center base cost plus two ordinary ``G.GAME``
+fields: ``inflation`` and ``discount_percent``.  These mechanics-critical values
+must be present in canonical state with authoritative observation markers before a
+generated descriptor can be priced.  Voucher names are not used as a substitute
+for the direct runtime discount value.
 
-Do not widen this function by silently accepting modifier state; add canonical
-state ownership first.
+Active Tag effects remain a separate materialization boundary and therefore stay
+fail-closed here until their price/creation consequences are audited end-to-end.
 """
 
 from __future__ import annotations
@@ -59,21 +59,27 @@ def vanilla_card_cost(
 
 
 def price_base_shop_joker_descriptor(descriptor: OrdinaryShopJokerDescriptor) -> int:
-    """Price one descriptor inside the frozen normal unmodified shop boundary."""
+    """Price one descriptor from authoritative canonical pricing state."""
     if not isinstance(descriptor, OrdinaryShopJokerDescriptor):
         raise TypeError("descriptor must be OrdinaryShopJokerDescriptor")
     run = descriptor.run
     state = run.public
     if state.phase != "SHOP" or not state.shop_active:
         raise HeadlessTransitionError("base Joker pricing requires an active SHOP")
-    if state.vouchers:
-        raise HeadlessTransitionError("base Joker pricing does not own voucher discounts")
+    if not isinstance(state.shop_inflation_observed, bool):
+        raise HeadlessTransitionError("shop_inflation_observed must be a boolean")
+    if not state.shop_inflation_observed:
+        raise HeadlessTransitionError("shop inflation is not authoritative")
+    if not isinstance(state.shop_discount_percent_observed, bool):
+        raise HeadlessTransitionError("shop_discount_percent_observed must be a boolean")
+    if not state.shop_discount_percent_observed:
+        raise HeadlessTransitionError("shop discount percent is not authoritative")
     if run.tags:
         raise HeadlessTransitionError("base Joker pricing does not own active Tag price effects")
 
     return vanilla_card_cost(
         descriptor.base_cost,
         edition=descriptor.edition,
-        inflation=0,
-        discount_percent=0,
+        inflation=state.shop_inflation,
+        discount_percent=state.shop_discount_percent,
     )
