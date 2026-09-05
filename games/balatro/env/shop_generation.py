@@ -21,11 +21,11 @@ from dataclasses import dataclass
 
 from games.balatro.env.joker_centers import current_joker_pool_from_eligible_keys
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
-from games.balatro.env.voucher_capabilities import shop_generation_vouchers_are_exact
+from games.balatro.env.voucher_capabilities import (
+    expected_main_shop_slots_for_vouchers,
+    shop_generation_vouchers_are_exact,
+)
 from games.balatro.state import BalatroState
-
-
-_BASE_MAIN_SHOP_SLOTS = 2
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,7 @@ class ShopCardTypePoll:
 @dataclass(frozen=True)
 class ShopMainTypeSequence:
     run: HeadlessRunState
-    card_types: tuple[str, str]
+    card_types: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -189,23 +189,28 @@ def poll_base_shop_card_type(run: HeadlessRunState) -> ShopCardTypePoll:
 
 
 def poll_base_main_shop_types(run: HeadlessRunState) -> ShopMainTypeSequence:
-    """Poll the exact two normal main-shop slot types in source order.
+    """Poll all normal main-shop slot types in source order.
 
-    Vanilla initializes ``G.GAME.shop.joker_max = 2`` and calls
-    ``create_card_for_shop(G.shop_jokers)`` once per missing main-shop slot.
-    Booster and voucher areas are distinct generation paths and remain unowned.
+    Vanilla starts Red Deck at two main-shop slots. Overstock and Overstock Plus
+    each add one persistent slot, so the exact count is reconstructed from the
+    authoritative used-Voucher history before RNG advances. Booster and Voucher
+    areas are distinct generation paths and remain outside this type sequence.
     """
     _validate_base_shop_boundary(run)
+
+    slot_count = expected_main_shop_slots_for_vouchers(run.public)
+    if slot_count is None:
+        raise HeadlessTransitionError("main shop slot count is not exact")
 
     next_run = run.copy()
     card_types: list[str] = []
     rates = _shop_rates_for_state(run.public)
     total_rate = sum(rate for _, rate in rates)
-    for _ in range(_BASE_MAIN_SHOP_SLOTS):
+    for _ in range(slot_count):
         polled_rate = next_run.rng.random(f"cdt{run.public.ante}") * total_rate
         card_types.append(_shop_type_from_polled_rate(polled_rate, rates))
 
-    return ShopMainTypeSequence(next_run, (card_types[0], card_types[1]))
+    return ShopMainTypeSequence(next_run, tuple(card_types))
 
 
 def poll_base_shop_joker_rarity(run: HeadlessRunState) -> ShopJokerRarityPoll:
