@@ -35,7 +35,7 @@ def test_env_r2_shop_generation_state_rejects_noncanonical_integer_rarity_key():
         1: [{"rarity": 1, "key": "j_joker"}],
     }
 
-    with pytest.raises(HeadlessTransitionError, match="missing rarity 1"):
+    with pytest.raises(HeadlessTransitionError, match="exact rarities 1 through 4"):
         eligible_joker_keys_from_state(run, 1)
 
 
@@ -44,4 +44,40 @@ def test_env_r2_shop_generation_state_rejects_unobserved_pool():
     run.public.joker_generation_pool_observed = False
 
     with pytest.raises(HeadlessTransitionError, match="not authoritatively observed"):
+        eligible_joker_keys_from_state(run, 1)
+
+
+def test_env_r2_shop_generation_state_validates_all_rarities_before_selected_one():
+    run = _run()
+    run.public.joker_generation_pools["4"] = [
+        {"rarity": 3, "key": "j_caino"},
+    ]
+
+    with pytest.raises(HeadlessTransitionError, match="rarity mismatch"):
+        eligible_joker_keys_from_state(run, 1)
+
+
+def test_env_r2_shop_generation_state_rejects_malformed_record_metadata():
+    run = _run()
+    run.public.joker_generation_pools["2"] = [
+        {"rarity": 2, "key": "j_stencil", "unlocked": "yes"},
+    ]
+    with pytest.raises(HeadlessTransitionError, match="invalid unlocked state"):
+        eligible_joker_keys_from_state(run, 1)
+
+    run = _run()
+    run.public.joker_generation_pools["3"] = [
+        {"rarity": 3, "key": "j_dna", "no_pool_flag": ""},
+    ]
+    with pytest.raises(HeadlessTransitionError, match="invalid no_pool_flag"):
+        eligible_joker_keys_from_state(run, 1)
+
+
+def test_env_r2_shop_generation_state_rejects_duplicate_keys_across_catalogue():
+    run = _run()
+    run.public.joker_generation_pools["2"] = [
+        {"rarity": 2, "key": "j_joker"},
+    ]
+
+    with pytest.raises(HeadlessTransitionError, match="duplicate center keys"):
         eligible_joker_keys_from_state(run, 1)
