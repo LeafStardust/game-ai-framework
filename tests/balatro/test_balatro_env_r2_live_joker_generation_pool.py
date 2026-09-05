@@ -14,6 +14,10 @@ def _boolean(value: bool) -> LuaValue:
     return LuaValue("boolean", value, 0)
 
 
+def _integer(value: int) -> LuaValue:
+    return LuaValue("integer", value, 0)
+
+
 class _Decoder:
     def __init__(self):
         self.fields: dict[int, dict[str, LuaValue]] = {}
@@ -73,13 +77,25 @@ def _runtime(monkeypatch):
         401: "j_legend_locked",
         402: "j_legend_open",
     }
+    costs = {
+        101: 2,
+        102: 5,
+        103: 7,
+        201: 6,
+        301: 8,
+        401: 20,
+        402: 20,
+    }
     for rarity, ids in center_ids.items():
         decoder.arrays[20 + rarity] = tuple(
             (index, _table(center_id))
             for index, center_id in enumerate(ids, start=1)
         )
     for center_id, key in keys.items():
-        decoder.fields[center_id] = {"key": _string(key)}
+        decoder.fields[center_id] = {
+            "key": _string(key),
+            "cost": _integer(costs[center_id]),
+        }
 
     root = {
         "GAME": _table(1),
@@ -107,6 +123,7 @@ def test_env_r2_live_joker_pool_preserves_runtime_rarity_order_and_public_record
     assert pools[1][1] == {
         "rarity": 1,
         "key": "j_second",
+        "cost": 5,
         "unlocked": True,
         "no_pool_flag": "blocked",
         "yes_pool_flag": "enabled",
