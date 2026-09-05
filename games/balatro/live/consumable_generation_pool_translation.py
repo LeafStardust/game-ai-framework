@@ -23,21 +23,39 @@ _REQUIRED_FIELDS = {
 }
 
 
+def _exact_nonnegative_rate(value: Any, default: float) -> float:
+    """Return an exact live shop type rate or the normal-mode base default.
+
+    Missing/malformed reads never infer Voucher ownership. If a Merchant/Tycoon
+    Voucher is observed, the capability layer compares this translated value with
+    ownership and fails closed when the live rate was unavailable or inconsistent.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return default
+    rate = float(value)
+    return rate if rate >= 0.0 else default
+
+
 def translate_consumable_generation_pool_payload(
     state: BalatroState,
     payload: dict[str, Any],
 ) -> None:
-    """Install authoritative ordinary generation catalogues or leave unobserved.
+    """Install authoritative ordinary generation catalogues and shop type rates.
 
     Voucher translation shares this already-canonical live-generation translation
     boundary so the main state translator cannot accidentally install Tarot/Planet
     eligibility without also validating the ordered Voucher catalogue.
 
-    Tarot/Planet translation is all-or-nothing. A claimed observation with either
-    type missing, any malformed record, duplicate key, or unexpected record field
-    is rejected as unobserved instead of silently dropping the bad fragment.
+    Tarot/Planet catalogue translation is all-or-nothing. A claimed observation
+    with either type missing, any malformed record, duplicate key, or unexpected
+    record field is rejected as unobserved instead of silently dropping the bad
+    fragment. The scalar normal-shop type rates are independent persistent
+    ``G.GAME`` fields and are translated even when generation catalogues are absent.
     """
     translate_voucher_generation_pool_payload(state, payload)
+
+    state.tarot_rate = _exact_nonnegative_rate(payload.get("tarot_rate"), 4.0)
+    state.planet_rate = _exact_nonnegative_rate(payload.get("planet_rate"), 4.0)
 
     state.consumable_generation_pool_observed = False
     state.consumable_generation_pools = {}
