@@ -39,6 +39,7 @@ def test_only_frozen_actions_are_training_exposed():
         "BUY_CONSUMABLE": BUY_CONSUMABLE,
         "OPEN_PACK": BUY_BOOSTER,
         "REROLL_SHOP": REFRESH_SHOP,
+        "SELECT_BLIND": SELECT_BLIND,
     }
     assert all(
         contract.legality_owner and contract.execution_owner
@@ -61,6 +62,19 @@ def test_reroll_shop_uses_canonical_action_and_dedicated_exact_owners():
 
     action = EnvAction.from_alias("REROLL_SHOP")
     assert action.action_id == REFRESH_SHOP
+    validate_training_action(action)
+
+
+def test_select_blind_uses_canonical_action_and_exact_owners():
+    contract = contract_for("SELECT_BLIND")
+
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == SELECT_BLIND
+    assert contract.legality_owner
+    assert contract.execution_owner
+
+    action = EnvAction.from_alias("SELECT_BLIND")
+    assert action.action_id == SELECT_BLIND
     validate_training_action(action)
 
 
@@ -88,7 +102,6 @@ def test_unfrozen_and_unavailable_capabilities_never_enter_training_mask():
         "SKIP_PACK",
         "USE_CONSUMABLE",
         "SKIP_BLIND",
-        "SELECT_BLIND",
         "REROLL_BOSS",
     ):
         assert alias not in exposed_aliases
