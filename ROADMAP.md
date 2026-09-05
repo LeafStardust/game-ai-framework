@@ -2,28 +2,36 @@
 
 Authoritative roadmap for Balatro Red Deck / White Stake competence on `LeafStardust/game-ai-framework`, branch `feat/v1.0-red-white-competence`.
 
+## Objective
+
+**Maximize P(clear Ante 8 | Red Deck, White Stake, normal mode).**
+
+The project has pivoted from manually tuned Bond-value strategy to reinforcement learning in a fast deterministic Balatro environment. Existing deterministic mechanics, legality, state observation, tactical hand play, candidate projection, telemetry, and useful Bond-derived features remain assets; manual Bond coefficient tuning is retired as the primary competence path.
+
 ## Non-negotiable contract
 
-- Objective: **maximize P(clear Ante 8 | Red Deck, White Stake, normal mode)**.
 - Preserve exact Balatro mechanics, legality, Boss rules, economy, public-information boundaries, and seeded RNG.
 - Unsupported or inexact transitions stay absent from the training mask.
-- Prefer canonical ownership over wrappers, rescue layers, or approximations.
-- Manual Bond coefficient tuning is retired as the primary competence path.
-- Do **not** start PPO/observation training before exactness and representative live/simulator parity gates.
+- Prefer canonical ownership over wrappers, rescue layers, approximations, or duplicated mechanics.
+- Training code must not redefine Balatro mechanics for convenience.
+- Simulator shortcuts are allowed only when behaviorally equivalent at the modeled boundary and covered by parity/regression tests.
+- Model checkpoints are artifacts, not strategy source of truth.
+- Do **not** start PPO/observation training before exact environment semantics and representative live/simulator parity gates.
 - Work Chat runs deterministic/static validation itself. GitHub Actions is authoritative when no local clone exists.
 - Ask the user only for validation that genuinely requires Windows/Balatro.
 - Permanent deck truth is `G.playing_cards`; never substitute `G.deck.cards`.
-- Hidden physical draw order and face-down card/Joker identity-to-position mapping are not policy-visible information.
+- Hidden physical draw order and face-down card/Joker identity-to-position mappings are not policy-visible information.
+- Python `random` is not Balatro RNG.
 - Do not reintroduce legacy attempt flags such as `--one`, `--three`, or `--five`; retain the canonical attempt-count interface.
 - If context becomes insufficient to continue safely, **stop immediately rather than guessing**.
 
-## Required continuation procedure
+## Continuation procedure
 
 For every continuation session:
 
 1. read this `ROADMAP.md` first;
 2. verify current branch/HEAD before editing;
-3. inspect canonical owner(s) and pinned vanilla source for the next task;
+3. inspect canonical owners and pinned vanilla source for the next task;
 4. check for intervening commits before writing;
 5. treat chat/session summaries as navigation only; repository state is authoritative;
 6. add focused fail-closed regressions for every new exactness slice;
@@ -31,7 +39,7 @@ For every continuation session:
 8. inspect the actual CI pytest result, not only the workflow badge;
 9. synchronize this roadmap after green slices.
 
-Pinned vanilla source for exact audits:
+Pinned vanilla source:
 
 ```text
 GladdonT/balatro-source-code
@@ -64,35 +72,42 @@ Examples already enforced:
 
 - partial LuaJIT/TValue permanent-deck reads invalidate `owned_deck`;
 - future draw order remains private;
-- face-down identities are masked from policy observation;
 - Amber Acorn hidden Joker mapping is masked while active;
-- Python `random` is not Balatro RNG;
 - unsupported Joker inverse sale lifecycles remain rejected;
-- pre-deal Manacle/Chicot requires authoritative retained physical deck order and never reconstructs it from canonical public `deck`;
-- shop Joker generation must not assume all profile unlocks/eligibility predicates are known.
+- pre-deal Manacle/Chicot requires authoritative retained physical deck order;
+- shop Joker generation requires authoritative dynamic eligibility;
+- malformed Joker generation catalogues are rejected all-or-nothing;
+- generated Negative Jokers do not imply Negative acquisition is legal.
 
 ---
 
-# Completed foundation
+# Foundation status
 
 ```text
 A–K symbolic/mechanical baseline      COMPLETE
 L live stabilization                 COMPLETE
 L3 environment freeze                COMPLETE
 R0 headless environment architecture COMPLETE
+R1 deterministic state/acquisition   SUBSTANTIALLY COMPLETE
+R2 RNG/lifecycle/shop generation     ACTIVE — PRIMARY WORKSTREAM
+R3 typed action vocabulary           PARTIAL / TIED TO EXACTNESS
+R4 deterministic tactical bridge     NOT STARTED
+R5 live/simulator parity harness      NOT STARTED
+R6 environment performance gate      NOT STARTED
+O observation/action encoding        NOT STARTED
+B0 RL baseline infrastructure        NOT STARTED
+PPO strategic learner                NOT STARTED
 ```
 
 L3 contract remains `BALATRO_ENV_CONTRACT_VERSION = "l3-v1"`.
 
-The simulator is **not authoritative game truth** until R5 live/simulator parity passes.
+The simulator is **not authoritative game truth** until R5 representative live/simulator parity passes.
 
 ---
 
-# Phase R — exact headless environment — ACTIVE
+# R1 — deterministic state/acquisition — SUBSTANTIALLY COMPLETE
 
-## R1 — deterministic state/acquisition — SUBSTANTIALLY COMPLETE
-
-Exact resource-sensitive acquisitions:
+Owned resource-sensitive acquisitions:
 
 ```text
 Juggler      hand_size += 1
@@ -102,18 +117,18 @@ Troubadour   hand_size += 2; round_reset_hands -= 1
 Merry Andy   hand_size -= 1; round_reset_discards += 3
 ```
 
-Owned R1 categories include:
+Owned categories include:
 
-- static score/rule/retrigger Jokers audited incrementally;
-- exact money-based and owned-deck-based scoring Jokers;
-- `G.playing_cards` all-or-nothing permanent-deck observation;
-- strict permanent-card decode/count/modifier validation;
-- strict LuaJIT authoritative-array path for `G.playing_cards`;
+- broad static score/rule/retrigger Joker acquisition groups;
+- money-based and owned-deck-based scoring Jokers;
+- exact `G.playing_cards` permanent-deck observation;
+- strict card decode/count/modifier validation;
+- strict LuaJIT authoritative-array path;
 - private draw/discard/played-zone validation;
 - exact headless seed/tag/container validation;
-- owned-deck-sensitive scoring acquisitions including Steel Joker, Stone Joker, Driver's License, and Erosion.
+- owned-deck-sensitive acquisitions including Steel Joker, Stone Joker, Driver's License, and Erosion.
 
-Representative R1 gates:
+Representative gates:
 
 ```text
 33788603611  1401 passed, 1594 deselected
@@ -121,20 +136,20 @@ Representative R1 gates:
 33790592775  1424 passed, 1594 deselected
 ```
 
-Still fail closed:
+Still fail closed where not globally owned:
 
 - unknown/unaudited Joker acquisitions;
-- Joker editions, especially Negative;
-- generic vouchers/packs;
+- Joker editions, especially Negative slot-capacity consequences;
+- generic voucher/pack acquisition;
 - malformed/noninteger prices;
-- generic `SELL_JOKER` where inverse lifecycle is not owned;
-- lifecycle acquisitions whose consequences are not owned across arbitrary reachable states.
+- generic `SELL_JOKER` inverse lifecycle;
+- arbitrary lifecycle acquisitions whose future effects are not yet exact.
 
 ---
 
-## R2 — RNG + round/blind/Boss/shop lifecycle — ACTIVE / PRIMARY WORKSTREAM
+# R2 — RNG + round/blind/Boss/shop lifecycle — ACTIVE
 
-### R2.1 — Balatro/LuaJIT RNG — GREEN
+## R2.1 — Balatro/LuaJIT RNG — GREEN
 
 Owned:
 
@@ -143,8 +158,7 @@ Owned:
 - inclusive integer draws;
 - independent keyed queues;
 - exact serializable node state;
-- bit-preserving snapshot/restore;
-- never Python `random`.
+- bit-preserving snapshot/restore.
 
 ```text
 2e61cd8  exact Balatro/LuaJIT RNG primitives
@@ -152,11 +166,11 @@ Owned:
 CI 33791671797: 1432 passed, 1594 deselected
 ```
 
-### R2.2 — pseudoshuffle — GREEN
+## R2.2 — pseudoshuffle — GREEN
 
 - one keyed pseudoseed advance per shuffle;
 - one LuaJIT stream drives Fisher–Yates;
-- CardArea shuffle re-sorts by creation/`sort_id` order before RNG;
+- CardArea re-sorts by creation/`sort_id` order before shuffle;
 - repeated keyed `random()` calls are not equivalent.
 
 ```text
@@ -165,34 +179,34 @@ d9662c6  shuffle vectors + restore behavior
 CI 33791916289: 1435 passed, 1594 deselected
 ```
 
-### R2.3 — playing-card/Joker creation order — GREEN FOR OWNED CASES
+## R2.3 — card/Joker creation order — GREEN FOR OWNED CASES
 
 - playing-card creation order retained privately from exact live IDs or pristine base-deck structure;
 - Joker creation and physical order are separate simulator-owned state;
 - simulator acquisitions/removals retain exact Joker creation order;
 - duplicate/missing/noninteger live IDs fail closed;
-- no fake public `sort_id` field.
+- no fake public `sort_id`.
 
 ```text
 e7b0bb0  derive exact playing-card creation order
 2a26e79  pin creation-order regressions
-34d88e9  include env_r2 coverage in CI
-7c070b2  retain exact playing-card order in headless state
+34d88e9  include env_r2 in CI
+7c070b2  retain playing-card order in headless state
 2dc47eb  retained-order regressions
 CI 33795507133: 1461 passed, 1594 deselected
 ```
 
-### R2.4 — shuffle/deal + round resources — GREEN
+## R2.4 — shuffle/deal + round resources — GREEN
 
 Owned:
 
 - exact supported-deck shuffle/deal;
-- hidden physical order kept private while public `deck` is canonicalized;
+- hidden physical draw order remains private;
 - exact deck-tail draw direction;
 - exact hand sorting for owned card-history cases;
-- exact headless RNG ownership/replay state;
-- one-shot hand/discard round bonuses consumed in source order;
-- first blind starts from source-correct `round 0 -> 1`.
+- exact RNG replay state;
+- one-shot hand/discard bonuses consumed in source order;
+- first blind starts source-correctly from `round 0 -> 1`.
 
 Representative gates:
 
@@ -204,219 +218,113 @@ Representative gates:
 33804894982  1593 passed, 1594 deselected
 ```
 
-### R2.5 — `setting_blind` Jokers — PARTIAL / EXACT WHERE AUDITED
+## R2.5–R2.8 — blind/Boss lifecycle — BROADLY GREEN
 
-Burglar lifecycle effect is exact on supported starts:
+Exact ownership now covers the normal Red/White lifecycle for all 28 vanilla Bosses across their audited start/active/disable/defeat mechanics, including:
 
-```text
-hands_remaining += 3
-discards_remaining = 0
-```
-
-Chicot `setting_blind` behavior is source-ordered through centralized `Blind:disable()` ownership for the supported Boss set, including retained-deck pre-deal Manacle.
-
-**Burglar and Chicot acquisitions remain fail-closed** because purchase persists into arbitrary future lifecycle states not yet all owned.
-
-### R2.6 — non-Boss starts — GREEN FOR SUPPORTED STATE
-
-Small/Big setup owns:
-
-1. `ease_round(1)` equivalent;
-2. blind target/resource initialization;
-3. round bonuses;
-4. audited `setting_blind` effects;
-5. exact shuffle/deal;
-6. policy-safe public/private card zones.
-
-### R2.7 — Boss lifecycle — BROADLY GREEN FOR ALL 28 VANILLA BOSSES
-
-Owned active/start/disable/defeat mechanics cover the full vanilla Boss roster:
-
-```text
-The Wall + Violet Vessel       requirement-only
-The Eye + The Mouth            mutable hand-rule state
-The Water + The Needle         reversible round resources
-The Manacle                    hand-size mutation + retained Chicot paths
-The Goad/Window/Head/Club      static suit card debuffs
-The Plant                      face-card debuffs
-Cerulean Bell                  forced-selection lifecycle
-The Psychic                    hand rejection
-The Flint                      base score halving
-The Tooth                      -$1 per played card
-The Hook                       keyed forced discards
-The Ox                         target hand -> money = 0
-The Arm                        hand-level decrement
-The Serpent                    post-action 3-card draw
-The House + The Mark           deterministic facing
-The Wheel                      keyed per-draw facing RNG
-The Fish                       temporal post-play facing
-The Pillar                     permanent Ante play history
-Verdant Leaf                   all-card debuff + minimum sale
-Amber Acorn                    hidden Joker order + reveal
-Crimson Heart                  Joker debuff lifecycle
-```
+- Burglar `setting_blind` hands/discards;
+- centralized Chicot `Blind:disable()` behavior;
+- The Water / Needle / Manacle resources;
+- Eye / Mouth mutable hand-rule state;
+- static suit/face debuffs;
+- Cerulean forced selection;
+- Psychic rejection;
+- Flint score base reduction;
+- Tooth money loss;
+- Hook forced discard RNG;
+- Ox money reset;
+- Arm hand-level decrement;
+- Serpent post-action draw;
+- House/Mark/Wheel/Fish facing state;
+- Pillar permanent play history;
+- Verdant Leaf debuff + sale disable path;
+- Amber Acorn hidden Joker ordering;
+- Crimson Heart Joker debuff lifecycle;
+- retained prior physical deck order for pre-deal Manacle/Chicot.
 
 Representative gates:
 
 ```text
-33855720629  Verdant Leaf — 1734 passed, 1595 deselected
-33857249827  Amber primitive — 1755 passed, 1595 deselected
-33863345344  Crimson checkpoint — 1794 passed, 1595 deselected
-33865394680  Chicot/Cerulean checkpoint — 1805 passed, 1595 deselected
-33869467530  Chicot Verdant/facing checkpoint — 1815 passed, 1595 deselected
+33855720629  1734 passed, 1595 deselected
+33857249827  1755 passed, 1595 deselected
+33863345344  1794 passed, 1595 deselected
+33865394680  1805 passed, 1595 deselected
+33869467530  1815 passed, 1595 deselected
+33873017991  1838 passed, 1595 deselected
+33905449910  1876 passed, 1595 deselected
 ```
 
-#### Verdant Leaf
+Generic training `SELECT_BLIND` remains hidden until the strategic action boundary is frozen end-to-end; exact internal lifecycle primitives may be broader than the currently exposed training vocabulary.
 
-- start debuffs all permanent playing cards;
-- minimum audited static Joker sale credits exact sell value;
-- sale disables Verdant and clears permanent-card debuffs;
-- Chicot uses the same inverse;
-- unsupported/Eternal/resource-sensitive sale paths fail closed;
-- generic training `SELL_JOKER` remains hidden.
+## R2.9 — round-end cashout + blind/Ante progression — GREEN FOR NORMAL OWNED CHAIN
 
-#### Amber Acorn
-
-- all owned Jokers hidden while active;
-- `G.jokers:shuffle("aajk")` runs three times with source-exact re-sort-before-each-shuffle;
-- hidden physical order retained internally;
-- policy sees multiset but not identity-to-position mapping;
-- defeat/disable reveals retained physical order without restoring pre-Amber order.
-
-#### Crimson Heart
-
-- pre-deal `prepped` state;
-- keyed target selection over retained Joker creation order;
-- previous-target exclusion when possible;
-- `press_play` re-arms selection;
-- selected Joker receives public `debuffed` state;
-- debuffed scoring is suppressed while Joker remains present for cross-Joker mechanics;
-- disable clears debuff/prepped without RNG;
-- normal defeat's blank-blind pass clears selected Joker debuff and installs `prepped=true` without extra RNG.
-
-```text
-8e2fdb3  own Crimson Heart normal defeat
-0ea44f7  direct normal-defeat regression
-3714484  composed cash-out regression
-CI 33905449910: 1876 passed, 1595 deselected
-```
-
-#### Chicot / centralized `Blind:disable()`
-
-Pinned ordering:
-
-1. round resources installed;
-2. Boss `set_blind` mutation;
-3. supported Jokers receive `setting_blind`;
-4. Burglar outputs installed;
-5. queued Chicot disable executes;
-6. only later does `DRAW_TO_HAND` / `nr{ante}` shuffle/deal occur.
-
-Central dispatcher owns disable consequences for the current full Boss mechanics surface, including retained pre-deal Manacle, static debuffs, facing cleanup, Cerulean, Amber, Crimson, Verdant and simple Boss disable state.
-
-Multiple Chicot disable requests remain fail-closed until repeated-disable event semantics are explicitly owned.
-
-### R2.8 — pre-deal Manacle / prior physical deck state — GREEN
-
-Exact ownership includes retained prior-round private deck order, Chicot's pre-shuffle tail draw, later shuffle only of remaining cards, and fail-closed behavior without authoritative retained deck.
-
-```text
-CI 33870571411: 1821 passed, 1595 deselected
-CI 33871756000: 1824 passed, 1595 deselected
-CI 33872332123: 1828 passed, 1595 deselected
-CI 33872735051: 1833 passed, 1595 deselected
-CI 33873017991: 1838 passed, 1595 deselected
-```
-
-Generic training `SELECT_BLIND` remains hidden.
-
-### R2.9 — round-end cashout + blind/Ante progression — GREEN FOR NORMAL OWNED CHAIN
-
-Owned source-ordered cash-out/progression includes:
+Owned source ordering includes:
 
 1. cleared-blind validation at `ROUND_EVAL`;
-2. exact permanent-card zone repopulation with retained private physical order;
+2. exact permanent-card zone repopulation;
 3. blind reward payout;
 4. `$1` per unused hand;
-5. base interest from pre-payout money, `$1` per `$5`, capped at `$5` for current economy boundary;
-6. audited end-of-round Joker dollar effects with unsupported identities fail-closed;
-7. active but intentionally initially-ungenerated `SHOP` state;
-8. Small/Big/Boss normal defeat and cash-out;
-9. next Small -> Big -> Boss progression;
-10. exact normal Boss selection RNG/usage filtering;
-11. exact normal Small/Big skip-tag selection;
-12. next-Ante Small Tag -> Big Tag -> Boss generation order;
-13. composed supported Boss round resolution to the SHOP boundary.
-
-Facing-state normal defeat and Crimson cleanup are source-audited. No synthetic public facing state is introduced merely for cross-round cleanup.
-
-Progression/generation commits:
-
-```text
-4cc2683  own blind progression end-round state
-59fb3e9  isolate blind progression primitive
-de192be  pin end-round blind progression
-082641f  own deterministic BLIND_SELECT progression
-db69e28  pin deterministic BLIND_SELECT progression
-44efee3  own deterministic Boss blind reset
-b9b3e0e  pin deterministic Boss reset_blinds state
-f5496db  own exact normal Boss selection
-257491d  pin exact normal Boss selection
-5a49122  own exact normal skip-tag selection
-89a7207  pin exact normal skip-tag selection
-4db12ac  compose post-Boss blind generation
-2951267  pin post-Boss blind generation order
-db2fe5b  compose exact Boss round resolution
-8fff3b6  cover composed Boss round resolution
-```
+5. base interest from pre-payout money, capped at `$5` for the current economy boundary;
+6. audited end-of-round Joker dollar effects;
+7. active but initially ungenerated `SHOP` state;
+8. Small/Big/Boss defeat/cashout progression;
+9. exact normal Boss selection;
+10. exact normal skip-tag selection;
+11. next-Ante Small Tag -> Big Tag -> Boss generation order;
+12. composed supported Boss round resolution to SHOP.
 
 ```text
 CI 33915588784: 1924 passed, 1595 deselected
 ```
 
-Do not fold asynchronous vanilla events into the wrong strategic action merely for convenience. Cash-out, shop generation, leaving the shop, and blind selection remain separate lifecycle/action boundaries unless pinned source proves otherwise.
+Do not fold asynchronous vanilla events into the wrong strategic action. Cashout, shop generation, leaving shop, and blind selection remain distinct unless source proves otherwise.
 
-### R2.10 — normal shop generation — ACTIVE / PARTIAL EXACT OWNERSHIP
+---
 
-The first exact shop-generation slices are now green.
+# R2.10 — normal shop generation — ACTIVE / CURRENT WORKSTREAM
 
-#### Base main-shop card-type RNG — GREEN
+## Base main-shop type RNG — GREEN
 
-For the unmodified normal shop boundary:
+Unmodified rates:
 
 ```text
-Joker    rate 20
-Tarot    rate 4
-Planet   rate 4
-Base     rate 0
-Spectral rate 0
+Joker    20
+Tarot     4
+Planet    4
+Base      0
+Spectral  0
 ```
 
-- keyed source node: `cdt{ante}`;
-- ordinary main shop has two base slots;
-- voucher/Tag-modified rates and already-generated inventory remain rejected.
+- key: `cdt{ante}`;
+- two ordinary main-shop slots;
+- voucher/Tag rate modifiers and already-generated inventory fail closed.
 
-#### Ordinary Joker rarity RNG — GREEN
+## Ordinary Joker rarity RNG — GREEN
 
-Vanilla ordinary shop Joker rarity uses:
+Key:
 
 ```text
 rarity{ante}sho
-Common   <= 0.70
-Uncommon > 0.70
-Rare     > 0.95
 ```
 
-Legendary is not reachable through this ordinary shop path.
+Thresholds:
 
-#### Frozen vanilla Joker catalogue / rarity-pool order — GREEN
+```text
+Common    <= 0.70
+Uncommon  >  0.70
+Rare      >  0.95
+```
 
-- all **150** vanilla Joker centers are pinned in mechanically significant global order;
-- rarity counts are pinned: Common 61, Uncommon 64, Rare 20, Legendary 5;
-- source spellings are retained exactly;
-- `vanilla_joker_pool(rarity)` filters global center order without reordering.
+Legendary is not reachable through this ordinary path.
 
-Relevant commits:
+## Frozen vanilla Joker centre order — GREEN
+
+- all 150 vanilla Joker centers pinned in mechanically significant global order;
+- Common 61 / Uncommon 64 / Rare 20 / Legendary 5;
+- source spellings retained exactly;
+- rarity pools preserve global center order.
+
+Key commits:
 
 ```text
 f85364a  base shop Joker rarity RNG
@@ -425,239 +333,277 @@ ff011d2  freeze vanilla Joker pool order
 41f26f1  pin vanilla Joker catalogue
 ```
 
-Intermediate catalogue gate:
+## Dynamic Joker eligibility observation — GREEN
+
+Live authoritative owner:
 
 ```text
-CI 33920291328: 1938 passed, 1595 deselected
+games/balatro/live/runtime/joker_generation_pool_observer.py
 ```
 
-#### Dynamic eligible-pool materialization — GREEN WHEN ELIGIBILITY IS AUTHORITATIVE
+It reads and applies the runtime predicates required by vanilla pool construction:
 
-Vanilla `get_current_pool` does **not** compact rejected Joker centers. Each rarity-pool position remains either:
+- rarity-pool order from `G.P_JOKER_RARITY_POOLS`;
+- unlock state;
+- `G.GAME.used_jokers` duplicate suppression;
+- Showman override;
+- `no_pool_flag` / `yes_pool_flag` against `G.GAME.pool_flags`;
+- `G.GAME.banned_keys`.
+
+Critical reads are all-or-nothing. Incomplete runtime state yields no authoritative pool.
+
+Canonical state schema uses string rarity keys:
 
 ```text
-<eligible center key>
-UNAVAILABLE
+"1", "2", "3", "4"
 ```
 
-If every position is unavailable, vanilla falls back to the one-entry temporary pool:
+Recent schema defect and repair:
 
 ```text
-j_joker
+4997f52  fix canonical string rarity lookup
+ad31609  fix observer→translator regression expectation
+b13fadd  pin canonical state→shop bridge
+CI 33941331764: 1962 passed, 1595 deselected
 ```
 
-Implemented owner:
+The headless bridge now validates the **entire** rarity 1–4 catalogue before using any selected rarity, including record rarity/key/metadata types and duplicate keys:
 
 ```text
-current_joker_pool_from_eligible_keys(...)
+fdcb329  validate observed Joker pools all-or-nothing
+12c4724  regress malformed unrelated rarities/metadata/duplicates
+CI 33941827707: 1973 passed, 1595 deselected
 ```
 
-It deliberately does **not** infer profile unlocks, Showman, used-Joker duplicate suppression, bans, or pool flags. Unknown/non-string/inexact eligibility input is rejected.
+## Concrete Joker center identity / resampling — GREEN
 
-#### Concrete Joker identity selection/resampling — GREEN WHEN ELIGIBILITY IS AUTHORITATIVE
+Given authoritative eligible keys:
 
-Owned source behavior:
+- unavailable rarity-pool positions stay literal `UNAVAILABLE`;
+- initial key: `Joker{rarity}sho`;
+- resamples: `Joker{rarity}sho_resample2`, `...3`, etc.;
+- all-unavailable fallback remains vanilla `j_joker`.
 
-1. initial pool selection uses `Joker{rarity}sho`;
-2. if selected position is `UNAVAILABLE`, vanilla retries at `Joker{rarity}sho_resample2`;
-3. further retries use `_resample3`, `_resample4`, ...;
-4. input RNG state is isolated and output RNG state is exact;
-5. ordinary shop identity selector accepts rarity 1/2/3 only.
+Center selection does not guess profile state.
 
-Commits:
+## Ordinary Joker edition RNG — GREEN FOR BASE RATE
+
+Vanilla ordinary shop Joker creation occurs inside:
 
 ```text
-a980145  build exact eligible Joker pools
-200f64e  own exact Joker pool identity selection
-c4bdef1  eligible-pool regressions
-09de422  shop Joker identity-selection regressions
+create_card(..., key_append='sho')
 ```
 
-Latest authoritative gate:
+Edition key:
 
 ```text
-CI 33921186088: 1946 passed, 1595 deselected
+edisho{ante}
 ```
 
-#### Current blocker: authoritative dynamic Joker-generation eligibility
-
-`BalatroState` already contains schema fields:
+Non-guaranteed `_mod=1`, Negative-allowed thresholds use one draw in this source order:
 
 ```text
-joker_generation_pool_observed
-joker_generation_pools
-joker_generation_edition_rate
+Negative      roll > 1 - 0.003              (not scaled by edition_rate)
+Polychrome    roll > 1 - 0.006*edition_rate
+Holographic   roll > 1 - 0.020*edition_rate
+Foil          roll > 1 - 0.040*edition_rate
+None          otherwise
 ```
 
-Do **not** assume these are authoritative merely because the fields exist. The generic live-memory observer has not yet been proven to populate the Joker-generation pool contract completely.
+The current base boundary rejects vouchers and active Tags and therefore requires exact `edition_rate == 1.0`.
 
-Before composing a generated Joker shop slot, establish one canonical owner for the dynamic eligibility predicates required by vanilla `get_current_pool`, including as applicable:
+```text
+05ffd67  own base shop Joker edition RNG
+3339309  pin threshold/order/RNG regressions
+CI 33941586989: 1967 passed, 1595 deselected
+```
 
-- profile/unlock state (`center.unlocked`);
-- current-run used-Joker duplicate suppression;
-- Showman exception;
-- `banned_keys`;
-- pool-flag allow/deny conditions;
-- any Ante/type-specific rule that affects the selected pool.
+Generated Negative editions are valid generation state. **Negative acquisition remains fail-closed** until its slot-capacity consequence is owned.
 
-The next implementation must either:
+## Ordinary Joker descriptor composition — GREEN
 
-1. prove/reuse an existing authoritative producer for `joker_generation_pools`, or
-2. wire one exact producer and strict translator/headless validation.
+`games/balatro/env/shop_joker_generation.py` now composes the Joker-specific part of vanilla `create_card(..., 'sho')`:
 
-It must **not** model this as "all Jokers unlocked/eligible" and must not invent a second parallel profile model.
+1. rarity;
+2. authoritative eligible center + exact resampling;
+3. edition.
 
-Even after identity eligibility is owned, these remain separate later shop-generation dependencies:
+It returns a deterministic descriptor containing:
 
-- Joker edition RNG and edition-rate modifiers;
-- runtime Joker center -> exact modeled Joker object construction/unsupported identity handling;
-- Tarot/Planet concrete center generation;
-- booster and voucher areas;
-- voucher/Tag shop-rate and slot modifiers;
-- reroll generation/cost modifiers.
+```text
+center_key
+rarity
+edition
+resamples
+post-generation RNG state
+```
 
-### Remaining R2 categories after current shop slice
+It intentionally does **not** yet instantiate a Python Joker, set a shop price, place inventory, or imply purchase legality.
 
-- authoritative Joker dynamic eligibility owner — **NEXT**;
-- compose one exact ordinary Joker shop slot only after that owner is green;
-- Joker edition RNG;
-- Tarot/Planet concrete shop identities;
-- reroll RNG and reroll-cost/economy modifiers;
-- booster/pack contents, choice RNG, and pack state;
-- voucher availability/lifecycle and voucher-driven shop/economy modifiers;
-- active Tag application/cash-out effects beyond exact normal tag selection/generation;
-- remaining unsupported end-of-round Joker/economy modifiers;
-- fixed-seed replay across representative multi-round trajectories.
+```text
+fbc8aad  compose ordinary shop Joker descriptor
+015daa4  pin descriptor source-order/RNG regression
+CI 33941690306: 1970 passed, 1595 deselected
+```
+
+## Current R2.10 blocker — PRICE + INVENTORY MATERIALIZATION
+
+A descriptor is not yet an actual shop card. Before ordinary Joker slots become generated public inventory, own source-exact pricing and safe materialization.
+
+Pinned vanilla `Card:set_cost()` formula:
+
+```text
+extra_cost = inflation
++ 3 if Holographic
++ 2 if Foil
++ 5 if Polychrome
++ 5 if Negative
+
+cost = max(
+    1,
+    floor((base_cost + extra_cost + 0.5) * (100 - discount_percent) / 100)
+)
+```
+
+Immediate next work:
+
+1. audit/freeze authoritative base costs for all ordinary Joker centers, or provide an equally exact canonical owner;
+2. own inflation and discount-percent state needed by `Card:set_cost()`;
+3. add exact price regressions for unedited/Foil/Holographic/Polychrome/Negative cases;
+4. define a generated shop-item representation that can carry center identity, rarity, edition, and exact price without requiring every center to be constructible as a strategy Joker object;
+5. insert generated Joker items into `shop_jokers` only after identity + edition + price are exact;
+6. keep purchase legality independently fail-closed for unsupported identities/editions;
+7. then compose both ordinary main-shop slots in source order;
+8. after Joker slots, own Tarot/Planet identity generation before declaring base main-shop generation complete.
+
+Do **not** skip directly from descriptor to a generic fabricated Joker object. Some Jokers require dynamic constructor/lifecycle state and must remain unsupported until that state is owned.
 
 ---
 
-## R3 — typed strategic action vocabulary — PARTIAL / TIED TO EXACTNESS
+# R3 — typed action vocabulary — PARTIAL / TIED TO EXACTNESS
+
+Target strategic actions as exact ownership becomes available:
 
 ```text
-END_SHOP      supported only where exact transition exists
-BUY_*         only exact audited subsets become legal
-SELECT_BLIND  PLANNED / HIDDEN
-SELL_JOKER    PLANNED / minimum Verdant path only
-SKIP_BLIND    PLANNED
-REROLL_SHOP   PLANNED
-PACK actions  PARTIAL/PLANNED
+END_SHOP
+REROLL_SHOP
+BUY_JOKER(slot)
+SELL_JOKER(slot)
+BUY_VOUCHER(slot)
+BUY_CONSUMABLE(slot)
+BUY_CARD(slot)
+OPEN_PACK(slot/type)
+CHOOSE_PACK_OPTION(index)
+SKIP_PACK
+USE_CONSUMABLE(targets...)
+SKIP_BLIND
+SELECT_BLIND / START_BLIND
 ```
 
-Every training-visible action requires stable canonical ID, deterministic legality, exact transition, serialization representation, and mask representation.
+Every training-visible action requires stable type/id, parameters, deterministic legality, exact transition, serialization representation, and mask representation.
 
-Do not widen `SELECT_BLIND` merely because individual start helpers are green.
+Do not expose an action merely because an internal transition primitive exists.
 
----
+# R4 — deterministic tactical bridge — NOT STARTED
 
-## R4 — deterministic tactical bridge — NOT STARTED
+Reuse the validated deterministic hand-play stack while RL initially controls strategic run development. Tactical trajectories remain logged for parity/debugging.
 
-Reuse existing deterministic hand/discard tactical owners while RL initially controls strategic run development. Tactical trajectories remain logged for parity/debugging.
-
-## R5 — live/simulator parity — NOT STARTED
+# R5 — live/simulator parity harness — NOT STARTED
 
 Priority fixtures:
 
-- shop purchase/hold/end-shop;
-- shop generation type/rarity/identity/RNG;
+- ordinary shop generation/purchase/hold/end-shop;
 - Joker replacement/sale;
-- reroll/voucher/pack paths;
+- reroll;
+- voucher purchase/rejection;
+- pack paths;
 - blind skip/start/clear;
-- Boss restrictions and disable/defeat cleanup;
-- lifecycle-sensitive Jokers;
-- permanent deck/history;
-- economy/interest/cash-out;
-- RNG/shuffle/draw/facing/Joker-order parity;
-- retained pre-deal Manacle+Chicot order.
+- boss restrictions;
+- Card Sharp reset;
+- Throwback skip counter;
+- Baron held-card state;
+- owned-deck composition;
+- economy/interest transitions;
+- RNG/shuffle/initial-draw parity.
 
-The simulator does not become authoritative training truth until representative parity fixtures are green.
+# R6 — environment performance gate — NOT STARTED
 
-## R6 — performance gate — NOT STARTED
-
-Measure steps/sec, runs/minute, parallel scaling, tactical-bridge cost, and serialization overhead only after semantic correctness and representative parity.
-
-### Phase R exit criteria
-
-- deterministic reset/step API;
-- all initial strategic actions have exact legality + execution tests;
-- Red/White run proceeds reset -> terminal entirely headlessly;
-- fixed-seed replay deterministic;
-- representative live parity fixtures green;
-- throughput supports automated training;
-- environment version stored in trajectory metadata.
-
----
+Only after semantic correctness: measure steps/sec, runs/minute, parallel scaling, tactical-bridge cost, and serialization overhead.
 
 # Later RL phases — NOT STARTED
 
-```text
-O   observation/action encoding
-B0  random + frozen symbolic baselines
-P   PPO strategic learner
-C0  curriculum/sample efficiency
-E0  statistical evaluation
-A0  Bond feature ablation
-F0  reward validation
-T   training scale-up
-V   simulator -> live learned-policy validation
-Q   Red/White competence gate
-X   optional full tactical RL
-M   post-RL symbolic cleanup
-N   broader decks/stakes/objectives
-```
+## O — observation/action encoding
 
-Reference reward remains terminal-only unless validated shaping improves Ante-8 clear probability:
+Versioned public observation/action schemas; no hidden-information leakage; illegal-action probability zero after masking.
 
-```text
-Ante 8 cleared: +1
-run lost:        0
-```
+## B0 — baseline infrastructure
+
+- random legal strategic baseline;
+- existing symbolic policy as deterministic baseline where compatible;
+- fixed evaluation seed banks;
+- run-level metrics and reproducible trajectory logging.
+
+## PPO — strategic learner
+
+Start only after Phase-R exactness/parity/performance and O/B0 prerequisites are satisfied.
 
 ---
 
-# Current exact checkpoint
+# Current checkpoint — 2026-09-05
 
 ```text
-R1 deterministic state/acquisition       SUBSTANTIALLY COMPLETE
-R2 RNG / round / Boss / shop lifecycle   ACTIVE / PRIMARY
-R2 supported Small/Big starts            GREEN
-R2 all 28 Boss mechanics surface         BROADLY GREEN
-R2 Chicot Boss disable                   GREEN FOR OWNED BOUNDARY
-R2 retained Manacle+Chicot source order  GREEN — CI 33873017991
-R2 round-end private deck retention      GREEN
-R2 ordinary Small/Big cash-out -> SHOP   GREEN
-R2 all-Boss normal defeat/cash-out       GREEN — CI 33906956546
-R2.9 normal blind/Ante progression       GREEN
-R2.9 Boss round resolution               GREEN — CI 33915588784
-R2.10 base shop card-type RNG            GREEN
-R2.10 ordinary Joker rarity RNG          GREEN
-R2.10 vanilla 150-Joker catalogue        GREEN
-R2.10 eligible-pool semantics            GREEN WITH AUTHORITATIVE INPUT
-R2.10 Joker identity/resample RNG        GREEN WITH AUTHORITATIVE INPUT — CI 33921186088
-Dynamic Joker eligibility observation    NEXT STRUCTURAL BLOCKER
-Generic shop inventory generation        NOT YET EXPOSED
-SELECT_BLIND                             NOT EXPOSED
-Burglar acquisition                      FAIL-CLOSED
-Chicot acquisition                       FAIL-CLOSED
-Generic/unknown acquisitions             FAIL-CLOSED
-Joker editions                           FAIL-CLOSED
-Generic vouchers/packs                   FAIL-CLOSED
-SELL_JOKER                               PLANNED / MINIMUM VERDANT PATH ONLY
-R4 tactical bridge                       NOT STARTED
-R5 parity                                NOT STARTED
-R6 performance                           NOT STARTED
-Observation/PPO                          NOT STARTED
+Historical symbolic/Bond architecture        COMPLETE AS BASELINE
+Manual Bond numerical tuning                 RETIRED AS PRIMARY PATH
+R0 environment architecture                  COMPLETE
+R1 deterministic transition/acquisition      SUBSTANTIALLY COMPLETE
+R2 RNG/pseudoshuffle                         GREEN
+R2 card/Joker ordering                       GREEN FOR OWNED CASES
+R2 deal/round resources                      GREEN
+R2 Boss lifecycle                            BROADLY GREEN — 28 VANILLA BOSSES OWNED
+R2 cashout/blind/Ante progression            GREEN FOR NORMAL OWNED CHAIN
+R2.10 shop type RNG                          GREEN
+R2.10 Joker rarity RNG                       GREEN
+R2.10 150-center order                       GREEN
+R2.10 dynamic eligibility observer           GREEN
+R2.10 canonical pool bridge                  GREEN
+R2.10 all-rarity fail-closed validation      GREEN — CI 33941827707
+R2.10 center identity/resampling             GREEN
+R2.10 base edition RNG                       GREEN — CI 33941586989
+R2.10 ordinary Joker descriptor              GREEN — CI 33941690306
+R2.10 Joker price/materialization            NEXT
+R3 training vocabulary                       PARTIAL
+R4 tactical bridge                           NOT STARTED
+R5 parity harness                             NOT STARTED
+R6 performance gate                          NOT STARTED
+Observation/action encoding                  NOT STARTED
+RL baselines                                 NOT STARTED
+PPO                                          NOT STARTED
 ```
 
 Current code head before this documentation commit:
 
 ```text
-09de422d7d68c32da9eca350d2fd19a94d020be8
+12c472464b830e9ddab78d235a226c4c4db5d0c6
 ```
 
 Latest authoritative green deterministic gate:
 
 ```text
-CI 33921186088: 1946 passed, 1595 deselected
+CI 33941827707
+1973 passed, 1595 deselected
 ```
 
-The next code written should therefore be **an audit and exact ownership of dynamic Joker-generation eligibility**. First determine whether the existing `joker_generation_pools` schema has an authoritative producer on the current branch. Reuse it if exact; otherwise wire one canonical producer and strict validation. Only after that should the simulator compose concrete ordinary Joker shop generation. Keep editions, voucher/Tag modifiers, booster generation, generic shop exposure, Bond tuning, PPO, and Python-RNG shortcuts out of this slice.
+No live Balatro run is required at this checkpoint.
+
+## Exact next development action
+
+Continue **R2.10 normal shop generation** at the pricing/materialization boundary:
+
+1. pin exact ordinary Joker base-cost ownership;
+2. pin/validate inflation and discount-percent inputs;
+3. implement exact `Card:set_cost()` equivalent for generated Joker descriptors;
+4. test edition surcharges and fail-closed modifiers;
+5. create a generic exact generated-shop-item representation rather than forcing every selected center through `LiveJokerFactory`;
+6. only then populate `shop_jokers` and compose both ordinary main-shop slots.
+
+Do **not** start PPO, observation encoding, Bond tuning, or an open-ended live run.
