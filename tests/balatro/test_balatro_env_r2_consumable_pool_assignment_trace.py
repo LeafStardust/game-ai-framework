@@ -65,4 +65,21 @@ def test_env_r2_consumable_pool_has_no_post_owner_overwrite(monkeypatch):
 
     state = translator_module.DefaultBalatroStateTranslator().translate(snapshot)
 
-    assert set(state.consumable_generation_pools) == {"Tarot", "Planet"}, assignments
+    owner_writes = [
+        entry
+        for entry in assignments
+        if entry[2] == "consumable_generation_pool_translation.py"
+    ]
+    assert owner_writes[-2][0:2] == (
+        "consumable_generation_pools",
+        ("Tarot", "Planet"),
+    )
+    assert owner_writes[-1][0:2] == (
+        "consumable_generation_pool_observed",
+        True,
+    )
+
+    owner_end = max(index for index, entry in enumerate(assignments) if entry in owner_writes)
+    post_owner = assignments[owner_end + 1 :]
+    assert post_owner == [], post_owner[0] if post_owner else None
+    assert set(state.consumable_generation_pools) == {"Tarot", "Planet"}
