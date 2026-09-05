@@ -53,6 +53,11 @@ SELECT_BLIND_EXECUTION_OWNER = (
     "games.balatro.live.injected.action_dispatcher."
     "LiveMemoryInjectedActionDispatcher.dispatch"
 )
+SKIP_BLIND_LEGALITY_OWNER = "games.balatro.env.skip_blind.can_skip_blind_exact"
+SKIP_BLIND_EXECUTION_OWNER = (
+    "games.balatro.live.injected.action_dispatcher."
+    "LiveMemoryInjectedActionDispatcher.dispatch"
+)
 
 
 class CapabilityStatus(str, Enum):
@@ -159,8 +164,10 @@ STRATEGIC_ACTION_CONTRACTS: tuple[StrategicActionContract, ...] = (
     StrategicActionContract(
         "SKIP_BLIND",
         SKIP_BLIND,
-        CapabilityStatus.PLANNED,
-        note="Canonical production action exists; tag acquisition and downstream tag lifecycle are not frozen yet.",
+        CapabilityStatus.SUPPORTED,
+        SKIP_BLIND_LEGALITY_OWNER,
+        SKIP_BLIND_EXECUTION_OWNER,
+        "Exact Small Blind + Economy Tag subset only; all other Tag and Big-to-Boss outcomes fail closed.",
     ),
     StrategicActionContract(
         "SELECT_BLIND",

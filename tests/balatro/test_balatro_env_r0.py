@@ -62,7 +62,7 @@ def test_balatro_env_r0_actions_alias_frozen_contract_ids():
 
 def test_balatro_env_r0_rejects_non_training_action():
     try:
-        EnvAction.from_alias("SKIP_BLIND")
+        EnvAction.from_alias("USE_CONSUMABLE")
     except ValueError as exc:
         assert "not training-exposed" in str(exc)
     else:
@@ -89,7 +89,7 @@ def test_balatro_env_r0_legal_actions_fail_closed_to_contract():
     env.reset(seed=1)
     assert env.legal_actions() == (EnvAction.from_alias("END_SHOP"),)
 
-    backend.actions = (EnvAction(alias="SKIP_BLIND"),)
+    backend.actions = (EnvAction(alias="USE_CONSUMABLE"),)
     try:
         env.legal_actions()
     except ValueError as exc:
