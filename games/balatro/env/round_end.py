@@ -1,24 +1,14 @@
-"""Exact baseline blind-clear / cash-out transition for R2.9.
+"""Exact ordinary blind-clear / cash-out transition for R2.
 
 This module composes the already-owned round-end card-zone repopulation with the
-narrow Red Deck / White Stake economy slice whose vanilla semantics are exact.
-It deliberately stops at *shop entry*: deterministic shop inventory generation
-is a later R2 owner and must not be approximated here.
+Red Deck / White Stake economy slice whose vanilla semantics are exact.  It stops
+at an active, ungenerated SHOP; deterministic shop inventory generation remains a
+separate owner.
 
-Supported boundary:
-
-* an already-cleared Small or Big Blind at the round-evaluation/cash-out screen;
-* audited Jokers whose end-of-round behavior is either inert or exactly modeled;
-* no tags or vouchers that can contribute dollars or modify interest;
-* baseline interest: $1 per $5 of pre-payout money, capped at $5;
-* blind reward plus $1 for each unused hand;
-* exact Golden Joker, Cloud 9, and Delayed Gratification dollar bonuses;
-* exact permanent-card repopulation through :mod:`round_zones`;
-* transition to an active but not-yet-generated SHOP.
-
-Everything else fails closed.  In particular, Boss defeat, unaudited Joker
-cash-out/decay/counter lifecycles, Voucher/tag economy modifiers, negative-money
-edge cases, and shop RNG are not silently folded into this helper.
+Supported Voucher ownership is allowed only when every consequence consumed by
+cash-out or the next shop is already exact. Seed Money / Money Tree and other
+interest/economy Vouchers remain fail closed because baseline interest is still
+$1 per $5 capped at $5.
 """
 
 from __future__ import annotations
@@ -30,6 +20,15 @@ from games.balatro.env.transition import (
     _OWNED_DECK_SCORING_TYPES,
     HeadlessRunState,
     HeadlessTransitionError,
+)
+from games.balatro.env.voucher_capabilities import (
+    expected_base_reroll_cost_for_vouchers,
+    expected_joker_edition_rate_for_vouchers,
+    expected_planet_rate_for_vouchers,
+    expected_shop_discount_percent_for_vouchers,
+    expected_tarot_rate_for_vouchers,
+    shop_generation_vouchers_are_exact,
+    shop_pricing_vouchers_are_exact,
 )
 from games.balatro.joker import JokerContext
 from games.balatro.jokers.cloud_9 import Cloud9Joker
@@ -44,10 +43,6 @@ from games.balatro.jokers.troubadour import TroubadourJoker
 _BASE_INTEREST_AMOUNT = 1
 _BASE_INTEREST_CAP = 25
 
-# These identities have no vanilla end-of-round dollar, destruction, decay, or
-# counter transition.  Resource-sensitive Jokers below mutate persistent/current
-# capacities at acquisition/round start, not during cash-out; those effects are
-# already installed in canonical state by their existing owners.
 _ROUND_END_INERT_JOKER_TYPES = (
     *_EXACT_R1_JOKER_ACQUISITION_TYPES,
     *_OWNED_DECK_SCORING_TYPES,
@@ -57,9 +52,6 @@ _ROUND_END_INERT_JOKER_TYPES = (
     MerryAndyJoker,
 )
 
-# These identities are not inert at cash-out.  Their canonical modeled classes
-# expose deterministic ROUND_ENDED dollar effects whose complete inputs are
-# already authoritative in the current R2 state boundary.
 _ROUND_END_DOLLAR_JOKER_TYPES = (
     GoldenJoker,
     Cloud9Joker,
@@ -86,12 +78,6 @@ def baseline_interest_dollars(money: int) -> int:
 
 
 def _round_end_joker_dollars(run: HeadlessRunState) -> int:
-    """Return exact modeled Joker dollar rows for the current round evaluation.
-
-    Vanilla calculates Joker dollar bonuses before displaying interest, but the
-    interest row still reads the pre-payout ``G.GAME.dollars`` value.  This helper
-    therefore returns a separate subtotal and never mutates public money.
-    """
     state = run.public
     total = 0
 
@@ -107,9 +93,7 @@ def _round_end_joker_dollars(run: HeadlessRunState) -> int:
                 )
             data["deck"] = state.owned_deck
         elif type(joker) is DelayedGratificationJoker:
-            discards_used = _require_exact_int(
-                "discards_used", state.discards_used
-            )
+            discards_used = _require_exact_int("discards_used", state.discards_used)
             discards_remaining = _require_exact_int(
                 "discards_remaining", state.discards_remaining
             )
@@ -135,21 +119,46 @@ def _round_end_joker_dollars(run: HeadlessRunState) -> int:
     return total
 
 
-def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
-    """Cash out one exactly supported ordinary Red/White blind.
+def _require_exact_voucher_shop_state(run: HeadlessRunState) -> tuple[int, float, float, float, int]:
+    """Validate supported Voucher consequences needed at the next shop boundary."""
+    state = run.public
+    if not shop_generation_vouchers_are_exact(state):
+        raise HeadlessTransitionError(
+            "ordinary cash-out does not own current Voucher generation modifiers"
+        )
+    if not shop_pricing_vouchers_are_exact(state):
+        raise HeadlessTransitionError(
+            "ordinary cash-out does not own current Voucher pricing modifiers"
+        )
 
-    The input represents vanilla's round-evaluation/cash-out boundary after the
-    blind has been defeated but before rewards are installed into run money.
-    The input snapshot is never mutated.
-    """
+    discount = expected_shop_discount_percent_for_vouchers(state)
+    edition = expected_joker_edition_rate_for_vouchers(state)
+    tarot = expected_tarot_rate_for_vouchers(state)
+    planet = expected_planet_rate_for_vouchers(state)
+    base_reroll = expected_base_reroll_cost_for_vouchers(state)
+    if any(value is None for value in (discount, edition, tarot, planet, base_reroll)):
+        raise HeadlessTransitionError(
+            "ordinary cash-out does not own Voucher consequences"
+        )
+    if run.base_reroll_cost != base_reroll:
+        raise HeadlessTransitionError(
+            "persistent reroll cost does not match Voucher ownership"
+        )
+    if type(run.reroll_cost) is not int or run.reroll_cost < run.base_reroll_cost:
+        raise HeadlessTransitionError(
+            "ordinary cash-out does not own temporary/free reroll modifiers"
+        )
+    return int(discount), float(edition), float(tarot), float(planet), int(base_reroll)
+
+
+def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
+    """Cash out one exactly supported ordinary Red/White blind."""
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
 
     state = run.public
     if state.phase != "ROUND_EVAL":
-        raise HeadlessTransitionError(
-            "baseline cash-out requires ROUND_EVAL phase"
-        )
+        raise HeadlessTransitionError("baseline cash-out requires ROUND_EVAL phase")
     if state.blind is None:
         raise HeadlessTransitionError("baseline cash-out requires an active blind")
     blind_type = getattr(state.blind, "type", None)
@@ -195,14 +204,12 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
             "baseline cash-out does not yet own end-of-round Joker effects: "
             + ", ".join(unsupported_jokers)
         )
-    if state.vouchers:
-        raise HeadlessTransitionError(
-            "baseline cash-out does not yet own Voucher economy modifiers"
-        )
     if run.tags:
         raise HeadlessTransitionError(
             "baseline cash-out does not yet own tag cash-out effects"
         )
+
+    discount, edition, tarot, planet, base_reroll = _require_exact_voucher_shop_state(run)
 
     if state.shop_active or any(
         (
@@ -216,10 +223,6 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
             "baseline cash-out requires an ungenerated shop boundary"
         )
 
-    # Vanilla interest is evaluated against G.GAME.dollars before blind reward,
-    # unused-hand dollars, Joker dollar rows, interest, and other evaluation rows
-    # are paid.  Keep Joker dollars as a separate subtotal so they cannot inflate
-    # this same round's interest.
     interest = baseline_interest_dollars(money)
     joker_dollars = _round_end_joker_dollars(run)
     payout = blind_reward + hands_remaining + joker_dollars + interest
@@ -229,17 +232,20 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     next_state.money = money + payout
     next_state.phase = "SHOP"
     next_state.shop_active = True
-    # This cash-out boundary rejects every currently modeled source of nonzero
-    # pricing state. In normal Red/White, challenge inflation is absent and no
-    # discount voucher/tag is active, so the direct Card:set_cost inputs are
-    # authoritatively zero for the shop we are entering.
     next_state.shop_inflation_observed = True
     next_state.shop_inflation = 0
     next_state.shop_discount_percent_observed = True
-    next_state.shop_discount_percent = 0
+    next_state.shop_discount_percent = discount
+    next_state.joker_generation_edition_rate = edition
+    next_state.tarot_rate = tarot
+    next_state.planet_rate = planet
 
-    # Shop inventory generation is deliberately not part of this transition.
-    # Keep the containers exact and empty until the R2 shop-RNG owner fills them.
+    # Vanilla resets current reroll_cost_increase at new-shop entry, so with all
+    # temporary/free modifiers intentionally blocked the current price returns to
+    # the persistent Voucher-derived round-reset value.
+    next_run.base_reroll_cost = base_reroll
+    next_run.reroll_cost = base_reroll
+
     next_state.shop_jokers.clear()
     next_state.shop_consumables.clear()
     next_state.shop_boosters.clear()
