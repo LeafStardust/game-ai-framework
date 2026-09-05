@@ -28,6 +28,7 @@ from games.balatro.env.voucher_capabilities import (
     EXACT_EDITION_RATE_VOUCHER_KEYS,
     EXACT_INTEREST_CAP_VOUCHER_KEYS,
     EXACT_REROLL_COST_VOUCHER_KEYS,
+    EXACT_SHOP_SIZE_VOUCHER_KEYS,
     EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS,
 )
 from games.balatro.jokers.abstract_joker import AbstractJoker
@@ -453,6 +454,9 @@ class ShopTransitionEngine:
             if key in EXACT_INTEREST_CAP_VOUCHER_KEYS:
                 from games.balatro.env.interest_cap_voucher_redemption import redeem_exact_interest_cap_voucher
                 return redeem_exact_interest_cap_voucher(next_run, slot)
+            if key in EXACT_SHOP_SIZE_VOUCHER_KEYS:
+                from games.balatro.env.shop_size_voucher_redemption import redeem_exact_shop_size_voucher
+                return redeem_exact_shop_size_voucher(next_run, slot)
             price = self._price(item)
             if price < 0 or state.money < price:
                 raise HeadlessTransitionError("shop item is not affordable")
@@ -521,6 +525,9 @@ class ShopTransitionEngine:
         if key in EXACT_INTEREST_CAP_VOUCHER_KEYS:
             from games.balatro.env.interest_cap_voucher_redemption import interest_cap_voucher_redemption_is_exact
             return interest_cap_voucher_redemption_is_exact(run, slot)
+        if key in EXACT_SHOP_SIZE_VOUCHER_KEYS:
+            from games.balatro.env.shop_size_voucher_redemption import shop_size_voucher_redemption_is_exact
+            return shop_size_voucher_redemption_is_exact(run, slot)
         if key not in (_EXACT_RESOURCE_VOUCHER_KEYS | EXACT_EDITION_RATE_VOUCHER_KEYS):
             return False
         if key in state.vouchers:
