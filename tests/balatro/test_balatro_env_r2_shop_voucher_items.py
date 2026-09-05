@@ -77,8 +77,8 @@ def test_env_r2_normal_voucher_publication_uses_separate_voucher_slot():
     run = _run()
     # The two-card main shop may already be occupied; Voucher publication is a
     # separate vanilla card area and must not consume or alter either main slot.
-    run.public.shop_jokers = [object()]
-    run.public.shop_consumables = [object()]
+    run.public.shop_jokers = ["main-joker"]
+    run.public.shop_consumables = ["main-consumable"]
     before_jokers = list(run.public.shop_jokers)
     before_consumables = list(run.public.shop_consumables)
 
