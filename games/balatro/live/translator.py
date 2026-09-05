@@ -89,6 +89,33 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         else:
             state.round_reset_hands_observed = False
             state.round_reset_hands = 0
+
+        raw_shop_inflation = payload.get("shop_inflation")
+        state.shop_inflation_observed = payload.get("shop_inflation_observed") is True
+        if (
+            state.shop_inflation_observed
+            and type(raw_shop_inflation) is int
+            and raw_shop_inflation >= 0
+        ):
+            state.shop_inflation = raw_shop_inflation
+        else:
+            state.shop_inflation_observed = False
+            state.shop_inflation = 0
+
+        raw_shop_discount = payload.get("shop_discount_percent")
+        state.shop_discount_percent_observed = (
+            payload.get("shop_discount_percent_observed") is True
+        )
+        if (
+            state.shop_discount_percent_observed
+            and type(raw_shop_discount) is int
+            and 0 <= raw_shop_discount <= 100
+        ):
+            state.shop_discount_percent = raw_shop_discount
+        else:
+            state.shop_discount_percent_observed = False
+            state.shop_discount_percent = 0
+
         pools = payload.get("joker_generation_pools")
         state.joker_generation_pool_observed = bool(
             payload.get("joker_generation_pool_observed", False)
