@@ -74,7 +74,7 @@ def test_env_r3_planet_use_fails_closed_without_usage_history_or_active_shop():
 
 def test_env_r3_planet_use_masks_tarot_and_invalid_index():
     run = _run()
-    run.public.consumables = [create_tarot("THE_HERMIT")]
+    run.public.consumables = [create_tarot("The Hermit")]
     assert not can_use_planet_exact(run, 0)
     with pytest.raises(HeadlessTransitionError, match="Planet cards only"):
         use_planet_exact(run, 0)
