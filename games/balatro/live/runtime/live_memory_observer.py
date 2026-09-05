@@ -158,6 +158,8 @@ def snapshot_payload_from_live_memory(
     round_reset_discards = _number(round_resets.get("discards"))
     round_reset_hands = _number(round_resets.get("hands"))
     joker_generation_edition_rate = _number(game.get("edition_rate"))
+    tarot_rate = _number(game.get("tarot_rate"))
+    planet_rate = _number(game.get("planet_rate"))
     shop_inflation = _exact_integral_number(game.get("inflation"), minimum=0)
     shop_discount_percent = _exact_integral_number(
         game.get("discount_percent"),
@@ -228,6 +230,16 @@ def snapshot_payload_from_live_memory(
         **(
             {"joker_generation_edition_rate": float(joker_generation_edition_rate)}
             if joker_generation_edition_rate is not None
+            else {}
+        ),
+        **(
+            {"tarot_rate": float(tarot_rate)}
+            if tarot_rate is not None and float(tarot_rate) >= 0.0
+            else {}
+        ),
+        **(
+            {"planet_rate": float(planet_rate)}
+            if planet_rate is not None and float(planet_rate) >= 0.0
             else {}
         ),
         "shop_inflation_observed": shop_inflation is not None,
