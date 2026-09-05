@@ -28,6 +28,7 @@ from games.balatro.env.round_lifecycle import (
     consume_round_bonuses,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.voucher_capabilities import blind_start_vouchers_are_exact
 
 
 _REQUIREMENT_ONLY_BOSS_NAMES = frozenset({"The Wall", "Violet Vessel"})
@@ -56,8 +57,10 @@ def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -
         raise HeadlessTransitionError("blind requirement must be an exact nonnegative integer")
     if run.tags:
         raise HeadlessTransitionError(f"{label} with active tags is not yet owned")
-    if state.vouchers:
-        raise HeadlessTransitionError(f"{label} with vouchers is not yet owned")
+    if not blind_start_vouchers_are_exact(state):
+        raise HeadlessTransitionError(
+            f"{label} requires exact supported voucher ownership"
+        )
     if state.hand or state.discard_pile or run.draw_pile or run.discard_pile or run.played_pile:
         raise HeadlessTransitionError(f"{label} requires empty transition card zones")
 
