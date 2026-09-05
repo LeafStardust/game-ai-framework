@@ -298,19 +298,12 @@ def install_consumable_generation_pool_live_state_policy() -> None:
     def translate(self, snapshot):
         state = original_translate(self, snapshot)
         payload = snapshot.payload
-        pools = payload.get("consumable_generation_pools")
-        state.consumable_generation_pool_observed = bool(
-            payload.get("consumable_generation_pool_observed", False)
-        )
-        state.consumable_generation_pools = (
-            {
-                str(kind).upper(): [dict(record) for record in records if isinstance(record, dict)]
-                for kind, records in pools.items()
-                if isinstance(records, list)
-            }
-            if isinstance(pools, dict)
-            else {}
-        )
+        # ``DefaultBalatroStateTranslator`` owns the strict canonical Tarot/Planet
+        # generation catalogue.  Do not rewrite those fields here: the legacy
+        # live-state wrapper used to uppercase keys and silently drop malformed
+        # records after the canonical owner had already validated them, defeating
+        # all-or-nothing semantics.  This wrapper now owns only its auxiliary
+        # Arcana/Spectral generation predicates.
         state.omen_globe_active = bool(payload.get("omen_globe_active", False))
         state.consumable_generation_showman = bool(
             payload.get("consumable_generation_showman", False)
