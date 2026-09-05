@@ -4,7 +4,8 @@ This module deliberately keeps live/runtime eligibility records explicit.  The
 normal live observer already produces authoritative eligible Tarot/Planet records;
 this layer validates that record set all-or-nothing, performs the existing exact
 identity poll, carries the selected center's observed immutable base cost, and
-applies vanilla ``Card:set_cost`` pricing with no edition surcharge.
+applies vanilla ``Card:set_cost`` pricing with no edition surcharge. Planet cards
+apply vanilla's post-discount x2 shop-cost rule.
 
 Gameplay-object construction and purchase legality remain separate exactness
 boundaries.  Generated metadata may be inserted into the shared two-card main
@@ -25,16 +26,14 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 
 
 _FALLBACK_BASE_COST = {
-    "Tarot": 3,   # c_strength in pinned vanilla source
-    "Planet": 3,  # c_pluto in pinned vanilla source
+    "Tarot": 3,
+    "Planet": 3,
 }
 _BASE_MAIN_SHOP_SLOTS = 2
 
 
 @dataclass(frozen=True)
 class OrdinaryShopConsumableDescriptor:
-    """Exact post-RNG ordinary Tarot/Planet descriptor before shop insertion."""
-
     run: HeadlessRunState
     card_type: str
     center_key: str
@@ -44,8 +43,6 @@ class OrdinaryShopConsumableDescriptor:
 
 @dataclass(frozen=True)
 class GeneratedShopConsumableItem:
-    """Exact public metadata for one generated ordinary Tarot/Planet shop card."""
-
     card_type: str
     center_key: str
     base_cost: int
@@ -95,9 +92,7 @@ def _validated_eligible_records(
         for flag_name in ("no_pool_flag", "yes_pool_flag"):
             flag = record.get(flag_name)
             if flag is not None and (not isinstance(flag, str) or not flag):
-                raise HeadlessTransitionError(
-                    f"consumable generation record has invalid {flag_name}"
-                )
+                raise HeadlessTransitionError(f"consumable generation record has invalid {flag_name}")
 
         softlock = record.get("softlock")
         if not isinstance(softlock, bool):
@@ -120,25 +115,17 @@ def describe_base_shop_consumable_from_records(
     card_type: str,
     records: Sequence[dict[str, object]],
 ) -> OrdinaryShopConsumableDescriptor:
-    """Poll one exact identity and attach its authoritative immutable base cost."""
     validated = _validated_eligible_records(card_type, records)
     eligible_keys = tuple(record["key"] for record in validated)
-
-    # Validation precedes RNG consumption so malformed observation never advances
-    # replay state.
     poll = poll_base_shop_consumable_center(run, card_type, eligible_keys)
 
     cost_by_key = {record["key"]: record["cost"] for record in validated}
     if poll.center_key in cost_by_key:
         base_cost = cost_by_key[poll.center_key]
     elif not validated:
-        # Vanilla get_current_pool falls back to Strength/Pluto when every source
-        # position is unavailable. Both centers have pinned base cost 3.
         base_cost = _FALLBACK_BASE_COST[card_type]
     else:
-        raise HeadlessTransitionError(
-            "selected consumable center is absent from authoritative eligible records"
-        )
+        raise HeadlessTransitionError("selected consumable center is absent from authoritative eligible records")
 
     assert type(base_cost) is int
     return OrdinaryShopConsumableDescriptor(
@@ -153,7 +140,6 @@ def describe_base_shop_consumable_from_records(
 def materialize_base_shop_consumable_descriptor(
     descriptor: OrdinaryShopConsumableDescriptor,
 ) -> tuple[HeadlessRunState, GeneratedShopConsumableItem]:
-    """Price exact ordinary Tarot/Planet metadata without inserting inventory."""
     if not isinstance(descriptor, OrdinaryShopConsumableDescriptor):
         raise TypeError("descriptor must be OrdinaryShopConsumableDescriptor")
 
@@ -175,6 +161,7 @@ def materialize_base_shop_consumable_descriptor(
         edition=None,
         inflation=state.shop_inflation,
         discount_percent=state.shop_discount_percent,
+        post_discount_multiplier=2 if descriptor.card_type == "Planet" else 1,
     )
     item = GeneratedShopConsumableItem(
         card_type=descriptor.card_type,
@@ -189,13 +176,6 @@ def insert_generated_shop_consumable_item(
     run: HeadlessRunState,
     item: GeneratedShopConsumableItem,
 ) -> HeadlessRunState:
-    """Insert one generated Tarot/Planet item into the shared main-shop area.
-
-    Canonical state stores main-shop Jokers and consumables in separate public
-    lists, while vanilla stores both in ``G.shop_jokers``.  Capacity is therefore
-    enforced by the sum of those lists.  This owns placement only and does not
-    make BUY_CONSUMABLE legal for generated metadata.
-    """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
     if not isinstance(item, GeneratedShopConsumableItem):
