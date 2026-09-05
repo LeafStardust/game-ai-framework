@@ -70,6 +70,14 @@ class BalatroState(GameState):
         self.shop_boosters: list = []
         self.shop_vouchers: list = []
         self.shop_active = False
+        # Mechanics-critical inputs to vanilla Card:set_cost(). These are direct
+        # G.GAME state, not values to infer from voucher names or UI prices. Keep
+        # independent observation bits so a missing live read can never collapse
+        # into an authoritative zero.
+        self.shop_inflation_observed: bool = False
+        self.shop_inflation: int = 0
+        self.shop_discount_percent_observed: bool = False
+        self.shop_discount_percent: int = 0
         self.consumable_slots = 2
         self.hand_levels = {
             "HIGH_CARD": 1,
@@ -207,6 +215,10 @@ class BalatroState(GameState):
         new_state.shop_boosters = self.shop_boosters.copy()
         new_state.shop_vouchers = self.shop_vouchers.copy()
         new_state.shop_active = self.shop_active
+        new_state.shop_inflation_observed = self.shop_inflation_observed
+        new_state.shop_inflation = self.shop_inflation
+        new_state.shop_discount_percent_observed = self.shop_discount_percent_observed
+        new_state.shop_discount_percent = self.shop_discount_percent
         new_state.consumable_slots = self.consumable_slots
         new_state.hand_levels = self.hand_levels.copy()
         new_state.hand_play_counts = self.hand_play_counts.copy()
