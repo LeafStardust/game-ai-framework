@@ -12,6 +12,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.env.voucher_capabilities import (
     expected_shop_discount_percent_for_vouchers,
     shop_generation_vouchers_are_exact,
+    shop_pricing_vouchers_are_exact,
 )
 from games.balatro.state import BalatroState
 
@@ -47,6 +48,7 @@ def test_env_r2_discount_voucher_ownership_implies_exact_percent(vouchers, expec
 
     assert expected_shop_discount_percent_for_vouchers(run.public) == expected
     assert shop_generation_vouchers_are_exact(run.public)
+    assert shop_pricing_vouchers_are_exact(run.public)
 
 
 def test_env_r2_liquidation_without_clearance_fails_closed():
@@ -54,19 +56,22 @@ def test_env_r2_liquidation_without_clearance_fails_closed():
 
     assert expected_shop_discount_percent_for_vouchers(run.public) is None
     assert not shop_generation_vouchers_are_exact(run.public)
+    assert not shop_pricing_vouchers_are_exact(run.public)
 
 
-def test_env_r2_discount_voucher_state_mismatch_fails_closed():
-    assert not shop_generation_vouchers_are_exact(
-        _run(("v_clearance_sale",), discount=0).public
-    )
-    assert not shop_generation_vouchers_are_exact(
-        _run(("v_clearance_sale", "v_liquidation"), discount=25).public
-    )
+def test_env_r2_discount_voucher_state_mismatch_blocks_pricing_not_rng():
+    clearance = _run(("v_clearance_sale",), discount=0)
+    assert shop_generation_vouchers_are_exact(clearance.public)
+    assert not shop_pricing_vouchers_are_exact(clearance.public)
+
+    liquidation = _run(("v_clearance_sale", "v_liquidation"), discount=25)
+    assert shop_generation_vouchers_are_exact(liquidation.public)
+    assert not shop_pricing_vouchers_are_exact(liquidation.public)
 
     run = _run(("v_clearance_sale",), discount=25)
     run.public.shop_discount_percent_observed = False
-    assert not shop_generation_vouchers_are_exact(run.public)
+    assert shop_generation_vouchers_are_exact(run.public)
+    assert not shop_pricing_vouchers_are_exact(run.public)
 
 
 def test_env_r2_clearance_prices_tarot_and_planet_from_common_discount_state():
