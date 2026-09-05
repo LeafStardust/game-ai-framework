@@ -71,14 +71,20 @@ R3 closure verification commit:
 GitHub Actions run 33982517717
 2331 passed, 1595 deselected
 
-Verified R4 code HEAD immediately before this roadmap sync:
+R4 exact discard bridge:
 c117ab054e8cebb8a402711cca46ed48fb076172
   feat(balatro): bridge public tactical discard
 GitHub Actions run 33982555046
 2335 passed, 1595 deselected
+
+R4 production decision-engine wiring:
+5d8565b6910eb9c77b8342465dc404bd6a902840
+  refactor(balatro): wire R4 tactical decision engine
+GitHub Actions run 33995495867
+2336 passed, 1595 deselected
 ```
 
-Both counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
+All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
 
 ## Immediate development position
 
@@ -586,16 +592,17 @@ RL controls strategic run-development boundaries while existing deterministic ha
 
 ## Canonical tactical audit — current findings
 
-The first audit is materially complete, with one production-entry wiring check and the exact Play lifecycle still to finish before widening the bridge:
+The production-entry wiring audit is complete. The remaining blocker before `PLAY_CARDS` can be admitted is a real headless R1/R2 lifecycle ownership gap, not a tactical-policy interface ambiguity:
 
 1. Canonical tactical payloads are `BalatroAction(PLAY_CARDS, cards=[...])` and `BalatroAction(DISCARD_CARDS, cards=[...])` from `games/balatro/actions.py`; selected cards are canonical public hand objects, not an RL-only index action type.
-2. Production D1 hand arbitration is owned by `StrategyAwareLiveHandActionPolicy` and the production decision-engine stack beneath `games/balatro/live/hand_action_policy.py` / `path_aware_hand_action_engine.py`.
-3. `D1LiveBlindClearPlanner` in `games/balatro/live/hand_action_planner_core.py` obtains Play/Discard candidates from the shared action generator and filters Play candidates through `boss_play_action_is_legal`; Boss-aware score projection uses the shared `BossAwareLiveHandDecisionEvaluator`.
+2. The production call chain is `StrategyAwareLiveMemoryInjectedSingleStepRunner` → `_recommend_hand_with_bonds()` → `PathAwareLiveHandActionDecisionEngine(policy=StrategyAwareLiveHandActionPolicy(...))` → `.decide(state)` → `HandActionDecision.action`. The headless bridge now calls that same production-shaped `decide(state)` boundary and accepts only the canonical `BalatroAction` carried by `decision.action`; the former test-only `.plan(state)` shape is rejected rather than retained as a compatibility layer.
+3. `D1LiveBlindClearPlanner` in `games/balatro/live/hand_action_planner.py` extends the core planner in `hand_action_planner_core.py`, obtains Play/Discard candidates from the shared generator, and filters Play candidates through `boss_play_action_is_legal`; Boss-aware score projection remains in the shared live evaluator path.
 4. Runner / To Do List target-hand evidence is owned by `games/balatro/target_hand_engine_policy.py` and consumed inside canonical D1 ranking; R4 must not duplicate that heuristic.
-5. `games/balatro/env/public_observation.py` is the policy-visible sanitization boundary. Private physical draw order remains on `HeadlessRunState` and is never passed to the tactical planner.
+5. `games/balatro/env/public_observation.py` is the policy-visible sanitization boundary. Private physical draw order remains on `HeadlessRunState` and is never passed to the tactical decision engine.
 6. The frozen strategic action contract remains `games/balatro/env_contract.py`; there is no separate `env_contract.v1.json` and no tactical learner action needs to be added to the strategic mask for R4.
+7. No complete ordinary headless Play transition currently exists. `games/balatro/env/boss_play.py` explicitly owns only Boss `Blind:press_play` mutations and explicitly does not execute an entire `PLAY_CARDS` transition; `round_zones.py` owns card-zone boundary primitives; `round_end.py` starts after a blind is already cleared; `games/balatro/scoring.py` computes hand scores but does not own action-time counters, zone movement, redraw, blind-clear/continue/loss resolution, or deterministic environment RNG integration.
 
-Before admitting `PLAY_CARDS`, finish tracing the actual production planner entry/wrapper used by the live agent and the exact headless Play score/callback/post-hand lifecycle. If any required state or callback owner is absent, classify that as an R1/R2 exactness gap rather than adding an R4 workaround.
+Therefore `PLAY_CARDS` remains fail-closed until a canonical headless action-time owner composes the complete source-order lifecycle. Do not bolt this lifecycle into the decision bridge as an R4 workaround.
 
 ## Admitted R4 slice — green
 
@@ -606,7 +613,9 @@ headless SELECTING_HAND
         ↓
 policy-safe public observation
         ↓
-existing planner action
+production-shaped decision_engine.decide(state)
+        ↓
+HandActionDecision.action / canonical BalatroAction
         ↓
 canonical DISCARD_CARDS + selected public hand objects
         ↓
@@ -624,18 +633,24 @@ Exact admitted behavior:
 - selected cards move to the exact discard tail;
 - `discards_remaining` and `discards_used` update atomically;
 - redraw uses retained private physical draw order without exposing it to policy;
-- planner input is `public_observation_state(run.public)`, so face-down identity remains masked;
-- planner-selected foreign card objects fail closed;
-- Boss discard callbacks, Joker discard callbacks, Purple Seal generation, and unsupported planner actions fail closed;
+- decision-engine input is `public_observation_state(run.public)`, so face-down identity remains masked;
+- decision-selected foreign card objects fail closed;
+- the legacy test-only `.plan(state)` shape fails closed rather than being supported in parallel;
+- Boss discard callbacks, Joker discard callbacks, Purple Seal generation, and unsupported decision actions fail closed;
 - `PLAY_CARDS` remains explicitly fail closed until its exact lifecycle is owned.
 
-Green checkpoint:
+Green checkpoints:
 
 ```text
 c117ab054e8cebb8a402711cca46ed48fb076172
   feat(balatro): bridge public tactical discard
 GitHub Actions run 33982555046
 2335 passed, 1595 deselected
+
+5d8565b6910eb9c77b8342465dc404bd6a902840
+  refactor(balatro): wire R4 tactical decision engine
+GitHub Actions run 33995495867
+2336 passed, 1595 deselected
 ```
 
 ## Minimal R4 bridge target
@@ -665,13 +680,13 @@ Required properties:
 
 ## Exact next task
 
-1. finish the live production tactical entry/wiring audit so the headless bridge calls the same deterministic owner rather than a test-only planner shape;
-2. trace the exact ordinary `PLAY_CARDS` transition through score, counters, card movement, callbacks, blind-clear/continue/loss ownership, redraw, and post-hand state;
-3. admit only the narrowest ordinary Play subset whose complete lifecycle is already exact;
-4. otherwise record the precise R1/R2 missing owner/state and keep Play fail closed;
-5. add focused deterministic regressions for every newly admitted behavior and re-run the authoritative GitHub Actions gate.
+1. close the identified R1/R2 headless ordinary-Play lifecycle gap at its canonical environment owner, using the pinned vanilla source order rather than adding logic to the decision bridge;
+2. first model the narrowest exact ordinary Small/Big-blind `PLAY_CARDS` subset: selected-card legality/identity, poker-hand recognition and exact score, hand/round counters, hand→play→discard movement, blind clear versus continue versus loss, redraw/post-hand phase, and all required callbacks in source order;
+3. explicitly exclude any card/Joker/Boss/random effect whose action-time semantics or Balatro RNG ownership are not yet exact; `games/balatro/scoring.py` must not be treated as a full transition owner merely because it can project a score;
+4. compose the completed ordinary-Play owner back into `games/balatro/env/tactical_transition.py` only after the lifecycle is independently exact;
+5. add focused deterministic regressions for clear, continue, loss/final-hand, zone/counter updates, fail-closed unsupported effects, and the decision-engine bridge; then run the authoritative GitHub Actions gate.
 
-No live Balatro run is required for this audit/implementation unless a later parity question is genuinely live-only.
+No live Balatro run is required for this implementation. Live validation begins only when R5 needs representative simulator/live parity evidence.
 
 ## R4 exit criteria
 
