@@ -1,9 +1,16 @@
+import pytest
+
 from games.balatro.env.shop_items import (
     GeneratedShopJokerItem,
+    insert_generated_shop_joker_item,
     materialize_shop_joker_descriptor,
 )
 from games.balatro.env.shop_joker_generation import OrdinaryShopJokerDescriptor
-from games.balatro.env.transition import HeadlessRunState, ShopTransitionEngine
+from games.balatro.env.transition import (
+    HeadlessRunState,
+    HeadlessTransitionError,
+    ShopTransitionEngine,
+)
 from games.balatro.state import BalatroState
 
 
@@ -55,11 +62,34 @@ def test_env_r2_materialization_isolates_descriptor_run_and_does_not_insert_inve
     assert item not in descriptor.run.public.shop_jokers
 
 
+def test_env_r2_generated_item_insertion_isolated_and_preserves_exact_metadata():
+    descriptor = _descriptor(edition="Holographic")
+    run, item = materialize_shop_joker_descriptor(descriptor)
+
+    inserted = insert_generated_shop_joker_item(run, item)
+
+    assert inserted is not run
+    assert run.public.shop_jokers == []
+    assert inserted.public.shop_jokers == [item]
+    assert inserted.public.shop_jokers[0].center_key == "j_joker"
+    assert inserted.public.shop_jokers[0].edition == "Holographic"
+    assert inserted.public.shop_jokers[0].price == 7
+
+
+def test_env_r2_generated_item_insertion_enforces_shared_two_card_main_shop_capacity():
+    run, item = materialize_shop_joker_descriptor(_descriptor())
+    first = insert_generated_shop_joker_item(run, item)
+    first.public.shop_consumables.append(object())
+
+    with pytest.raises(HeadlessTransitionError, match="already full"):
+        insert_generated_shop_joker_item(first, item)
+
+
 def test_env_r2_generated_metadata_does_not_make_purchase_semantics_exact():
     run, item = materialize_shop_joker_descriptor(_descriptor())
-    run.public.shop_jokers.append(item)
+    inserted = insert_generated_shop_joker_item(run, item)
 
-    actions = ShopTransitionEngine().legal_actions(run)
+    actions = ShopTransitionEngine().legal_actions(inserted)
 
     assert all(action.alias != "BUY_JOKER" for action in actions)
     assert any(action.alias == "END_SHOP" for action in actions)
