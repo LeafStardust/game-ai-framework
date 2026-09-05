@@ -87,6 +87,24 @@ def _normalize_blind_type(blind_type: str) -> str:
     return value
 
 
+def _require_retained_progression_matches(
+    run: "HeadlessRunState",
+    progression: BlindProgressionState,
+) -> None:
+    """Reject two conflicting private progression owners.
+
+    Legacy callers may still provide a run with no retained progression while
+    passing the explicit progression argument. Once a run carries the canonical
+    private owner, however, an explicit parallel copy must describe the same
+    state exactly or the transition fails closed.
+    """
+    retained = getattr(run, "blind_progression_state", None)
+    if retained is not None and retained != progression:
+        raise BlindProgressionError(
+            "explicit blind progression conflicts with retained run progression"
+        )
+
+
 def finalize_won_round_progression(
     run: "HeadlessRunState",
     progression: BlindProgressionState,
@@ -95,11 +113,9 @@ def finalize_won_round_progression(
 ) -> tuple["HeadlessRunState", BlindProgressionState]:
     """Apply the exact deterministic blind-state part of vanilla ``end_round``.
 
-    The private progression state is explicit in this primitive's input/output so
-    this source-order slice can be validated before it is installed into the
-    broader run container. Boss teardown mechanics remain owned separately; this
-    owner only records progression that must already have occurred by the time
-    ``ROUND_EVAL`` is visible.
+    The explicit progression parameter is retained for compatibility with older
+    internal callers. If ``run`` already owns progression, the two inputs must
+    agree. The successor run always retains the exact successor progression.
     """
     from games.balatro.env.transition import HeadlessRunState
 
@@ -107,6 +123,7 @@ def finalize_won_round_progression(
         raise TypeError("run must be HeadlessRunState")
     if not isinstance(progression, BlindProgressionState):
         raise TypeError("progression must be BlindProgressionState")
+    _require_retained_progression_matches(run, progression)
 
     state = run.public
     if str(state.phase).upper() != "ROUND_EVAL":
@@ -137,6 +154,7 @@ def finalize_won_round_progression(
         next_run.round_bonus_hands = 0
         next_run.round_bonus_discards = 0
 
+    next_run.blind_progression_state = deepcopy(next_progression)
     return next_run, next_progression
 
 
