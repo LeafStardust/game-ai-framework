@@ -125,6 +125,13 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
     next_state.money = money + payout
     next_state.phase = "SHOP"
     next_state.shop_active = True
+    # As above, this exact Boss-cash-out subset rejects Voucher/tag modifiers and
+    # runs only in normal Red/White. The shop therefore starts with authoritative
+    # vanilla pricing inputs of zero inflation and zero discount.
+    next_state.shop_inflation_observed = True
+    next_state.shop_inflation = 0
+    next_state.shop_discount_percent_observed = True
+    next_state.shop_discount_percent = 0
     next_state.shop_jokers.clear()
     next_state.shop_consumables.clear()
     next_state.shop_boosters.clear()
