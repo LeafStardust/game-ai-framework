@@ -23,7 +23,7 @@ from games.balatro.env.shop_consumable_generation import (
 )
 from games.balatro.env.shop_pricing import vanilla_card_cost
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
-from games.balatro.env.voucher_capabilities import shop_generation_vouchers_are_exact
+from games.balatro.env.voucher_capabilities import shop_pricing_vouchers_are_exact
 
 
 _FALLBACK_BASE_COST = {
@@ -152,7 +152,7 @@ def materialize_base_shop_consumable_descriptor(
         raise HeadlessTransitionError("shop inflation is not authoritative")
     if not state.shop_discount_percent_observed:
         raise HeadlessTransitionError("shop discount percent is not authoritative")
-    if not shop_generation_vouchers_are_exact(state):
+    if not shop_pricing_vouchers_are_exact(state):
         raise HeadlessTransitionError(
             "consumable materialization does not own current Voucher modifiers"
         )
