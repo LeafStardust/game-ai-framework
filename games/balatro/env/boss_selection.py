@@ -117,6 +117,9 @@ class BossSelectionResult:
 
 
 def _eligible_keys(state: BossSelectionState, ante: int) -> list[str]:
+    # Vanilla deliberately clamps only the ordinary-Boss minimum-Ante test to 1.
+    # The literal Ante is still used by the showdown tests, so Hieroglyph /
+    # Petroglyph Ante 0 and negative values must reach this function unchanged.
     effective_ante = max(1, ante)
     eligible: list[str] = []
     for meta in _BOSS_METADATA:
@@ -161,8 +164,6 @@ def select_normal_boss(
         raise TypeError("selection_state must be BossSelectionState")
     if isinstance(ante, bool) or not isinstance(ante, int):
         raise BossSelectionError("ante must be an exact integer")
-    if ante < 1:
-        raise BossSelectionError("ante must be at least 1")
 
     candidates = _eligible_keys(selection_state, ante)
     next_run = run.copy()
