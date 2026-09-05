@@ -57,6 +57,21 @@ def _owned_supported_vouchers(state: BalatroState) -> set[str] | None:
     return owned
 
 
+def blind_start_vouchers_are_exact(state: BalatroState) -> bool:
+    """Return whether Voucher ownership may cross blind start unchanged.
+
+    Supported Voucher consequences are either persisted into canonical state at
+    redemption (resource/capacity and Ante effects) or consumed by downstream
+    shop/economy owners. Vanilla blind selection does not reapply these Voucher
+    effects during the ``setting_blind`` lifecycle. Therefore blind start only
+    needs complete, authoritative, supported ownership; it must not replay the
+    Voucher effects a second time.
+    """
+    if not isinstance(state, BalatroState):
+        raise TypeError("state must be BalatroState")
+    return _owned_supported_vouchers(state) is not None
+
+
 def expected_joker_edition_rate_for_vouchers(state: BalatroState) -> float | None:
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
