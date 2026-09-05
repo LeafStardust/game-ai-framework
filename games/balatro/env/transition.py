@@ -220,6 +220,9 @@ class HeadlessRunState:
     pack_choices: list[Any] = field(default_factory=list)
     pack_return_phase: str | None = None
     pack_choices_remaining: int = 0
+    consumable_usage_observed: bool = False
+    consumable_usage_counts: dict[str, int] = field(default_factory=dict)
+    consumable_usage_totals: dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if str(self.public.deck_name).upper() != "RED":
@@ -342,6 +345,16 @@ class HeadlessRunState:
                 "pack_return_phase must be SHOP, BLIND_SELECT, or None"
             )
         self._require_nonnegative_int("pack_choices_remaining", self.pack_choices_remaining)
+        if not isinstance(self.consumable_usage_observed, bool):
+            raise HeadlessTransitionError("consumable_usage_observed must be boolean")
+        for name, values in (
+            ("consumable_usage_counts", self.consumable_usage_counts),
+            ("consumable_usage_totals", self.consumable_usage_totals),
+        ):
+            if not isinstance(values, dict):
+                raise HeadlessTransitionError(f"{name} must be a dictionary")
+            if any(not isinstance(key, str) or type(value) is not int or value < 0 for key, value in values.items()):
+                raise HeadlessTransitionError(f"{name} must map strings to nonnegative integers")
         self._require_nonnegative_int("base_reroll_cost", self.base_reroll_cost)
         self._require_nonnegative_int("reroll_cost", self.reroll_cost)
         self._require_nonnegative_int("skips", self.skips)

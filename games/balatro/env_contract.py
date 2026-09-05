@@ -65,6 +65,13 @@ CHOOSE_PACK_OPTION_EXECUTION_OWNER = (
     "games.balatro.live.injected.action_dispatcher."
     "LiveMemoryInjectedActionDispatcher.dispatch"
 )
+USE_CONSUMABLE_LEGALITY_OWNER = (
+    "games.balatro.env.consumable_use.can_use_planet_exact"
+)
+USE_CONSUMABLE_EXECUTION_OWNER = (
+    "games.balatro.live.injected.action_dispatcher."
+    "LiveMemoryInjectedActionDispatcher.dispatch"
+)
 SKIP_PACK_LEGALITY_OWNER = "games.balatro.env.pack.can_skip_pack_exact"
 SKIP_PACK_EXECUTION_OWNER = (
     "games.balatro.live.injected.action_dispatcher."
@@ -181,8 +188,10 @@ STRATEGIC_ACTION_CONTRACTS: tuple[StrategicActionContract, ...] = (
     StrategicActionContract(
         "USE_CONSUMABLE",
         USE_CONSUMABLE,
-        CapabilityStatus.PLANNED,
-        note="Canonical production action exists; deterministic legality owner is not frozen yet.",
+        CapabilityStatus.SUPPORTED,
+        USE_CONSUMABLE_LEGALITY_OWNER,
+        USE_CONSUMABLE_EXECUTION_OWNER,
+        "Exact active-shop use for held Planet cards with authoritative usage history.",
     ),
     StrategicActionContract(
         "SKIP_BLIND",

@@ -42,6 +42,7 @@ def test_only_frozen_actions_are_training_exposed():
         "SELL_JOKER": SELL_JOKER,
         "CHOOSE_PACK_OPTION": SELECT_PACK_CARD,
         "SKIP_PACK": SKIP_BOOSTER,
+        "USE_CONSUMABLE": USE_CONSUMABLE,
         "SKIP_BLIND": SKIP_BLIND,
         "SELECT_BLIND": SELECT_BLIND,
     }
@@ -114,6 +115,18 @@ def test_skip_pack_uses_canonical_action_and_narrow_exact_owners():
     validate_training_action(action)
 
 
+def test_use_consumable_uses_canonical_action_and_narrow_exact_owners():
+    contract = contract_for("USE_CONSUMABLE")
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == USE_CONSUMABLE
+    assert contract.legality_owner == (
+        "games.balatro.env.consumable_use.can_use_planet_exact"
+    )
+    action = EnvAction.from_alias("USE_CONSUMABLE", {"consumable_index": 0})
+    assert action.action_id == USE_CONSUMABLE
+    validate_training_action(action)
+
+
 def test_skip_blind_uses_canonical_action_and_narrow_exact_owners():
     contract = contract_for("SKIP_BLIND")
 
@@ -164,7 +177,6 @@ def test_unfrozen_and_unavailable_capabilities_never_enter_training_mask():
 
     for alias in (
         "BUY_CARD",
-        "USE_CONSUMABLE",
         "REROLL_BOSS",
     ):
         assert alias not in exposed_aliases
