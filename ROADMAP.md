@@ -58,29 +58,33 @@ Current CI selector:
 python -m pytest -q tests/balatro -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2"
 ```
 
-## Current checkpoint — 2026-09-05
+---
+
+# Current checkpoint — 2026-09-05
 
 ```text
 Branch: feat/v1.0-red-white-competence
 Code HEAD before this roadmap sync:
-337bd9bd6c7dda98cbbca091928dadb393aff9c5
-  test(balatro): pin normal voucher selection sequence
+35dfe3ece221d10164466770ab270f63d890a2e0
+  test(balatro): stabilize Voucher slot sentinels
 
 Latest verified code-head CI:
-33946770946
-2079 passed, 1595 deselected
+33949623769
+2089 passed, 1595 deselected
 ```
 
-This roadmap-sync commit is documentation-only and becomes the branch HEAD after it is pushed. The code checkpoint above remains the latest mechanics checkpoint until further code lands.
+This roadmap-sync commit is documentation-only and becomes branch HEAD after push. The mechanics checkpoint above remains the latest code checkpoint until further code lands.
 
-### Immediate development position
+## Immediate development position
 
-- R1 deterministic state/acquisition: **SUBSTANTIALLY COMPLETE**, with remaining lifecycle-specific exclusions kept fail-closed.
+- R1 deterministic state/acquisition: **SUBSTANTIALLY COMPLETE**; unsupported lifecycle effects remain fail closed.
 - R2 RNG/lifecycle/shop generation: **ACTIVE — PRIMARY WORKSTREAM**.
-- Exact ordinary shop reroll: **IMPLEMENTED / GREEN**.
-- Exact normal Voucher identity polling/selection: **IMPLEMENTED / GREEN**.
-- Authoritative Voucher eligibility/generation-pool observation: **NEXT TASK**.
-- Voucher purchase/effect lifecycle: **NOT implied by identity selection; remains separately gated**.
+- Exact normal shop main slots + reroll: **GREEN**.
+- Exact Voucher runtime eligibility catalogue: **GREEN**.
+- Exact normal Voucher identity polling: **GREEN**.
+- Exact normal Voucher metadata/pricing + separate Voucher slot publication: **GREEN**.
+- Voucher redemption/effect semantics: **NEXT TASK — audit in small coherent groups**.
+- `BUY_VOUCHER` must remain unexposed for unsupported Voucher effects.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **NOT CURRENTLY REQUIRED**.
 
@@ -101,12 +105,13 @@ Examples already enforced:
 - Amber Acorn hidden Joker mapping is masked while active;
 - unsupported Joker inverse sale lifecycles remain rejected;
 - pre-deal Manacle/Chicot requires authoritative retained physical deck order;
-- malformed Joker generation catalogues are rejected all-or-nothing;
+- malformed Joker/Tarot/Planet/Voucher generation catalogues are rejected all-or-nothing;
 - generated Negative Jokers do not imply Negative acquisition is legal;
-- malformed Tarot/Planet eligibility records are rejected before shop RNG advances;
-- the canonical Tarot/Planet catalogue may not be overwritten by legacy wrappers;
-- two-slot shop generation preflights every possible catalogue/pricing dependency before the first type RNG draw;
-- Voucher selection must not use a guessed/static eligibility catalogue.
+- canonical generation catalogues may not be overwritten by legacy wrappers;
+- two-slot main-shop generation preflights all possible catalogue/pricing dependencies before first type RNG;
+- Voucher selection never falls back to a guessed/static Python catalogue;
+- pinned vanilla's pathological all-ineligible Voucher `j_joker` fallback is not fabricated as a Voucher;
+- active Tag Voucher effects remain outside the one-normal-Voucher publication boundary.
 
 ---
 
@@ -142,7 +147,7 @@ The simulator is **not authoritative game truth** until representative R5 live/s
 
 ## Exact state/resource ownership
 
-Owned resource-sensitive acquisitions include:
+Owned resource-sensitive Joker acquisitions include:
 
 ```text
 Juggler      hand_size += 1
@@ -177,7 +182,7 @@ Still fail closed where not globally owned:
 
 - unknown/unaudited Joker acquisitions;
 - Joker editions where acquisition changes capacity semantics, especially Negative;
-- generic Voucher effect application;
+- generic Voucher redemption/effect application;
 - booster-pack opening where exact pack lifecycle is not yet owned;
 - malformed/noninteger prices;
 - generic SELL_JOKER inverse lifecycle where a Joker has unowned inverse effects;
@@ -413,8 +418,6 @@ slot 2: cdt type -> full type-specific identity/edition/pricing
 publish both generated metadata items into shared two-slot capacity
 ```
 
-Added:
-
 ```text
 dce24f7  insert generated consumables into shared main-shop capacity
 520f12c  compose exact two-slot main shop generation
@@ -422,32 +425,18 @@ bdefc13  cover two-slot replay/preflight/isolation
 CI 33946028581: 2063 passed, 1595 deselected
 ```
 
-Tests prove:
-
-- exactly two ordinary items are published;
-- source input and RNG remain isolated;
-- same seed/catalogues reproduce identical items and RNG state;
-- malformed Tarot/Planet catalogue fails before RNG advancement;
-- malformed Joker catalogue fails before RNG advancement;
-- non-authoritative pricing fails before RNG advancement;
-- pre-existing inventory is rejected.
-
 ## Exact shop reroll — GREEN
-
-Implemented after the previous roadmap checkpoint:
 
 ```text
 a3ac4c2  exact shop reroll transition
 d914d84  shop reroll regressions
 ```
 
-Owned boundary includes the normal ordinary-main-shop reroll transition under the same exact catalogue/pricing/RNG constraints as initial two-slot generation. Unsupported modifiers remain fail closed.
+Reroll consumes the same canonical Joker/Tarot/Planet state owners; it does not create a second eligibility path.
 
-Reroll generation must continue to consume the same canonical Joker/Tarot/Planet state owners; it must not create a second eligibility path.
+## Normal Voucher generation — GREEN THROUGH SEPARATE SHOP-SLOT PUBLICATION
 
-## Normal Voucher identity selection — GREEN
-
-Implemented:
+### Identity RNG
 
 ```text
 b56fb87  normal Voucher selection primitive
@@ -455,109 +444,150 @@ b56fb87  normal Voucher selection primitive
 CI 33946770946: 2079 passed, 1595 deselected
 ```
 
-Current exact owner:
+Current owner:
 
 ```text
 games/balatro/env/shop_voucher_generation.py
 ```
 
-Semantics:
+Pinned semantics include:
 
-- mirrors normal-mode `get_next_voucher_key(true)` identity polling;
-- caller supplies an authoritative ordered `available_vouchers` catalogue;
-- excludes `used_vouchers`;
-- excludes `starting_voucher_keys`;
-- uses keyed RNG `Voucher{ante}`;
-- preserves bounded retry/resampling behavior;
-- returns selected key plus poll count;
-- fails closed when no exact eligible catalogue exists or retry is exhausted.
+- normal key `Voucher`;
+- unavailable-position resample keys `Voucher_resample2`, `Voucher_resample3`, ...;
+- source-position `UNAVAILABLE` preservation;
+- strict all-ineligible rejection because pinned vanilla falls through the generic pool fallback to non-Voucher `j_joker`;
+- no invented `v_blank` fallback;
+- input validation before RNG advancement.
+
+### Authoritative runtime eligibility catalogue
+
+Canonical path now exists:
+
+```text
+live runtime Voucher-generation observer
+    -> strict snapshot payload
+    -> DefaultBalatroStateTranslator
+    -> BalatroState.voucher_generation_pool_observed
+    -> BalatroState.voucher_generation_pool
+    -> voucher_pool_from_observed_state(...)
+    -> poll_observed_normal_voucher_key(...)
+```
+
+Observed records retain source-significant Voucher positions and exact generation predicates/metadata, including:
+
+- center key;
+- immutable base cost;
+- unlock state;
+- dependency/requirement keys;
+- pool flags;
+- exact eligibility result.
+
+Commits:
+
+```text
+e7a6901  feat(balatro): publish Voucher generation catalogue
+7ec6c43  feat(balatro): bridge observed Voucher eligibility to selection
+01d05b2  fix(balatro): preserve Voucher pool failure contract
+CI 33949167598: 2079 passed, 1595 deselected
+```
+
+The `01d05b2` fix changed only the fail-closed diagnostic contract after the bridge exposed the pinned `j_joker` fallback detail; mechanics did not change.
+
+### Voucher metadata, pricing and separate shop slot
+
+Pinned vanilla source establishes that the normal selected Voucher is stored in `G.GAME.current_round.voucher`, constructed into the separate `G.shop_vouchers` card area, and priced using ordinary `Card:set_cost()` semantics.
+
+Implemented owner:
+
+```text
+games/balatro/env/shop_voucher_items.py
+```
+
+Owned boundary:
+
+- selected center must exist exactly once in the authoritative observed Voucher catalogue;
+- immutable base cost comes from that catalogue;
+- exact normal no-edition price uses authoritative shop inflation + discount percent;
+- active Tag Voucher effects remain fail closed for this normal-slot boundary;
+- `GeneratedShopVoucherItem` is metadata only, not a gameplay-effect object;
+- publication uses `BalatroState.shop_vouchers`;
+- the Voucher does **not** consume either ordinary main-shop slot;
+- duplicate normal Voucher publication is rejected;
+- malformed/unobserved catalogue and occupied-slot failures do not mutate the source run/RNG;
+- publication does **not** imply redemption effects are owned.
+
+Commits:
+
+```text
+fdf43c3  feat(balatro): materialize exact normal shop Voucher
+a0d2e56  test(balatro): cover exact normal shop Voucher slot
+35dfe3e  test(balatro): stabilize Voucher slot sentinels
+```
+
+The first test run exposed only an invalid identity-based test sentinel:
+
+```text
+CI 33949514617: 1 failed, 2088 passed, 1595 deselected
+```
+
+The test fixture was corrected without production changes. Final gate:
+
+```text
+CI 33949623769: 2089 passed, 1595 deselected
+```
 
 ### Critical distinction
 
-**Voucher identity selection is exact; Voucher eligibility observation and Voucher purchase/effect application are separate ownership problems.**
+**Voucher generation/publication is now exact for the owned normal boundary; Voucher redemption/effect application is still a separate ownership problem.**
 
-Do not infer from `b56fb87` / `337bd9b` that:
+Do not infer that:
 
-- a static Python Voucher list is authoritative;
-- every profile-unlocked Voucher is available;
-- Voucher purchase effects are exact;
-- Voucher-modified shop rates are exact;
-- Voucher generation is ready to publish into canonical shop state.
+- every Voucher can be bought headlessly;
+- every Voucher's persistent effect is represented;
+- Voucher-modified shop rates/slots are globally exact;
+- Voucher Tag extra-Voucher behavior is exact;
+- `BUY_VOUCHER` is ready for the training mask.
 
 ---
 
-# Current audit — authoritative Voucher eligibility catalogue
+# Next work — Voucher redemption/effect audit
 
-## Existing exact precedent
+Audit Voucher effects in **small mechanically coherent groups**. Do not implement a generic "move Voucher to owned list" purchase that ignores immediate/persistent consequences.
 
-The live runtime already has dedicated strict observers for ordinary generation eligibility:
+For each Voucher center, classify all consequences by canonical owner:
 
-```text
-games/balatro/live/runtime/joker_generation_pool_observer.py
-games/balatro/live/runtime/consumable_generation_pool_observer.py
-```
+1. immediate purchase/redeem mutation;
+2. persistent economy/pricing mutation;
+3. shop-size/type-rate mutation;
+4. hand/discard/hand-size/resource mutation;
+5. Joker/consumable/pack slot-capacity mutation;
+6. pack/card-generation mutation;
+7. Ante/blind/economy lifecycle mutation;
+8. RNG or future-generation dependency;
+9. dependency on a prior Voucher;
+10. whether inverse/removal semantics can ever matter in the modeled run.
 
-They reconstruct eligibility from the **running game's own mechanics-critical runtime tables**, not a guessed Python unlock catalogue.
+### Implementation order
 
-### Joker observer owns
+1. inspect pinned vanilla Voucher center definitions and redeem callback/source ordering;
+2. build a complete effect classification table before broadening legality;
+3. identify the smallest group whose consequences are already fully represented in canonical `BalatroState` / `HeadlessRunState`;
+4. implement only that group;
+5. expose `BUY_VOUCHER(slot)` only for exact supported centers, exact integer price, affordability, and current shop slot;
+6. preserve separate `shop_vouchers` source removal and `vouchers` ownership state;
+7. update all directly affected canonical fields in source order;
+8. add focused legality + direct-transition + input-isolation regressions;
+9. prove unsupported Voucher centers remain absent from legal actions and rejected by direct execution;
+10. run deterministic CI and synchronize this roadmap.
 
-- `G.P_JOKER_RARITY_POOLS` runtime order;
-- center keys and immutable base costs;
-- unlock state;
-- `G.GAME.used_jokers` duplicate suppression;
-- Showman exception;
-- pool flags;
-- banned keys;
-- all-or-nothing strict LuaJIT reads.
+Potential early categories to audit, **not pre-approved for implementation**:
 
-### Tarot/Planet observer owns
+- pure resource-capacity Vouchers where the target field already exists;
+- pure pricing/discount Vouchers if canonical discount state can be updated exactly;
+- pure hand/discard Vouchers if next-round/current lifecycle timing is exact;
+- shop-slot/rate Vouchers only after their generation consequences are fully owned.
 
-- `G.P_CENTER_POOLS.Tarot` / `.Planet` runtime order;
-- center keys/base costs/unlock state;
-- duplicate suppression + Showman;
-- pool flags and bans;
-- Planet softlock hand-play prerequisites;
-- all-or-nothing strict LuaJIT reads.
-
-Any incomplete mechanics-critical read returns unobserved/`None`; headless generation does not guess missing profile/runtime state.
-
-## Voucher gap — NEXT TASK
-
-`BalatroState` currently has canonical generation-pool state for Joker and consumables, but **no equivalent Voucher generation-pool field/path yet**.
-
-Next work must audit pinned vanilla Voucher selection predicates and identify the exact running-game tables needed to reproduce the catalogue supplied to `get_next_voucher_key(true)`.
-
-Required questions:
-
-1. What is the exact source-significant Voucher pool/order used by normal mode?
-2. Which runtime/profile fields control `unlocked` / availability?
-3. How do `used_vouchers`, `starting_voucher_keys`, bans, challenges, or pool flags interact?
-4. Are any Voucher pair/dependency rules applied before or during `get_next_voucher_key` polling?
-5. Can every required predicate be observed from running-game state without leaking information that the policy should not receive?
-6. Which fields belong in public `BalatroState` versus simulator-private generation state?
-
-### Implementation order if audit proves exact observation possible
-
-1. add a strict runtime Voucher-generation-pool observer following the Joker/Consumable all-or-nothing pattern;
-2. add a strict snapshot payload contract;
-3. wire canonical translation without legacy wrapper rewriting;
-4. add `BalatroState` observed/catalogue fields only if they are appropriate public-state facts; otherwise retain them in simulator-private generation state;
-5. bridge the exact catalogue into `select_normal_shop_voucher`;
-6. prove malformed/incomplete catalogue rejection occurs **before RNG advances**;
-7. prove same seed + same authoritative catalogue reproduces selected Voucher and RNG state;
-8. only then compose Voucher metadata publication into normal shop generation.
-
-If the audit cannot prove exact observation, **keep `shop_voucher_generation.py` caller-supplied/private and document the blocker; do not invent a static Voucher catalogue.**
-
-### After Voucher generation catalogue
-
-Only after identity generation is exact and canonical:
-
-- materialize exact Voucher shop metadata/pricing;
-- publish normal Voucher slot into shop state;
-- audit Voucher purchase/effect semantics in small coherent groups;
-- integrate only owned Voucher effects into later shop generation/rate/slot/capacity state;
-- keep unsupported Vouchers purchase-ineligible.
+Do not choose a group by perceived usefulness; choose it by exact owned consequences.
 
 ---
 
@@ -608,10 +638,10 @@ Priority fixtures:
 - initial ordinary shop generation;
 - ordinary shop reroll;
 - Joker/Tarot/Planet identity and price generation;
-- normal Voucher identity/slot generation once owned;
+- normal Voucher identity/price/slot generation;
 - ordinary purchase/hold/end-shop;
 - Joker replacement;
-- Voucher purchase/rejection;
+- Voucher purchase/rejection once owned;
 - pack paths;
 - blind skip;
 - ordinary blind start/clear;
@@ -664,17 +694,18 @@ Manual Bond-value coefficient tuning remains retired as the primary competence p
 
 # Exact next action
 
-**Do not write more shop mechanics until the Voucher eligibility catalogue audit is complete.**
+**Audit Voucher redemption/effect semantics before writing Voucher purchase code.**
 
 Immediate order:
 
-1. inspect pinned vanilla `get_next_voucher_key` and Voucher pool construction;
-2. enumerate every eligibility predicate/runtime dependency;
-3. compare them to currently observable runtime state;
-4. classify the catalogue as public canonical state vs simulator-private generation state;
-5. implement a strict all-or-nothing observer only if exactness/public-information rules permit it;
-6. add focused regressions;
-7. run the deterministic CI selector and inspect the actual pytest count;
-8. synchronize this roadmap again after the green slice.
+1. inspect pinned vanilla Voucher center definitions and redeem/apply source ordering;
+2. classify every normal Voucher by immediate/persistent consequence;
+3. map each consequence to an existing exact state owner or a missing owner;
+4. choose one smallest coherent fully-owned group;
+5. implement fail-closed acquisition/effect semantics only for that group;
+6. add legality/direct-transition/input-isolation regressions;
+7. keep all other Vouchers purchase-ineligible;
+8. run the deterministic CI selector and inspect the actual pytest count;
+9. synchronize this roadmap again after the green slice.
 
 No Balatro live run is currently required.
