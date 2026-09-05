@@ -138,7 +138,7 @@ def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("base shop generation requires a positive exact Ante")
     if not shop_generation_vouchers_are_exact(state):
         raise HeadlessTransitionError(
-            "base shop generation does not own current Voucher modifiers"
+            "base shop generation does not own current voucher modifiers"
         )
     if run.tags:
         raise HeadlessTransitionError("base shop generation does not own active Tag shop effects")
