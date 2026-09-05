@@ -1,4 +1,5 @@
 import inspect
+from pathlib import Path
 
 import games.balatro.live.translator as translator_module
 from games.balatro.live.protocol import LiveBalatroSnapshot
@@ -18,8 +19,8 @@ def test_env_r2_consumable_pool_has_no_post_owner_overwrite(monkeypatch):
                 assignments.append(
                     (
                         name,
-                        value.copy() if isinstance(value, dict) else value,
-                        caller.f_code.co_filename,
+                        tuple(value) if isinstance(value, dict) else value,
+                        Path(caller.f_code.co_filename).name,
                         caller.f_code.co_name,
                         caller.f_lineno,
                     )
