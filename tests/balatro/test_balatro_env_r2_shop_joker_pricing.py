@@ -15,6 +15,10 @@ def _run() -> HeadlessRunState:
     state.stake_name = "WHITE"
     state.phase = "SHOP"
     state.shop_active = True
+    state.shop_inflation_observed = True
+    state.shop_inflation = 0
+    state.shop_discount_percent_observed = True
+    state.shop_discount_percent = 0
     return HeadlessRunState(public=state, seed="PRICE")
 
 
@@ -69,19 +73,67 @@ def test_env_r2_vanilla_card_cost_rejects_inexact_inputs_and_unknown_editions():
         vanilla_card_cost(5, edition="Glitched", inflation=0, discount_percent=0)
 
 
-def test_env_r2_base_shop_descriptor_pricing_uses_normal_unmodified_boundary():
+def test_env_r2_base_shop_descriptor_pricing_uses_authoritative_zero_boundary():
     descriptor = _descriptor(8, "Polychrome")
 
     assert price_base_shop_joker_descriptor(descriptor) == 13
 
 
-def test_env_r2_base_shop_descriptor_pricing_rejects_modifier_boundaries():
+def test_env_r2_descriptor_pricing_consumes_observed_inflation_and_discount():
+    descriptor = _descriptor(5, "Holographic")
+    descriptor.run.public.shop_inflation = 2
+    descriptor.run.public.shop_discount_percent = 25
+
+    assert price_base_shop_joker_descriptor(descriptor) == 7
+
+
+def test_env_r2_descriptor_pricing_requires_authoritative_pricing_inputs():
     descriptor = _descriptor(5, None)
-    descriptor.run.public.vouchers.append("Clearance Sale")
-    with pytest.raises(HeadlessTransitionError, match="voucher discounts"):
+    descriptor.run.public.shop_inflation_observed = False
+    with pytest.raises(HeadlessTransitionError, match="inflation is not authoritative"):
         price_base_shop_joker_descriptor(descriptor)
 
+    descriptor = _descriptor(5, None)
+    descriptor.run.public.shop_discount_percent_observed = False
+    with pytest.raises(HeadlessTransitionError, match="discount percent is not authoritative"):
+        price_base_shop_joker_descriptor(descriptor)
+
+
+def test_env_r2_descriptor_pricing_rejects_invalid_observed_values():
+    descriptor = _descriptor(5, None)
+    descriptor.run.public.shop_inflation = -1
+    with pytest.raises(HeadlessTransitionError, match="inflation cannot be negative"):
+        price_base_shop_joker_descriptor(descriptor)
+
+    descriptor = _descriptor(5, None)
+    descriptor.run.public.shop_discount_percent = 101
+    with pytest.raises(HeadlessTransitionError, match="discount_percent"):
+        price_base_shop_joker_descriptor(descriptor)
+
+
+def test_env_r2_descriptor_pricing_does_not_infer_discount_from_voucher_names():
+    descriptor = _descriptor(5, None)
+    descriptor.run.public.vouchers.append("Clearance Sale")
+    descriptor.run.public.shop_discount_percent = 25
+
+    assert price_base_shop_joker_descriptor(descriptor) == 4
+
+
+def test_env_r2_descriptor_pricing_keeps_active_tag_effects_fail_closed():
     descriptor = _descriptor(5, None)
     descriptor.run.tags.append("Coupon Tag")
     with pytest.raises(HeadlessTransitionError, match="Tag price effects"):
         price_base_shop_joker_descriptor(descriptor)
+
+
+def test_env_r2_shop_pricing_state_survives_canonical_state_copy():
+    state = _run().public
+    state.shop_inflation = 3
+    state.shop_discount_percent = 50
+
+    copied = state.copy()
+
+    assert copied.shop_inflation_observed is True
+    assert copied.shop_inflation == 3
+    assert copied.shop_discount_percent_observed is True
+    assert copied.shop_discount_percent == 50
