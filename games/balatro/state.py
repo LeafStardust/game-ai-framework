@@ -106,7 +106,11 @@ class BalatroState(GameState):
             hand: 0
             for hand in self.hand_levels
         }
-        self.vouchers: list = []
+        # Public redeemed-Voucher ownership. ``vouchers_observed`` distinguishes
+        # an authoritative empty G.GAME.used_vouchers table from an observation
+        # source that never exposed Voucher ownership at all.
+        self.vouchers_observed: bool = False
+        self.vouchers: list[str] = []
         self.phase: str = "ROUND_START"
         self.glass_cards_destroyed: int = 0
         self.last_played_hand: str | None = None
@@ -235,6 +239,7 @@ class BalatroState(GameState):
         new_state.hand_levels = self.hand_levels.copy()
         new_state.hand_play_counts = self.hand_play_counts.copy()
         new_state.round_hand_play_counts = self.round_hand_play_counts.copy()
+        new_state.vouchers_observed = self.vouchers_observed
         new_state.vouchers = self.vouchers.copy()
         new_state.phase = self.phase
         new_state.glass_cards_destroyed = self.glass_cards_destroyed
