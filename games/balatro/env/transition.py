@@ -23,7 +23,10 @@ from games.balatro.env.card_order import (
 )
 from games.balatro.env.joker_order import JokerOrderError, JokerOrderState
 from games.balatro.env.rng import BalatroRNG
-from games.balatro.env.voucher_capabilities import EXACT_EDITION_RATE_VOUCHER_KEYS
+from games.balatro.env.voucher_capabilities import (
+    EXACT_DISCOUNT_VOUCHER_KEYS,
+    EXACT_EDITION_RATE_VOUCHER_KEYS,
+)
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.jokers.arrowhead import ArrowheadJoker
@@ -424,7 +427,7 @@ class ShopTransitionEngine:
         actions.extend(
             EnvAction.from_alias("BUY_VOUCHER", {"slot": slot})
             for slot, item in enumerate(state.shop_vouchers)
-            if self._voucher_redemption_is_exact(state, item)
+            if self._voucher_redemption_is_exact(run, item, slot)
             and self._is_affordable(state, item)
         )
 
@@ -467,8 +470,14 @@ class ShopTransitionEngine:
         if action.alias == "BUY_VOUCHER":
             item = state.shop_vouchers[slot]
             key = self._voucher_key(item)
-            if not self._voucher_redemption_is_exact(state, item):
+            if not self._voucher_redemption_is_exact(next_run, item, slot):
                 raise HeadlessTransitionError("Voucher redemption effect is not exact")
+            if key in EXACT_DISCOUNT_VOUCHER_KEYS:
+                from games.balatro.env.discount_voucher_redemption import (
+                    redeem_exact_discount_voucher,
+                )
+
+                return redeem_exact_discount_voucher(next_run, slot)
             price = self._price(item)
             if price < 0 or state.money < price:
                 raise HeadlessTransitionError("shop item is not affordable")
@@ -518,11 +527,23 @@ class ShopTransitionEngine:
             state.round_reset_discards += 3
 
     @classmethod
-    def _voucher_redemption_is_exact(cls, state: BalatroState, item: Any) -> bool:
+    def _voucher_redemption_is_exact(
+        cls,
+        run: HeadlessRunState,
+        item: Any,
+        slot: int,
+    ) -> bool:
+        state = run.public
         try:
             key = cls._voucher_key(item)
         except HeadlessTransitionError:
             return False
+        if key in EXACT_DISCOUNT_VOUCHER_KEYS:
+            from games.balatro.env.discount_voucher_redemption import (
+                discount_voucher_redemption_is_exact,
+            )
+
+            return discount_voucher_redemption_is_exact(run, slot)
         if key not in (_EXACT_RESOURCE_VOUCHER_KEYS | EXACT_EDITION_RATE_VOUCHER_KEYS):
             return False
         if key in state.vouchers:
