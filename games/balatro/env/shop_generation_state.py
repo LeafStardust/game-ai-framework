@@ -1,9 +1,14 @@
 """Canonical-state bridge into exact R2 shop Joker identity RNG.
 
-Dynamic eligibility is observed/translated into :class:`BalatroState`.  The RNG
+Dynamic eligibility is observed/translated into :class:`BalatroState`. The RNG
 owner in ``shop_generation`` deliberately accepts only explicit eligible keys.
 This module is the narrow adapter between those two existing contracts; it does
 not reimplement pool filtering or identity RNG.
+
+The live producer is already strict, but this boundary also validates the whole
+canonical catalogue before any rarity can be consumed. That prevents malformed
+or externally constructed state from retaining ``observed=True`` while a bad
+rarity or record is silently ignored elsewhere.
 """
 
 from __future__ import annotations
@@ -15,42 +20,65 @@ from games.balatro.env.shop_generation import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
-def eligible_joker_keys_from_state(run: HeadlessRunState, rarity: int) -> tuple[str, ...]:
-    """Return one exact observed rarity's eligible center keys or fail closed."""
+_REQUIRED_RARITY_KEYS = ("1", "2", "3", "4")
+
+
+def _validate_observed_joker_generation_pools(run: HeadlessRunState) -> dict[str, list[dict]]:
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
-    if type(rarity) is not int or rarity not in (1, 2, 3, 4):
-        raise HeadlessTransitionError("Joker rarity must be exact 1, 2, 3, or 4")
 
     state = run.public
     if not state.joker_generation_pool_observed:
         raise HeadlessTransitionError("Joker generation pool is not authoritatively observed")
+
     pools = state.joker_generation_pools
-    rarity_key = str(rarity)
-    if not isinstance(pools, dict) or rarity_key not in pools:
+    if not isinstance(pools, dict) or set(pools) != set(_REQUIRED_RARITY_KEYS):
         raise HeadlessTransitionError(
-            f"authoritative Joker generation pool is missing rarity {rarity}"
+            "authoritative Joker generation pool must contain exact rarities 1 through 4"
         )
-    records = pools[rarity_key]
-    if not isinstance(records, list):
-        raise HeadlessTransitionError("authoritative Joker generation rarity pool must be a list")
 
-    keys: list[str] = []
-    seen: set[str] = set()
-    for record in records:
-        if not isinstance(record, dict):
-            raise HeadlessTransitionError("Joker generation pool record must be a mapping")
-        if record.get("rarity") != rarity:
-            raise HeadlessTransitionError("Joker generation pool record rarity mismatch")
-        key = record.get("key")
-        if not isinstance(key, str) or not key:
-            raise HeadlessTransitionError("Joker generation pool record has invalid center key")
-        if key in seen:
-            raise HeadlessTransitionError("Joker generation pool contains duplicate center keys")
-        seen.add(key)
-        keys.append(key)
+    seen_keys: set[str] = set()
+    for rarity_key in _REQUIRED_RARITY_KEYS:
+        records = pools[rarity_key]
+        if not isinstance(records, list):
+            raise HeadlessTransitionError(
+                "authoritative Joker generation rarity pool must be a list"
+            )
+        rarity = int(rarity_key)
+        for record in records:
+            if not isinstance(record, dict):
+                raise HeadlessTransitionError("Joker generation pool record must be a mapping")
+            if type(record.get("rarity")) is not int or record["rarity"] != rarity:
+                raise HeadlessTransitionError("Joker generation pool record rarity mismatch")
 
-    return tuple(keys)
+            key = record.get("key")
+            if not isinstance(key, str) or not key:
+                raise HeadlessTransitionError("Joker generation pool record has invalid center key")
+            if key in seen_keys:
+                raise HeadlessTransitionError("Joker generation pool contains duplicate center keys")
+            seen_keys.add(key)
+
+            unlocked = record.get("unlocked")
+            if unlocked is not None and not isinstance(unlocked, bool):
+                raise HeadlessTransitionError("Joker generation pool record has invalid unlocked state")
+            for flag_name in ("no_pool_flag", "yes_pool_flag"):
+                flag = record.get(flag_name)
+                if flag is not None and (not isinstance(flag, str) or not flag):
+                    raise HeadlessTransitionError(
+                        f"Joker generation pool record has invalid {flag_name}"
+                    )
+
+    return pools
+
+
+def eligible_joker_keys_from_state(run: HeadlessRunState, rarity: int) -> tuple[str, ...]:
+    """Return one exact observed rarity's eligible center keys or fail closed."""
+    if type(rarity) is not int or rarity not in (1, 2, 3, 4):
+        raise HeadlessTransitionError("Joker rarity must be exact 1, 2, 3, or 4")
+
+    pools = _validate_observed_joker_generation_pools(run)
+    records = pools[str(rarity)]
+    return tuple(record["key"] for record in records)
 
 
 def poll_base_shop_joker_center_from_state(
