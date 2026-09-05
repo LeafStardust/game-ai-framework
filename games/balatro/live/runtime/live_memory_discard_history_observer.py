@@ -80,6 +80,22 @@ def public_joker_generation_pools(decoder, root):
     return observe_joker_generation_pools(decoder, root)
 
 
+def enrich_joker_generation_pool_payload(payload: dict, generation_pools) -> dict:
+    """Install or clear the authoritative Joker-generation catalogue marker.
+
+    A fresh copy is returned so stale catalogue records cannot survive a later
+    incomplete memory observation.  This is the exact observer-to-translator
+    boundary used by production and kept pure for deterministic regression tests.
+    """
+    enriched = dict(payload)
+    enriched["joker_generation_pool_observed"] = generation_pools is not None
+    if generation_pools is not None:
+        enriched["joker_generation_pools"] = generation_pools
+    else:
+        enriched.pop("joker_generation_pools", None)
+    return enriched
+
+
 class DiscardHistorySupervisorLiveMemoryBalatroObserver(
     SupervisorLiveMemoryBalatroObserver
 ):
@@ -146,11 +162,7 @@ class DiscardHistorySupervisorLiveMemoryBalatroObserver(
                 changed = True
 
         generation_pools = public_joker_generation_pools(decoder, root)
-        payload["joker_generation_pool_observed"] = generation_pools is not None
-        if generation_pools is not None:
-            payload["joker_generation_pools"] = generation_pools
-        else:
-            payload.pop("joker_generation_pools", None)
+        payload = enrich_joker_generation_pool_payload(payload, generation_pools)
         changed = True
 
         if not changed:
