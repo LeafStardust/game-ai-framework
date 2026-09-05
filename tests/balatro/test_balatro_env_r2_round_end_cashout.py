@@ -188,10 +188,9 @@ def test_env_r2_cashout_rejects_unowned_economy_and_lifecycle_modifiers():
         cash_out_baseline_ordinary_blind(run)
 
     run = _cleared_run()
-    # Overstock changes shop-card capacity, a downstream consequence this cash-out
-    # boundary still does not own. Keep this regression on a genuinely unsupported
-    # economy/shop Voucher now that Seed Money interest is exact.
-    run.public.vouchers.append("v_overstock_norm")
+    # Magic Trick adds playing-card inventory to the main shop; that generation
+    # and purchase lifecycle is still outside the currently exact shop boundary.
+    run.public.vouchers.append("v_magic_trick")
     with pytest.raises(HeadlessTransitionError, match="Voucher"):
         cash_out_baseline_ordinary_blind(run)
 
