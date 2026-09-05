@@ -36,7 +36,7 @@ def _install(run, voucher):
             rarity=1,
             base_cost=5,
             edition=None,
-            price=5 if run.public.shop_discount_percent == 0 else 3,
+            price=5 if run.public.shop_discount_percent == 0 else 4,
         )
     ]
     run.public.shop_consumables = [
@@ -75,7 +75,7 @@ def test_env_r2_shop_engine_exposes_and_executes_clearance_transaction():
     assert result.public.vouchers == ["v_clearance_sale"]
     assert result.public.shop_vouchers == []
     assert result.public.shop_discount_percent == 25
-    assert result.public.shop_jokers[0].price == 3
+    assert result.public.shop_jokers[0].price == 4
     assert result.public.shop_consumables[0].price == 2
     assert result.rng_snapshot() == before_rng
     assert run.public.money == 30
@@ -152,3 +152,23 @@ def test_env_r2_shop_engine_hides_discount_purchase_when_repricing_is_not_owned(
         ),
     )
     assert action not in engine.legal_actions(mismatch_run)
+
+
+def test_env_r2_shop_engine_hides_discount_purchase_when_current_generated_price_is_stale():
+    run = _install(
+        _run(),
+        GeneratedShopVoucherItem(
+            center_key="v_clearance_sale",
+            base_cost=10,
+            price=10,
+        ),
+    )
+    run.public.shop_jokers[0] = GeneratedShopJokerItem(
+        center_key="j_joker",
+        rarity=1,
+        base_cost=5,
+        edition=None,
+        price=4,
+    )
+
+    assert _buy_voucher() not in ShopTransitionEngine().legal_actions(run)
