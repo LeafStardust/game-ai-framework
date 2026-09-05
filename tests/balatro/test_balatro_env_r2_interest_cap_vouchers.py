@@ -64,29 +64,54 @@ def test_env_r2_interest_cap_expected_values_and_progression():
     assert expected_interest_cap_for_vouchers(base.public) == 25
     assert interest_cap_vouchers_are_exact(base.public)
 
-    seed = _shop_run(vouchers=("v_seed_money",), cap=50, cap_observed=True)
+    seed = _shop_run(vouchers=("v_seed_money",), cap=50, cap_observed=False)
     assert expected_interest_cap_for_vouchers(seed.public) == 50
     assert interest_cap_vouchers_are_exact(seed.public)
 
     tree = _shop_run(
         vouchers=("v_seed_money", "v_money_tree"),
         cap=100,
-        cap_observed=True,
+        cap_observed=False,
     )
     assert expected_interest_cap_for_vouchers(tree.public) == 100
     assert interest_cap_vouchers_are_exact(tree.public)
 
-    invalid = _shop_run(vouchers=("v_money_tree",), cap=100, cap_observed=True)
+    invalid = _shop_run(vouchers=("v_money_tree",), cap=100, cap_observed=False)
     assert expected_interest_cap_for_vouchers(invalid.public) is None
     assert not interest_cap_vouchers_are_exact(invalid.public)
 
 
-def test_env_r2_interest_modifier_requires_observed_matching_cap():
-    missing = _shop_run(vouchers=("v_seed_money",), cap=50, cap_observed=False)
+def test_env_r2_authoritative_voucher_history_reconstructs_cap_but_explicit_stale_cap_fails():
+    reconstructed_seed = _shop_run(
+        vouchers=("v_seed_money",),
+        cap=25,
+        cap_observed=False,
+    )
+    reconstructed_tree = _shop_run(
+        vouchers=("v_seed_money", "v_money_tree"),
+        cap=25,
+        cap_observed=False,
+    )
     stale = _shop_run(vouchers=("v_seed_money",), cap=25, cap_observed=True)
 
-    assert not interest_cap_vouchers_are_exact(missing.public)
+    assert expected_interest_cap_for_vouchers(reconstructed_seed.public) == 50
+    assert expected_interest_cap_for_vouchers(reconstructed_tree.public) == 100
+    assert interest_cap_vouchers_are_exact(reconstructed_seed.public)
+    assert interest_cap_vouchers_are_exact(reconstructed_tree.public)
     assert not interest_cap_vouchers_are_exact(stale.public)
+
+
+def test_env_r2_interest_cap_still_requires_authoritative_voucher_history():
+    state = BalatroState()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
+    state.vouchers = ["v_seed_money"]
+    state.vouchers_observed = False
+    state.interest_cap = 50
+    state.interest_cap_observed = True
+
+    assert expected_interest_cap_for_vouchers(state) is None
+    assert not interest_cap_vouchers_are_exact(state)
 
 
 def test_env_r2_seed_money_redemption_sets_cap_without_rng():
@@ -109,7 +134,7 @@ def test_env_r2_seed_money_redemption_sets_cap_without_rng():
     assert run.rng_snapshot() == before_rng
 
 
-def test_env_r2_money_tree_requires_seed_and_exact_current_cap():
+def test_env_r2_money_tree_requires_seed_and_rejects_explicit_stale_cap():
     missing = _shop_run()
     missing.public.shop_vouchers = [_voucher("v_money_tree")]
     assert not interest_cap_voucher_redemption_is_exact(missing, 0)
@@ -124,15 +149,16 @@ def test_env_r2_money_tree_requires_seed_and_exact_current_cap():
     stale.public.shop_vouchers = [_voucher("v_money_tree")]
     assert not interest_cap_voucher_redemption_is_exact(stale, 0)
 
-    run = _shop_run(
+    reconstructed = _shop_run(
         vouchers=("v_seed_money",),
-        cap=50,
-        cap_observed=True,
+        cap=25,
+        cap_observed=False,
     )
-    run.public.shop_vouchers = [_voucher("v_money_tree")]
-    result = redeem_exact_interest_cap_voucher(run, 0)
+    reconstructed.public.shop_vouchers = [_voucher("v_money_tree")]
+    result = redeem_exact_interest_cap_voucher(reconstructed, 0)
     assert result.public.vouchers == ["v_seed_money", "v_money_tree"]
     assert result.public.interest_cap == 100
+    assert result.public.interest_cap_observed is True
 
 
 def test_env_r2_interest_cap_changes_cashout_ceiling_exactly():
@@ -145,16 +171,16 @@ def test_env_r2_interest_cap_changes_cashout_ceiling_exactly():
         _cleared_run(
             money=100,
             vouchers=("v_seed_money",),
-            cap=50,
-            cap_observed=True,
+            cap=25,
+            cap_observed=False,
         )
     )
     tree = cash_out_baseline_ordinary_blind(
         _cleared_run(
             money=100,
             vouchers=("v_seed_money", "v_money_tree"),
-            cap=100,
-            cap_observed=True,
+            cap=25,
+            cap_observed=False,
         )
     )
 
@@ -165,16 +191,7 @@ def test_env_r2_interest_cap_changes_cashout_ceiling_exactly():
     assert tree.public.interest_cap == 100
 
 
-def test_env_r2_cashout_rejects_unobserved_or_stale_owned_interest_cap():
-    missing = _cleared_run(
-        money=100,
-        vouchers=("v_seed_money",),
-        cap=50,
-        cap_observed=False,
-    )
-    with pytest.raises(HeadlessTransitionError, match="interest-cap"):
-        cash_out_baseline_ordinary_blind(missing)
-
+def test_env_r2_cashout_rejects_explicit_stale_owned_interest_cap():
     stale = _cleared_run(
         money=100,
         vouchers=("v_seed_money",),
