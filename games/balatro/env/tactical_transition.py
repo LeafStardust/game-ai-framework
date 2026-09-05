@@ -143,7 +143,7 @@ def apply_supported_tactical_discard(
 def _selected_observation_indices(observation, action: BalatroAction) -> tuple[int, ...]:
     selected = list(getattr(action, "cards", ()) or ())
     if not selected:
-        raise HeadlessTransitionError("tactical planner returned no selected cards")
+        raise HeadlessTransitionError("tactical decision returned no selected cards")
 
     hand = list(observation.hand)
     positions = {id(card): index for index, card in enumerate(hand)}
@@ -151,19 +151,23 @@ def _selected_observation_indices(observation, action: BalatroAction) -> tuple[i
         indices = tuple(positions[id(card)] for card in selected)
     except KeyError as exc:
         raise HeadlessTransitionError(
-            "tactical planner selected a card outside its public observation"
+            "tactical decision selected a card outside its public observation"
         ) from exc
     return _normalized_visible_indices(indices, hand_size=len(hand))
 
 
-def apply_planned_tactical_step(run: HeadlessRunState, planner) -> HeadlessRunState:
-    """Plan from one policy-safe observation and execute one admitted tactical step.
+def apply_planned_tactical_step(run: HeadlessRunState, decision_engine) -> HeadlessRunState:
+    """Decide from one policy-safe observation and execute one admitted tactical step.
 
-    The same sanitized observation object is used both for planner input and for
-    mapping its selected card objects back to visible positions. No hidden card
-    identity or physical draw order is supplied to the planner. Play execution is
-    intentionally still fail-closed until the exact score/callback lifecycle is
-    owned by the headless simulator.
+    R4 intentionally calls the same production-shaped ``decide(state)`` boundary
+    used by the live hand-action engine. The returned decision must carry the
+    canonical ``BalatroAction`` in ``decision.action``. The same sanitized
+    observation object is used both for decision input and for mapping selected
+    card objects back to visible positions. No hidden card identity or physical
+    draw order is supplied to the decision engine.
+
+    Play execution remains fail-closed until the exact score/callback/post-hand
+    lifecycle has a complete canonical headless owner.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -172,15 +176,17 @@ def apply_planned_tactical_step(run: HeadlessRunState, planner) -> HeadlessRunSt
             "planned tactical step requires SELECTING_HAND phase"
         )
 
-    plan_method = getattr(planner, "plan", None)
-    if not callable(plan_method):
-        raise TypeError("planner must provide plan(state)")
+    decide_method = getattr(decision_engine, "decide", None)
+    if not callable(decide_method):
+        raise TypeError("decision_engine must provide decide(state)")
 
     observation = public_observation_state(run.public)
-    plan = plan_method(observation)
-    action = getattr(plan, "action", None)
+    decision = decide_method(observation)
+    action = getattr(decision, "action", None)
     if not isinstance(action, BalatroAction):
-        raise HeadlessTransitionError("tactical planner did not return BalatroAction")
+        raise HeadlessTransitionError(
+            "tactical decision engine did not return BalatroAction"
+        )
 
     if action.name == DISCARD_CARDS:
         return apply_supported_tactical_discard(
@@ -192,5 +198,5 @@ def apply_planned_tactical_step(run: HeadlessRunState, planner) -> HeadlessRunSt
             "R4 tactical Play execution is not exact yet"
         )
     raise HeadlessTransitionError(
-        f"tactical planner returned unsupported action {action.name!r}"
+        f"tactical decision engine returned unsupported action {action.name!r}"
     )

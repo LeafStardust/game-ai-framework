@@ -130,12 +130,12 @@ def test_env_r4_baseline_discard_requires_authoritative_private_draw_zone():
         apply_supported_tactical_discard(run, (0,))
 
 
-class _DiscardPlanner:
+class _DiscardDecisionEngine:
     def __init__(self, indices):
         self.indices = tuple(indices)
         self.observation = None
 
-    def plan(self, state):
+    def decide(self, state):
         self.observation = state
         return SimpleNamespace(
             action=BalatroAction(
@@ -145,32 +145,32 @@ class _DiscardPlanner:
         )
 
 
-class _PlayPlanner:
-    def plan(self, state):
+class _PlayDecisionEngine:
+    def decide(self, state):
         return SimpleNamespace(action=BalatroAction(PLAY_CARDS, cards=[state.hand[0]]))
 
 
-def test_env_r4_planner_bridge_executes_discard_by_public_visible_positions():
+def test_env_r4_decision_engine_bridge_executes_discard_by_public_visible_positions():
     run = _dealt_run(seed="BRIDGE")
     selected = [_card_signature(run.public.hand[index]) for index in (0, 2)]
-    planner = _DiscardPlanner((2, 0))
+    decision_engine = _DiscardDecisionEngine((2, 0))
 
-    result = apply_planned_tactical_step(run, planner)
+    result = apply_planned_tactical_step(run, decision_engine)
 
     assert [_card_signature(card) for card in result.public.discard_pile[-2:]] == selected
     assert result.public.discards_remaining == 2
-    assert planner.observation is not run.public
+    assert decision_engine.observation is not run.public
 
 
-def test_env_r4_planner_bridge_masks_face_down_identity_before_selection():
+def test_env_r4_decision_engine_bridge_masks_face_down_identity_before_selection():
     run = _dealt_run(seed="MASK")
     hidden_signature = _card_signature(run.public.hand[0])
     run.public.hand[0].face_down = True
-    planner = _DiscardPlanner((0,))
+    decision_engine = _DiscardDecisionEngine((0,))
 
-    result = apply_planned_tactical_step(run, planner)
+    result = apply_planned_tactical_step(run, decision_engine)
 
-    observed = planner.observation.hand[0]
+    observed = decision_engine.observation.hand[0]
     assert observed.face_down is True
     assert observed.rank == "?"
     assert observed.suit == "?"
@@ -178,23 +178,36 @@ def test_env_r4_planner_bridge_masks_face_down_identity_before_selection():
     assert _card_signature(result.public.discard_pile[-1]) == hidden_signature
 
 
-def test_env_r4_planner_bridge_keeps_play_fail_closed_until_exact_resolution_exists():
+def test_env_r4_decision_engine_bridge_keeps_play_fail_closed_until_exact_resolution_exists():
     run = _dealt_run(seed="PLAY-CLOSED")
     before = _state_signature(run)
 
     with pytest.raises(HeadlessTransitionError, match="Play execution is not exact"):
-        apply_planned_tactical_step(run, _PlayPlanner())
+        apply_planned_tactical_step(run, _PlayDecisionEngine())
 
     assert _state_signature(run) == before
 
 
-def test_env_r4_planner_bridge_rejects_selected_card_not_from_observation():
+def test_env_r4_decision_engine_bridge_rejects_selected_card_not_from_observation():
     run = _dealt_run(seed="FOREIGN")
 
-    class ForeignPlanner:
-        def plan(self, state):
+    class ForeignDecisionEngine:
+        def decide(self, state):
             foreign = state.hand[0].__class__("A", "Spades")
             return SimpleNamespace(action=BalatroAction(DISCARD_CARDS, cards=[foreign]))
 
     with pytest.raises(HeadlessTransitionError, match="outside its public observation"):
-        apply_planned_tactical_step(run, ForeignPlanner())
+        apply_planned_tactical_step(run, ForeignDecisionEngine())
+
+
+def test_env_r4_decision_engine_bridge_rejects_legacy_plan_only_shape():
+    run = _dealt_run(seed="PLAN-ONLY")
+
+    class PlanOnly:
+        def plan(self, state):
+            return SimpleNamespace(
+                action=BalatroAction(DISCARD_CARDS, cards=[state.hand[0]])
+            )
+
+    with pytest.raises(TypeError, match=r"provide decide\(state\)"):
+        apply_planned_tactical_step(run, PlanOnly())
