@@ -1,12 +1,12 @@
 """Versioned RL environment contract for the Balatro Red/White surface.
 
 This module freezes the public action boundary before the headless environment is
-implemented.  Production ``games.balatro.actions`` identifiers remain canonical;
+implemented. Production ``games.balatro.actions`` identifiers remain canonical;
 RL-facing names are aliases only and must not create a second action system.
 
 Only ``SUPPORTED`` entries may be exposed in an initial training action mask.
 ``PLANNED`` means a production identifier may already exist, but L3 has not yet
-frozen a deterministic legality owner for it.  ``UNAVAILABLE`` is an explicit
+frozen a deterministic legality owner for it. ``UNAVAILABLE`` is an explicit
 capability exclusion and must never receive phantom value during training.
 """
 
@@ -39,6 +39,13 @@ SHOP_LEGALITY_OWNER = (
 LIVE_EXECUTION_OWNER = (
     "games.balatro.live.interfaces.BalatroActionExecutor.command_for"
 )
+REROLL_SHOP_LEGALITY_OWNER = (
+    "games.balatro.env.shop_reroll.can_reroll_base_main_shop"
+)
+REROLL_SHOP_EXECUTION_OWNER = (
+    "games.balatro.live.injected.action_dispatcher."
+    "LiveMemoryInjectedActionDispatcher.dispatch"
+)
 
 
 class CapabilityStatus(str, Enum):
@@ -64,8 +71,8 @@ class StrategicActionContract:
 
 
 # The Phase-R vocabulary is represented here without changing production action
-# identifiers.  Entries remain PLANNED until their deterministic legality owner
-# has been audited and frozen.  This prevents an aspirational roadmap action from
+# identifiers. Entries remain PLANNED until their deterministic legality owner
+# has been audited and frozen. This prevents an aspirational roadmap action from
 # leaking into a training mask before live/simulator parity exists.
 STRATEGIC_ACTION_CONTRACTS: tuple[StrategicActionContract, ...] = (
     StrategicActionContract(
@@ -107,8 +114,10 @@ STRATEGIC_ACTION_CONTRACTS: tuple[StrategicActionContract, ...] = (
     StrategicActionContract(
         "REROLL_SHOP",
         REFRESH_SHOP,
-        CapabilityStatus.PLANNED,
-        note="Canonical production action exists; deterministic legality owner is not frozen yet.",
+        CapabilityStatus.SUPPORTED,
+        REROLL_SHOP_LEGALITY_OWNER,
+        REROLL_SHOP_EXECUTION_OWNER,
+        "Exact ordinary paid reroll only; free/Tag/bankruptcy cases fail closed.",
     ),
     StrategicActionContract(
         "SELL_JOKER",
