@@ -4,6 +4,7 @@ from games.balatro.env.actions import EnvAction
 from games.balatro.env.pack import PackTransitionEngine, can_skip_pack_exact, skip_pack_exact
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.red_card import RedCardJoker
 from games.balatro.state import BalatroState
 
@@ -72,3 +73,49 @@ def test_env_r3_skip_pack_rejects_non_run_input():
     assert not can_skip_pack_exact(object())
     with pytest.raises(TypeError, match="HeadlessRunState"):
         skip_pack_exact(object())
+
+
+def _buffoon_choice_run(joker=None) -> HeadlessRunState:
+    run = _pack_run()
+    run.pack_choices = [joker or FlatMultJoker(), FlatMultJoker()]
+    run.pack_choices_remaining = 1
+    return run
+
+
+def test_env_r3_final_buffoon_choice_adds_exact_inventory_only_joker():
+    run = _buffoon_choice_run()
+    before_rng = run.rng_snapshot()
+    action = EnvAction.from_alias("CHOOSE_PACK_OPTION", {"option_index": 0})
+    engine = PackTransitionEngine()
+
+    assert action in engine.legal_actions(run)
+    result = engine.step(run, action)
+
+    assert len(result.public.jokers) == 3
+    assert type(result.public.jokers[-1]) is FlatMultJoker
+    assert result.public.phase == "SHOP"
+    assert result.pack_choices == []
+    assert result.pack_choices_remaining == 0
+    assert result.rng_snapshot() == before_rng
+    assert len(run.public.jokers) == 2
+    result.require_joker_order_state()
+
+
+def test_env_r3_buffoon_choice_masks_resource_mutation_and_nonfinal_choice():
+    run = _buffoon_choice_run(JugglerJoker())
+    action = EnvAction.from_alias("CHOOSE_PACK_OPTION", {"option_index": 0})
+    engine = PackTransitionEngine()
+    assert action not in engine.legal_actions(run)
+
+    run = _buffoon_choice_run()
+    run.pack_choices_remaining = 2
+    assert all(item.alias != "CHOOSE_PACK_OPTION" for item in engine.legal_actions(run))
+
+
+def test_env_r3_buffoon_choice_rejects_non_buffoon_pack():
+    run = _buffoon_choice_run()
+    run.public.phase = "TAROT_PACK"
+    assert all(
+        item.alias != "CHOOSE_PACK_OPTION"
+        for item in PackTransitionEngine().legal_actions(run)
+    )

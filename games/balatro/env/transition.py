@@ -219,6 +219,7 @@ class HeadlessRunState:
     tags: list[str] = field(default_factory=list)
     pack_choices: list[Any] = field(default_factory=list)
     pack_return_phase: str | None = None
+    pack_choices_remaining: int = 0
 
     def __post_init__(self) -> None:
         if str(self.public.deck_name).upper() != "RED":
@@ -340,6 +341,7 @@ class HeadlessRunState:
             raise HeadlessTransitionError(
                 "pack_return_phase must be SHOP, BLIND_SELECT, or None"
             )
+        self._require_nonnegative_int("pack_choices_remaining", self.pack_choices_remaining)
         self._require_nonnegative_int("base_reroll_cost", self.base_reroll_cost)
         self._require_nonnegative_int("reroll_cost", self.reroll_cost)
         self._require_nonnegative_int("skips", self.skips)

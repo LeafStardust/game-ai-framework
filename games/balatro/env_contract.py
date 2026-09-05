@@ -58,6 +58,13 @@ SELL_JOKER_EXECUTION_OWNER = (
     "games.balatro.live.injected.action_dispatcher."
     "LiveMemoryInjectedActionDispatcher.dispatch"
 )
+CHOOSE_PACK_OPTION_LEGALITY_OWNER = (
+    "games.balatro.env.pack.can_choose_pack_option_exact"
+)
+CHOOSE_PACK_OPTION_EXECUTION_OWNER = (
+    "games.balatro.live.injected.action_dispatcher."
+    "LiveMemoryInjectedActionDispatcher.dispatch"
+)
 SKIP_PACK_LEGALITY_OWNER = "games.balatro.env.pack.can_skip_pack_exact"
 SKIP_PACK_EXECUTION_OWNER = (
     "games.balatro.live.injected.action_dispatcher."
@@ -158,8 +165,10 @@ STRATEGIC_ACTION_CONTRACTS: tuple[StrategicActionContract, ...] = (
     StrategicActionContract(
         "CHOOSE_PACK_OPTION",
         SELECT_PACK_CARD,
-        CapabilityStatus.PLANNED,
-        note="Canonical production action exists; deterministic legality owner is not frozen yet.",
+        CapabilityStatus.SUPPORTED,
+        CHOOSE_PACK_OPTION_LEGALITY_OWNER,
+        CHOOSE_PACK_OPTION_EXECUTION_OWNER,
+        "Exact final one-pick Buffoon choice for audited inventory-only Jokers.",
     ),
     StrategicActionContract(
         "SKIP_PACK",

@@ -40,6 +40,7 @@ def test_only_frozen_actions_are_training_exposed():
         "OPEN_PACK": BUY_BOOSTER,
         "REROLL_SHOP": REFRESH_SHOP,
         "SELL_JOKER": SELL_JOKER,
+        "CHOOSE_PACK_OPTION": SELECT_PACK_CARD,
         "SKIP_PACK": SKIP_BOOSTER,
         "SKIP_BLIND": SKIP_BLIND,
         "SELECT_BLIND": SELECT_BLIND,
@@ -84,6 +85,18 @@ def test_sell_joker_uses_canonical_action_and_narrow_exact_owners():
     action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
     assert action.action_id == SELL_JOKER
     assert action.payload() == {"joker_index": 0}
+    validate_training_action(action)
+
+
+def test_choose_pack_option_uses_canonical_action_and_narrow_exact_owners():
+    contract = contract_for("CHOOSE_PACK_OPTION")
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == SELECT_PACK_CARD
+    assert contract.legality_owner == (
+        "games.balatro.env.pack.can_choose_pack_option_exact"
+    )
+    action = EnvAction.from_alias("CHOOSE_PACK_OPTION", {"option_index": 0})
+    assert action.action_id == SELECT_PACK_CARD
     validate_training_action(action)
 
 
@@ -151,7 +164,6 @@ def test_unfrozen_and_unavailable_capabilities_never_enter_training_mask():
 
     for alias in (
         "BUY_CARD",
-        "CHOOSE_PACK_OPTION",
         "USE_CONSUMABLE",
         "REROLL_BOSS",
     ):
