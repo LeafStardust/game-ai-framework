@@ -1,13 +1,12 @@
-"""Exact Balatro ``Card:set_cost`` pricing for generated shop Jokers.
+"""Exact Balatro ``Card:set_cost`` pricing for generated shop cards.
 
-Vanilla pricing consumes immutable center base cost plus two ordinary ``G.GAME``
-fields: ``inflation`` and ``discount_percent``.  These mechanics-critical values
-must be present in canonical state with authoritative observation markers before a
-generated descriptor can be priced.  Voucher names are not used as a substitute
-for the direct runtime discount value.
+Vanilla pricing consumes immutable center base cost plus ordinary ``G.GAME``
+``inflation`` and ``discount_percent`` state.  Planet consumables then apply their
+vanilla post-discount x2 shop-cost rule.  These mechanics-critical values must be
+canonical and authoritative before generated metadata is priced.
 
 Active Tag effects remain a separate materialization boundary and therefore stay
-fail-closed here until their price/creation consequences are audited end-to-end.
+fail-closed until their price/creation consequences are audited end-to-end.
 """
 
 from __future__ import annotations
@@ -33,12 +32,20 @@ def vanilla_card_cost(
     edition: str | None,
     inflation: int,
     discount_percent: int,
+    post_discount_multiplier: int = 1,
 ) -> int:
-    """Return vanilla ``Card:set_cost`` purchase cost for exact integer inputs."""
+    """Return vanilla ``Card:set_cost`` purchase cost for exact integer inputs.
+
+    ``post_discount_multiplier`` owns effects that vanilla applies only after the
+    ordinary rounded/discounted card cost.  Ordinary cards use ``1``; Planet
+    consumables use ``2``.  Keeping this operation explicit prevents an
+    equivalent-looking but incorrect ``(base * 2) then discount`` shortcut.
+    """
     for name, value in (
         ("base_cost", base_cost),
         ("inflation", inflation),
         ("discount_percent", discount_percent),
+        ("post_discount_multiplier", post_discount_multiplier),
     ):
         if type(value) is not int:
             raise HeadlessTransitionError(f"{name} must be an exact integer")
@@ -48,14 +55,17 @@ def vanilla_card_cost(
         raise HeadlessTransitionError("inflation cannot be negative")
     if discount_percent < 0 or discount_percent > 100:
         raise HeadlessTransitionError("discount_percent must be within 0..100")
+    if post_discount_multiplier < 1:
+        raise HeadlessTransitionError("post_discount_multiplier must be positive")
     if edition not in _EDITION_SURCHARGE:
         raise HeadlessTransitionError("unsupported Joker edition for exact pricing")
 
     extra_cost = inflation + _EDITION_SURCHARGE[edition]
-    return max(
+    ordinary_cost = max(
         1,
         math.floor((base_cost + extra_cost + 0.5) * (100 - discount_percent) / 100),
     )
+    return ordinary_cost * post_discount_multiplier
 
 
 def price_base_shop_joker_descriptor(descriptor: OrdinaryShopJokerDescriptor) -> int:
