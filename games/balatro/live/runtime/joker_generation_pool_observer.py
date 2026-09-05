@@ -2,15 +2,17 @@
 
 This module mirrors the dynamic eligibility predicates from Balatro's
 ``get_current_pool('Joker', rarity, ...)`` and emits the existing public
-``joker_generation_pools`` record contract.  Static center identity/order comes
-from the running game's ``G.P_JOKER_RARITY_POOLS``; profile/runtime eligibility
-is never guessed from the Python catalogue.
+``joker_generation_pools`` record contract. Static center identity/order and
+immutable base cost come from the running game's ``G.P_JOKER_RARITY_POOLS``;
+profile/runtime eligibility is never guessed from the Python catalogue.
 
-Any incomplete mechanics-critical table read returns ``None``.  Callers must then
+Any incomplete mechanics-critical table read returns ``None``. Callers must then
 report ``joker_generation_pool_observed = False``.
 """
 
 from __future__ import annotations
+
+import math
 
 from .luajit_memory import LuaJITMemoryError, LuaValue
 from .luajit_non_gc64_memory import LuaJITNonGC64Decoder
@@ -28,11 +30,11 @@ def observe_joker_generation_pools(
 ) -> dict[int, list[dict[str, object]]] | None:
     """Return exact currently eligible Joker center records, or ``None``.
 
-    Records preserve the running game's rarity-pool order and match the existing
-    translator/state contract: ``rarity``, ``key``, ``unlocked``,
-    ``no_pool_flag`` and ``yes_pool_flag``.  Centers vanilla would replace with
-    ``UNAVAILABLE`` are omitted; the headless static catalogue restores their
-    positions when ``eligible_keys`` are supplied to the identity RNG owner.
+    Records preserve the running game's rarity-pool order and carry the immutable
+    pricing input required by ``Card:set_cost``: ``cost``. Centers vanilla would
+    replace with ``UNAVAILABLE`` are omitted; the headless static catalogue
+    restores their positions when ``eligible_keys`` are supplied to the identity
+    RNG owner.
     """
 
     try:
@@ -52,6 +54,7 @@ def observe_joker_generation_pools(
             for center_value in rarity_pools[rarity]:
                 center = _required_table_fields(decoder, center_value)
                 key = _required_string(center.get("key"))
+                cost = _required_nonnegative_integer(center.get("cost"), "Joker center cost")
                 unlocked = _optional_boolean(center.get("unlocked"))
                 no_pool_flag = _optional_string(center.get("no_pool_flag"))
                 yes_pool_flag = _optional_string(center.get("yes_pool_flag"))
@@ -71,6 +74,7 @@ def observe_joker_generation_pools(
                     {
                         "rarity": rarity,
                         "key": key,
+                        "cost": cost,
                         "unlocked": unlocked,
                         "no_pool_flag": no_pool_flag,
                         "yes_pool_flag": yes_pool_flag,
@@ -142,6 +146,28 @@ def _required_string(value: LuaValue | None) -> str:
     if value is None or value.kind != "string" or not str(value.value):
         raise LuaJITMemoryError("required runtime string is unavailable")
     return str(value.value)
+
+
+def _required_nonnegative_integer(value: LuaValue | None, name: str) -> int:
+    if value is None:
+        raise LuaJITMemoryError(f"{name} is unavailable")
+    if value.kind == "integer":
+        number = value.value
+    elif value.kind == "number":
+        number = value.value
+        if not isinstance(number, (int, float)) or isinstance(number, bool):
+            raise LuaJITMemoryError(f"{name} is not numeric")
+        if not math.isfinite(float(number)) or not float(number).is_integer():
+            raise LuaJITMemoryError(f"{name} is not an exact integer")
+    else:
+        raise LuaJITMemoryError(f"{name} is not numeric")
+
+    if isinstance(number, bool) or not isinstance(number, (int, float)):
+        raise LuaJITMemoryError(f"{name} is not numeric")
+    result = int(number)
+    if result < 0:
+        raise LuaJITMemoryError(f"{name} cannot be negative")
+    return result
 
 
 def _optional_string(value: LuaValue | None) -> str | None:
