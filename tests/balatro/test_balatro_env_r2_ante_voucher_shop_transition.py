@@ -2,7 +2,7 @@ import pytest
 
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.blind_progression import BlindProgressionState
-from games.balatro.env.shop_voucher_items import make_generated_shop_voucher_item
+from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
 from games.balatro.env.transition import (
     HeadlessRunState,
     HeadlessTransitionError,
@@ -34,7 +34,9 @@ def _run(
     state.discards_remaining = 4
     state.vouchers = list(owned or [])
     state.vouchers_observed = bool(state.vouchers)
-    state.shop_vouchers = [make_generated_shop_voucher_item(key, slot=0, price=10)]
+    state.shop_vouchers = [
+        GeneratedShopVoucherItem(center_key=key, base_cost=10, price=10)
+    ]
     return HeadlessRunState(
         public=state,
         seed="ANTE-SHOP",
