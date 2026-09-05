@@ -17,7 +17,10 @@ def _pack_run(*, return_phase: str = "SHOP") -> HeadlessRunState:
     state.shop_active = False
     red_card = RedCardJoker()
     red_card.mult = 6
-    state.jokers = [red_card, FlatMultJoker()]
+    red_card.live_id = 10
+    flat = FlatMultJoker()
+    flat.live_id = 20
+    state.jokers = [red_card, flat]
     return HeadlessRunState(
         public=state,
         seed="SKIP-PACK",
@@ -118,4 +121,16 @@ def test_env_r3_buffoon_choice_rejects_non_buffoon_pack():
     assert all(
         item.alias != "CHOOSE_PACK_OPTION"
         for item in PackTransitionEngine().legal_actions(run)
+    )
+
+
+def test_env_r3_buffoon_choice_requires_authoritative_existing_joker_order():
+    run = _buffoon_choice_run()
+    del run.public.jokers[0].live_id
+    del run.public.jokers[1].live_id
+    run.joker_order_state = None
+
+    assert all(
+        action.alias != "CHOOSE_PACK_OPTION"
+        for action in PackTransitionEngine().legal_actions(run)
     )

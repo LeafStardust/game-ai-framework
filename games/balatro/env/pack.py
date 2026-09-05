@@ -12,6 +12,7 @@ from __future__ import annotations
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.joker_order import JokerOrderError
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.red_card import RedCardJoker
 from games.balatro.env.transition import _EXACT_R1_JOKER_ACQUISITION_TYPES
 
@@ -75,12 +76,11 @@ def validate_choose_pack_option_exact(
         )
     if getattr(joker, "edition", None) is not None:
         raise HeadlessTransitionError("Buffoon Joker editions remain fail-closed")
-    if type(joker).__name__ == "JugglerJoker":
+    if type(joker) is JugglerJoker:
         raise HeadlessTransitionError(
             "resource-mutating Buffoon Joker acquisition remains fail-closed"
         )
-    if run.joker_order_state is not None:
-        run.require_joker_order_state()
+    run.require_joker_order_state()
 
 
 def can_choose_pack_option_exact(run: HeadlessRunState, option_index: int) -> bool:
