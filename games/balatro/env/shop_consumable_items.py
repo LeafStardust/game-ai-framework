@@ -6,8 +6,9 @@ this layer validates that record set all-or-nothing, performs the existing exact
 identity poll, carries the selected center's observed immutable base cost, and
 applies vanilla ``Card:set_cost`` pricing with no edition surcharge.
 
-It does not yet insert the item into public shop inventory or widen consumable
-purchase legality.  Canonical snapshot/state wiring is a separate boundary.
+Gameplay-object construction and purchase legality remain separate exactness
+boundaries.  Generated metadata may be inserted into the shared two-card main
+shop only after its source-ordered generation is complete.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ _FALLBACK_BASE_COST = {
     "Tarot": 3,   # c_strength in pinned vanilla source
     "Planet": 3,  # c_pluto in pinned vanilla source
 }
+_BASE_MAIN_SHOP_SLOTS = 2
 
 
 @dataclass(frozen=True)
@@ -181,3 +183,30 @@ def materialize_base_shop_consumable_descriptor(
         price=price,
     )
     return run.copy(), item
+
+
+def insert_generated_shop_consumable_item(
+    run: HeadlessRunState,
+    item: GeneratedShopConsumableItem,
+) -> HeadlessRunState:
+    """Insert one generated Tarot/Planet item into the shared main-shop area.
+
+    Canonical state stores main-shop Jokers and consumables in separate public
+    lists, while vanilla stores both in ``G.shop_jokers``.  Capacity is therefore
+    enforced by the sum of those lists.  This owns placement only and does not
+    make BUY_CONSUMABLE legal for generated metadata.
+    """
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    if not isinstance(item, GeneratedShopConsumableItem):
+        raise TypeError("item must be GeneratedShopConsumableItem")
+    state = run.public
+    if state.phase != "SHOP" or not state.shop_active:
+        raise HeadlessTransitionError("generated shop insertion requires active SHOP")
+    occupied = len(state.shop_jokers) + len(state.shop_consumables)
+    if occupied >= _BASE_MAIN_SHOP_SLOTS:
+        raise HeadlessTransitionError("main shop inventory is already full")
+
+    next_run = run.copy()
+    next_run.public.shop_consumables.append(item)
+    return next_run
