@@ -33,6 +33,20 @@ def _exact_price(item: Any) -> int:
     return value
 
 
+def _require_current_generated_prices_exact(run: HeadlessRunState) -> None:
+    """Reject stale/corrupt visible prices before using them for affordability/debit."""
+    state = run.public
+    expected = reprice_exact_generated_shop(
+        run,
+        discount_percent=state.shop_discount_percent,
+    ).public
+    for name in ("shop_jokers", "shop_consumables", "shop_vouchers"):
+        if getattr(expected, name) != getattr(state, name):
+            raise HeadlessTransitionError(
+                "visible generated shop prices do not match current exact discount state"
+            )
+
+
 def _validated_discount_voucher(
     run: HeadlessRunState,
     slot: int,
@@ -65,14 +79,18 @@ def _validated_discount_voucher(
             "current Voucher ownership and shop discount state are not exact"
         )
 
+    # The current card prices are mechanics-critical: they drive both legality and
+    # the debit amount.  Recompute them from immutable metadata at the current
+    # discount and require exact equality before considering the purchase legal.
+    _require_current_generated_prices_exact(run)
+
     price = _exact_price(item)
     if state.money < price:
         raise HeadlessTransitionError("discount Voucher is not affordable")
 
     target = _TARGET_DISCOUNT_PERCENT[key]
-    # Preflight the complete currently visible shop before exposing this action.
-    # The result is intentionally discarded: vanilla pays the Voucher at the old
-    # price and reprices only after ownership changes.
+    # Preflight the complete target repricing before exposing this action.  The
+    # result is discarded here because vanilla pays at the old price first.
     reprice_exact_generated_shop(run, discount_percent=target)
     return item, key, target
 
