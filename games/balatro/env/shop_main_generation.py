@@ -29,6 +29,7 @@ from games.balatro.env.shop_items import (
 )
 from games.balatro.env.shop_joker_generation import generate_ordinary_shop_joker_descriptor
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.voucher_capabilities import shop_generation_vouchers_are_exact
 
 
 GeneratedMainShopItem = GeneratedShopJokerItem | GeneratedShopConsumableItem
@@ -47,8 +48,12 @@ def _preflight_main_shop_generation(run: HeadlessRunState) -> None:
     state = run.public
     if state.phase != "SHOP" or not state.shop_active:
         raise HeadlessTransitionError("main shop generation requires active SHOP")
-    if state.vouchers or run.tags:
-        raise HeadlessTransitionError("base main shop generation does not own voucher or Tag modifiers")
+    if not shop_generation_vouchers_are_exact(state):
+        raise HeadlessTransitionError(
+            "main shop generation does not own current Voucher modifiers"
+        )
+    if run.tags:
+        raise HeadlessTransitionError("main shop generation does not own active Tag modifiers")
     if any((state.shop_jokers, state.shop_consumables, state.shop_boosters, state.shop_vouchers)):
         raise HeadlessTransitionError("main shop generation requires ungenerated inventory")
 
