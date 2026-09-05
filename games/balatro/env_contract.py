@@ -46,6 +46,13 @@ REROLL_SHOP_EXECUTION_OWNER = (
     "games.balatro.live.injected.action_dispatcher."
     "LiveMemoryInjectedActionDispatcher.dispatch"
 )
+SELECT_BLIND_LEGALITY_OWNER = (
+    "games.balatro.env.select_blind.can_select_blind_exact"
+)
+SELECT_BLIND_EXECUTION_OWNER = (
+    "games.balatro.live.injected.action_dispatcher."
+    "LiveMemoryInjectedActionDispatcher.dispatch"
+)
 
 
 class CapabilityStatus(str, Enum):
@@ -153,13 +160,15 @@ STRATEGIC_ACTION_CONTRACTS: tuple[StrategicActionContract, ...] = (
         "SKIP_BLIND",
         SKIP_BLIND,
         CapabilityStatus.PLANNED,
-        note="Canonical production action exists; deterministic legality owner is not frozen yet.",
+        note="Canonical production action exists; tag acquisition and downstream tag lifecycle are not frozen yet.",
     ),
     StrategicActionContract(
         "SELECT_BLIND",
         SELECT_BLIND,
-        CapabilityStatus.PLANNED,
-        note="SELECT_BLIND is the production start/select-blind action; legality owner is not frozen yet.",
+        CapabilityStatus.SUPPORTED,
+        SELECT_BLIND_LEGALITY_OWNER,
+        SELECT_BLIND_EXECUTION_OWNER,
+        "Exact audited blind-start dispatch; unsupported tag/inexact state fails closed.",
     ),
     StrategicActionContract(
         "REROLL_BOSS",
