@@ -81,9 +81,14 @@ def test_env_r2_ordinary_shop_joker_descriptor_rejects_missing_cost():
         generate_ordinary_shop_joker_descriptor(run)
 
 
-def test_env_r2_ordinary_shop_joker_descriptor_rejects_edition_rate_modifiers():
+def test_env_r2_ordinary_shop_joker_descriptor_rejects_unowned_edition_rate_before_rng():
     run = _run()
     run.public.joker_generation_edition_rate = 2.0
+    before = run.rng_snapshot()
 
-    with pytest.raises(HeadlessTransitionError, match="edition-rate modifiers"):
+    with pytest.raises(HeadlessTransitionError, match="voucher modifiers"):
         generate_ordinary_shop_joker_descriptor(run)
+
+    assert run.rng_snapshot() == before
+    assert "rarity1sho" not in run.rng.nodes
+    assert "edisho1" not in run.rng.nodes
