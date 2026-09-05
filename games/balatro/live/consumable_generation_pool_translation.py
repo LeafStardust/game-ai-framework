@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from games.balatro.live.voucher_generation_pool_translation import (
+    translate_voucher_generation_pool_payload,
+)
 from games.balatro.state import BalatroState
 
 
@@ -24,12 +27,18 @@ def translate_consumable_generation_pool_payload(
     state: BalatroState,
     payload: dict[str, Any],
 ) -> None:
-    """Install an authoritative Tarot+Planet catalogue or leave it unobserved.
+    """Install authoritative ordinary generation catalogues or leave unobserved.
 
-    Translation is all-or-nothing. A claimed observation with either type missing,
-    any malformed record, duplicate key, or unexpected record field is rejected as
-    unobserved instead of silently dropping the bad fragment.
+    Voucher translation shares this already-canonical live-generation translation
+    boundary so the main state translator cannot accidentally install Tarot/Planet
+    eligibility without also validating the ordered Voucher catalogue.
+
+    Tarot/Planet translation is all-or-nothing. A claimed observation with either
+    type missing, any malformed record, duplicate key, or unexpected record field
+    is rejected as unobserved instead of silently dropping the bad fragment.
     """
+    translate_voucher_generation_pool_payload(state, payload)
+
     state.consumable_generation_pool_observed = False
     state.consumable_generation_pools = {}
 
