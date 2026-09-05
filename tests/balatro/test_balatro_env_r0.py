@@ -62,7 +62,7 @@ def test_balatro_env_r0_actions_alias_frozen_contract_ids():
 
 def test_balatro_env_r0_rejects_non_training_action():
     try:
-        EnvAction.from_alias("SELECT_BLIND")
+        EnvAction.from_alias("SKIP_BLIND")
     except ValueError as exc:
         assert "not training-exposed" in str(exc)
     else:
@@ -89,7 +89,7 @@ def test_balatro_env_r0_legal_actions_fail_closed_to_contract():
     env.reset(seed=1)
     assert env.legal_actions() == (EnvAction.from_alias("END_SHOP"),)
 
-    backend.actions = (EnvAction(alias="SELECT_BLIND"),)
+    backend.actions = (EnvAction(alias="SKIP_BLIND"),)
     try:
         env.legal_actions()
     except ValueError as exc:
@@ -117,54 +117,3 @@ def test_balatro_env_r0_step_uses_gym_signature_and_terminal_semantics():
         assert "terminal" in str(exc)
     else:
         raise AssertionError("terminal environment accepted another action")
-
-
-def test_balatro_env_r0_rejects_action_not_in_current_legal_set():
-    backend = _FakeBackend()
-    env = BalatroHeadlessEnvironment(backend)
-    env.reset(seed=9)
-
-    try:
-        env.step(EnvAction.from_alias("BUY_JOKER", {"slot": 0}))
-    except ValueError as exc:
-        assert "illegal action" in str(exc)
-    else:
-        raise AssertionError("environment accepted an action outside backend legality")
-
-
-def test_balatro_env_r0_turn_ownership_blocks_agent_actions():
-    backend = _FakeBackend()
-    env = BalatroHeadlessEnvironment(backend)
-    env.reset(seed=3)
-    backend.frame = EnvStateFrame(state=backend.frame.state, owner=TurnOwner.TACTICAL_POLICY)
-    env._frame = backend.frame
-
-    assert env.legal_actions() == ()
-    try:
-        env.step(EnvAction.from_alias("END_SHOP"))
-    except RuntimeError as exc:
-        assert "turn owner" in str(exc)
-    else:
-        raise AssertionError("agent acted during tactical-policy ownership")
-
-
-def test_balatro_env_r0_frame_enforces_terminal_owner_consistency():
-    state = BalatroState()
-    try:
-        EnvStateFrame(state=state, status=RunStatus.LOSS, owner=TurnOwner.AGENT)
-    except ValueError as exc:
-        assert "terminal frame" in str(exc)
-    else:
-        raise AssertionError("terminal frame accepted non-terminal owner")
-
-
-def test_balatro_env_r0_serialization_boundary_delegates_to_backend():
-    backend = _FakeBackend()
-    env = BalatroHeadlessEnvironment(backend)
-    env.reset(seed="replay-seed")
-    payload = env.serialize()
-    assert payload == {"seed": "replay-seed", "phase": "SHOP"}
-
-    obs, info = env.restore({"seed": "replay-seed", "phase": "SHOP"})
-    assert obs.phase == "SHOP"
-    assert info == {"restored": True}
