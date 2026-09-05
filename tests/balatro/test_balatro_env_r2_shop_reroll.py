@@ -134,7 +134,7 @@ def test_env_r2_paid_reroll_rejects_incomplete_or_auxiliary_shop_areas():
         run.public.shop_jokers.pop()
     else:
         run.public.shop_consumables.pop()
-    with pytest.raises(HeadlessTransitionError, match="complete two-card"):
+    with pytest.raises(HeadlessTransitionError, match="complete current-capacity main shop"):
         reroll_base_main_shop(run)
 
     run = _generated_run()
