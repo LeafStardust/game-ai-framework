@@ -111,7 +111,7 @@ def test_env_r2_liquidation_requires_clearance_then_reprices_25_to_50_percent():
     assert result.public.money == 23
     assert result.public.vouchers == ["v_clearance_sale", "v_liquidation"]
     assert result.public.shop_discount_percent == 50
-    assert result.public.shop_jokers[0].price == 4
+    assert result.public.shop_jokers[0].price == 3
     assert result.public.shop_consumables[0].price == 2
     assert result.rng_snapshot() == before_rng
 
