@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
+from .joker_generation_pool_observer import observe_joker_generation_pools
 from .live_memory_observer import (
     _array_table_values,
     _boolean,
@@ -69,6 +70,16 @@ def public_forced_selection_flags(decoder, root) -> tuple[bool, ...] | None:
     return tuple(flags)
 
 
+def public_joker_generation_pools(decoder, root):
+    """Return the exact public Joker-generation catalogue or ``None``.
+
+    The mechanics-critical producer reads runtime rarity pools plus vanilla's
+    current eligibility predicates with strict table semantics. ``None`` means
+    the catalogue is not authoritative and downstream generation must fail closed.
+    """
+    return observe_joker_generation_pools(decoder, root)
+
+
 class DiscardHistorySupervisorLiveMemoryBalatroObserver(
     SupervisorLiveMemoryBalatroObserver
 ):
@@ -76,6 +87,9 @@ class DiscardHistorySupervisorLiveMemoryBalatroObserver(
 
     Besides exact discard usage, Cerulean Bell's currently forced hand card is a
     public controller constraint stored on ``card.ability.forced_selection``.
+    The same production enrichment boundary also owns the exact public Joker-
+    generation catalogue used by headless identity RNG. Catalogue observation is
+    all-or-nothing and never exposes Balatro's PRNG state or future selection.
 
     Native readiness remains authoritative in the base supervisor observer. The
     dedicated pack-to-SHOP Joker visual-settle barrier also remains authoritative
@@ -130,6 +144,14 @@ class DiscardHistorySupervisorLiveMemoryBalatroObserver(
                 hand_copy["cards"] = cards_copy
                 payload["hand"] = hand_copy
                 changed = True
+
+        generation_pools = public_joker_generation_pools(decoder, root)
+        payload["joker_generation_pool_observed"] = generation_pools is not None
+        if generation_pools is not None:
+            payload["joker_generation_pools"] = generation_pools
+        else:
+            payload.pop("joker_generation_pools", None)
+        changed = True
 
         if not changed:
             return snapshot
