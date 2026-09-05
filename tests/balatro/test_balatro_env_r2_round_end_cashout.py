@@ -25,6 +25,11 @@ def _cleared_run(
     state.money = money
     state.blind = Blind(blind_type, requirement=100, reward=reward)
     state.blind_is_boss = blind_type is BlindType.BOSS
+    # Exact headless fixtures must distinguish an authoritative empty Voucher
+    # table / zero discount from a live source that failed to observe them.
+    state.vouchers_observed = True
+    state.shop_discount_percent_observed = True
+    state.shop_discount_percent = 0
 
     run = deal_pristine_round_start(HeadlessRunState(public=state, seed="CASHOUT"))
     run.public.phase = "ROUND_EVAL"
@@ -51,8 +56,6 @@ def test_env_r2_cashout_pays_blind_hands_and_interest_from_pre_payout_money():
 
     result = cash_out_baseline_ordinary_blind(run)
 
-    # $14 pre-payout -> $2 interest. Reward is $3 and two unused hands add $2.
-    # Using post-reward money for interest would produce a different result.
     assert result.public.money == 21
     assert result.public.phase == "SHOP"
     assert result.public.shop_active is True
@@ -108,8 +111,6 @@ def test_env_r2_cashout_supports_big_blind_baseline_too():
     result = cash_out_baseline_ordinary_blind(
         _cleared_run(blind_type=BlindType.BIG, reward=4, money=9, hands_remaining=1)
     )
-
-    # $9 -> $1 baseline interest + $4 blind + $1 unused hand.
     assert result.public.money == 15
 
 
@@ -140,9 +141,6 @@ def test_env_r2_cashout_pays_exact_golden_cloud9_and_delayed_gratification_rows(
 
     result = cash_out_baseline_ordinary_blind(run)
 
-    # Vanilla ordering: $24 pre-payout gives exactly $4 interest.  Joker rows are
-    # Golden +$4, Cloud 9 +$4 for the four nines in a base deck, and Delayed
-    # Gratification +$4 for two unused discards.  They do not inflate interest.
     assert result.public.money == 43
     assert result.public.discards_remaining == 2
 
@@ -156,9 +154,6 @@ def test_env_r2_cashout_delayed_gratification_does_not_pay_after_any_discard_use
     run.public.jokers.append(DelayedGratificationJoker())
 
     result = cash_out_baseline_ordinary_blind(run)
-
-    # $14 + $3 blind + $2 interest; remaining discards do not matter once a
-    # discard action was used during the round.
     assert result.public.money == 19
 
 
@@ -220,12 +215,10 @@ def test_env_r2_cashout_rejects_unowned_economy_and_lifecycle_modifiers():
         cash_out_baseline_ordinary_blind(run)
 
     run = _cleared_run()
-    run.public.vouchers.append("Seed Money")
-    with pytest.raises(HeadlessTransitionError, match="Voucher economy"):
+    run.public.vouchers.append("v_seed_money")
+    with pytest.raises(HeadlessTransitionError, match="Voucher"):
         cash_out_baseline_ordinary_blind(run)
 
-    # Burglar is exact at setting_blind but remains a separately classified
-    # lifecycle acquisition; do not infer round-end admissibility from that.
     from games.balatro.jokers.burglar import BurglarJoker
 
     run = _cleared_run()
@@ -243,3 +236,27 @@ def test_env_r2_cashout_rejects_negative_money_and_preexisting_shop_contents():
     run.public.shop_vouchers.append(object())
     with pytest.raises(HeadlessTransitionError, match="ungenerated shop"):
         cash_out_baseline_ordinary_blind(run)
+
+
+def test_env_r2_cashout_preserves_supported_voucher_state_into_next_shop():
+    run = _cleared_run()
+    run.public.vouchers = [
+        "v_clearance_sale",
+        "v_tarot_merchant",
+        "v_reroll_surplus",
+    ]
+    run.public.shop_discount_percent = 25
+    run.public.tarot_rate = 9.6
+    run.base_reroll_cost = 3
+    run.reroll_cost = 4
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    assert result.public.vouchers == run.public.vouchers
+    assert result.public.shop_discount_percent_observed is True
+    assert result.public.shop_discount_percent == 25
+    assert result.public.joker_generation_edition_rate == 1.0
+    assert result.public.tarot_rate == 9.6
+    assert result.public.planet_rate == 4.0
+    assert result.base_reroll_cost == 3
+    assert result.reroll_cost == 3
