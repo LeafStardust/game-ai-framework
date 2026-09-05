@@ -3,10 +3,9 @@
 This module owns environment-private run state that is required for deterministic
 simulation but is not part of the canonical public observation.  The initial
 transition engine deliberately covers only deterministic shop operations whose
-outcomes do not require R2 RNG or unmodeled acquisition side effects.  Joker
-acquisition is enabled only for explicitly audited modeled identities; generic
-Jokers, vouchers, booster opening, and stochastic transitions remain unavailable
-until their exact RNG/state ownership exists.
+outcomes do not require unowned RNG or acquisition side effects.  Joker and
+Voucher acquisition are enabled only for explicitly audited identities; unknown
+or lifecycle-incomplete purchases remain unavailable.
 """
 
 from __future__ import annotations
@@ -159,6 +158,22 @@ _OWNED_DECK_SCORING_TYPES = (
     StoneJoker,
 )
 
+_EXACT_RESOURCE_VOUCHER_KEYS = frozenset(
+    {
+        "v_crystal_ball",
+        "v_grabber",
+        "v_nacho_tong",
+        "v_wasteful",
+        "v_recyclomancy",
+        "v_antimatter",
+        "v_paint_brush",
+        "v_palette",
+    }
+)
+
+_HAND_ALLOWANCE_VOUCHER_KEYS = frozenset({"v_grabber", "v_nacho_tong"})
+_DISCARD_ALLOWANCE_VOUCHER_KEYS = frozenset({"v_wasteful", "v_recyclomancy"})
+
 
 class HeadlessTransitionError(ValueError):
     """Raised when a requested headless transition is not exact/legal."""
@@ -234,6 +249,12 @@ class HeadlessRunState:
                 "round_reset_discards",
                 self.public.round_reset_discards,
             )
+        if not isinstance(self.public.vouchers, list):
+            raise HeadlessTransitionError("vouchers must be a list")
+        if any(not isinstance(key, str) or not key for key in self.public.vouchers):
+            raise HeadlessTransitionError("vouchers must contain non-empty center keys")
+        if len(self.public.vouchers) != len(set(self.public.vouchers)):
+            raise HeadlessTransitionError("vouchers must not contain duplicate center keys")
         self._require_int("round_bonus_hands", self.round_bonus_hands)
         self._require_int("round_bonus_discards", self.round_bonus_discards)
 
@@ -399,6 +420,12 @@ class ShopTransitionEngine:
                 for slot, item in enumerate(state.shop_consumables)
                 if self._is_affordable(state, item)
             )
+        actions.extend(
+            EnvAction.from_alias("BUY_VOUCHER", {"slot": slot})
+            for slot, item in enumerate(state.shop_vouchers)
+            if self._voucher_redemption_is_exact(state, item)
+            and self._is_affordable(state, item)
+        )
 
         actions.append(EnvAction.from_alias("END_SHOP"))
         return tuple(actions)
@@ -435,6 +462,19 @@ class ShopTransitionEngine:
             return next_run
         if action.alias == "BUY_CONSUMABLE":
             self._buy(state, state.shop_consumables, state.consumables, slot)
+            return next_run
+        if action.alias == "BUY_VOUCHER":
+            item = state.shop_vouchers[slot]
+            key = self._voucher_key(item)
+            if not self._voucher_redemption_is_exact(state, item):
+                raise HeadlessTransitionError("Voucher redemption effect is not exact")
+            price = self._price(item)
+            if price < 0 or state.money < price:
+                raise HeadlessTransitionError("shop item is not affordable")
+            state.money -= price
+            state.shop_vouchers.pop(slot)
+            state.vouchers.append(key)
+            self._apply_voucher_redemption_effects(state, key)
             return next_run
 
         raise HeadlessTransitionError(f"unimplemented shop transition: {action.alias}")
@@ -475,6 +515,49 @@ class ShopTransitionEngine:
         elif type(joker) is MerryAndyJoker:
             state.hand_size -= 1
             state.round_reset_discards += 3
+
+    @classmethod
+    def _voucher_redemption_is_exact(cls, state: BalatroState, item: Any) -> bool:
+        try:
+            key = cls._voucher_key(item)
+        except HeadlessTransitionError:
+            return False
+        if key not in _EXACT_RESOURCE_VOUCHER_KEYS:
+            return False
+        if key in state.vouchers:
+            return False
+        if key in _HAND_ALLOWANCE_VOUCHER_KEYS and not state.round_reset_hands_observed:
+            return False
+        if (
+            key in _DISCARD_ALLOWANCE_VOUCHER_KEYS
+            and not state.round_reset_discards_observed
+        ):
+            return False
+        return True
+
+    @staticmethod
+    def _apply_voucher_redemption_effects(state: BalatroState, key: str) -> None:
+        if key == "v_crystal_ball":
+            state.consumable_slots += 1
+        elif key in _HAND_ALLOWANCE_VOUCHER_KEYS:
+            state.round_reset_hands += 1
+            state.hands_remaining += 1
+        elif key in _DISCARD_ALLOWANCE_VOUCHER_KEYS:
+            state.round_reset_discards += 1
+            state.discards_remaining += 1
+        elif key == "v_antimatter":
+            state.joker_slots += 1
+        elif key in {"v_paint_brush", "v_palette"}:
+            state.hand_size += 1
+        else:
+            raise HeadlessTransitionError("unsupported Voucher redemption effect")
+
+    @staticmethod
+    def _voucher_key(item: Any) -> str:
+        key = getattr(item, "center_key", None)
+        if not isinstance(key, str) or not key:
+            raise HeadlessTransitionError("shop Voucher has no exact center key")
+        return key
 
     @classmethod
     def _is_affordable(cls, state: BalatroState, item: Any) -> bool:
