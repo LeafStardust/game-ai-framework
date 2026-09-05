@@ -2,9 +2,9 @@
 
 The strategic environment deliberately does not expose card-level Play/Discard
 choices to the learner. This module owns the exact simulator side of those
-choices as they are admitted, beginning with a narrow baseline Discard slice.
-Unsupported callbacks remain fail-closed until their canonical effects are wired
-here rather than approximated by the tactical planner.
+choices as they are admitted. Source-order Play lifecycle ownership lives in
+``play_transition``; this module keeps the production decision-engine bridge and
+the narrow exact Discard owner.
 """
 
 from __future__ import annotations
@@ -13,35 +13,13 @@ from collections.abc import Iterable
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.env.deal import draw_one_supported_card_to_hand
+from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.public_observation import public_observation_state
+from games.balatro.env.round_zones import (
+    normalize_visible_card_indices,
+    require_exact_selecting_hand_zones,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
-
-
-_MAX_SELECTED_CARDS = 5
-
-
-def _normalized_visible_indices(
-    card_indices: Iterable[int],
-    *,
-    hand_size: int,
-) -> tuple[int, ...]:
-    try:
-        values = tuple(card_indices)
-    except TypeError as exc:
-        raise HeadlessTransitionError("tactical discard requires card indices") from exc
-
-    if not 1 <= len(values) <= _MAX_SELECTED_CARDS:
-        raise HeadlessTransitionError("tactical discard requires 1 to 5 selected cards")
-    if any(isinstance(index, bool) or not isinstance(index, int) for index in values):
-        raise HeadlessTransitionError("tactical discard indices must be exact integers")
-    if len(set(values)) != len(values):
-        raise HeadlessTransitionError("tactical discard indices must be distinct")
-    if any(index < 0 or index >= hand_size for index in values):
-        raise HeadlessTransitionError("tactical discard index is outside the visible hand")
-
-    # Vanilla resolves highlighted cards in current hand-area order, independent
-    # of the order in which the controller highlighted them.
-    return tuple(sorted(values))
 
 
 def _require_baseline_discard_callbacks_exact(run: HeadlessRunState) -> None:
@@ -54,25 +32,6 @@ def _require_baseline_discard_callbacks_exact(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "R4 baseline discard does not yet own Joker discard callbacks"
         )
-
-
-def _require_private_public_round_zones(run: HeadlessRunState) -> None:
-    state = run.public
-    if len(run.draw_pile) != len(state.deck) or {
-        id(card) for card in run.draw_pile
-    } != {id(card) for card in state.deck}:
-        raise HeadlessTransitionError(
-            "tactical discard requires authoritative private/public draw zones"
-        )
-    if len(run.discard_pile) != len(state.discard_pile) or any(
-        private is not public
-        for private, public in zip(run.discard_pile, state.discard_pile, strict=True)
-    ):
-        raise HeadlessTransitionError(
-            "tactical discard requires authoritative private/public discard order"
-        )
-    if run.played_pile:
-        raise HeadlessTransitionError("tactical discard requires an empty played pile")
 
 
 def apply_supported_tactical_discard(
@@ -103,19 +62,15 @@ def apply_supported_tactical_discard(
             "tactical discard requires authoritative discards_used"
         )
 
-    indices = _normalized_visible_indices(card_indices, hand_size=len(state.hand))
+    indices = normalize_visible_card_indices(card_indices, hand_size=len(state.hand))
     _require_baseline_discard_callbacks_exact(run)
-    _require_private_public_round_zones(run)
+    require_exact_selecting_hand_zones(run)
 
     selected = [state.hand[index] for index in indices]
     if any(str(getattr(card, "seal", "") or "").upper() == "PURPLE" for card in selected):
         raise HeadlessTransitionError(
             "R4 baseline discard does not yet own Purple Seal generation"
         )
-
-    # Validate the permanent-card owner before copying/mutating. This also
-    # prevents a public-only hand from being accepted with stale private state.
-    run.require_playing_card_order()
 
     next_run = run.copy()
     next_state = next_run.public
@@ -153,7 +108,7 @@ def _selected_observation_indices(observation, action: BalatroAction) -> tuple[i
         raise HeadlessTransitionError(
             "tactical decision selected a card outside its public observation"
         ) from exc
-    return _normalized_visible_indices(indices, hand_size=len(hand))
+    return normalize_visible_card_indices(indices, hand_size=len(hand))
 
 
 def apply_planned_tactical_step(run: HeadlessRunState, decision_engine) -> HeadlessRunState:
@@ -165,9 +120,6 @@ def apply_planned_tactical_step(run: HeadlessRunState, decision_engine) -> Headl
     observation object is used both for decision input and for mapping selected
     card objects back to visible positions. No hidden card identity or physical
     draw order is supplied to the decision engine.
-
-    Play execution remains fail-closed until the exact score/callback/post-hand
-    lifecycle has a complete canonical headless owner.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -194,8 +146,9 @@ def apply_planned_tactical_step(run: HeadlessRunState, decision_engine) -> Headl
             _selected_observation_indices(observation, action),
         )
     if action.name == PLAY_CARDS:
-        raise HeadlessTransitionError(
-            "R4 tactical Play execution is not exact yet"
+        return apply_supported_ordinary_play(
+            run,
+            _selected_observation_indices(observation, action),
         )
     raise HeadlessTransitionError(
         f"tactical decision engine returned unsupported action {action.name!r}"

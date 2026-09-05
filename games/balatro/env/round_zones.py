@@ -26,15 +26,77 @@ The retained physical order is otherwise normally irrelevant because the next
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from games.balatro.card import BalatroCard
 from games.balatro.env.deal import _public_card_sort_key
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+
+
+_MAX_SELECTED_CARDS = 5
 
 
 def _same_objects(left: list[BalatroCard], right: list[BalatroCard]) -> bool:
     return len(left) == len(right) and {id(card) for card in left} == {
         id(card) for card in right
     }
+
+
+def normalize_visible_card_indices(
+    card_indices: Iterable[int],
+    *,
+    hand_size: int,
+) -> tuple[int, ...]:
+    """Return distinct zero-based visible positions in vanilla hand-area order."""
+    try:
+        values = tuple(card_indices)
+    except TypeError as exc:
+        raise HeadlessTransitionError("tactical action requires card indices") from exc
+
+    if not 1 <= len(values) <= _MAX_SELECTED_CARDS:
+        raise HeadlessTransitionError("tactical action requires 1 to 5 selected cards")
+    if any(isinstance(index, bool) or not isinstance(index, int) for index in values):
+        raise HeadlessTransitionError("tactical action indices must be exact integers")
+    if len(set(values)) != len(values):
+        raise HeadlessTransitionError("tactical action indices must be distinct")
+    if any(index < 0 or index >= hand_size for index in values):
+        raise HeadlessTransitionError("tactical action index is outside the visible hand")
+
+    # Vanilla resolves highlighted cards in current hand-area order, independent
+    # of the order in which the controller highlighted them.
+    return tuple(sorted(values))
+
+
+def require_exact_selecting_hand_zones(run: HeadlessRunState) -> None:
+    """Prove one exact SELECTING_HAND partition before tactical movement."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    state = run.public
+    if state.phase != "SELECTING_HAND":
+        raise HeadlessTransitionError("tactical transition requires SELECTING_HAND phase")
+
+    order = run.require_playing_card_order()
+    if not _same_objects(run.draw_pile, state.deck):
+        raise HeadlessTransitionError(
+            "tactical transition requires authoritative private/public draw zones"
+        )
+    if len(run.discard_pile) != len(state.discard_pile) or any(
+        private is not public
+        for private, public in zip(run.discard_pile, state.discard_pile, strict=True)
+    ):
+        raise HeadlessTransitionError(
+            "tactical transition requires authoritative private/public discard order"
+        )
+    if run.played_pile:
+        raise HeadlessTransitionError("tactical transition requires an empty played pile")
+
+    zones = [*run.draw_pile, *run.discard_pile, *state.hand]
+    if len({id(card) for card in zones}) != len(zones):
+        raise HeadlessTransitionError("tactical transition card zones contain duplicate objects")
+    if not _same_objects(zones, order):
+        raise HeadlessTransitionError(
+            "tactical transition card zones do not exactly partition permanent playing cards"
+        )
 
 
 def _require_exact_round_end_partition(run: HeadlessRunState) -> None:

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
+from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.tactical_transition import (
     apply_planned_tactical_step,
@@ -19,6 +20,18 @@ def _dealt_run(*, seed="R4-DISCARD"):
     state.phase = "DRAW_TO_HAND"
     state.discards_remaining = 3
     state.discards_used = 0
+    run = HeadlessRunState(public=state, seed=seed)
+    return deal_supported_round_start(run)
+
+
+def _ordinary_play_run(*, seed="R4-PLAY-BRIDGE", requirement=9999):
+    state = BalatroState()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
+    state.phase = "DRAW_TO_HAND"
+    state.discards_remaining = 3
+    state.discards_used = 0
+    state.blind = Blind(BlindType.SMALL, requirement)
     run = HeadlessRunState(public=state, seed=seed)
     return deal_supported_round_start(run)
 
@@ -43,6 +56,11 @@ def _state_signature(run):
         tuple(_card_signature(card) for card in run.discard_pile),
         run.public.discards_remaining,
         run.public.discards_used,
+        run.public.score,
+        run.public.hands_remaining,
+        run.public.phase,
+        tuple(sorted(run.public.hand_play_counts.items())),
+        tuple(sorted(run.public.round_hand_play_counts.items())),
         run.rng_snapshot(),
     )
 
@@ -146,7 +164,11 @@ class _DiscardDecisionEngine:
 
 
 class _PlayDecisionEngine:
+    def __init__(self):
+        self.observation = None
+
     def decide(self, state):
+        self.observation = state
         return SimpleNamespace(action=BalatroAction(PLAY_CARDS, cards=[state.hand[0]]))
 
 
@@ -178,11 +200,26 @@ def test_env_r4_decision_engine_bridge_masks_face_down_identity_before_selection
     assert _card_signature(result.public.discard_pile[-1]) == hidden_signature
 
 
-def test_env_r4_decision_engine_bridge_keeps_play_fail_closed_until_exact_resolution_exists():
-    run = _dealt_run(seed="PLAY-CLOSED")
+def test_env_r4_decision_engine_bridge_executes_supported_ordinary_play():
+    run = _ordinary_play_run(seed="PLAY-OPEN")
+    selected = _card_signature(run.public.hand[0])
+    decision_engine = _PlayDecisionEngine()
+
+    result = apply_planned_tactical_step(run, decision_engine)
+
+    assert result.public.phase == "SELECTING_HAND"
+    assert result.public.score > 0
+    assert result.public.hands_remaining == 3
+    assert _card_signature(result.public.discard_pile[-1]) == selected
+    assert decision_engine.observation is not run.public
+
+
+def test_env_r4_decision_engine_bridge_keeps_unsupported_play_effects_fail_closed():
+    run = _ordinary_play_run(seed="PLAY-CLOSED")
+    run.public.jokers = [object()]
     before = _state_signature(run)
 
-    with pytest.raises(HeadlessTransitionError, match="Play execution is not exact"):
+    with pytest.raises(HeadlessTransitionError, match="Joker callbacks"):
         apply_planned_tactical_step(run, _PlayDecisionEngine())
 
     assert _state_signature(run) == before
