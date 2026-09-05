@@ -36,8 +36,6 @@ def test_env_r2_boss_selection_pins_ante_two_key_sort_and_boss_rng_vector():
         ante=2,
     )
 
-    # Vanilla eligible table has 18 least-used keys at Ante 2. String-key
-    # sorting followed by pseudoseed('boss') for TESTSEED picks bl_hook.
     assert result.boss_key == "bl_hook"
     assert result.boss_name == "The Hook"
     assert result_selection.usage_counts["bl_hook"] == 1
@@ -75,8 +73,6 @@ def test_env_r2_boss_selection_ante_eight_uses_only_showdown_pool():
 
 def test_env_r2_boss_selection_respects_source_min_ante_and_banned_keys():
     selection = BossSelectionState(banned_keys=frozenset({"bl_head"}))
-    # At Ante 1 only min=1 ordinary Bosses are eligible. Ban one and mark every
-    # other Ante-1 candidate used except The Hook so least-use filtering is exact.
     ante_one_keys = {
         "bl_club",
         "bl_goad",
@@ -99,6 +95,25 @@ def test_env_r2_boss_selection_respects_source_min_ante_and_banned_keys():
     assert result.boss_key == "bl_hook"
     assert result_selection.usage_counts["bl_hook"] == 1
     assert result_selection.usage_counts["bl_head"] == 0
+
+
+def test_env_r2_boss_selection_preante_uses_vanilla_effective_ante_one_pool():
+    # get_new_boss clamps only ordinary Boss min-Ante eligibility to max(1, ante).
+    # The same seeded first draw therefore resolves identically at Ante 1, 0 and -1.
+    results = []
+    for ante in (1, 0, -1):
+        run, selection, result = select_normal_boss(
+            _run(), BossSelectionState(), ante=ante
+        )
+        results.append((result.boss_key, run.rng.nodes["boss"], selection.usage_counts))
+
+    assert [row[0] for row in results] == ["bl_hook", "bl_hook", "bl_hook"]
+    assert [row[1] for row in results] == [
+        0.9912295796516,
+        0.9912295796516,
+        0.9912295796516,
+    ]
+    assert all(row[2]["bl_hook"] == 1 for row in results)
 
 
 def test_env_r2_boss_selection_isolates_input_usage_and_rng_state():
@@ -127,8 +142,11 @@ def test_env_r2_boss_selection_fails_closed_on_invalid_private_state():
     with pytest.raises(BossSelectionError, match="win_ante"):
         BossSelectionState(win_ante=True)
 
-    with pytest.raises(BossSelectionError, match="ante"):
-        select_normal_boss(_run(), BossSelectionState(), ante=0)
+    for invalid_ante in (True, 0.5, "0"):
+        with pytest.raises(BossSelectionError, match="exact integer"):
+            select_normal_boss(
+                _run(), BossSelectionState(), ante=invalid_ante  # type: ignore[arg-type]
+            )
 
 
 def test_env_r2_boss_selection_fails_closed_when_all_eligible_bosses_are_banned():
