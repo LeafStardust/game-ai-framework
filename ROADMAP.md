@@ -65,41 +65,35 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 ```text
 Branch: feat/v1.0-red-white-competence
 Verified code HEAD before this roadmap sync:
-e46ee5526a88ae5c76fee118b69f396a425e5749
-  test(balatro): align reroll capacity rejection wording
+d903106a28a43bcfa985339c4ca6a8c5bd874e09
+  test(balatro): pin exact ante voucher redemption
 
 Latest verified code-head CI:
-33964693188
-2224 passed, 1595 deselected
+33966224227
+2239 passed, 1595 deselected
 ```
 
-The previous feature head `4821e7b` completed exact Overstock shop transition ownership but CI `33964088221` exposed two stale regressions: one still treated Overstock as unsupported at cash-out, and one hard-coded the old two-card reroll error wording after main-shop capacity became variable. Production semantics were not weakened. The fixtures were corrected in `ad333bc` and `e46ee55`; the full deterministic suite is green again.
+The Hieroglyph/Petroglyph downstream audit has now materially advanced beyond the previous Overstock checkpoint. Exact pre-Ante Boss/tag progression and Red/White base blind requirements now preserve literal Ante zero/negative semantics, and an internal exact Hieroglyph/Petroglyph redemption primitive is green. The family is **still not training-visible** because vanilla redemption also mutates private `round_resets.blind_ante`; the existing `BlindProgressionState` owner is not yet installed in the generic `HeadlessRunState` consumed by `ShopTransitionEngine`.
 
 ## Recent closure commits
 
 ```text
-# interest-cap Voucher family
-b465f85  feat(balatro): add canonical interest cap state
-f0d57a0  feat(balatro): define exact interest cap voucher boundary
-12e18ac  feat(balatro): consume exact voucher interest cap at cashout
-28c9f33  feat(balatro): own exact interest cap voucher redemption
-0eece8a  test(balatro): pin exact interest cap voucher mechanics
-e8698ad  refactor(balatro): derive exact interest cap from voucher history
-1cf970c  test(balatro): derive interest cap from exact voucher history
-2749b4a  feat(balatro): expose exact interest cap voucher transitions
+# previous interest-cap / shop-size closure
 7d4bc1e  test(balatro): cover interest cap voucher shop transitions
-
-# shop-size Voucher family
 3922b97  feat(balatro): own Overstock shop-size capability
-e943bae  feat(balatro): derive main shop slots from vouchers
-d162f55  feat(balatro): generate variable main shop capacity
-d6f80c1  feat(balatro): reroll exact Overstock shop capacity
-8a94dd6  feat(balatro): own exact Overstock redemption
 4821e7b  feat(balatro): expose exact Overstock shop transition
-
-# closure after stale integration fixtures
 ad333bc  test(balatro): keep cashout unsupported voucher fixture exact
 e46ee55  test(balatro): align reroll capacity rejection wording
+
+# Hieroglyph / Petroglyph downstream progression audit
+4f44c2e  test(balatro): correct pre-Ante boss vector
+2344224  test(balatro): compose pre-Ante boss cashout progression
+197ae83  feat(balatro): own exact Red White base blind amount
+6f7be4a  test(balatro): pin Red White pre-Ante blind amounts
+
+# exact internal Ante-Voucher redemption boundary
+49bb5c7  feat(balatro): own exact ante voucher redemption primitive
+d903106  test(balatro): pin exact ante voucher redemption
 ```
 
 ## Immediate development position
@@ -110,6 +104,7 @@ e46ee55  test(balatro): align reroll capacity rejection wording
 - Exact playing-card/Joker private ordering for owned cases: **GREEN**.
 - Exact normal round/blind/Boss lifecycle across audited Red/White paths: **BROADLY GREEN**.
 - Exact round-end cashout + normal blind/Ante progression: **GREEN**.
+- Exact literal Ante <= 0 Boss/tag/blind-requirement handling: **GREEN**.
 - Exact normal main-shop generation + paid reroll with variable supported capacity: **GREEN**.
 - Exact Joker/Tarot/Planet normal shop generation owned slices: **GREEN**.
 - Exact Voucher runtime eligibility, identity polling, metadata/pricing, and separate Voucher slot publication: **GREEN**.
@@ -121,8 +116,9 @@ e46ee55  test(balatro): align reroll capacity rejection wording
 - Exact reroll-cost family: **GREEN — Reroll Surplus / Reroll Glut**.
 - Exact interest-cap family: **GREEN — Seed Money / Money Tree**.
 - Exact main-shop-size family: **GREEN — Overstock / Overstock Plus**.
-- Supported Voucher state through ordinary cash-out/new-shop entry: **GREEN**.
-- Remaining 10 Voucher centers: **FAIL CLOSED UNTIL THEIR DOWNSTREAM EFFECTS ARE OWNED**.
+- Hieroglyph/Petroglyph direct redemption primitive: **GREEN INTERNALLY, NOT TRAINING-EXPOSED**.
+- Supported Voucher state through ordinary cash-out/new-shop entry: **GREEN FOR CURRENT TRAINING-SUPPORTED FAMILIES**.
+- Remaining 10 Voucher centers: **FAIL CLOSED AT TRAINING BOUNDARY UNTIL THEIR FULL EFFECTS ARE OWNED**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **NOT CURRENTLY REQUIRED**.
 
@@ -189,7 +185,7 @@ v_overstock_plus
 
 `games/balatro/env/voucher_capabilities.py` is the canonical per-boundary capability owner. Exact generation capability is distinct from exact redemption/cash-out capability; never replace these checks with a blanket `if state.vouchers` rule.
 
-### Remaining unsupported Voucher centers
+### Remaining training-unsupported Voucher centers
 
 ```text
 v_omen_globe
@@ -210,7 +206,7 @@ Their current blockers are real mechanics boundaries, not missing allowlist entr
 - Telescope / Observatory depend on Celestial pack/Planet lifecycle and Observatory held-Planet scoring;
 - Blank has progression/unlock semantics rather than an ordinary immediate gameplay modifier;
 - Magic Trick / Illusion require exact playing-card shop generation, purchase, and modifier generation;
-- Hieroglyph / Petroglyph alter Ante plus persistent round hand/discard allowances and therefore require full downstream progression audit;
+- Hieroglyph / Petroglyph now have exact direct redemption and downstream nonpositive-Ante primitives, but training purchase still requires private `BlindProgressionState` / `round_resets.blind_ante` ownership inside the generic run container;
 - Director's Cut / Retcon require exact Boss-reroll action/state ownership.
 
 ---
@@ -251,6 +247,7 @@ Planet Tycoon   requires Planet Merchant
 Reroll Glut     requires Reroll Surplus
 Money Tree      requires Seed Money
 Overstock Plus  requires Overstock
+Petroglyph      requires Hieroglyph   # internal exact primitive only so far
 ```
 
 ### Seed Money / Money Tree
@@ -266,6 +263,27 @@ The authoritative cap is reconstructed from complete Voucher history, with expli
 ### Overstock / Overstock Plus
 
 Pinned vanilla redemption calls `change_shop_size(1)` for each Voucher. Exact headless behavior therefore derives 2/3/4 main-shop slots from authoritative Voucher history, uses that capacity for initial generation and paid rerolls, and preserves the family across cash-out/new-shop entry. Incomplete current-capacity shops fail closed before reroll RNG is consumed.
+
+### Hieroglyph / Petroglyph — internal boundary now exact
+
+Pinned vanilla redemption does all of the following:
+
+```text
+both:
+  ease_ante(-1)
+  round_resets.blind_ante -= 1
+
+Hieroglyph:
+  round_resets.hands -= 1
+  current hands_left -= 1
+
+Petroglyph:
+  requires Hieroglyph
+  round_resets.discards -= 1
+  current discards_left -= 1
+```
+
+`games/balatro/env/ante_voucher_redemption.py` now owns those direct mutations with strict observed/reducible allowance checks and exact private `BlindProgressionState` input. It supports literal Ante 0 -> -1 and consumes no RNG. It deliberately remains an **internal primitive** until progression state is installed into the generic run container and `BUY_VOUCHER` can update it atomically.
 
 ### Existing exact families
 
@@ -304,6 +322,8 @@ Examples already enforced:
 - Voucher upgrade ownership/state mismatches are rejected rather than repaired by inference;
 - discount redemption is hidden when current generated prices are stale or pricing paths are unowned;
 - ordinary cash-out rejects unsupported Voucher generation/pricing/economy state rather than erasing it;
+- Ante Voucher redemption rejects stale private `blind_ante` instead of deriving it from public Ante;
+- Ante Voucher redemption rejects unobserved or irreducible current/persistent hand/discard allowances;
 - Magic Trick remains a regression fixture for unsupported playing-card-shop effects now that Overstock is exact;
 - tests must mark authoritative empty/zero observations explicitly instead of relying on defaults.
 
@@ -377,6 +397,14 @@ Owned:
 
 The environment owns audited Red/White blind start, draw, resource modification, Boss active effects, disable/defeat restoration, and round resolution across all 28 vanilla Bosses. Hidden-information behavior remains masked correctly.
 
+The Hieroglyph/Petroglyph downstream audit additionally owns literal nonpositive Ante behavior in:
+
+- normal Boss selection (`max(1, ante)` only where vanilla clamps the minimum-Ante eligibility test; showdown logic uses literal Ante);
+- normal Tag selection and its seeded `Tag{ante}` keys;
+- pre-Ante Boss cash-out tag/Boss regeneration;
+- Red/White base blind amount (`Ante < 1 -> 100`, Ante 1–8 exact table, endless >8 fail closed);
+- blind progression state where `blind_ante` may be zero or negative.
+
 Representative gates:
 
 ```text
@@ -386,6 +414,8 @@ Representative gates:
 33873017991  1838 passed, 1595 deselected
 33905449910  1876 passed, 1595 deselected
 33915588784  1924 passed, 1595 deselected
+33965599236  2233 passed, 1595 deselected   pre-Ante + Red/White blind amount closure
+33966224227  2239 passed, 1595 deselected   exact internal Ante-Voucher redemption
 ```
 
 Generic training `SELECT_BLIND` remains tied to end-to-end strategic-action ownership even though internal lifecycle primitives are substantially broader.
@@ -421,43 +451,48 @@ Representative later gates:
 33962480568  2209 passed, 1595 deselected   Voucher-preserving cashout
 33964088221  2 failed, 2222 passed          stale Overstock-era fixtures
 33964693188  2224 passed, 1595 deselected   interest-cap + Overstock closure
+33965599236  2233 passed, 1595 deselected   Hieroglyph/Petroglyph downstream progression audit
+33966224227  2239 passed, 1595 deselected   internal exact Ante-Voucher redemption
 ```
 
 ---
 
-# Next work — Hieroglyph / Petroglyph downstream audit
+# Next work — install private blind progression into the run container
 
-The next coherent unsupported family to inspect is:
+The immediate blocker to training-visible Hieroglyph/Petroglyph is now structural, not mechanical.
+
+Vanilla redemption mutates:
 
 ```text
-v_hieroglyph
-v_petroglyph
+public/canonical:
+  ante
+  round_resets.hands or round_resets.discards
+  current hands_left or discards_left
+  voucher ownership
+  money/shop Voucher slot
+
+private progression:
+  round_resets.blind_ante
 ```
 
-Pinned vanilla direct effects are known:
+`BlindProgressionState` already owns the private blind statuses / `blind_on_deck` / `blind_ante` / Boss identity semantics, but it is currently passed explicitly through progression helpers rather than stored in `HeadlessRunState`. `ShopTransitionEngine.step(run, BUY_VOUCHER)` therefore cannot yet update public + private progression atomically.
 
-- both call `ease_ante(-1)`;
-- Hieroglyph reduces `G.GAME.round_resets.hands` by 1 and updates current hands;
-- Petroglyph requires Hieroglyph and reduces `G.GAME.round_resets.discards` by 1 and updates current discards.
+Immediate implementation order:
 
-This family is **not supported yet**. It is the preferred next audit because canonical `ante`, next-round hand allowance, and next-round discard allowance already exist, but redemption cannot be exposed until every downstream consequence of lowering Ante and allowances is exact.
-
-Immediate audit/implementation order:
-
-1. inspect pinned `ease_ante` semantics and all state it updates;
-2. trace how lower Ante affects blind requirements, Boss progression/selection, shop/Voucher eligibility, seeded keys, and current run progression;
-3. confirm whether redemption occurs in SHOP with current hands/discards values that must also change immediately;
-4. verify canonical `ante`, `round_reset_hands`, `round_reset_discards`, and their observed/exactness flags can represent the mutation without a duplicate state owner;
-5. define strict upgrade ownership (`Petroglyph` requires `Hieroglyph`);
-6. reject any state where downstream Ante progression cannot be reconstructed exactly;
-7. add focused redemption + lifecycle tests only after the full consequence graph is owned;
-8. expose BUY_VOUCHER only after every affected consumer reads canonical state;
-9. run full deterministic CI;
+1. install an optional exact `BlindProgressionState` owner in `HeadlessRunState` (or otherwise integrate the existing owner canonically; do **not** create a duplicate progression model);
+2. legacy/manually-constructed run states with no authoritative progression must remain valid but fail closed for actions that require it;
+3. validate retained progression against public state only at boundaries where a source invariant actually exists; do not invent a universal `blind_ante == ante` rule across Boss `end_round` intermediate states;
+4. update Boss cash-out/tag/Boss progression compositions to preserve/use the same retained progression owner rather than parallel copies;
+5. wire `v_hieroglyph` / `v_petroglyph` into `voucher_capabilities.py` only at the exact boundaries whose downstream consequences are now owned;
+6. route `ShopTransitionEngine` Ante Voucher legality/execution through `ante_voucher_redemption.py` and atomically replace retained progression;
+7. keep Petroglyph upgrade ownership strict (`v_hieroglyph` required);
+8. add focused tests proving legal mask visibility only when progression + allowance observations are authoritative, plus nonpositive-Ante persistence through next blind/tag/Boss generation;
+9. run the full deterministic CI and inspect the pytest count;
 10. synchronize this roadmap after green.
 
-Do **not** implement Hieroglyph/Petroglyph as a simple numeric redemption patch. Lowering Ante changes future game progression and seeded behavior; the family stays fail closed unless that entire modeled boundary is exact.
+Do **not** expose Hieroglyph/Petroglyph by adding them to a blanket Voucher allowlist before the generic run container can retain the private `blind_ante` mutation.
 
-If the audit proves the family is blocked, record the blocker and move to the next mechanically complete family rather than approximating it.
+If progression integration reveals a conflicting owner or missing serialization boundary, stop at that exact blocker rather than adding a wrapper/rescue layer.
 
 ---
 
