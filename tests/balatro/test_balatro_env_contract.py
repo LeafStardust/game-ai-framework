@@ -39,6 +39,7 @@ def test_only_frozen_actions_are_training_exposed():
         "BUY_CONSUMABLE": BUY_CONSUMABLE,
         "OPEN_PACK": BUY_BOOSTER,
         "REROLL_SHOP": REFRESH_SHOP,
+        "SELL_JOKER": SELL_JOKER,
         "SKIP_BLIND": SKIP_BLIND,
         "SELECT_BLIND": SELECT_BLIND,
     }
@@ -63,6 +64,25 @@ def test_reroll_shop_uses_canonical_action_and_dedicated_exact_owners():
 
     action = EnvAction.from_alias("REROLL_SHOP")
     assert action.action_id == REFRESH_SHOP
+    validate_training_action(action)
+
+
+def test_sell_joker_uses_canonical_action_and_narrow_exact_owners():
+    contract = contract_for("SELL_JOKER")
+
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == SELL_JOKER
+    assert contract.legality_owner == (
+        "games.balatro.env.joker_sale.can_sell_joker_exact"
+    )
+    assert contract.execution_owner == (
+        "games.balatro.live.injected.action_dispatcher."
+        "LiveMemoryInjectedActionDispatcher.dispatch"
+    )
+
+    action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert action.action_id == SELL_JOKER
+    assert action.payload() == {"joker_index": 0}
     validate_training_action(action)
 
 
@@ -115,7 +135,6 @@ def test_unfrozen_and_unavailable_capabilities_never_enter_training_mask():
     exposed_aliases = {contract.alias for contract in training_action_contracts()}
 
     for alias in (
-        "SELL_JOKER",
         "BUY_CARD",
         "CHOOSE_PACK_OPTION",
         "SKIP_PACK",

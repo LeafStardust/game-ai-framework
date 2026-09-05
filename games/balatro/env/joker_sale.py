@@ -1,4 +1,4 @@
-"""Minimum exact Joker-sale ownership for Verdant Leaf.
+"""Exact fail-closed Joker-sale ownership for training and Verdant Leaf.
 
 Vanilla selling a Joker removes it from the Joker area, runs the card's
 ``remove_from_deck`` inverse lifecycle, credits ``sell_cost``, and disables
@@ -27,6 +27,71 @@ _STATIC_SELL_SAFE_TYPES = tuple(
     )
     if joker_type is not JugglerJoker
 )
+
+
+def _validate_static_joker_identity(
+    run: HeadlessRunState,
+    joker_index: int,
+) -> int:
+    """Validate an inventory-only Joker sale and return its exact sell value."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    state = run.public
+    if isinstance(joker_index, bool) or not isinstance(joker_index, int):
+        raise HeadlessTransitionError("joker index must be an exact integer")
+    if joker_index < 0 or joker_index >= len(state.jokers):
+        raise HeadlessTransitionError("joker index is out of range")
+    if isinstance(state.money, bool) or not isinstance(state.money, int):
+        raise HeadlessTransitionError("Joker sale requires exact integer money")
+
+    joker = state.jokers[joker_index]
+    if type(joker) not in _STATIC_SELL_SAFE_TYPES:
+        raise HeadlessTransitionError(
+            "Joker sale inverse lifecycle is not exactly owned for this Joker"
+        )
+    if getattr(joker, "eternal", False):
+        raise HeadlessTransitionError("Eternal Joker cannot be sold")
+    if getattr(joker, "edition", None) is not None:
+        raise HeadlessTransitionError("Joker editions remain fail-closed for sale")
+
+    sell_cost = getattr(joker, "sell_cost", None)
+    if isinstance(sell_cost, bool) or not isinstance(sell_cost, int) or sell_cost < 0:
+        raise HeadlessTransitionError("Joker sale requires exact nonnegative sell_cost")
+    return sell_cost
+
+
+def validate_joker_sale_exact(run: HeadlessRunState, joker_index: int) -> None:
+    """Validate the first exact strategic SELL_JOKER boundary.
+
+    The initial training slice is deliberately limited to an active main shop
+    and inventory-only Jokers. Pack-time sales and resource-sensitive inverse
+    lifecycles remain unavailable until their complete transitions are owned.
+    """
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    if run.public.phase != "SHOP" or not run.public.shop_active:
+        raise HeadlessTransitionError("exact SELL_JOKER requires active SHOP")
+    _validate_static_joker_identity(run, joker_index)
+
+
+def can_sell_joker_exact(run: HeadlessRunState, joker_index: int) -> bool:
+    """Return exact sale legality without mutating state or RNG."""
+    try:
+        validate_joker_sale_exact(run, joker_index)
+    except (TypeError, HeadlessTransitionError):
+        return False
+    return True
+
+
+def sell_joker_exact(run: HeadlessRunState, joker_index: int) -> HeadlessRunState:
+    """Sell one audited inventory-only Joker during the active main shop."""
+    validate_joker_sale_exact(run, joker_index)
+    sell_cost = _validate_static_joker_identity(run, joker_index)
+
+    next_run = run.copy()
+    next_run.public.money += sell_cost
+    next_run.public.jokers.pop(joker_index)
+    return next_run
 
 
 def _permanent_cards(run: HeadlessRunState) -> list[BalatroCard]:
@@ -121,6 +186,8 @@ def sell_static_joker_during_verdant(
     It establishes the exact mechanical boundary required by Verdant while the
     environment contract remains ``PLANNED``.
     """
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
     state = run.public
     if state.phase != "SELECTING_HAND":
         raise HeadlessTransitionError(
@@ -130,30 +197,13 @@ def sell_static_joker_during_verdant(
         raise HeadlessTransitionError("Verdant Joker sale requires active Verdant Leaf")
     if getattr(state.blind, "disabled", False):
         raise HeadlessTransitionError("Verdant Leaf is already disabled")
-    if isinstance(joker_index, bool) or not isinstance(joker_index, int):
-        raise HeadlessTransitionError("joker index must be an exact integer")
-    if joker_index < 0 or joker_index >= len(state.jokers):
-        raise HeadlessTransitionError("joker index is out of range")
+    sell_cost = _validate_static_joker_identity(run, joker_index)
 
     cards = _permanent_cards(run)
     if any(not card.debuffed for card in cards):
         raise HeadlessTransitionError(
             "Verdant Joker sale requires active owned all-card debuff"
         )
-
-    joker = state.jokers[joker_index]
-    if type(joker) not in _STATIC_SELL_SAFE_TYPES:
-        raise HeadlessTransitionError(
-            "Joker sale inverse lifecycle is not exactly owned for this Joker"
-        )
-    if getattr(joker, "eternal", False):
-        raise HeadlessTransitionError("Eternal Joker cannot be sold")
-    if getattr(joker, "edition", None) is not None:
-        raise HeadlessTransitionError("Joker editions remain fail-closed for sale")
-
-    sell_cost = getattr(joker, "sell_cost", None)
-    if isinstance(sell_cost, bool) or not isinstance(sell_cost, int) or sell_cost < 0:
-        raise HeadlessTransitionError("Joker sale requires exact nonnegative sell_cost")
 
     next_run = run.copy()
     next_state = next_run.public
