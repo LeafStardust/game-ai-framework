@@ -55,7 +55,7 @@ Authoritative deterministic workflow:
 Current CI selector:
 
 ```bash
-python -m pytest -q tests/balatro -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2"
+python -m pytest -q tests/balatro -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2 or env_r3 or env_r4"
 ```
 
 ---
@@ -65,29 +65,27 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 ```text
 Branch: feat/v1.0-red-white-competence
 
-Verified code HEAD immediately before this roadmap sync:
-3a437977e7b82d184842018a611e77ac26992609
-  test(balatro): freeze unavailable card shop capability
+R3 closure verification commit:
+2e8daa4b64694cc22862f99ea16adea3c61c00f2
+  docs(balatro): sync roadmap through R3 closure
+GitHub Actions run 33982517717
+2331 passed, 1595 deselected
 
-Preceding contract commit:
-1e6eca960d4d49452625abba50fbfcde19420ad6
-  refactor(balatro): close unavailable card shop action
-
-Latest fully verified pre-closure code-head CI:
-33978049029
-2320 passed, 1595 deselected
-at 056d53884194030f004108367fe95efb87fcc546
-  test(balatro): fix exact planet use guards
+Verified R4 code HEAD immediately before this roadmap sync:
+c117ab054e8cebb8a402711cca46ed48fb076172
+  feat(balatro): bridge public tactical discard
+GitHub Actions run 33982555046
+2335 passed, 1595 deselected
 ```
 
-The GitHub Actions API is currently reporting the two newest contract-closure runs as abnormally long-running despite the workflow's five-minute timeout. Do not treat that stale API status as a green gate. This roadmap sync intentionally triggers a fresh deterministic workflow run; inspect its actual pytest line before marking the R3 closure green.
+Both counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
 
 ## Immediate development position
 
 - R1 deterministic state/acquisition: **SUBSTANTIALLY COMPLETE**.
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
-- R3 typed strategic action vocabulary: **IMPLEMENTATION COMPLETE FOR THE FROZEN RED/WHITE SURFACE; FRESH CI GATE PENDING**.
-- R4 deterministic tactical bridge: **NEXT AFTER R3 FRESH GREEN GATE**.
+- R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
+- R4 deterministic tactical bridge: **IN PROGRESS**.
 - R5 live/simulator parity harness: **NOT STARTED**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
@@ -124,7 +122,7 @@ REROLL_BOSS
 
 `REROLL_BOSS` remains unavailable because no frozen canonical production action/owner exists for the current Red/White surface.
 
-At this checkpoint there should be **no remaining PLANNED action in the frozen strategic contract**. If one appears later, it requires an explicit new canonical production capability, not a learner-side alias workaround.
+There is **no remaining PLANNED action in the frozen strategic contract**. If one appears later, it requires an explicit new canonical production capability, not a learner-side alias workaround.
 
 ---
 
@@ -137,8 +135,8 @@ L3 environment freeze                COMPLETE
 R0 headless environment architecture COMPLETE
 R1 deterministic state/acquisition   SUBSTANTIALLY COMPLETE
 R2 RNG/lifecycle/shop generation     BROADLY GREEN / SPECIFIC GAPS REMAIN
-R3 typed action vocabulary           IMPLEMENTATION COMPLETE / FRESH CI PENDING
-R4 deterministic tactical bridge     NEXT
+R3 typed action vocabulary           COMPLETE / GREEN
+R4 deterministic tactical bridge     IN PROGRESS
 R5 live/simulator parity harness      NOT STARTED
 R6 environment performance gate      NOT STARTED
 O observation/action encoding        NOT STARTED
@@ -188,8 +186,7 @@ Do not restore the old persistent strategy controller, named strategy identity a
 The active development sequence is now:
 
 ```text
-finish R3 fresh deterministic gate
-→ R4 deterministic tactical bridge
+R4 deterministic tactical bridge
 → R5 live/simulator parity
 → R6 performance
 → O observation/action encoding
@@ -522,7 +519,7 @@ Examples already enforced:
 
 ---
 
-# R3 — typed strategic action vocabulary — IMPLEMENTATION COMPLETE / FRESH CI PENDING
+# R3 — typed strategic action vocabulary — COMPLETE / GREEN
 
 Every training-visible action requires:
 
@@ -570,48 +567,85 @@ Reason: no dedicated canonical production identifier or live shop legality/execu
 
 `REROLL_BOSS` remains unavailable for the same canonical-ownership reason.
 
-## R3 exit gate
+## R3 closure proof
 
-Before declaring R3 fully green:
-
-1. require the fresh deterministic workflow triggered by this roadmap sync to complete;
-2. inspect its actual pytest summary;
-3. verify `games/balatro/env_contract.py` contains no `PLANNED` entry in the frozen surface;
-4. keep `BUY_CARD` and `REROLL_BOSS` out of `training_action_contracts()`;
-5. then mark R3 **COMPLETE / GREEN** and proceed to R4.
+- `games/balatro/env_contract.py` contains no `PLANNED` contract in the frozen action surface.
+- `BUY_CARD` and `REROLL_BOSS` remain outside `training_action_contracts()`.
+- GitHub Actions run `33982517717` at `2e8daa4b64694cc22862f99ea16adea3c61c00f2` completed with **2331 passed, 1595 deselected**.
+- R4 then advanced on top of this green gate without reopening the R3 vocabulary.
 
 Do not reopen a supported R3 action without a concrete regression.
 
 ---
 
-# R4 — deterministic tactical bridge — NEXT
+# R4 — deterministic tactical bridge — IN PROGRESS
 
 ## Goal
 
 RL controls strategic run-development boundaries while existing deterministic hand-level owners continue to choose exact play/discard actions. **Do not rewrite the tactical engine inside the learner or create a second scoring/hand-selection implementation.**
 
-## First required audit
+## Canonical tactical audit — current findings
 
-Before writing bridge code:
+The first audit is materially complete, with one production-entry wiring check and the exact Play lifecycle still to finish before widening the bridge:
 
-1. locate the current production hand-action legality/generation owner for `PLAY_HAND` / `DISCARD`;
-2. locate the deterministic target-hand/scoring owner currently used by the live agent;
-3. identify the canonical action payload representation for selected card indices/identities;
-4. identify Boss/tactical legality guards already installed in the production stack;
-5. identify what tactical state is policy-visible versus private;
-6. verify the headless state at `SELECTING_HAND` contains everything those owners require;
-7. classify any missing state as an R1/R2 exactness gap rather than patching around it in R4.
+1. Canonical tactical payloads are `BalatroAction(PLAY_CARDS, cards=[...])` and `BalatroAction(DISCARD_CARDS, cards=[...])` from `games/balatro/actions.py`; selected cards are canonical public hand objects, not an RL-only index action type.
+2. Production D1 hand arbitration is owned by `StrategyAwareLiveHandActionPolicy` and the production decision-engine stack beneath `games/balatro/live/hand_action_policy.py` / `path_aware_hand_action_engine.py`.
+3. `D1LiveBlindClearPlanner` in `games/balatro/live/hand_action_planner_core.py` obtains Play/Discard candidates from the shared action generator and filters Play candidates through `boss_play_action_is_legal`; Boss-aware score projection uses the shared `BossAwareLiveHandDecisionEvaluator`.
+4. Runner / To Do List target-hand evidence is owned by `games/balatro/target_hand_engine_policy.py` and consumed inside canonical D1 ranking; R4 must not duplicate that heuristic.
+5. `games/balatro/env/public_observation.py` is the policy-visible sanitization boundary. Private physical draw order remains on `HeadlessRunState` and is never passed to the tactical planner.
+6. The frozen strategic action contract remains `games/balatro/env_contract.py`; there is no separate `env_contract.v1.json` and no tactical learner action needs to be added to the strategic mask for R4.
+
+Before admitting `PLAY_CARDS`, finish tracing the actual production planner entry/wrapper used by the live agent and the exact headless Play score/callback/post-hand lifecycle. If any required state or callback owner is absent, classify that as an R1/R2 exactness gap rather than adding an R4 workaround.
+
+## Admitted R4 slice — green
+
+`games/balatro/env/tactical_transition.py` currently owns a deliberately narrow exact Discard bridge:
+
+```text
+headless SELECTING_HAND
+        ↓
+policy-safe public observation
+        ↓
+existing planner action
+        ↓
+canonical DISCARD_CARDS + selected public hand objects
+        ↓
+visible-position mapping
+        ↓
+exact headless discard/redraw transition
+```
+
+Exact admitted behavior:
+
+- selected cards are validated as 1–5 distinct visible positions and resolved in current hand-area order;
+- private/public draw and discard zones must agree before mutation;
+- permanent playing-card order must remain authoritative;
+- the input run is copy-on-write;
+- selected cards move to the exact discard tail;
+- `discards_remaining` and `discards_used` update atomically;
+- redraw uses retained private physical draw order without exposing it to policy;
+- planner input is `public_observation_state(run.public)`, so face-down identity remains masked;
+- planner-selected foreign card objects fail closed;
+- Boss discard callbacks, Joker discard callbacks, Purple Seal generation, and unsupported planner actions fail closed;
+- `PLAY_CARDS` remains explicitly fail closed until its exact lifecycle is owned.
+
+Green checkpoint:
+
+```text
+c117ab054e8cebb8a402711cca46ed48fb076172
+  feat(balatro): bridge public tactical discard
+GitHub Actions run 33982555046
+2335 passed, 1595 deselected
+```
 
 ## Minimal R4 bridge target
-
-The first bridge should be deliberately narrow:
 
 ```text
 headless SELECTING_HAND state
         ↓
 existing deterministic tactical owner
         ↓
-canonical PLAY_HAND or DISCARD action
+canonical PLAY_CARDS or DISCARD_CARDS action
         ↓
 existing exact mechanics/legality owner
         ↓
@@ -628,6 +662,16 @@ Required properties:
 - deterministic fixed-state action result;
 - tactical action/evidence can be logged for future R5 parity;
 - unsupported tactical state fails closed.
+
+## Exact next task
+
+1. finish the live production tactical entry/wiring audit so the headless bridge calls the same deterministic owner rather than a test-only planner shape;
+2. trace the exact ordinary `PLAY_CARDS` transition through score, counters, card movement, callbacks, blind-clear/continue/loss ownership, redraw, and post-hand state;
+3. admit only the narrowest ordinary Play subset whose complete lifecycle is already exact;
+4. otherwise record the precise R1/R2 missing owner/state and keep Play fail closed;
+5. add focused deterministic regressions for every newly admitted behavior and re-run the authoritative GitHub Actions gate.
+
+No live Balatro run is required for this audit/implementation unless a later parity question is genuinely live-only.
 
 ## R4 exit criteria
 
