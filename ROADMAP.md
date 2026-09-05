@@ -65,46 +65,49 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 ```text
 Branch: feat/v1.0-red-white-competence
 Verified code HEAD before this roadmap sync:
-83a900efff0dc81b984a93df6710324ae125bbaa
-  fix(balatro): construct generated ante voucher fixtures
+27781d41a7bc6996a8733d5293c1042ac5570948
+  test(balatro): update burglar boundary after select blind exposure
 
 Latest verified code-head CI:
-33967536736
-2257 passed, 1595 deselected
+33971114617
+2278 passed, 1595 deselected
 ```
 
-The Hieroglyph/Petroglyph integration is now closed through the canonical shop action path. `HeadlessRunState` retains the existing canonical `BlindProgressionState`; Ante-Voucher redemption updates public Ante/allowances and private `blind_ante` atomically; valid ownership is neutral for unrelated shop-generation capability checks; and `ShopTransitionEngine.legal_actions()` exposes `BUY_VOUCHER` only when progression, allowance observations, price, upgrade prerequisites, and affordability are exact.
+The strategic-action surface has advanced beyond the previous roadmap checkpoint. `REROLL_SHOP` and `SELECT_BLIND` are now exact, canonical, training-exposed actions. A first `SELECT_BLIND` exposure CI failed only because three guard tests still treated it as planned; commits `50e0cf7`, `e855001`, and `27781d4` updated those guards without changing production mechanics. The repaired full deterministic gate is green at **2278 passed, 1595 deselected**.
 
 ## Latest closure commits
 
 ```text
-# retained blind progression + internal redemption integration
+# retained blind progression + Ante-Voucher integration
 31aca80  test(balatro): cover retained ante voucher progression
-
-# Ante-Voucher capability / canonical BUY_VOUCHER path
 4a3a4e4  feat(balatro): classify exact ante voucher capability
 b5ffda2  refactor(balatro): centralize ante voucher capability
 d7618ff  feat(balatro): expose exact ante voucher shop transition
 6a7c5ef  test(balatro): cover ante voucher shop transition
 83a900e  fix(balatro): construct generated ante voucher fixtures
-```
 
-The failed collection run `33967491685` was test-fixture-only: it referenced a nonexistent helper. Production semantics were unchanged; `83a900e` corrected the test to construct the repository's real immutable `GeneratedShopVoucherItem`. Full CI then passed.
+# R3 exact strategic actions
+# REROLL_SHOP and SELECT_BLIND implementation/exposure commits exist immediately
+# before the current guard-test closure; repository history is authoritative.
+50e0cf7  test(balatro): align contract guards with select blind exposure
+e855001  test(balatro): keep R0 guard on planned action
+27781d4  test(balatro): update burglar boundary after select blind exposure
+```
 
 ## Immediate development position
 
 - R1 deterministic state/acquisition: **SUBSTANTIALLY COMPLETE**.
 - R2 RNG/lifecycle/shop generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
-- R3 typed strategic action vocabulary: **PARTIAL — NEXT PRIMARY WORKSTREAM**.
+- R3 typed strategic action vocabulary: **ACTIVE — `SKIP_BLIND` IS NEXT**.
 - Exact Balatro/LuaJIT RNG + pseudoshuffle: **GREEN**.
 - Exact playing-card/Joker private ordering for owned cases: **GREEN**.
 - Exact normal round/blind/Boss lifecycle across audited Red/White paths: **BROADLY GREEN**.
 - Exact round-end cashout + normal blind/Ante progression: **GREEN**.
 - Exact literal Ante <= 0 Boss/tag/blind-requirement handling: **GREEN**.
 - Exact normal main-shop generation + paid reroll with variable supported capacity: **GREEN**.
-- Exact Joker/Tarot/Planet normal shop generation owned slices: **GREEN**.
-- Exact Voucher runtime eligibility, identity polling, metadata/pricing, and separate Voucher slot publication: **GREEN**.
-- Exact Hieroglyph/Petroglyph canonical training purchase: **GREEN**.
+- `REROLL_SHOP` contract/training exposure: **SUPPORTED / GREEN**.
+- `SELECT_BLIND` contract/training exposure: **SUPPORTED / GREEN — CI 33971114617**.
+- `SKIP_BLIND`: **PLANNED — NEXT CONTRACT/TRANSITION AUDIT**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **NOT CURRENTLY REQUIRED**.
 
@@ -119,7 +122,7 @@ L3 environment freeze                COMPLETE
 R0 headless environment architecture COMPLETE
 R1 deterministic state/acquisition   SUBSTANTIALLY COMPLETE
 R2 RNG/lifecycle/shop generation     BROADLY GREEN / SPECIFIC GAPS REMAIN
-R3 typed action vocabulary           PARTIAL — NEXT PRIMARY WORKSTREAM
+R3 typed action vocabulary           ACTIVE — SKIP_BLIND NEXT
 R4 deterministic tactical bridge     NOT STARTED
 R5 live/simulator parity harness      NOT STARTED
 R6 environment performance gate      NOT STARTED
@@ -145,6 +148,12 @@ The simulator is **not authoritative game truth** until representative R5 live/s
 - Owned-deck-dependent scoring Jokers only when permanent deck state is authoritative.
 - Exact supported Voucher acquisition effects listed below.
 - Fail-closed malformed/noninteger prices.
+
+## Exact Joker acquisition groups already admitted
+
+The exact inventory-only/scoring-safe surface includes previously audited static, hand-rule, hand-shape, suit, retrigger, money, and conditional scorers. Resource-sensitive exact acquisitions include Juggler, Stuntman, Drunkard, Troubadour, and Merry Andy. Owned-deck-dependent scoring acquisitions include Driver's License, Erosion, Steel Joker, and Stone Joker only when permanent deck state is authoritative.
+
+Burglar acquisition remains deliberately fail-closed even though `SELECT_BLIND` is now exposed: acquisition legality must be separately proven against the owned lifecycle boundary rather than inferred from action availability.
 
 ## Still fail closed
 
@@ -265,7 +274,7 @@ Petroglyph:
   current discards_left -= 1
 ```
 
-Canonical ownership now is:
+Canonical ownership:
 
 ```text
 HeadlessRunState.blind_progression_state
@@ -276,8 +285,6 @@ ShopTransitionEngine legal mask + BUY_VOUCHER execution
 ```
 
 The path fails closed when retained progression is absent/stale, the required current/persistent allowance is unobserved or irreducible, price is malformed/unaffordable, or Petroglyph lacks Hieroglyph. Successful redemption consumes no RNG and atomically updates public and private state.
-
-Valid Hieroglyph/Petroglyph ownership is neutral for unrelated shop generation rates/capacity/pricing. Impossible `Petroglyph without Hieroglyph` ownership invalidates the Voucher capability boundary.
 
 ### Remaining training-unsupported Voucher centers
 
@@ -292,7 +299,7 @@ v_directors_cut
 v_retcon
 ```
 
-These are blocked by real mechanics:
+Blocked by real mechanics:
 
 - Omen Globe: Spectral generation inside Arcana packs.
 - Telescope / Observatory: Celestial pack/Planet lifecycle and Observatory held-Planet scoring.
@@ -300,7 +307,7 @@ These are blocked by real mechanics:
 - Magic Trick / Illusion: exact playing-card shop generation, purchase, and modifier generation.
 - Director's Cut / Retcon: exact Boss-reroll action/state ownership.
 
-Do not promote any of these through a blanket allowlist.
+Do not promote these through a blanket allowlist.
 
 ---
 
@@ -327,13 +334,15 @@ Owned:
 
 The environment owns audited Red/White blind start, draw, resource modification, Boss active effects, disable/defeat restoration, and round resolution across all 28 vanilla Bosses. Hidden-information behavior remains masked correctly.
 
-Literal nonpositive Ante behavior is owned in:
+Owned lifecycle details include:
 
-- normal Boss selection (`max(1, ante)` only where vanilla actually clamps minimum-Ante eligibility);
-- normal Tag selection and seeded `Tag{ante}` keys;
-- pre-Ante Boss cash-out tag/Boss regeneration;
-- Red/White base blind amount (`Ante < 1 -> 100`, Ante 1–8 exact table; unsupported endless states fail closed);
-- retained blind progression state.
+- normal and pre-Ante blind progression;
+- literal nonpositive Ante handling where vanilla permits it;
+- exact base blind requirements for modeled Red/White Ante range;
+- Boss selection/activation/disable/defeat restoration;
+- `setting_blind` lifecycle effects on the audited path;
+- exact physical shuffle/deal with hidden draw order retained privately;
+- round-end cashout and ordinary next-blind/Ante transitions.
 
 Representative gates:
 
@@ -347,9 +356,10 @@ Representative gates:
 33965599236  2233 passed, 1595 deselected   pre-Ante + base blind closure
 33966224227  2239 passed, 1595 deselected   internal Ante-Voucher redemption
 33967536736  2257 passed, 1595 deselected   canonical Ante-Voucher shop integration
+33971114617  2278 passed, 1595 deselected   SELECT_BLIND exposure guard closure
 ```
 
-Generic training `SELECT_BLIND` remains tied to end-to-end strategic-action ownership even though internal lifecycle primitives are substantially broader.
+`SELECT_BLIND` is no longer planned-only. It is now a supported canonical training action whose deterministic gate is green.
 
 ## Normal shop / Voucher generation — GREEN FOR OWNED PATHS
 
@@ -366,7 +376,7 @@ Owned slices include:
 - Voucher runtime metadata + exact price;
 - separate normal Voucher slot publication;
 - supported Voucher state through shop generation and ordinary cash-out;
-- all supported Voucher effects consumed by their canonical downstream owners.
+- all supported Voucher effects consumed by canonical downstream owners.
 
 Representative later gates:
 
@@ -410,11 +420,12 @@ Examples already enforced:
 - ordinary cash-out rejects unsupported Voucher generation/pricing/economy state rather than erasing it;
 - Ante Voucher redemption rejects stale/missing private `blind_ante` ownership;
 - Ante Voucher redemption rejects unobserved or irreducible current/persistent allowances;
+- planned strategic actions such as `SKIP_BLIND` remain unavailable through `EnvAction.from_alias` until their exact owners are frozen;
 - tests must mark authoritative empty/zero observations explicitly instead of relying on defaults.
 
 ---
 
-# R3 — typed strategic action vocabulary — PARTIAL / NEXT PRIMARY WORKSTREAM
+# R3 — typed strategic action vocabulary — ACTIVE
 
 Target strategic actions:
 
@@ -444,29 +455,54 @@ Every training-visible action requires:
 
 ## Current exposure posture
 
-- `END_SHOP`: supported/frozen.
-- exact owned `BUY_JOKER` subset: supported through shop engine.
-- exact owned `BUY_VOUCHER` subset, now including Hieroglyph/Petroglyph: supported through shop engine.
-- exact held-consumable purchase subset: supported through shop engine.
-- `REROLL_SHOP`: internal deterministic mechanics are broadly implemented, but contract/training exposure still requires canonical legality/execution ownership audit.
-- `SELECT_BLIND`: internal lifecycle is broadly implemented, but contract/training exposure still requires end-to-end composition/legality audit.
-- `SKIP_BLIND`: internal skip/Tag paths exist for audited cases; contract/training exposure remains to be frozen.
-- `SELL_JOKER`, pack actions, and generic consumable use remain incomplete at their exact lifecycle boundaries.
+### Supported / frozen
 
-## Immediate next work — strategic-action exposure audit
+- `END_SHOP`
+- exact owned `BUY_JOKER` subset
+- exact owned `BUY_VOUCHER` subset, including Hieroglyph/Petroglyph
+- exact held-consumable purchase subset
+- `OPEN_PACK` only at the already-frozen purchase/entry boundary represented by the contract; downstream pack-choice lifecycle remains separately gated
+- `REROLL_SHOP`
+- `SELECT_BLIND`
 
-Proceed in this order unless repository inspection reveals a concrete blocker:
+`REROLL_SHOP` uses the canonical production `REFRESH_SHOP` identifier with dedicated exact headless legality/execution owners. `SELECT_BLIND` uses canonical `SELECT_BLIND`, exact blind-start legality/transition ownership, and the live injected dispatcher.
 
-1. audit **REROLL_SHOP** first because exact paid reroll mechanics, capacity, Voucher-modified base cost, generation, and RNG are already broadly owned;
-2. locate and freeze the canonical production legality owner and execution owner; do not invent a parallel RL action;
-3. prove the headless transition and live action use the same affordability/cost/capacity semantics;
-4. expose it in `env_contract.py` only after those owners are exact;
-5. add focused contract/action-mask/replay regressions and full deterministic CI;
-6. then audit **SELECT_BLIND** end-to-end, composing the existing exact blind progression/start/Boss/draw owners rather than adding a synthetic pre-RNG action;
-7. then audit **SKIP_BLIND** for the same contract-level ownership;
-8. synchronize this roadmap after every green action exposure.
+### Planned / still gated
 
-If REROLL_SHOP inspection finds a missing authoritative state or semantic mismatch, stop at that exact blocker and repair the canonical owner before exposing the action.
+- `SKIP_BLIND` — **next primary task**
+- `SELL_JOKER`
+- `BUY_CARD`
+- `CHOOSE_PACK_OPTION`
+- `SKIP_PACK`
+- `USE_CONSUMABLE`
+
+`REROLL_BOSS` remains unavailable because no frozen canonical action/owner is yet provided for the Red/White training surface.
+
+## Immediate next work — `SKIP_BLIND`
+
+Do not reopen REROLL_SHOP or SELECT_BLIND unless a concrete regression appears. Proceed on SKIP_BLIND in this order:
+
+1. audit pinned vanilla `G.FUNCS.skip_blind` source and record exact mutation order;
+2. freeze canonical live legality: only skippable Small/Big blind-select states, never Boss;
+3. inspect the live injected dispatcher’s existing `SKIP_BLIND` postcondition and reuse the canonical production action rather than inventing an RL alias implementation;
+4. audit headless blind progression mutation for Small→Big and Big→Boss;
+5. own/increment the canonical skip counter exactly;
+6. audit all skip-reactive Joker state/score dependencies, especially Throwback, so accumulated skips remain exact;
+7. audit Tag acquisition/application and distinguish ordinary retained Tags from immediate-effect Tags;
+8. fail closed on any Tag whose immediate economy/shop/pack/RNG consequence is not already exact;
+9. ensure pack-opening skip Tags cannot leak a phantom BLIND_SELECT result: either reproduce the exact pack transition or keep that skip action unavailable in those states;
+10. add legality, transition, RNG isolation/consumption, replay, contract, and live-dispatch regressions;
+11. expose `SKIP_BLIND` in `env_contract.py` only when all training-visible outcomes reachable at the admitted boundary are exact;
+12. run the full deterministic CI and synchronize this roadmap again.
+
+The first implementation may be a deliberately narrow exact subset if Tag semantics require it, but **the contract must not expose generic SKIP_BLIND while a legal live skip can reach an unowned immediate Tag outcome**.
+
+After `SKIP_BLIND`, continue R3 in this tentative order unless inspection reveals a better dependency chain:
+
+1. pack choice / skip actions;
+2. generic consumable use;
+3. `SELL_JOKER` inverse lifecycle;
+4. exact card-shop purchase if/when Magic Trick / Illusion becomes relevant.
 
 ---
 
