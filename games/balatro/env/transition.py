@@ -23,6 +23,7 @@ from games.balatro.env.card_order import (
 )
 from games.balatro.env.joker_order import JokerOrderError, JokerOrderState
 from games.balatro.env.rng import BalatroRNG
+from games.balatro.env.voucher_capabilities import EXACT_EDITION_RATE_VOUCHER_KEYS
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.jokers.arrowhead import ArrowheadJoker
@@ -522,9 +523,11 @@ class ShopTransitionEngine:
             key = cls._voucher_key(item)
         except HeadlessTransitionError:
             return False
-        if key not in _EXACT_RESOURCE_VOUCHER_KEYS:
+        if key not in (_EXACT_RESOURCE_VOUCHER_KEYS | EXACT_EDITION_RATE_VOUCHER_KEYS):
             return False
         if key in state.vouchers:
+            return False
+        if key == "v_glow_up" and "v_hone" not in state.vouchers:
             return False
         if key in _HAND_ALLOWANCE_VOUCHER_KEYS and not state.round_reset_hands_observed:
             return False
@@ -549,6 +552,10 @@ class ShopTransitionEngine:
             state.joker_slots += 1
         elif key in {"v_paint_brush", "v_palette"}:
             state.hand_size += 1
+        elif key == "v_hone":
+            state.joker_generation_edition_rate = 2.0
+        elif key == "v_glow_up":
+            state.joker_generation_edition_rate = 4.0
         else:
             raise HeadlessTransitionError("unsupported Voucher redemption effect")
 
