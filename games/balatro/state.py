@@ -127,6 +127,12 @@ class BalatroState(GameState):
         self.joker_generation_pool_observed: bool = False
         self.joker_generation_pools: dict[str, list[dict]] = {}
         self.joker_generation_edition_rate: float = 1.0
+        # Vanilla normal-shop type weighting is persistent G.GAME state. Merchant
+        # Vouchers assign these rates directly; keeping them beside edition-rate
+        # state prevents shop generation from inferring modifier ownership from a
+        # fixed Python rate table.
+        self.tarot_rate: float = 4.0
+        self.planet_rate: float = 4.0
         # Public Tarot/Planet generation eligibility. The live observer emits only
         # currently eligible records, while pinned static center order reconstructs
         # UNAVAILABLE positions for exact keyed selection. Both types are one
@@ -255,6 +261,8 @@ class BalatroState(GameState):
             for rarity, records in self.joker_generation_pools.items()
         }
         new_state.joker_generation_edition_rate = self.joker_generation_edition_rate
+        new_state.tarot_rate = self.tarot_rate
+        new_state.planet_rate = self.planet_rate
         new_state.consumable_generation_pool_observed = self.consumable_generation_pool_observed
         new_state.consumable_generation_pools = {
             str(card_type): [dict(record) for record in records]
