@@ -129,6 +129,12 @@ class BalatroState(GameState):
         # all-or-nothing observation boundary; a partial catalogue is not usable.
         self.consumable_generation_pool_observed: bool = False
         self.consumable_generation_pools: dict[str, list[dict]] = {}
+        # Public ordered Voucher-generation catalogue. Unlike Tarot/Planet this
+        # retains every source-pool position plus its current eligibility so
+        # UNAVAILABLE resampling stays RNG-equivalent without exposing a future
+        # Voucher identity or RNG node.
+        self.voucher_generation_pool_observed: bool = False
+        self.voucher_generation_pool: list[dict] = []
         self.visible_poker_hands: tuple[str, ...] = ()
 
     @property
@@ -249,6 +255,14 @@ class BalatroState(GameState):
             str(card_type): [dict(record) for record in records]
             for card_type, records in self.consumable_generation_pools.items()
         }
+        new_state.voucher_generation_pool_observed = self.voucher_generation_pool_observed
+        new_state.voucher_generation_pool = [
+            {
+                **dict(record),
+                "requires": list(record.get("requires", [])),
+            }
+            for record in self.voucher_generation_pool
+        ]
         new_state.visible_poker_hands = tuple(self.visible_poker_hands)
 
         return new_state
