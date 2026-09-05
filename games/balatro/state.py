@@ -123,6 +123,12 @@ class BalatroState(GameState):
         self.joker_generation_pool_observed: bool = False
         self.joker_generation_pools: dict[str, list[dict]] = {}
         self.joker_generation_edition_rate: float = 1.0
+        # Public Tarot/Planet generation eligibility. The live observer emits only
+        # currently eligible records, while pinned static center order reconstructs
+        # UNAVAILABLE positions for exact keyed selection. Both types are one
+        # all-or-nothing observation boundary; a partial catalogue is not usable.
+        self.consumable_generation_pool_observed: bool = False
+        self.consumable_generation_pools: dict[str, list[dict]] = {}
         self.visible_poker_hands: tuple[str, ...] = ()
 
     @property
@@ -238,6 +244,11 @@ class BalatroState(GameState):
             for rarity, records in self.joker_generation_pools.items()
         }
         new_state.joker_generation_edition_rate = self.joker_generation_edition_rate
+        new_state.consumable_generation_pool_observed = self.consumable_generation_pool_observed
+        new_state.consumable_generation_pools = {
+            str(card_type): [dict(record) for record in records]
+            for card_type, records in self.consumable_generation_pools.items()
+        }
         new_state.visible_poker_hands = tuple(self.visible_poker_hands)
 
         return new_state
