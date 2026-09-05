@@ -65,15 +65,15 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 ```text
 Branch: feat/v1.0-red-white-competence
 Verified code HEAD before this roadmap sync:
-27781d41a7bc6996a8733d5293c1042ac5570948
-  test(balatro): update burglar boundary after select blind exposure
+fdd96c68f961022d9ac2583c7c8ba84d222feeb9
+  feat(balatro): retain public blind skip tag
 
 Latest verified code-head CI:
-33971114617
-2278 passed, 1595 deselected
+33975435937
+2279 passed, 1595 deselected
 ```
 
-The strategic-action surface has advanced beyond the previous roadmap checkpoint. `REROLL_SHOP` and `SELECT_BLIND` are now exact, canonical, training-exposed actions. A first `SELECT_BLIND` exposure CI failed only because three guard tests still treated it as planned; commits `50e0cf7`, `e855001`, and `27781d4` updated those guards without changing production mechanics. The repaired full deterministic gate is green at **2278 passed, 1595 deselected**.
+The strategic-action surface has advanced beyond the previous roadmap checkpoint. `REROLL_SHOP` and `SELECT_BLIND` are exact, canonical, training-exposed actions. R3 `SKIP_BLIND` work has begun: commit `fdd96c68` preserves the observer's public Small/Big skip-Tag identity through canonical `Blind` translation and state copying, closing the first prerequisite without exposing the action prematurely. The full deterministic gate is green at **2279 passed, 1595 deselected**.
 
 ## Latest closure commits
 
@@ -89,6 +89,7 @@ d7618ff  feat(balatro): expose exact ante voucher shop transition
 # R3 exact strategic actions
 # REROLL_SHOP and SELECT_BLIND implementation/exposure commits exist immediately
 # before the current guard-test closure; repository history is authoritative.
+fdd96c6  feat(balatro): retain public blind skip tag
 50e0cf7  test(balatro): align contract guards with select blind exposure
 e855001  test(balatro): keep R0 guard on planned action
 27781d4  test(balatro): update burglar boundary after select blind exposure
@@ -107,7 +108,7 @@ e855001  test(balatro): keep R0 guard on planned action
 - Exact normal main-shop generation + paid reroll with variable supported capacity: **GREEN**.
 - `REROLL_SHOP` contract/training exposure: **SUPPORTED / GREEN**.
 - `SELECT_BLIND` contract/training exposure: **SUPPORTED / GREEN — CI 33971114617**.
-- `SKIP_BLIND`: **PLANNED — NEXT CONTRACT/TRANSITION AUDIT**.
+- `SKIP_BLIND`: **PLANNED — PUBLIC TAG TRANSLATION GREEN; HEADLESS TRANSITION/TAG CAPABILITY NEXT**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **NOT CURRENTLY REQUIRED**.
 
@@ -531,7 +532,15 @@ Every training-visible action requires:
 
 ## Immediate next work — `SKIP_BLIND`
 
-Do not reopen REROLL_SHOP or SELECT_BLIND unless a concrete regression appears. Proceed on SKIP_BLIND in this order:
+Completed prerequisite evidence:
+
+- pinned vanilla `G.FUNCS.skip_blind` mutation order audited;
+- live injected dispatcher already invokes canonical `SKIP_BLIND`, rejects Boss skips, and verifies ordinary or exact Tag-pack postconditions;
+- public Small/Big skip-Tag identity now survives observer → translator → canonical `Blind` → copied state (`fdd96c68`; CI `33975435937`, **2279 passed**).
+
+`SKIP_BLIND` remains masked. The next slice is exact headless skip progression plus explicit Tag-capability classification; do not expose a generic skip while any reachable immediate Tag outcome is unowned.
+
+Do not reopen REROLL_SHOP or SELECT_BLIND unless a concrete regression appears. Continue SKIP_BLIND in this order:
 
 1. audit pinned vanilla `G.FUNCS.skip_blind` source and record exact mutation order;
 2. freeze canonical live legality: only skippable Small/Big blind-select states, never Boss;
