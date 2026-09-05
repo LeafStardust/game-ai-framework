@@ -1,5 +1,3 @@
-import pytest
-
 from games.balatro.env import EnvAction
 from games.balatro.env.transition import HeadlessRunState, ShopTransitionEngine
 from games.balatro.jokers.burglar import BurglarJoker
@@ -23,7 +21,7 @@ def _shop_state() -> BalatroState:
     return state
 
 
-def test_balatro_env_r1_burglar_purchase_remains_fail_closed_until_blind_start_is_owned():
+def test_balatro_env_r1_burglar_purchase_remains_fail_closed_until_its_acquisition_lifecycle_is_owned():
     state = _shop_state()
     burglar = BurglarJoker()
     burglar.cost = 6
@@ -35,6 +33,8 @@ def test_balatro_env_r1_burglar_purchase_remains_fail_closed_until_blind_start_i
     assert buy not in engine.legal_actions(run)
 
 
-def test_balatro_env_r1_select_blind_remains_outside_training_surface_until_r2_rng():
-    with pytest.raises(ValueError, match="action SELECT_BLIND is not training-exposed"):
-        EnvAction.from_alias("SELECT_BLIND")
+def test_balatro_env_r1_select_blind_is_training_exposed_after_r2_rng_and_lifecycle_ownership():
+    action = EnvAction.from_alias("SELECT_BLIND")
+
+    assert action.alias == "SELECT_BLIND"
+    assert action.action_id == "SELECT_BLIND"
