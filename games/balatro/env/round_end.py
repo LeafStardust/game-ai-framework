@@ -1,14 +1,9 @@
 """Exact ordinary blind-clear / cash-out transition for R2.
 
 This module composes the already-owned round-end card-zone repopulation with the
-Red Deck / White Stake economy slice whose vanilla semantics are exact.  It stops
+Red Deck / White Stake economy slice whose vanilla semantics are exact. It stops
 at an active, ungenerated SHOP; deterministic shop inventory generation remains a
 separate owner.
-
-Supported Voucher ownership is allowed only when every consequence consumed by
-cash-out or the next shop is already exact. Seed Money / Money Tree and other
-interest/economy Vouchers remain fail closed because baseline interest is still
-$1 per $5 capped at $5.
 """
 
 from __future__ import annotations
@@ -23,10 +18,12 @@ from games.balatro.env.transition import (
 )
 from games.balatro.env.voucher_capabilities import (
     expected_base_reroll_cost_for_vouchers,
+    expected_interest_cap_for_vouchers,
     expected_joker_edition_rate_for_vouchers,
     expected_planet_rate_for_vouchers,
     expected_shop_discount_percent_for_vouchers,
     expected_tarot_rate_for_vouchers,
+    interest_cap_vouchers_are_exact,
     shop_generation_vouchers_are_exact,
     shop_pricing_vouchers_are_exact,
 )
@@ -41,7 +38,6 @@ from games.balatro.jokers.troubadour import TroubadourJoker
 
 
 _BASE_INTEREST_AMOUNT = 1
-_BASE_INTEREST_CAP = 25
 
 _ROUND_END_INERT_JOKER_TYPES = (
     *_EXACT_R1_JOKER_ACQUISITION_TYPES,
@@ -65,26 +61,27 @@ def _require_exact_int(name: str, value: object) -> int:
     return value
 
 
-def baseline_interest_dollars(money: int) -> int:
-    """Return vanilla baseline interest from *pre-payout* current money."""
+def baseline_interest_dollars(money: int, interest_cap: int = 25) -> int:
+    """Return vanilla normal-mode interest from pre-payout current money."""
     money = _require_exact_int("money", money)
+    interest_cap = _require_exact_int("interest_cap", interest_cap)
     if money < 0:
         raise HeadlessTransitionError(
             "baseline cash-out does not yet own negative-money economy semantics"
         )
+    if interest_cap < 0:
+        raise HeadlessTransitionError("interest_cap cannot be negative")
     if money < 5:
         return 0
-    return _BASE_INTEREST_AMOUNT * min(money // 5, _BASE_INTEREST_CAP // 5)
+    return _BASE_INTEREST_AMOUNT * min(money // 5, interest_cap // 5)
 
 
 def _round_end_joker_dollars(run: HeadlessRunState) -> int:
     state = run.public
     total = 0
-
     for joker in state.jokers:
         if type(joker) not in _ROUND_END_DOLLAR_JOKER_TYPES:
             continue
-
         data: dict[str, object] = {}
         if type(joker) is Cloud9Joker:
             if state.owned_deck is None:
@@ -103,24 +100,20 @@ def _round_end_joker_dollars(run: HeadlessRunState) -> int:
                 raise HeadlessTransitionError("discards_remaining cannot be negative")
             data["discards_used"] = discards_used
             data["discards_remaining"] = discards_remaining
-
-        context = JokerContext(
-            state=state,
-            trigger="ROUND_ENDED",
-            data=data,
-        )
+        context = JokerContext(state=state, trigger="ROUND_ENDED", data=data)
         joker.apply(context)
-
-        money = context.data.get("money", 0)
-        delayed = context.data.get("delayed_gratification_money", 0)
-        total += _require_exact_int("Joker cash-out dollars", money)
-        total += _require_exact_int("Joker cash-out dollars", delayed)
-
+        total += _require_exact_int("Joker cash-out dollars", context.data.get("money", 0))
+        total += _require_exact_int(
+            "Joker cash-out dollars",
+            context.data.get("delayed_gratification_money", 0),
+        )
     return total
 
 
-def _require_exact_voucher_shop_state(run: HeadlessRunState) -> tuple[int, float, float, float, int]:
-    """Validate supported Voucher consequences needed at the next shop boundary."""
+def _require_exact_voucher_shop_state(
+    run: HeadlessRunState,
+) -> tuple[int, float, float, float, int, int]:
+    """Validate supported Voucher consequences needed at cash-out/shop entry."""
     state = run.public
     if not shop_generation_vouchers_are_exact(state):
         raise HeadlessTransitionError(
@@ -130,16 +123,22 @@ def _require_exact_voucher_shop_state(run: HeadlessRunState) -> tuple[int, float
         raise HeadlessTransitionError(
             "ordinary cash-out does not own current Voucher pricing modifiers"
         )
+    if not interest_cap_vouchers_are_exact(state):
+        raise HeadlessTransitionError(
+            "ordinary cash-out does not own current Voucher interest-cap modifier"
+        )
 
     discount = expected_shop_discount_percent_for_vouchers(state)
     edition = expected_joker_edition_rate_for_vouchers(state)
     tarot = expected_tarot_rate_for_vouchers(state)
     planet = expected_planet_rate_for_vouchers(state)
     base_reroll = expected_base_reroll_cost_for_vouchers(state)
-    if any(value is None for value in (discount, edition, tarot, planet, base_reroll)):
-        raise HeadlessTransitionError(
-            "ordinary cash-out does not own Voucher consequences"
-        )
+    interest_cap = expected_interest_cap_for_vouchers(state)
+    if any(
+        value is None
+        for value in (discount, edition, tarot, planet, base_reroll, interest_cap)
+    ):
+        raise HeadlessTransitionError("ordinary cash-out does not own Voucher consequences")
     if run.base_reroll_cost != base_reroll:
         raise HeadlessTransitionError(
             "persistent reroll cost does not match Voucher ownership"
@@ -148,14 +147,20 @@ def _require_exact_voucher_shop_state(run: HeadlessRunState) -> tuple[int, float
         raise HeadlessTransitionError(
             "ordinary cash-out does not own temporary/free reroll modifiers"
         )
-    return int(discount), float(edition), float(tarot), float(planet), int(base_reroll)
+    return (
+        int(discount),
+        float(edition),
+        float(tarot),
+        float(planet),
+        int(base_reroll),
+        int(interest_cap),
+    )
 
 
 def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     """Cash out one exactly supported ordinary Red/White blind."""
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
-
     state = run.public
     if state.phase != "ROUND_EVAL":
         raise HeadlessTransitionError("baseline cash-out requires ROUND_EVAL phase")
@@ -209,7 +214,9 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
             "baseline cash-out does not yet own tag cash-out effects"
         )
 
-    discount, edition, tarot, planet, base_reroll = _require_exact_voucher_shop_state(run)
+    discount, edition, tarot, planet, base_reroll, interest_cap = (
+        _require_exact_voucher_shop_state(run)
+    )
 
     if state.shop_active or any(
         (
@@ -223,7 +230,7 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
             "baseline cash-out requires an ungenerated shop boundary"
         )
 
-    interest = baseline_interest_dollars(money)
+    interest = baseline_interest_dollars(money, interest_cap)
     joker_dollars = _round_end_joker_dollars(run)
     payout = blind_reward + hands_remaining + joker_dollars + interest
 
@@ -239,10 +246,10 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     next_state.joker_generation_edition_rate = edition
     next_state.tarot_rate = tarot
     next_state.planet_rate = planet
+    next_state.interest_cap = interest_cap
+    if set(next_state.vouchers) & {"v_seed_money", "v_money_tree"}:
+        next_state.interest_cap_observed = True
 
-    # Vanilla resets current reroll_cost_increase at new-shop entry, so with all
-    # temporary/free modifiers intentionally blocked the current price returns to
-    # the persistent Voucher-derived round-reset value.
     next_run.base_reroll_cost = base_reroll
     next_run.reroll_cost = base_reroll
 
@@ -250,5 +257,4 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     next_state.shop_consumables.clear()
     next_state.shop_boosters.clear()
     next_state.shop_vouchers.clear()
-
     return next_run
