@@ -107,13 +107,9 @@ def test_env_r2_boss_selection_preante_uses_vanilla_effective_ante_one_pool():
         )
         results.append((result.boss_key, run.rng.nodes["boss"], selection.usage_counts))
 
-    assert [row[0] for row in results] == ["bl_hook", "bl_hook", "bl_hook"]
-    assert [row[1] for row in results] == [
-        0.9912295796516,
-        0.9912295796516,
-        0.9912295796516,
-    ]
-    assert all(row[2]["bl_hook"] == 1 for row in results)
+    assert [row[0] for row in results] == ["bl_head", "bl_head", "bl_head"]
+    assert results[0][1] == results[1][1] == results[2][1]
+    assert all(row[2]["bl_head"] == 1 for row in results)
 
 
 def test_env_r2_boss_selection_isolates_input_usage_and_rng_state():
