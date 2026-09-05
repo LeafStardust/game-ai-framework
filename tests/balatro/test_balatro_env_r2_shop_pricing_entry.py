@@ -16,6 +16,9 @@ def _cleared_small_blind() -> HeadlessRunState:
     state.hands_remaining = 2
     state.blind = Blind(BlindType.SMALL, requirement=300, reward=3)
     state.owned_deck = list(state.deck)
+    state.vouchers_observed = True
+    state.shop_discount_percent_observed = True
+    state.shop_discount_percent = 0
     run = HeadlessRunState(public=state, seed="PRICE-ENTRY")
     run.draw_pile = list(state.deck)
     return run
