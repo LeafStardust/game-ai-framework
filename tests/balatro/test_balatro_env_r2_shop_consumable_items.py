@@ -85,6 +85,8 @@ def test_env_r2_consumable_materialization_applies_vanilla_discount_formula():
     run = _run()
     run.public.shop_inflation = 2
     run.public.shop_discount_percent = 25
+    run.public.vouchers_observed = True
+    run.public.vouchers = ["v_clearance_sale"]
     descriptor = describe_base_shop_consumable_from_records(
         run,
         "Tarot",
@@ -128,15 +130,62 @@ def test_env_r2_softlocked_planet_requires_hand_type():
 
 
 def test_env_r2_consumable_materialization_requires_authoritative_pricing_state():
-    descriptor = describe_base_shop_consumable_from_records(
-        _run(), "Tarot", [_record("Tarot", "c_strength")]
+    run = _run()
+    descriptor = OrdinaryShopConsumableDescriptor(
+        run=run,
+        card_type="Tarot",
+        center_key="c_strength",
+        base_cost=3,
+        resamples=0,
     )
 
-    descriptor.run.public.shop_inflation_observed = False
+    run.public.shop_inflation_observed = False
     with pytest.raises(HeadlessTransitionError, match="inflation"):
         materialize_base_shop_consumable_descriptor(descriptor)
 
-    descriptor.run.public.shop_inflation_observed = True
-    descriptor.run.public.shop_discount_percent_observed = False
+    run = _run()
+    descriptor = OrdinaryShopConsumableDescriptor(
+        run=run,
+        card_type="Tarot",
+        center_key="c_strength",
+        base_cost=3,
+        resamples=0,
+    )
+    run.public.shop_discount_percent_observed = False
     with pytest.raises(HeadlessTransitionError, match="discount"):
         materialize_base_shop_consumable_descriptor(descriptor)
+
+
+def test_env_r2_consumable_materialization_rejects_unowned_voucher_or_tag_effects():
+    run = _run()
+    run.public.vouchers_observed = True
+    run.public.vouchers = ["v_tarot_merchant"]
+    descriptor = OrdinaryShopConsumableDescriptor(
+        run=run,
+        card_type="Tarot",
+        center_key="c_strength",
+        base_cost=3,
+        resamples=0,
+    )
+    with pytest.raises(HeadlessTransitionError, match="Voucher"):
+        materialize_base_shop_consumable_descriptor(descriptor)
+
+    run = _run()
+    run.tags = ["tag_coupon"]
+    descriptor = OrdinaryShopConsumableDescriptor(
+        run=run,
+        card_type="Tarot",
+        center_key="c_strength",
+        base_cost=3,
+        resamples=0,
+    )
+    with pytest.raises(HeadlessTransitionError, match="Tag"):
+        materialize_base_shop_consumable_descriptor(descriptor)
+
+
+def test_env_r2_consumable_descriptor_rejects_invalid_type_before_rng():
+    run = _run()
+    before = run.rng_snapshot()
+    with pytest.raises(HeadlessTransitionError, match="Tarot or Planet"):
+        describe_base_shop_consumable_from_records(run, "Spectral", [])
+    assert run.rng_snapshot() == before
