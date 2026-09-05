@@ -77,6 +77,18 @@ def test_env_r2_boss_end_round_advances_ante_before_cashout_and_clears_round_bon
     assert result.public.phase == "ROUND_EVAL"
 
 
+def test_env_r2_boss_end_round_preserves_preante_progression_relation():
+    run = _won_run(ante=-1)
+    progression = _progression("Boss", ante=-1)
+
+    result, result_progression = finalize_won_round_progression(
+        run, progression, blind_type="Boss"
+    )
+
+    assert result_progression.blind_ante == -1
+    assert result.public.ante == 0
+
+
 def test_env_r2_end_round_progression_isolates_run_and_private_progression_inputs():
     run = _won_run()
     progression = _progression("Boss")
@@ -128,8 +140,9 @@ def test_env_r2_private_blind_progression_validates_canonical_state():
         BlindProgressionState(blind_on_deck="Needle")
     with pytest.raises(BlindProgressionError, match="blind_ante"):
         BlindProgressionState(blind_ante=True)
-    with pytest.raises(BlindProgressionError, match="at least 1"):
-        BlindProgressionState(blind_ante=0)
+
+    assert BlindProgressionState(blind_ante=0).blind_ante == 0
+    assert BlindProgressionState(blind_ante=-1).blind_ante == -1
 
 
 def test_env_r2_boss_reset_blinds_restores_upcoming_state_for_new_ante():
@@ -156,6 +169,27 @@ def test_env_r2_boss_reset_blinds_restores_upcoming_state_for_new_ante():
     assert result.blind_ante == 5
     assert result.boss_name == "The Ox"
     assert result.boss_rerolled is False
+
+
+def test_env_r2_boss_reset_blinds_supports_preante_source_order_relation():
+    progression = BlindProgressionState(
+        small_status="Defeated",
+        big_status="Defeated",
+        boss_status="Defeated",
+        blind_on_deck="Boss",
+        blind_ante=-1,
+        boss_name="The Hook",
+    )
+
+    result = reset_blinds_after_boss_cashout(
+        progression,
+        current_ante=0,
+        next_boss_name="The Club",
+    )
+
+    assert result.blind_ante == 0
+    assert result.blind_on_deck == "Small"
+    assert result.boss_name == "The Club"
 
 
 def test_env_r2_boss_reset_blinds_isolates_input_and_requires_source_order_ante():
