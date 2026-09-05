@@ -47,15 +47,25 @@ EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS = frozenset(
     }
 )
 
+EXACT_REROLL_COST_VOUCHER_KEYS = frozenset(
+    {
+        "v_reroll_surplus",
+        "v_reroll_glut",
+    }
+)
+
 # Resource Vouchers are neutral to ordinary main-shop generation. Hone/Glow Up
 # modify the ordinary Joker edition poll. Clearance Sale/Liquidation modify card
 # pricing but not shop RNG. Merchant/Tycoon Vouchers modify the Tarot/Planet
 # weights consumed by the ordinary ``create_card_for_shop`` type poll itself.
+# Reroll Surplus/Glut modify reroll pricing only; they are neutral to the item RNG
+# once their separate persistent/current reroll-cost state is proved exact.
 SHOP_BASE_GENERATION_VOUCHER_KEYS = (
     EXACT_RESOURCE_VOUCHER_KEYS
     | EXACT_EDITION_RATE_VOUCHER_KEYS
     | EXACT_DISCOUNT_VOUCHER_KEYS
     | EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS
+    | EXACT_REROLL_COST_VOUCHER_KEYS
 )
 
 
@@ -152,12 +162,35 @@ def expected_planet_rate_for_vouchers(state: BalatroState) -> float | None:
     return 4.0
 
 
+def expected_base_reroll_cost_for_vouchers(state: BalatroState) -> int | None:
+    """Return vanilla persistent ``round_resets.reroll_cost`` for exact ownership.
+
+    Red/White starts from $5. Reroll Surplus subtracts $2 from the persistent
+    reset cost and Reroll Glut, which requires Surplus, subtracts another $2.
+    Other exact Voucher families are neutral to reroll cost.
+    """
+    if not isinstance(state, BalatroState):
+        raise TypeError("state must be BalatroState")
+
+    owned = _owned_supported_vouchers(state)
+    if owned is None:
+        return None
+    if "v_reroll_glut" in owned and "v_reroll_surplus" not in owned:
+        return None
+    if "v_reroll_glut" in owned:
+        return 1
+    if "v_reroll_surplus" in owned:
+        return 3
+    return 5
+
+
 def shop_generation_vouchers_are_exact(state: BalatroState) -> bool:
     """Return whether Voucher effects consumed by shop RNG are exact."""
     expected_edition = expected_joker_edition_rate_for_vouchers(state)
     expected_discount = expected_shop_discount_percent_for_vouchers(state)
     expected_tarot = expected_tarot_rate_for_vouchers(state)
     expected_planet = expected_planet_rate_for_vouchers(state)
+    expected_reroll = expected_base_reroll_cost_for_vouchers(state)
     if any(
         value is None
         for value in (
@@ -165,6 +198,7 @@ def shop_generation_vouchers_are_exact(state: BalatroState) -> bool:
             expected_discount,
             expected_tarot,
             expected_planet,
+            expected_reroll,
         )
     ):
         return False
