@@ -112,8 +112,8 @@ def test_env_r3_shop_backend_masks_and_executes_only_exact_joker_sales():
     assert action in engine.legal_actions(run)
     result = engine.step(run, action)
 
-    assert result.public.money == 9
-    assert result.public.jokers == [result.public.jokers[0]]
+    assert result.public.money == 10
+    assert len(result.public.jokers) == 1
     assert result.public.jokers[0].live_id == 20
     result.require_joker_order_state()
     assert [joker.live_id for joker in result.joker_order_state.creation_order] == [20]

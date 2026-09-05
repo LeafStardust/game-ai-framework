@@ -16,6 +16,7 @@ from games.balatro.env.transition import (
     _EXACT_R1_JOKER_ACQUISITION_TYPES,
     _OWNED_DECK_SCORING_TYPES,
 )
+from games.balatro.env.joker_order import JokerOrderError
 from games.balatro.jokers.juggler import JugglerJoker
 
 
@@ -74,7 +75,7 @@ def _sell_static_joker(
     if next_run.joker_order_state is not None:
         try:
             next_run.joker_order_state.remove(sold, next_state.jokers)
-        except Exception as exc:
+        except JokerOrderError as exc:
             raise HeadlessTransitionError(
                 "cannot retain exact Joker order after sale"
             ) from exc
