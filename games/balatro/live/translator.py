@@ -139,6 +139,22 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
              for key, value in joker_unlocks.items() if isinstance(value, dict)}
             if isinstance(joker_unlocks, dict) else {}
         )
+        raw_vouchers = payload.get("vouchers")
+        vouchers_observed = payload.get("vouchers_observed") is True
+        if (
+            vouchers_observed
+            and isinstance(raw_vouchers, list)
+            and all(
+                isinstance(key, str) and key.startswith("v_") and len(key) > 2
+                for key in raw_vouchers
+            )
+            and len(raw_vouchers) == len(set(raw_vouchers))
+        ):
+            state.vouchers_observed = True
+            state.vouchers = list(raw_vouchers)
+        else:
+            state.vouchers_observed = False
+            state.vouchers = []
         state.phase = snapshot.phase
 
         hand_area = self._area(payload.get("hand"))
