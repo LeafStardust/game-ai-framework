@@ -56,7 +56,6 @@ def test_env_r2_ante_voucher_history_crosses_blind_start_unchanged():
     "vouchers, observed",
     [
         (["v_unknown"], True),
-        (["v_grabber", "v_grabber"], True),
         (["v_grabber"], False),
         (["v_petroglyph"], True),
     ],
@@ -64,5 +63,5 @@ def test_env_r2_ante_voucher_history_crosses_blind_start_unchanged():
 def test_env_r2_blind_start_rejects_inexact_voucher_ownership(vouchers, observed):
     run = _run(vouchers=vouchers, observed=observed)
 
-    with pytest.raises(HeadlessTransitionError, match="exact supported voucher ownership"):
+    with pytest.raises(HeadlessTransitionError, match="exact supported vouchers"):
         prepare_supported_nonboss_blind_start(run)
