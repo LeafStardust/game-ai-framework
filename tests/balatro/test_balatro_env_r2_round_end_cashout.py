@@ -25,8 +25,6 @@ def _cleared_run(
     state.money = money
     state.blind = Blind(blind_type, requirement=100, reward=reward)
     state.blind_is_boss = blind_type is BlindType.BOSS
-    # Exact headless fixtures must distinguish an authoritative empty Voucher
-    # table / zero discount from a live source that failed to observe them.
     state.vouchers_observed = True
     state.shop_discount_percent_observed = True
     state.shop_discount_percent = 0
@@ -53,9 +51,7 @@ def test_env_r2_baseline_interest_uses_pre_payout_money_and_caps_at_five():
 
 def test_env_r2_cashout_pays_blind_hands_and_interest_from_pre_payout_money():
     run = _cleared_run(money=14, hands_remaining=2, reward=3)
-
     result = cash_out_baseline_ordinary_blind(run)
-
     assert result.public.money == 21
     assert result.public.phase == "SHOP"
     assert result.public.shop_active is True
@@ -65,9 +61,7 @@ def test_env_r2_cashout_repopulates_all_permanent_cards_before_shop_entry():
     run = _cleared_run()
     assert len(run.public.hand) == 8
     assert len(run.draw_pile) == 44
-
     result = cash_out_baseline_ordinary_blind(run)
-
     assert result.public.hand == []
     assert result.public.discard_pile == []
     assert result.discard_pile == []
@@ -81,7 +75,6 @@ def test_env_r2_cashout_repopulates_all_permanent_cards_before_shop_entry():
 
 def test_env_r2_cashout_stops_before_shop_inventory_rng():
     result = cash_out_baseline_ordinary_blind(_cleared_run())
-
     assert result.public.shop_jokers == []
     assert result.public.shop_consumables == []
     assert result.public.shop_boosters == []
@@ -94,9 +87,7 @@ def test_env_r2_cashout_isolates_input_state_and_rng():
     before_hand = list(run.public.hand)
     before_draw = list(run.draw_pile)
     before_rng = run.rng_snapshot()
-
     result = cash_out_baseline_ordinary_blind(run)
-
     assert result is not run
     assert run.public.money == before_money
     assert run.public.phase == "ROUND_EVAL"
@@ -117,12 +108,9 @@ def test_env_r2_cashout_supports_big_blind_baseline_too():
 def test_env_r2_cashout_accepts_audited_round_end_inert_scoring_jokers():
     from games.balatro.jokers.jolly_joker import JollyJoker
     from games.balatro.jokers.steel_joker import SteelJoker
-
     run = _cleared_run()
     run.public.jokers.extend([JollyJoker(), SteelJoker()])
-
     result = cash_out_baseline_ordinary_blind(run)
-
     assert result.public.money == 21
     assert [type(joker) for joker in result.public.jokers] == [JollyJoker, SteelJoker]
 
@@ -131,63 +119,50 @@ def test_env_r2_cashout_pays_exact_golden_cloud9_and_delayed_gratification_rows(
     from games.balatro.jokers.cloud_9 import Cloud9Joker
     from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
     from games.balatro.jokers.golden_joker import GoldenJoker
-
     run = _cleared_run(money=24, hands_remaining=0, reward=3)
     run.public.discards_used = 0
     run.public.discards_remaining = 2
-    run.public.jokers.extend(
-        [GoldenJoker(), Cloud9Joker(), DelayedGratificationJoker()]
-    )
-
+    run.public.jokers.extend([GoldenJoker(), Cloud9Joker(), DelayedGratificationJoker()])
     result = cash_out_baseline_ordinary_blind(run)
-
     assert result.public.money == 43
     assert result.public.discards_remaining == 2
 
 
 def test_env_r2_cashout_delayed_gratification_does_not_pay_after_any_discard_used():
     from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
-
     run = _cleared_run(money=14, hands_remaining=0, reward=3)
     run.public.discards_used = 1
     run.public.discards_remaining = 2
     run.public.jokers.append(DelayedGratificationJoker())
-
     result = cash_out_baseline_ordinary_blind(run)
     assert result.public.money == 19
 
 
 def test_env_r2_cashout_delayed_gratification_requires_observed_discard_history():
     from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
-
     run = _cleared_run()
     run.public.discards_used = None
     run.public.discards_remaining = 2
     run.public.jokers.append(DelayedGratificationJoker())
-
     with pytest.raises(HeadlessTransitionError, match="discards_used must be an exact integer"):
         cash_out_baseline_ordinary_blind(run)
 
 
 def test_env_r2_cashout_cloud9_requires_authoritative_permanent_deck():
     from games.balatro.jokers.cloud_9 import Cloud9Joker
-
     run = _cleared_run()
     run.public.jokers.append(Cloud9Joker())
     run.public.owned_deck = None
-
     with pytest.raises(HeadlessTransitionError, match="Cloud 9.*owned_deck"):
         cash_out_baseline_ordinary_blind(run)
 
 
 def test_env_r2_cashout_delayed_gratification_requires_exact_nonnegative_discards():
     from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
-
     run = _cleared_run()
     run.public.jokers.append(DelayedGratificationJoker())
     run.public.discards_used = 0
     run.public.discards_remaining = -1
-
     with pytest.raises(HeadlessTransitionError, match="discards_remaining cannot be negative"):
         cash_out_baseline_ordinary_blind(run)
 
@@ -197,12 +172,10 @@ def test_env_r2_cashout_rejects_uncleared_boss_or_wrong_phase():
     run.public.score = 99
     with pytest.raises(HeadlessTransitionError, match="uncleared"):
         cash_out_baseline_ordinary_blind(run)
-
     run = _cleared_run()
     run.public.phase = "SELECTING_HAND"
     with pytest.raises(HeadlessTransitionError, match="ROUND_EVAL"):
         cash_out_baseline_ordinary_blind(run)
-
     run = _cleared_run(blind_type=BlindType.BOSS)
     with pytest.raises(HeadlessTransitionError, match="Small/Big"):
         cash_out_baseline_ordinary_blind(run)
@@ -215,12 +188,14 @@ def test_env_r2_cashout_rejects_unowned_economy_and_lifecycle_modifiers():
         cash_out_baseline_ordinary_blind(run)
 
     run = _cleared_run()
-    run.public.vouchers.append("v_seed_money")
+    # Overstock changes shop-card capacity, a downstream consequence this cash-out
+    # boundary still does not own. Keep this regression on a genuinely unsupported
+    # economy/shop Voucher now that Seed Money interest is exact.
+    run.public.vouchers.append("v_overstock_norm")
     with pytest.raises(HeadlessTransitionError, match="Voucher"):
         cash_out_baseline_ordinary_blind(run)
 
     from games.balatro.jokers.burglar import BurglarJoker
-
     run = _cleared_run()
     run.public.jokers.append(BurglarJoker())
     with pytest.raises(HeadlessTransitionError, match="end-of-round Joker"):
@@ -231,7 +206,6 @@ def test_env_r2_cashout_rejects_negative_money_and_preexisting_shop_contents():
     run = _cleared_run(money=-1)
     with pytest.raises(HeadlessTransitionError, match="negative-money"):
         cash_out_baseline_ordinary_blind(run)
-
     run = _cleared_run()
     run.public.shop_vouchers.append(object())
     with pytest.raises(HeadlessTransitionError, match="ungenerated shop"):
@@ -240,18 +214,12 @@ def test_env_r2_cashout_rejects_negative_money_and_preexisting_shop_contents():
 
 def test_env_r2_cashout_preserves_supported_voucher_state_into_next_shop():
     run = _cleared_run()
-    run.public.vouchers = [
-        "v_clearance_sale",
-        "v_tarot_merchant",
-        "v_reroll_surplus",
-    ]
+    run.public.vouchers = ["v_clearance_sale", "v_tarot_merchant", "v_reroll_surplus"]
     run.public.shop_discount_percent = 25
     run.public.tarot_rate = 9.6
     run.base_reroll_cost = 3
     run.reroll_cost = 4
-
     result = cash_out_baseline_ordinary_blind(run)
-
     assert result.public.vouchers == run.public.vouchers
     assert result.public.shop_discount_percent_observed is True
     assert result.public.shop_discount_percent == 25
