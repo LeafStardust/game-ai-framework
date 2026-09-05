@@ -29,7 +29,10 @@ from games.balatro.env.shop_items import (
 )
 from games.balatro.env.shop_joker_generation import generate_ordinary_shop_joker_descriptor
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
-from games.balatro.env.voucher_capabilities import shop_generation_vouchers_are_exact
+from games.balatro.env.voucher_capabilities import (
+    shop_generation_vouchers_are_exact,
+    shop_pricing_vouchers_are_exact,
+)
 
 
 GeneratedMainShopItem = GeneratedShopJokerItem | GeneratedShopConsumableItem
@@ -69,6 +72,10 @@ def _preflight_main_shop_generation(run: HeadlessRunState) -> None:
         or state.shop_discount_percent > 100
     ):
         raise HeadlessTransitionError("shop discount percent must be an exact integer within 0..100")
+    if not shop_pricing_vouchers_are_exact(state):
+        raise HeadlessTransitionError(
+            "main shop pricing does not match current Voucher ownership"
+        )
 
     # Either slot may become any positive-rate type. Validate all candidate
     # canonical catalogues before the first cdt{ante} node advances.
