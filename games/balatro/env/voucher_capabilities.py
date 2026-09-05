@@ -31,13 +31,37 @@ EXACT_EDITION_RATE_VOUCHER_KEYS = frozenset(
     }
 )
 
-# Resource Vouchers are neutral to ordinary main-shop generation. Hone/Glow Up
-# are neutral to type/rarity/center/pricing generation but intentionally modify
-# the ordinary Joker edition poll. The edition-rate relationship is therefore
-# validated separately below before any shop RNG may be consumed.
-SHOP_BASE_GENERATION_VOUCHER_KEYS = (
-    EXACT_RESOURCE_VOUCHER_KEYS | EXACT_EDITION_RATE_VOUCHER_KEYS
+EXACT_DISCOUNT_VOUCHER_KEYS = frozenset(
+    {
+        "v_clearance_sale",
+        "v_liquidation",
+    }
 )
+
+# Resource Vouchers are neutral to ordinary main-shop generation. Hone/Glow Up
+# modify only the ordinary Joker edition poll. Clearance Sale/Liquidation modify
+# the common Card:set_cost discount percentage. Each mutable relationship is
+# validated independently below before any shop RNG may be consumed.
+SHOP_BASE_GENERATION_VOUCHER_KEYS = (
+    EXACT_RESOURCE_VOUCHER_KEYS
+    | EXACT_EDITION_RATE_VOUCHER_KEYS
+    | EXACT_DISCOUNT_VOUCHER_KEYS
+)
+
+
+def _owned_supported_vouchers(state: BalatroState) -> set[str] | None:
+    vouchers = state.vouchers
+    if not isinstance(vouchers, list):
+        return None
+    if any(not isinstance(key, str) or not key for key in vouchers):
+        return None
+    if len(vouchers) != len(set(vouchers)):
+        return None
+    if vouchers and state.vouchers_observed is not True:
+        return None
+    if any(key not in SHOP_BASE_GENERATION_VOUCHER_KEYS for key in vouchers):
+        return None
+    return set(vouchers)
 
 
 def expected_joker_edition_rate_for_vouchers(
@@ -53,19 +77,9 @@ def expected_joker_edition_rate_for_vouchers(
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
 
-    vouchers = state.vouchers
-    if not isinstance(vouchers, list):
+    owned = _owned_supported_vouchers(state)
+    if owned is None:
         return None
-    if any(not isinstance(key, str) or not key for key in vouchers):
-        return None
-    if len(vouchers) != len(set(vouchers)):
-        return None
-    if vouchers and state.vouchers_observed is not True:
-        return None
-    if any(key not in SHOP_BASE_GENERATION_VOUCHER_KEYS for key in vouchers):
-        return None
-
-    owned = set(vouchers)
     if "v_glow_up" in owned and "v_hone" not in owned:
         return None
     if "v_glow_up" in owned:
@@ -75,13 +89,47 @@ def expected_joker_edition_rate_for_vouchers(
     return 1.0
 
 
+def expected_shop_discount_percent_for_vouchers(
+    state: BalatroState,
+) -> int | None:
+    """Return vanilla ``G.GAME.discount_percent`` implied by exact ownership.
+
+    Clearance Sale assigns 25 directly. Liquidation requires Clearance Sale and
+    assigns 50 directly. Unsupported or structurally impossible ownership fails
+    closed rather than treating the current observed percentage as sufficient.
+    """
+    if not isinstance(state, BalatroState):
+        raise TypeError("state must be BalatroState")
+
+    owned = _owned_supported_vouchers(state)
+    if owned is None:
+        return None
+    if "v_liquidation" in owned and "v_clearance_sale" not in owned:
+        return None
+    if "v_liquidation" in owned:
+        return 50
+    if "v_clearance_sale" in owned:
+        return 25
+    return 0
+
+
 def shop_generation_vouchers_are_exact(state: BalatroState) -> bool:
-    """Return whether owned Vouchers and edition-rate state are base-shop exact."""
+    """Return whether all owned Voucher-driven shop state is exact."""
     expected_rate = expected_joker_edition_rate_for_vouchers(state)
-    if expected_rate is None:
+    expected_discount = expected_shop_discount_percent_for_vouchers(state)
+    if expected_rate is None or expected_discount is None:
         return False
 
     rate = state.joker_generation_edition_rate
     if isinstance(rate, bool) or not isinstance(rate, (int, float)):
         return False
-    return float(rate) == expected_rate
+    if float(rate) != expected_rate:
+        return False
+
+    if state.shop_discount_percent_observed is not True:
+        return False
+    discount = state.shop_discount_percent
+    if type(discount) is not int or discount != expected_discount:
+        return False
+
+    return True
