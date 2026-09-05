@@ -5,10 +5,9 @@ owner in ``shop_generation`` deliberately accepts only explicit eligible keys.
 This module is the narrow adapter between those two existing contracts; it does
 not reimplement pool filtering or identity RNG.
 
-The live producer is already strict, but this boundary also validates the whole
-canonical catalogue before any rarity can be consumed. That prevents malformed
-or externally constructed state from retaining ``observed=True`` while a bad
-rarity or record is silently ignored elsewhere.
+The whole canonical catalogue is validated before any rarity is consumed. Each
+record also carries the exact immutable center ``cost`` needed by the downstream
+``Card:set_cost`` boundary.
 """
 
 from __future__ import annotations
@@ -58,6 +57,12 @@ def _validate_observed_joker_generation_pools(run: HeadlessRunState) -> dict[str
                 raise HeadlessTransitionError("Joker generation pool contains duplicate center keys")
             seen_keys.add(key)
 
+            cost = record.get("cost")
+            if type(cost) is not int or cost < 0:
+                raise HeadlessTransitionError(
+                    "Joker generation pool record has invalid center cost"
+                )
+
             unlocked = record.get("unlocked")
             if unlocked is not None and not isinstance(unlocked, bool):
                 raise HeadlessTransitionError("Joker generation pool record has invalid unlocked state")
@@ -79,6 +84,22 @@ def eligible_joker_keys_from_state(run: HeadlessRunState, rarity: int) -> tuple[
     pools = _validate_observed_joker_generation_pools(run)
     records = pools[str(rarity)]
     return tuple(record["key"] for record in records)
+
+
+def joker_center_cost_from_state(run: HeadlessRunState, rarity: int, center_key: str) -> int:
+    """Return the exact observed immutable base cost for one eligible center."""
+    if type(rarity) is not int or rarity not in (1, 2, 3, 4):
+        raise HeadlessTransitionError("Joker rarity must be exact 1, 2, 3, or 4")
+    if not isinstance(center_key, str) or not center_key:
+        raise HeadlessTransitionError("Joker center key must be a nonempty string")
+
+    pools = _validate_observed_joker_generation_pools(run)
+    for record in pools[str(rarity)]:
+        if record["key"] == center_key:
+            return record["cost"]
+    raise HeadlessTransitionError(
+        "selected Joker center is absent from the authoritative eligible pool"
+    )
 
 
 def poll_base_shop_joker_center_from_state(
