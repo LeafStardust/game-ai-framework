@@ -26,6 +26,7 @@ from games.balatro.env.rng import BalatroRNG
 from games.balatro.env.voucher_capabilities import (
     EXACT_DISCOUNT_VOUCHER_KEYS,
     EXACT_EDITION_RATE_VOUCHER_KEYS,
+    EXACT_REROLL_COST_VOUCHER_KEYS,
     EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS,
 )
 from games.balatro.jokers.abstract_joker import AbstractJoker
@@ -207,6 +208,7 @@ class HeadlessRunState:
     boss_hands_sub: int | None = None
     boss_discards_sub: int | None = None
     boss_hand_size_sub: int | None = None
+    base_reroll_cost: int = 5
     reroll_cost: int = 5
     skips: int = 0
     tags: list[str] = field(default_factory=list)
@@ -339,6 +341,7 @@ class HeadlessRunState:
             raise HeadlessTransitionError("tags must contain only strings")
         if not isinstance(self.pack_choices, list):
             raise HeadlessTransitionError("pack_choices must be a list")
+        self._require_nonnegative_int("base_reroll_cost", self.base_reroll_cost)
         self._require_nonnegative_int("reroll_cost", self.reroll_cost)
         self._require_nonnegative_int("skips", self.skips)
 
@@ -485,6 +488,12 @@ class ShopTransitionEngine:
                 )
 
                 return redeem_exact_shop_type_rate_voucher(next_run, slot)
+            if key in EXACT_REROLL_COST_VOUCHER_KEYS:
+                from games.balatro.env.reroll_voucher_redemption import (
+                    redeem_exact_reroll_voucher,
+                )
+
+                return redeem_exact_reroll_voucher(next_run, slot)
             price = self._price(item)
             if price < 0 or state.money < price:
                 raise HeadlessTransitionError("shop item is not affordable")
@@ -557,6 +566,12 @@ class ShopTransitionEngine:
             )
 
             return shop_type_rate_voucher_redemption_is_exact(run, slot)
+        if key in EXACT_REROLL_COST_VOUCHER_KEYS:
+            from games.balatro.env.reroll_voucher_redemption import (
+                reroll_voucher_redemption_is_exact,
+            )
+
+            return reroll_voucher_redemption_is_exact(run, slot)
         if key not in (_EXACT_RESOURCE_VOUCHER_KEYS | EXACT_EDITION_RATE_VOUCHER_KEYS):
             return False
         if key in state.vouchers:
