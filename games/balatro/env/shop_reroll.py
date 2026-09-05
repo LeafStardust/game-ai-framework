@@ -9,8 +9,8 @@ Pinned vanilla order for ``G.FUNCS.reroll_shop`` is:
 5. regenerate missing slots through ``create_card_for_shop``.
 
 The owned boundary covers ordinary paid rerolls with exact Voucher-derived base
-reroll cost. Bankruptcy, free-reroll and Tag temporary modifiers remain blocked.
-Inventory RNG is delegated to ``generate_base_main_shop``.
+reroll cost and main-shop capacity. Bankruptcy, free-reroll and Tag temporary
+modifiers remain blocked. Inventory RNG is delegated to ``generate_base_main_shop``.
 """
 
 from __future__ import annotations
@@ -23,13 +23,11 @@ from games.balatro.env.shop_main_generation import GeneratedMainShop, generate_b
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import (
     expected_base_reroll_cost_for_vouchers,
+    expected_main_shop_slots_for_vouchers,
     shop_generation_vouchers_are_exact,
 )
 from games.balatro.jokers.chaos_the_clown import ChaosTheClownJoker
 from games.balatro.jokers.credit_card import CreditCardJoker
-
-
-_BASE_MAIN_SHOP_SLOTS = 2
 
 
 @dataclass(frozen=True)
@@ -69,9 +67,14 @@ def _validate_paid_base_reroll(run: HeadlessRunState) -> None:
     if state.money < run.reroll_cost:
         raise HeadlessTransitionError("cannot afford paid shop reroll")
 
+    expected_slots = expected_main_shop_slots_for_vouchers(state)
+    if expected_slots is None:
+        raise HeadlessTransitionError("paid reroll main-shop capacity is not exact")
     occupied = len(state.shop_jokers) + len(state.shop_consumables)
-    if occupied != _BASE_MAIN_SHOP_SLOTS:
-        raise HeadlessTransitionError("paid reroll requires a complete two-card main shop")
+    if occupied != expected_slots:
+        raise HeadlessTransitionError(
+            "paid reroll requires a complete current-capacity main shop"
+        )
     if state.shop_boosters or state.shop_vouchers:
         raise HeadlessTransitionError(
             "paid reroll boundary does not yet compose booster/voucher shop areas"
@@ -79,7 +82,7 @@ def _validate_paid_base_reroll(run: HeadlessRunState) -> None:
 
 
 def reroll_base_main_shop(run: HeadlessRunState) -> PaidBaseShopReroll:
-    """Perform one exact ordinary paid reroll and regenerate the two main slots."""
+    """Perform one exact ordinary paid reroll and regenerate all main slots."""
     _validate_paid_base_reroll(run)
 
     previous_cost = run.reroll_cost
