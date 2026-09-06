@@ -76,14 +76,17 @@ def validate_paid_base_reroll(run: HeadlessRunState) -> None:
     if expected_slots is None:
         raise HeadlessTransitionError("paid reroll main-shop capacity is not exact")
     occupied = len(state.shop_jokers) + len(state.shop_consumables)
-    if occupied != expected_slots:
+    if occupied > expected_slots:
         raise HeadlessTransitionError(
-            "paid reroll requires a complete current-capacity main shop"
+            "paid reroll main-shop occupancy exceeds current capacity"
         )
 
-    # Vanilla reroll only replaces cards in G.shop_jokers, the shared main-shop
-    # area. Booster and Voucher areas are independent and remain untouched, so
-    # their presence is not a reason to reject an otherwise exact reroll.
+    # Vanilla reroll removes whatever cards remain in G.shop_jokers and then
+    # regenerates the shared main-shop area to its current capacity. A purchase
+    # may therefore leave fewer cards than the capacity immediately before a
+    # valid reroll; only impossible over-capacity state must fail closed here.
+    # Booster and Voucher areas are independent and remain untouched, so their
+    # presence is not a reason to reject an otherwise exact reroll.
 
 
 def can_reroll_base_main_shop(run: HeadlessRunState) -> bool:
