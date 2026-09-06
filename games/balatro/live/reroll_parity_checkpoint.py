@@ -228,7 +228,8 @@ def compare_live_reroll_replay(
         reroll, simulator_evidence = reroll_shop_with_public_evidence(before_run)
     except HeadlessTransitionError as exc:
         raise LiveRerollParityCheckpointError(
-            "live reroll checkpoint does not admit exact headless reroll replay"
+            "live reroll checkpoint does not admit exact headless reroll replay: "
+            f"{exc}"
         ) from exc
 
     public_comparison = compare_public_strategic_evidence(
