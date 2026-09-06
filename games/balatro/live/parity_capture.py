@@ -5,6 +5,10 @@ from __future__ import annotations
 from typing import Any, Iterable
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
+from games.balatro.env.parity import (
+    PublicTacticalTrajectoryParityComparison,
+    compare_public_tactical_trajectory,
+)
 from games.balatro.env.tactical_evidence import PublicTacticalTransitionEvidence
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.translator import DefaultBalatroStateTranslator
@@ -129,3 +133,22 @@ def successful_tactical_evidence_from_run_rows(
         pending_decision = None
 
     return tuple(evidence)
+
+
+def compare_run_rows_to_simulator_tactical_evidence(
+    rows: Iterable[dict[str, Any]],
+    simulator_evidence: Iterable[PublicTacticalTransitionEvidence],
+    *,
+    translator: DefaultBalatroStateTranslator | None = None,
+) -> PublicTacticalTrajectoryParityComparison:
+    """Compare durable live tactical rows with an ordered headless trajectory.
+
+    Live rows are first converted through the canonical translator/evidence
+    boundary above. The simulator side must already be public-safe R4 evidence;
+    this function does not reconstruct private simulator authority from live logs.
+    """
+    live_evidence = successful_tactical_evidence_from_run_rows(
+        rows,
+        translator=translator,
+    )
+    return compare_public_tactical_trajectory(live_evidence, simulator_evidence)

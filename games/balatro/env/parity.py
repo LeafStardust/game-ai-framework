@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Iterable
 
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.tactical_evidence import PublicTacticalTransitionEvidence
@@ -80,6 +80,17 @@ class PublicTacticalParityComparison:
     simulator: PublicTacticalParitySignature
 
 
+@dataclass(frozen=True)
+class PublicTacticalTrajectoryParityComparison:
+    """Ordered R5 parity result for a tactical trajectory."""
+
+    matches: bool
+    differences: tuple[str, ...]
+    live_length: int
+    simulator_length: int
+    steps: tuple[PublicTacticalParityComparison, ...]
+
+
 def canonical_tactical_evidence_signature(
     evidence: PublicTacticalTransitionEvidence,
 ) -> PublicTacticalParitySignature:
@@ -115,4 +126,39 @@ def compare_public_tactical_evidence(
         differences=tuple(differences),
         live=live,
         simulator=simulator,
+    )
+
+
+def compare_public_tactical_trajectory(
+    live_evidence: Iterable[PublicTacticalTransitionEvidence],
+    simulator_evidence: Iterable[PublicTacticalTransitionEvidence],
+) -> PublicTacticalTrajectoryParityComparison:
+    """Compare ordered live/headless tactical trajectories without repairing gaps.
+
+    Length and step order are parity evidence. The comparator therefore never
+    truncates one trajectory to make it match the other: overlapping steps are
+    compared canonically and any length mismatch is reported explicitly.
+    """
+    live = tuple(live_evidence)
+    simulator = tuple(simulator_evidence)
+    steps = tuple(
+        compare_public_tactical_evidence(live_step, simulator_step)
+        for live_step, simulator_step in zip(live, simulator)
+    )
+
+    differences: list[str] = []
+    if len(live) != len(simulator):
+        differences.append("length")
+    for index, comparison in enumerate(steps):
+        differences.extend(
+            f"step[{index}].{difference}"
+            for difference in comparison.differences
+        )
+
+    return PublicTacticalTrajectoryParityComparison(
+        matches=not differences,
+        differences=tuple(differences),
+        live_length=len(live),
+        simulator_length=len(simulator),
+        steps=steps,
     )
