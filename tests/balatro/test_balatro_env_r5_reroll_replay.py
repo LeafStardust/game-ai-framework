@@ -44,7 +44,7 @@ def _consumable_record(card_type, key, cost=3):
     }
 
 
-def _reroll_ready_run(seed="R5-REROLL-REPLAY"):
+def _reroll_ready_run(seed="R5-REROLL-REPLAY", *, vouchers=None):
     state = BalatroState()
     state.deck_name = "RED"
     state.stake_name = "WHITE"
@@ -53,7 +53,7 @@ def _reroll_ready_run(seed="R5-REROLL-REPLAY"):
     state.ante = 1
     state.money = 20
     state.vouchers_observed = True
-    state.vouchers = []
+    state.vouchers = list(vouchers or [])
     state.shop_inflation_observed = True
     state.shop_inflation = 0
     state.shop_discount_percent_observed = True
@@ -73,18 +73,18 @@ def _reroll_ready_run(seed="R5-REROLL-REPLAY"):
     return generate_base_main_shop(HeadlessRunState(public=state, seed=seed)).run
 
 
-def _snapshot(sequence):
+def _snapshot(sequence, *, vouchers=None):
     return LiveBalatroSnapshot(
         sequence=sequence,
         phase="SHOP",
         state_complete=True,
-        payload={"vouchers_observed": True, "vouchers": []},
+        payload={"vouchers_observed": True, "vouchers": list(vouchers or [])},
     )
 
 
 def _checkpoint(run, sequence, *, reroll_cost=None, rng_snapshot=None):
     return LiveRerollParityCheckpoint(
-        public_snapshot=_snapshot(sequence),
+        public_snapshot=_snapshot(sequence, vouchers=run.public.vouchers),
         rng_snapshot=deepcopy(rng_snapshot or run.rng_snapshot()),
         reroll_terms=LiveShopRerollTerms(
             cost=run.reroll_cost if reroll_cost is None else reroll_cost,
@@ -131,6 +131,38 @@ def test_env_r5_reroll_replay_matches_public_cost_and_private_rng_authority():
     assert expected.previous_cost == 5
     assert expected.next_cost == 6
     assert before.rng_snapshot() == before_rng
+
+
+def test_env_r5_reroll_replay_admits_partially_depleted_overstock_shop():
+    before = _reroll_ready_run(
+        "R5-REROLL-DEPLETED-OVERSTOCK",
+        vouchers=["v_overstock_norm"],
+    )
+    assert len(before.public.shop_jokers) + len(before.public.shop_consumables) == 3
+    if before.public.shop_jokers:
+        before.public.shop_jokers.pop()
+    else:
+        before.public.shop_consumables.pop()
+    assert len(before.public.shop_jokers) + len(before.public.shop_consumables) == 2
+
+    expected, live_evidence = reroll_shop_with_public_evidence(before)
+    before_checkpoint = _checkpoint(before, 1)
+    after_checkpoint = _checkpoint(expected.run, 2)
+    translator = _Translator({1: before.public, 2: expected.run.public})
+
+    comparison = compare_live_reroll_replay(
+        before_checkpoint,
+        after_checkpoint,
+        live_evidence,
+        translator=translator,
+    )
+
+    assert comparison.matches is True
+    assert comparison.differences == ()
+    assert len(expected.run.public.shop_jokers) + len(expected.run.public.shop_consumables) == 3
+    assert expected.previous_cost == 5
+    assert expected.next_cost == 6
+    assert expected.run.public.money == 15
 
 
 def test_env_r5_reroll_replay_reports_public_post_state_difference():
