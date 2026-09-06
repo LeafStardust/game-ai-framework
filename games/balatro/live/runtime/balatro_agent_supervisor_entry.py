@@ -5,9 +5,10 @@ import traceback
 from dataclasses import replace
 from time import sleep
 
-from games.balatro.actions import END_ROUND
+from games.balatro.actions import END_ROUND, REFRESH_SHOP
 from games.balatro.build_health_diagnostics import build_health_diagnostics_payload
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
+from games.balatro.live.reroll_parity_capture import LiveRerollParityRecorder
 from games.balatro.live.run_diagnostics import BalatroDiagnosticLogger
 from games.balatro.unlock_campaign import (
     AUTO,
@@ -79,6 +80,7 @@ def _diagnostic_runner_factory(
     control: BalatroAgentControl,
     session_id: str,
     diagnostic_directory: str,
+    reroll_parity_directory: str | None = None,
     unlock_campaign_config: UnlockCampaignConfig | None = None,
     collection_first: bool = False,
 ):
@@ -91,6 +93,23 @@ def _diagnostic_runner_factory(
     )
     original_decide = runner.decide
     original_execute = runner.execute
+    reroll_recorders: dict[str, LiveRerollParityRecorder] = {}
+
+    def _diagnostic_failure(stage: str, error: BaseException, decision, *, status=None):
+        try:
+            BalatroDiagnosticLogger(
+                session_id,
+                directory=diagnostic_directory,
+            ).failure(
+                stage=stage,
+                error=error,
+                status=status if status is not None else control.read_status(),
+                action=str(getattr(decision.action, "name", "")),
+                phase=str(decision.snapshot.phase),
+                checkpoint_sequence=int(decision.snapshot.sequence),
+            )
+        except Exception:
+            pass
 
     def decide_with_build_health():
         decision = original_decide()
@@ -110,33 +129,85 @@ def _diagnostic_runner_factory(
         return replace(decision, decision_diagnostics=diagnostics)
 
     def execute_with_diagnostics(decision):
+        parity_recorder = None
+        parity_before = None
+        parity_status = None
+        action_name = str(getattr(decision.action, "name", ""))
+
+        if reroll_parity_directory and action_name == REFRESH_SHOP:
+            try:
+                parity_status = control.read_status()
+                run_id = str(parity_status.get("run_id", "")).strip()
+                if not run_id:
+                    raise RuntimeError(
+                        "R5 reroll parity capture requires current supervisor run_id"
+                    )
+                parity_recorder = reroll_recorders.get(run_id)
+                if parity_recorder is None:
+                    parity_recorder = LiveRerollParityRecorder(
+                        run_id,
+                        observer,
+                        directory=reroll_parity_directory,
+                    )
+                    reroll_recorders[run_id] = parity_recorder
+                parity_before = parity_recorder.capture_before(decision)
+            except Exception as error:
+                _diagnostic_failure(
+                    "reroll_parity_capture_before",
+                    error,
+                    decision,
+                    status=parity_status,
+                )
+                parity_recorder = None
+                parity_before = None
+
         try:
-            if str(getattr(decision.action, "name", "")) == END_ROUND:
+            if action_name == END_ROUND:
                 # END_ROUND is the cash-out click on the payout screen. Leave the
                 # reward breakdown visible briefly before advancing so live users
                 # can actually inspect the result. This is UI pacing only and does
                 # not alter policy scoring, state interpretation or action choice.
                 sleep(CASH_OUT_DWELL_SECONDS)
-            return original_execute(decision)
+            execution = original_execute(decision)
         except Exception as error:
             if _is_recovered_stale_replan(error):
                 raise
-            try:
-                status = control.read_status()
-                BalatroDiagnosticLogger(
-                    session_id,
-                    directory=diagnostic_directory,
-                ).failure(
-                    stage="execution_failure",
-                    error=error,
-                    status=status,
-                    action=str(getattr(decision.action, "name", "")),
-                    phase=str(decision.snapshot.phase),
-                    checkpoint_sequence=int(decision.snapshot.sequence),
-                )
-            except Exception:
-                pass
+            _diagnostic_failure("execution_failure", error, decision)
             raise
+
+        if parity_recorder is not None and parity_before is not None:
+            try:
+                dispatch_result, _ = execution
+                comparison = parity_recorder.record_after(
+                    parity_before,
+                    decision,
+                    dispatch_result,
+                )
+                if not comparison.matches:
+                    try:
+                        BalatroDiagnosticLogger(
+                            session_id,
+                            directory=diagnostic_directory,
+                        ).record(
+                            "reroll_parity_mismatch",
+                            status=control.read_status(),
+                            action=action_name,
+                            phase=str(decision.snapshot.phase),
+                            checkpoint_sequence=int(decision.snapshot.sequence),
+                            differences=list(comparison.differences),
+                            parity_path=str(parity_recorder.path),
+                        )
+                    except Exception:
+                        pass
+            except Exception as error:
+                _diagnostic_failure(
+                    "reroll_parity_capture_after",
+                    error,
+                    decision,
+                    status=parity_status,
+                )
+
+        return execution
 
     runner.decide = decide_with_build_health
     runner.execute = execute_with_diagnostics
@@ -165,6 +236,13 @@ def main() -> int:
     parser.add_argument("--run-log-directory", default="logs/balatro/runs")
     parser.add_argument("--session-directory", default="logs/balatro/sessions")
     parser.add_argument("--diagnostic-directory", default="logs/balatro/diagnostics")
+    parser.add_argument(
+        "--reroll-parity-directory",
+        help=(
+            "opt-in private R5 paid-reroll replay evidence directory; exact RNG "
+            "authority is written here and never to the public run-experience log"
+        ),
+    )
     parser.add_argument("--session-id")
     parser.add_argument("--no-retry-losses", action="store_true")
     parser.add_argument(
@@ -197,6 +275,7 @@ def main() -> int:
             control=control,
             session_id=supervisor.session_id,
             diagnostic_directory=args.diagnostic_directory,
+            reroll_parity_directory=args.reroll_parity_directory,
             unlock_campaign_config=unlock_campaign_config,
             collection_first=args.collection_first,
         )
