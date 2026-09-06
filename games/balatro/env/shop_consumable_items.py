@@ -8,8 +8,8 @@ applies vanilla ``Card:set_cost`` pricing with no edition surcharge. Planet card
 apply vanilla's post-discount x2 shop-cost rule.
 
 Gameplay-object construction and purchase legality remain separate exactness
-boundaries.  Generated metadata may be inserted into the shared two-card main
-shop only after its source-ordered generation is complete.
+boundaries. Generated metadata may be inserted into the shared main shop only
+after its source-ordered generation is complete.
 """
 
 from __future__ import annotations
@@ -23,14 +23,16 @@ from games.balatro.env.shop_consumable_generation import (
 )
 from games.balatro.env.shop_pricing import vanilla_card_cost
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
-from games.balatro.env.voucher_capabilities import shop_pricing_vouchers_are_exact
+from games.balatro.env.voucher_capabilities import (
+    expected_main_shop_slots_for_vouchers,
+    shop_pricing_vouchers_are_exact,
+)
 
 
 _FALLBACK_BASE_COST = {
     "Tarot": 3,
     "Planet": 3,
 }
-_BASE_MAIN_SHOP_SLOTS = 2
 
 
 @dataclass(frozen=True)
@@ -186,8 +188,11 @@ def insert_generated_shop_consumable_item(
     state = run.public
     if state.phase != "SHOP" or not state.shop_active:
         raise HeadlessTransitionError("generated shop insertion requires active SHOP")
+    capacity = expected_main_shop_slots_for_vouchers(state)
+    if capacity is None:
+        raise HeadlessTransitionError("main shop capacity is not exact")
     occupied = len(state.shop_jokers) + len(state.shop_consumables)
-    if occupied >= _BASE_MAIN_SHOP_SLOTS:
+    if occupied >= capacity:
         raise HeadlessTransitionError("main shop inventory is already full")
 
     next_run = run.copy()
