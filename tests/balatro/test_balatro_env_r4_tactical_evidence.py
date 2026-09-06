@@ -120,6 +120,21 @@ def test_env_r4_tactical_evidence_contains_no_private_run_or_rng_authority():
         assert not hasattr(evidence, name)
 
 
+def test_env_r4_tactical_evidence_is_durable_after_result_card_mutation():
+    run = _dealt_run(seed="R4-EVIDENCE-DURABLE")
+    engine = _CountingDecisionEngine(DISCARD_CARDS, (0,))
+
+    result, evidence = apply_planned_tactical_step_with_evidence(run, engine)
+    recorded_rank = evidence.after.discard_pile[-1].rank
+    recorded_suit = evidence.after.discard_pile[-1].suit
+
+    result.public.discard_pile[-1].rank = "MUTATED"
+    result.public.discard_pile[-1].suit = "MUTATED"
+
+    assert evidence.after.discard_pile[-1].rank == recorded_rank
+    assert evidence.after.discard_pile[-1].suit == recorded_suit
+
+
 def test_env_r4_tactical_evidence_records_supported_play_transition():
     run = _dealt_run(seed="R4-EVIDENCE-PLAY", play=True)
     engine = _CountingDecisionEngine(PLAY_CARDS, (0,))
