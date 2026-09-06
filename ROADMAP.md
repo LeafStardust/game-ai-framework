@@ -115,6 +115,26 @@ GitHub Actions job 101411468974
 GitHub Actions run 34005877151
 GitHub Actions job 101412827495
 2377 passed, 1595 deselected
+
+R5 exact strategic reroll replay authority:
+d82801c8
+  feat(balatro): capture R5 live RNG replay authority
+c9203f25
+  feat(balatro): restore R5 reroll replay checkpoints
+de1a53dc
+  fix(balatro): require observed vouchers for reroll replay
+e116bf09e0c13c6092dc57b7bc2dae5e7f9ee792
+  feat(balatro): replay exact R5 shop reroll parity
+GitHub Actions run 34022177202
+GitHub Actions job 101456639275
+2401 passed, 1595 deselected
+
+R5 live paid-reroll capture wiring:
+b15fab5fe2bec0080c383a009dbef4f00cc89e12
+  feat(balatro): capture live R5 reroll parity
+GitHub Actions run 34024889806
+GitHub Actions job 101463994146
+2409 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -125,11 +145,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — CANONICAL TACTICAL EVIDENCE + COMPARISON INFRASTRUCTURE GREEN; REPRESENTATIVE LIVE/SIM FIXTURES REMAIN**.
+- R5 live/simulator parity harness: **IN PROGRESS — TACTICAL EVIDENCE/COMPARISON AND EXACT STRATEGIC PAID-REROLL REPLAY/CAPTURE INFRASTRUCTURE GREEN; REPRESENTATIVE REAL LIVE/SIM FIXTURES REMAIN**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOT YET REQUIRED FOR INFRASTRUCTURE WORK; REQUIRED WHEN THE FIRST REPRESENTATIVE R5 LIVE/SIM FIXTURE IS READY TO CAPTURE**.
+- Live Balatro validation: **NOW REQUIRED FOR THE FIRST NARROW R5 PAID-REROLL FIXTURE; DO NOT RUN AN OPEN-ENDED BATCH**.
 
 ## Current strategic action contract
 
@@ -735,6 +755,11 @@ Required before treating the simulator as authoritative training truth.
 - `games/balatro/live/parity_capture.py` converts successful durable live run-log observation/decision/action-result rows into canonical tactical evidence and rejects malformed or mismatched tactical records rather than repairing them heuristically.
 - ordered tactical trajectory comparison treats transition count and order as evidence; it never truncates one side to manufacture a match.
 - durable live-log rows can now be compared directly against an ordered simulator evidence trajectory through the same canonical comparator.
+- `PublicStrategicTransitionEvidence` is the canonical public strategic pre/action/post record and reuses the frozen R3 `EnvAction` vocabulary rather than inventing a second strategic action schema.
+- `games/balatro/live/reroll_parity_checkpoint.py` captures coherent complete-SHOP public state plus exact private RNG/reroll replay authority and rejects active Tags, free rerolls, unobserved Voucher state, or unstable checkpoints rather than normalizing them away.
+- exact ordinary paid `REROLL_SHOP` can be rebuilt from a private checkpoint and replayed through the canonical headless reroll owner; the comparator checks public transition evidence, previous/next reroll cost, and post-action RNG snapshot.
+- `games/balatro/live/reroll_parity_capture.py` persists this private replay authority in an opt-in per-run sidecar. The normal durable run-experience JSONL remains public-only.
+- the production live entry exposes `--reroll-parity-directory`. Capture failures and replay mismatches are diagnostic/observational only: they cannot suppress, rewrite, or falsely relabel a successfully settled production action.
 
 Green checkpoints:
 
@@ -753,6 +778,18 @@ GitHub Actions job 101411468974
 GitHub Actions run 34005877151
 GitHub Actions job 101412827495
 2377 passed, 1595 deselected
+
+e116bf09e0c13c6092dc57b7bc2dae5e7f9ee792
+  feat(balatro): replay exact R5 shop reroll parity
+GitHub Actions run 34022177202
+GitHub Actions job 101456639275
+2401 passed, 1595 deselected
+
+b15fab5fe2bec0080c383a009dbef4f00cc89e12
+  feat(balatro): capture live R5 reroll parity
+GitHub Actions run 34024889806
+GitHub Actions job 101463994146
+2409 passed, 1595 deselected
 ```
 
 ## Priority parity fixtures
@@ -774,13 +811,26 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-1. define the canonical **strategic** transition evidence record using the existing frozen R3 action identifiers and public-state sanitizer rather than inventing a second strategic action vocabulary;
-2. adapt durable live observation/decision/action-result rows for the narrowest representative exact strategic fixture, starting with ordinary shop `REROLL_SHOP` or another transition whose live log already contains all required public evidence;
-3. emit matching simulator evidence from the canonical headless transition owner, preserving any private RNG/zone authority outside the public evidence record;
-4. compare one ordered strategic trajectory deterministically and add fail-closed regressions for malformed/missing action parameters, action-result mismatches, trajectory length/order mismatches, and public-state differences;
-5. only after the fixture contract is frozen, determine whether existing durable logs are sufficient; if not, request the smallest live Balatro capture needed for the first real live/simulator parity verdict.
+The first strategic fixture contract is now frozen. The next gate is a **single real ordinary paid `REFRESH_SHOP` transition**, not more infrastructure work and not an open-ended Balatro batch.
 
-No open-ended live run is required yet. The next live request must name the exact fixture/action/state evidence needed.
+Required fixture preconditions:
+
+1. complete ordinary `SHOP` state on the Red Deck / White Stake path;
+2. zero active Tags;
+3. zero free rerolls;
+4. authoritative observed Voucher ownership so reroll-cost state is exact;
+5. enough money for the current ordinary paid reroll;
+6. run the production supervisor with the opt-in private reroll parity directory enabled;
+7. allow one canonical production `REFRESH_SHOP` action to settle normally.
+
+After capture:
+
+1. inspect the private reroll-parity sidecar and normal public run/diagnostic evidence;
+2. require `comparison.matches == true` for the first real strategic parity verdict;
+3. if it mismatches, classify the first differing public/reroll-cost/RNG field and repair that canonical owner only;
+4. if it matches, freeze the paid-reroll live fixture as the first strategic parity proof and proceed to the next representative strategic fixture from the priority list.
+
+Do not request repeated runs to search for defects. One admitted paid-reroll fixture is sufficient for this gate; additional live captures must be tied to a named parity hypothesis.
 
 ## R5 exit criteria
 
