@@ -55,7 +55,7 @@ Authoritative deterministic workflow:
 Current CI selector:
 
 ```bash
-python -m pytest -q tests/balatro -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2 or env_r3 or env_r4"
+python -m pytest -q tests/balatro -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2 or env_r3 or env_r4 or env_r5"
 ```
 
 ---
@@ -89,6 +89,32 @@ R4 ordinary Play lifecycle:
 GitHub Actions run 33999099418
 GitHub Actions job 101394654137
 2350 passed, 1595 deselected
+
+R4 representative Boss tactical coverage:
+98ab566071f0af94305ffaba5b9fa0482e25b4ad
+  feat(balatro): admit exact Tooth tactical play
+f8bc7aabafcd766fd9bcada15e8bef489977d7a5
+  feat(balatro): admit exact Hook tactical play
+
+e9408fa943bbc2609f3ee96e53318ba2ff2c874c
+  feat(balatro): record public tactical trajectory evidence
+0603f420ee7f7d1f235c21b0ea9debc7b72442e5
+  fix(balatro): freeze tactical evidence snapshots
+
+R5 tactical parity infrastructure:
+7dd4f36341fd5624d05db2e7b59e808f81ceb5cd
+  feat(balatro): add R5 tactical parity comparator
+da7e4e9605d37584b116f28274bdb7fc91ac728a
+  feat(balatro): adapt live run logs for R5 parity
+GitHub Actions run 34005381429
+GitHub Actions job 101411468974
+2373 passed, 1595 deselected
+
+0a657d961b13bac12371466418ff470c15e62a61
+  feat(balatro): compare R5 tactical trajectories
+GitHub Actions run 34005877151
+GitHub Actions job 101412827495
+2377 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -98,12 +124,12 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R1 deterministic state/acquisition: **SUBSTANTIALLY COMPLETE**.
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
-- R4 deterministic tactical bridge: **IN PROGRESS — ORDINARY PLAY/DISCARD GREEN; BOSS COVERAGE REMAINS**.
-- R5 live/simulator parity harness: **NOT STARTED**.
+- R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
+- R5 live/simulator parity harness: **IN PROGRESS — CANONICAL TACTICAL EVIDENCE + COMPARISON INFRASTRUCTURE GREEN; REPRESENTATIVE LIVE/SIM FIXTURES REMAIN**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOT CURRENTLY REQUIRED**.
+- Live Balatro validation: **NOT YET REQUIRED FOR INFRASTRUCTURE WORK; REQUIRED WHEN THE FIRST REPRESENTATIVE R5 LIVE/SIM FIXTURE IS READY TO CAPTURE**.
 
 ## Current strategic action contract
 
@@ -149,8 +175,8 @@ R0 headless environment architecture COMPLETE
 R1 deterministic state/acquisition   SUBSTANTIALLY COMPLETE
 R2 RNG/lifecycle/shop generation     BROADLY GREEN / SPECIFIC GAPS REMAIN
 R3 typed action vocabulary           COMPLETE / GREEN
-R4 deterministic tactical bridge     IN PROGRESS — ORDINARY GREEN
-R5 live/simulator parity harness      NOT STARTED
+R4 deterministic tactical bridge     COMPLETE / GREEN
+R5 live/simulator parity harness      IN PROGRESS
 R6 environment performance gate      NOT STARTED
 O observation/action encoding        NOT STARTED
 B0 RL baseline infrastructure        NOT STARTED
@@ -199,8 +225,7 @@ Do not restore the old persistent strategy controller, named strategy identity a
 The active development sequence is now:
 
 ```text
-R4 deterministic tactical bridge
-→ R5 live/simulator parity
+R5 live/simulator parity
 → R6 performance
 → O observation/action encoding
 → B0 baselines
@@ -604,25 +629,24 @@ Do not reopen a supported R3 action without a concrete regression.
 
 ---
 
-# R4 — deterministic tactical bridge — IN PROGRESS
+# R4 — deterministic tactical bridge — COMPLETE / GREEN
 
 ## Goal
 
 RL controls strategic run-development boundaries while existing deterministic hand-level owners continue to choose exact play/discard actions. **Do not rewrite the tactical engine inside the learner or create a second scoring/hand-selection implementation.**
 
-## Canonical tactical audit — current findings
-
-The production-entry wiring and the narrow ordinary Small/Big-blind Play/Discard lifecycle are complete and green. The remaining R4 work is representative exact Boss tactical coverage and trajectory evidence for R5, not ordinary Play ownership:
+## Canonical tactical audit — retained findings
 
 1. Canonical tactical payloads are `BalatroAction(PLAY_CARDS, cards=[...])` and `BalatroAction(DISCARD_CARDS, cards=[...])` from `games/balatro/actions.py`; selected cards are canonical public hand objects, not an RL-only index action type.
 2. The production call chain is `StrategyAwareLiveMemoryInjectedSingleStepRunner` → `_recommend_hand_with_bonds()` → `PathAwareLiveHandActionDecisionEngine(policy=StrategyAwareLiveHandActionPolicy(...))` → `.decide(state)` → `HandActionDecision.action`. The headless bridge calls that same production-shaped `decide(state)` boundary and accepts only the canonical `BalatroAction` carried by `decision.action`; the former test-only `.plan(state)` shape is rejected rather than retained as a compatibility layer.
 3. `D1LiveBlindClearPlanner` in `games/balatro/live/hand_action_planner.py` extends the core planner in `hand_action_planner_core.py`, obtains Play/Discard candidates from the shared generator, and filters Play candidates through `boss_play_action_is_legal`; Boss-aware score projection remains in the shared live evaluator path.
-4. Runner / To Do List target-hand evidence is owned by `games/balatro/target_hand_engine_policy.py` and consumed inside canonical D1 ranking; R4 must not duplicate that heuristic.
+4. Runner / To Do List target-hand evidence is owned by `games/balatro/target_hand_engine_policy.py` and consumed inside canonical D1 ranking; R4 does not duplicate that heuristic.
 5. `games/balatro/env/public_observation.py` is the policy-visible sanitization boundary. Private physical draw order remains on `HeadlessRunState` and is never passed to the tactical decision engine.
-6. The frozen strategic action contract remains `games/balatro/env_contract.py`; there is no separate `env_contract.v1.json` and no tactical learner action needs to be added to the strategic mask for R4.
-7. `games/balatro/env/play_transition.py` now owns the narrow exact ordinary Small/Big-blind action-time lifecycle. It composes canonical card selection, poker-hand recognition/scoring, hand/round counters, hand → play → discard movement, clear/continue/final-loss branching, exact redraw, and played-this-ante history while excluding unowned card/Joker/Boss/random effects.
-8. `games/balatro/env/tactical_transition.py` composes both admitted Discard and ordinary Play owners behind the production `.decide()` boundary. Unsupported tactical states still fail closed.
-9. `games/balatro/env/boss_play.py` remains intentionally narrower than a complete Play transition: it owns audited Boss `Blind:press_play` mutations only. Boss Play must be admitted only when those mutations can be composed into the complete Play lifecycle in pinned vanilla source order and all other required Boss effects are exact.
+6. The frozen strategic action contract remains `games/balatro/env_contract.py`; there is no separate tactical learner action surface.
+7. `games/balatro/env/play_transition.py` owns the narrow exact ordinary Small/Big-blind action-time lifecycle and now composes the admitted exact Boss `press_play` mutations at the canonical source-order position.
+8. `games/balatro/env/tactical_transition.py` composes admitted Discard and Play owners behind the production `.decide()` boundary. Unsupported tactical states still fail closed.
+9. Representative exact Boss tactical Play is admitted for **The Tooth** and **The Hook** only where their complete action-time lifecycle is owned. Other Bosses remain fail closed unless their full relevant behavior is exact.
+10. `games/balatro/env/tactical_evidence.py` persists policy-visible pre/action/post evidence with selected visible hand indices while excluding simulator-private draw order, RNG, hidden identities, and local object identity. Durable snapshots are frozen so later simulator mutation cannot rewrite earlier trajectory evidence.
 
 ## Admitted R4 slice — green
 
@@ -640,6 +664,8 @@ canonical PLAY_CARDS or DISCARD_CARDS
 visible-position mapping / exact action owner
         ↓
 headless transition
+        ↓
+public tactical trajectory evidence
 ```
 
 Exact admitted behavior:
@@ -650,67 +676,40 @@ Exact admitted behavior:
 - the input run is copy-on-write;
 - Discard moves selected cards to the exact discard tail, updates `discards_remaining` / `discards_used`, and redraws from retained private physical order;
 - ordinary Play decrements hands before movement, moves hand → play → discard, records played-this-ante history, evaluates the canonical poker hand and deterministic score, updates score/hand counters/visibility/last hand, and resolves clear vs continue/redraw vs final-hand loss;
+- admitted Tooth and Hook Play effects compose through canonical Boss ownership/source order;
 - policy input is `public_observation_state(run.public)`, so face-down identity remains masked;
 - decision-selected foreign card objects fail closed;
 - the legacy test-only `.plan(state)` shape fails closed rather than being supported in parallel;
-- unsupported Joker/card callbacks, random scoring effects, Boss action-time effects not yet composed through exact ownership, and unsupported decision actions fail closed.
+- unsupported Joker/card callbacks, random scoring effects, unowned Boss effects, and unsupported decision actions fail closed.
 
-Green checkpoints:
+## R4 closure proof
 
 ```text
 c117ab054e8cebb8a402711cca46ed48fb076172
   feat(balatro): bridge public tactical discard
-GitHub Actions run 33982555046
-2335 passed, 1595 deselected
 
 5d8565b6910eb9c77b8342465dc404bd6a902840
   refactor(balatro): wire R4 tactical decision engine
-GitHub Actions run 33995495867
-2336 passed, 1595 deselected
 
 652b32624ae2feaad9e768baac9f505b386bb271
   feat(balatro): own ordinary R4 play lifecycle
-GitHub Actions run 33999099418
-GitHub Actions job 101394654137
-2350 passed, 1595 deselected
+
+98ab566071f0af94305ffaba5b9fa0482e25b4ad
+  feat(balatro): admit exact Tooth tactical play
+
+f8bc7aabafcd766fd9bcada15e8bef489977d7a5
+  feat(balatro): admit exact Hook tactical play
+
+e9408fa943bbc2609f3ee96e53318ba2ff2c874c
+  feat(balatro): record public tactical trajectory evidence
+
+0603f420ee7f7d1f235c21b0ea9debc7b72442e5
+  fix(balatro): freeze tactical evidence snapshots
 ```
 
-## Minimal R4 bridge target
+The required R4 exit gate is representative ordinary + Boss tactical correctness and R5-safe trajectory evidence, not exhaustive admission of all 28 Boss Play paths. Unsupported Boss tactical paths remain intentionally excluded rather than blocking R4 closure.
 
-```text
-headless SELECTING_HAND state
-        ↓
-existing deterministic tactical owner
-        ↓
-canonical PLAY_CARDS or DISCARD_CARDS action
-        ↓
-existing exact mechanics/legality owner
-        ↓
-headless transition
-```
-
-Required properties:
-
-- no learner-side duplicate hand evaluator;
-- no duplicate target-hand heuristic implementation;
-- canonical action IDs/payloads only;
-- illegal selections impossible;
-- Boss restrictions respected at the same owner as production;
-- deterministic fixed-state action result;
-- tactical action/evidence can be logged for future R5 parity;
-- unsupported tactical state fails closed.
-
-## Exact next task
-
-1. audit `games/balatro/env/boss_play.py`, production Boss tactical legality/scoring owners, and pinned vanilla `Blind:press_play()` / post-score lifecycle to identify the narrowest Boss whose complete Play transition is already exact or can be made exact without approximating unowned effects;
-2. compose Boss `press_play` mutations into `play_transition.py` only at the canonical pinned-vanilla source-order position, rather than adding Boss special cases to the decision bridge;
-3. keep every Boss whose action-time, scoring, redraw, hidden-information, forced-selection, discard, or RNG behavior is not fully owned fail closed;
-4. add representative deterministic Boss tactical regressions covering both admitted exact behavior and fail-closed unsupported Boss behavior through the production-shaped `.decide()` bridge;
-5. determine and persist the minimal tactical trajectory evidence required by R5 comparison without exposing private draw order or creating a second action representation.
-
-No live Balatro run is required for this implementation. Live validation begins only when R5 needs representative simulator/live parity evidence.
-
-## R4 exit criteria
+## R4 exit criteria — SATISFIED
 
 - deterministic tactical owner callable from headless `SELECTING_HAND` states;
 - exact play/discard legality shared with canonical mechanics;
@@ -720,13 +719,43 @@ No live Balatro run is required for this implementation. Live validation begins 
 - no second tactical strategy implementation;
 - tactical trajectory metadata sufficient for R5 comparison.
 
+Do not reopen R4 solely to increase Boss coverage. Reopen only for a concrete R5 parity defect or a separately scoped mechanics expansion.
+
 ---
 
-# R5 — live/simulator parity harness — NOT STARTED
+# R5 — live/simulator parity harness — IN PROGRESS
 
 Required before treating the simulator as authoritative training truth.
 
-Priority fixtures:
+## Completed infrastructure — green
+
+- `PublicTacticalTransitionEvidence` is the canonical public tactical pre/action/post evidence type; no second tactical action schema exists.
+- `games/balatro/env/parity.py` canonicalizes policy-visible state while removing engine-local identity fields.
+- single-transition tactical comparison reports differences in `before`, `action.name`, `action.selected_hand_indices`, and `after`.
+- `games/balatro/live/parity_capture.py` converts successful durable live run-log observation/decision/action-result rows into canonical tactical evidence and rejects malformed or mismatched tactical records rather than repairing them heuristically.
+- ordered tactical trajectory comparison treats transition count and order as evidence; it never truncates one side to manufacture a match.
+- durable live-log rows can now be compared directly against an ordered simulator evidence trajectory through the same canonical comparator.
+
+Green checkpoints:
+
+```text
+7dd4f36341fd5624d05db2e7b59e808f81ceb5cd
+  feat(balatro): add R5 tactical parity comparator
+
+da7e4e9605d37584b116f28274bdb7fc91ac728a
+  feat(balatro): adapt live run logs for R5 parity
+GitHub Actions run 34005381429
+GitHub Actions job 101411468974
+2373 passed, 1595 deselected
+
+0a657d961b13bac12371466418ff470c15e62a61
+  feat(balatro): compare R5 tactical trajectories
+GitHub Actions run 34005877151
+GitHub Actions job 101412827495
+2377 passed, 1595 deselected
+```
+
+## Priority parity fixtures
 
 - ordinary shop generation/purchase/reroll;
 - Voucher redemption;
@@ -739,9 +768,29 @@ Priority fixtures:
 - RNG/shuffle/draw;
 - owned-deck composition;
 - economy transitions;
-- tactical PLAY_HAND/DISCARD decisions and resulting state.
+- tactical PLAY_CARDS/DISCARD_CARDS decisions and resulting state.
 
-R5 should compare canonical state/action/transition evidence, not screenshots or ad-hoc prose logs.
+R5 compares canonical state/action/transition evidence, not screenshots or ad-hoc prose logs. Simulator-private physical draw order and RNG state remain private unless a fixture explicitly compares deterministic replay authority at the private simulator boundary; they are never leaked into policy-visible evidence.
+
+## Exact next task
+
+1. define the canonical **strategic** transition evidence record using the existing frozen R3 action identifiers and public-state sanitizer rather than inventing a second strategic action vocabulary;
+2. adapt durable live observation/decision/action-result rows for the narrowest representative exact strategic fixture, starting with ordinary shop `REROLL_SHOP` or another transition whose live log already contains all required public evidence;
+3. emit matching simulator evidence from the canonical headless transition owner, preserving any private RNG/zone authority outside the public evidence record;
+4. compare one ordered strategic trajectory deterministically and add fail-closed regressions for malformed/missing action parameters, action-result mismatches, trajectory length/order mismatches, and public-state differences;
+5. only after the fixture contract is frozen, determine whether existing durable logs are sufficient; if not, request the smallest live Balatro capture needed for the first real live/simulator parity verdict.
+
+No open-ended live run is required yet. The next live request must name the exact fixture/action/state evidence needed.
+
+## R5 exit criteria
+
+- one canonical comparator/evidence path per public transition family, reusing frozen production/R3 action identifiers;
+- representative tactical Play/Discard parity passes on captured live evidence;
+- representative strategic fixtures above pass on captured live evidence;
+- mismatch output identifies the first differing state/action/transition field rather than only returning false;
+- no hidden-information leakage into policy evidence;
+- deterministic replay/private authority remains separate from public parity signatures;
+- parity failures route back to the first wrong canonical owner rather than being normalized away.
 
 ---
 
