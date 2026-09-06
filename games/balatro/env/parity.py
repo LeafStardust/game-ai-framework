@@ -12,29 +12,21 @@ from enum import Enum
 from typing import Any, Iterable
 
 from games.balatro.env.public_observation import public_observation_state
+from games.balatro.env.strategic_evidence import PublicStrategicTransitionEvidence
 from games.balatro.env.tactical_evidence import PublicTacticalTransitionEvidence
 from games.balatro.state import BalatroState
 
 
-# Engine/local object identity is not gameplay evidence and is not stable across
-# a live process and the headless simulator. Selected tactical cards are compared
-# by their visible hand positions instead.
 _IDENTITY_FIELDS = frozenset({"live_id", "area_index"})
 
 
 def _canonical_public_value(value: Any):
-    """Convert policy-visible model state into a deterministic comparison value."""
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     if isinstance(value, Enum):
         return (type(value).__name__, value.value)
     if isinstance(value, dict):
-        return tuple(
-            sorted(
-                (str(key), _canonical_public_value(item))
-                for key, item in value.items()
-            )
-        )
+        return tuple(sorted((str(key), _canonical_public_value(item)) for key, item in value.items()))
     if isinstance(value, (list, tuple)):
         return tuple(_canonical_public_value(item) for item in value)
     if isinstance(value, (set, frozenset)):
@@ -48,13 +40,10 @@ def _canonical_public_value(value: Any):
                 if name not in _IDENTITY_FIELDS
             ),
         )
-    raise TypeError(
-        f"R5 public parity does not know how to canonicalize {type(value).__name__}"
-    )
+    raise TypeError(f"R5 public parity does not know how to canonicalize {type(value).__name__}")
 
 
 def canonical_public_state_signature(state: BalatroState) -> tuple:
-    """Return deterministic, identity-free policy-visible state evidence."""
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
     return _canonical_public_value(public_observation_state(state))
@@ -62,8 +51,6 @@ def canonical_public_state_signature(state: BalatroState) -> tuple:
 
 @dataclass(frozen=True)
 class PublicTacticalParitySignature:
-    """Canonical R5 signature for one tactical transition."""
-
     before: tuple
     action_name: str
     selected_hand_indices: tuple[int, ...]
@@ -72,8 +59,6 @@ class PublicTacticalParitySignature:
 
 @dataclass(frozen=True)
 class PublicTacticalParityComparison:
-    """Result of comparing one live and one simulator tactical transition."""
-
     matches: bool
     differences: tuple[str, ...]
     live: PublicTacticalParitySignature
@@ -82,8 +67,6 @@ class PublicTacticalParityComparison:
 
 @dataclass(frozen=True)
 class PublicTacticalTrajectoryParityComparison:
-    """Ordered R5 parity result for a tactical trajectory."""
-
     matches: bool
     differences: tuple[str, ...]
     live_length: int
@@ -91,10 +74,32 @@ class PublicTacticalTrajectoryParityComparison:
     steps: tuple[PublicTacticalParityComparison, ...]
 
 
-def canonical_tactical_evidence_signature(
-    evidence: PublicTacticalTransitionEvidence,
-) -> PublicTacticalParitySignature:
-    """Canonicalize existing R4 evidence without introducing a second action schema."""
+@dataclass(frozen=True)
+class PublicStrategicParitySignature:
+    before: tuple
+    action_id: str
+    action_params: tuple
+    after: tuple
+
+
+@dataclass(frozen=True)
+class PublicStrategicParityComparison:
+    matches: bool
+    differences: tuple[str, ...]
+    live: PublicStrategicParitySignature
+    simulator: PublicStrategicParitySignature
+
+
+@dataclass(frozen=True)
+class PublicStrategicTrajectoryParityComparison:
+    matches: bool
+    differences: tuple[str, ...]
+    live_length: int
+    simulator_length: int
+    steps: tuple[PublicStrategicParityComparison, ...]
+
+
+def canonical_tactical_evidence_signature(evidence: PublicTacticalTransitionEvidence) -> PublicTacticalParitySignature:
     if not isinstance(evidence, PublicTacticalTransitionEvidence):
         raise TypeError("evidence must be PublicTacticalTransitionEvidence")
     return PublicTacticalParitySignature(
@@ -105,11 +110,7 @@ def canonical_tactical_evidence_signature(
     )
 
 
-def compare_public_tactical_evidence(
-    live_evidence: PublicTacticalTransitionEvidence,
-    simulator_evidence: PublicTacticalTransitionEvidence,
-) -> PublicTacticalParityComparison:
-    """Compare canonical public tactical evidence from live and headless execution."""
+def compare_public_tactical_evidence(live_evidence: PublicTacticalTransitionEvidence, simulator_evidence: PublicTacticalTransitionEvidence) -> PublicTacticalParityComparison:
     live = canonical_tactical_evidence_signature(live_evidence)
     simulator = canonical_tactical_evidence_signature(simulator_evidence)
     differences: list[str] = []
@@ -121,44 +122,58 @@ def compare_public_tactical_evidence(
         differences.append("action.selected_hand_indices")
     if live.after != simulator.after:
         differences.append("after")
-    return PublicTacticalParityComparison(
-        matches=not differences,
-        differences=tuple(differences),
-        live=live,
-        simulator=simulator,
-    )
+    return PublicTacticalParityComparison(not differences, tuple(differences), live, simulator)
 
 
-def compare_public_tactical_trajectory(
-    live_evidence: Iterable[PublicTacticalTransitionEvidence],
-    simulator_evidence: Iterable[PublicTacticalTransitionEvidence],
-) -> PublicTacticalTrajectoryParityComparison:
-    """Compare ordered live/headless tactical trajectories without repairing gaps.
-
-    Length and step order are parity evidence. The comparator therefore never
-    truncates one trajectory to make it match the other: overlapping steps are
-    compared canonically and any length mismatch is reported explicitly.
-    """
+def compare_public_tactical_trajectory(live_evidence: Iterable[PublicTacticalTransitionEvidence], simulator_evidence: Iterable[PublicTacticalTransitionEvidence]) -> PublicTacticalTrajectoryParityComparison:
     live = tuple(live_evidence)
     simulator = tuple(simulator_evidence)
-    steps = tuple(
-        compare_public_tactical_evidence(live_step, simulator_step)
-        for live_step, simulator_step in zip(live, simulator)
-    )
-
+    steps = tuple(compare_public_tactical_evidence(a, b) for a, b in zip(live, simulator))
     differences: list[str] = []
     if len(live) != len(simulator):
         differences.append("length")
     for index, comparison in enumerate(steps):
-        differences.extend(
-            f"step[{index}].{difference}"
-            for difference in comparison.differences
-        )
+        differences.extend(f"step[{index}].{difference}" for difference in comparison.differences)
+    return PublicTacticalTrajectoryParityComparison(not differences, tuple(differences), len(live), len(simulator), steps)
 
-    return PublicTacticalTrajectoryParityComparison(
-        matches=not differences,
-        differences=tuple(differences),
-        live_length=len(live),
-        simulator_length=len(simulator),
-        steps=steps,
+
+def canonical_strategic_evidence_signature(evidence: PublicStrategicTransitionEvidence) -> PublicStrategicParitySignature:
+    """Canonicalize an R3 strategic evidence record without inventing action IDs."""
+    if not isinstance(evidence, PublicStrategicTransitionEvidence):
+        raise TypeError("evidence must be PublicStrategicTransitionEvidence")
+    payload = evidence.action.payload()
+    params = tuple((key, _canonical_public_value(value)) for key, value in sorted(payload.items()) if key != "action_id")
+    return PublicStrategicParitySignature(
+        before=canonical_public_state_signature(evidence.before),
+        action_id=evidence.action.action_id,
+        action_params=params,
+        after=canonical_public_state_signature(evidence.after),
     )
+
+
+def compare_public_strategic_evidence(live_evidence: PublicStrategicTransitionEvidence, simulator_evidence: PublicStrategicTransitionEvidence) -> PublicStrategicParityComparison:
+    live = canonical_strategic_evidence_signature(live_evidence)
+    simulator = canonical_strategic_evidence_signature(simulator_evidence)
+    differences: list[str] = []
+    if live.before != simulator.before:
+        differences.append("before")
+    if live.action_id != simulator.action_id:
+        differences.append("action.id")
+    if live.action_params != simulator.action_params:
+        differences.append("action.params")
+    if live.after != simulator.after:
+        differences.append("after")
+    return PublicStrategicParityComparison(not differences, tuple(differences), live, simulator)
+
+
+def compare_public_strategic_trajectory(live_evidence: Iterable[PublicStrategicTransitionEvidence], simulator_evidence: Iterable[PublicStrategicTransitionEvidence]) -> PublicStrategicTrajectoryParityComparison:
+    """Compare ordered strategic transitions; never truncate/repair mismatched paths."""
+    live = tuple(live_evidence)
+    simulator = tuple(simulator_evidence)
+    steps = tuple(compare_public_strategic_evidence(a, b) for a, b in zip(live, simulator))
+    differences: list[str] = []
+    if len(live) != len(simulator):
+        differences.append("length")
+    for index, comparison in enumerate(steps):
+        differences.extend(f"step[{index}].{difference}" for difference in comparison.differences)
+    return PublicStrategicTrajectoryParityComparison(not differences, tuple(differences), len(live), len(simulator), steps)
