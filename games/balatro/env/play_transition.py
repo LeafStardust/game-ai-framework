@@ -2,9 +2,9 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow The Tooth Boss path, with an unmodified base playing-card deck and no
-Joker, Tag, consumable, Voucher, random card, or other unowned callbacks. The
-boundary can widen only when those source-order mechanics have canonical
+narrow The Tooth / The Hook Boss paths, with an unmodified base playing-card deck
+and no Joker, Tag, consumable, Voucher, random card, or other unowned callbacks.
+The boundary can widen only when those source-order mechanics have canonical
 environment owners.
 """
 
@@ -14,6 +14,7 @@ from collections.abc import Iterable
 
 from games.balatro.blinds.blind import BlindType
 from games.balatro.env.boss_play import (
+    apply_hook_press_play_discards_from_played_pile,
     apply_tooth_press_play_economy_from_played_pile,
 )
 from games.balatro.env.deal import draw_one_supported_card_to_hand
@@ -70,10 +71,21 @@ def _require_plain_base_cards(run: HeadlessRunState) -> None:
             )
 
 
+def _boss_name(state) -> str:
+    return str(getattr(state, "boss_name", "") or "")
+
+
 def _is_tooth_context(state) -> bool:
     return (
         getattr(state.blind, "type", None) == BlindType.BOSS
-        and str(getattr(state, "boss_name", "") or "") == "The Tooth"
+        and _boss_name(state) == "The Tooth"
+    )
+
+
+def _is_hook_context(state) -> bool:
+    return (
+        getattr(state.blind, "type", None) == BlindType.BOSS
+        and _boss_name(state) == "The Hook"
     )
 
 
@@ -85,12 +97,12 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("R4 baseline Play requires an active blind")
 
     blind_type = getattr(state.blind, "type", None)
-    boss_name = str(getattr(state, "boss_name", "") or "")
+    boss_name = _boss_name(state)
     ordinary = blind_type in {BlindType.SMALL, BlindType.BIG} and not boss_name
-    tooth = blind_type == BlindType.BOSS and boss_name == "The Tooth"
-    if not ordinary and not tooth:
+    supported_boss = blind_type == BlindType.BOSS and boss_name in {"The Tooth", "The Hook"}
+    if not ordinary and not supported_boss:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds and The Tooth only"
+            "R4 baseline Play currently supports Small/Big blinds, The Tooth, and The Hook only"
         )
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
@@ -196,10 +208,14 @@ def apply_supported_ordinary_play(
     next_state.last_played_hand = hand_name
 
     # Pinned vanilla calls Blind:press_play() here, after hand/counter history is
-    # committed but before evaluate_play(). Only The Tooth is currently admitted
-    # because its complete deterministic action-time mutation is canonically owned.
+    # committed but before evaluate_play(). Admit only Boss mutations with exact
+    # canonical owners at this source-order boundary.
     if _is_tooth_context(next_state):
         next_run = apply_tooth_press_play_economy_from_played_pile(next_run)
+        next_state = next_run.public
+        selected = list(next_run.played_pile)
+    elif _is_hook_context(next_state):
+        next_run = apply_hook_press_play_discards_from_played_pile(next_run)
         next_state = next_run.public
         selected = list(next_run.played_pile)
 

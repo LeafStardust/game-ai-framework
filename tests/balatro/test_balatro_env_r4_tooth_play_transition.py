@@ -88,13 +88,13 @@ def test_env_r4_tooth_play_applies_economy_on_final_hand_loss():
     assert result.played_pile == []
 
 
-def test_env_r4_non_tooth_boss_play_remains_fail_closed():
-    run = _boss_play_run(boss_name="The Hook", seed="R4-HOOK-CLOSED")
+def test_env_r4_unowned_boss_play_remains_fail_closed():
+    run = _boss_play_run(boss_name="The Wall", seed="R4-WALL-CLOSED")
     rng_before = run.rng_snapshot()
 
     with pytest.raises(
         HeadlessTransitionError,
-        match="Small/Big blinds and The Tooth only",
+        match="Small/Big blinds, The Tooth, and The Hook only",
     ):
         apply_supported_ordinary_play(run, (0,))
 

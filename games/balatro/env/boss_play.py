@@ -35,6 +35,43 @@ def _require_current_hand_play(run: HeadlessRunState, action: BalatroAction) -> 
     return cards
 
 
+def _require_post_movement_played_pile(
+    run: HeadlessRunState,
+    *,
+    boss_name: str,
+) -> list:
+    state = run.public
+    if state.phase != "SELECTING_HAND":
+        raise HeadlessTransitionError("boss press-play effect requires SELECTING_HAND phase")
+    if str(getattr(state, "boss_name", "") or "") != boss_name:
+        raise HeadlessTransitionError(
+            f"{boss_name} press-play effect requires {boss_name}"
+        )
+
+    cards = list(run.played_pile)
+    if not cards or len(cards) > 5:
+        raise HeadlessTransitionError(
+            "boss press-play played pile must contain 1 to 5 cards"
+        )
+    if len({id(card) for card in cards}) != len(cards):
+        raise HeadlessTransitionError(
+            "boss press-play played pile cannot contain duplicate card objects"
+        )
+
+    hand_ids = {id(card) for card in state.hand}
+    if any(id(card) in hand_ids for card in cards):
+        raise HeadlessTransitionError(
+            "boss press-play played cards must already have left the current hand"
+        )
+
+    playing_ids = {id(card) for card in run.require_playing_card_order()}
+    if any(id(card) not in playing_ids for card in cards):
+        raise HeadlessTransitionError(
+            "boss press-play played cards require authoritative permanent-card identity"
+        )
+    return cards
+
+
 def _apply_tooth_dollar_loss(
     run: HeadlessRunState,
     played_count: int,
@@ -69,63 +106,16 @@ def apply_tooth_press_play_economy(
 def apply_tooth_press_play_economy_from_played_pile(
     run: HeadlessRunState,
 ) -> HeadlessRunState:
-    """Apply The Tooth at the exact post-hand→play ``Blind:press_play`` boundary.
-
-    Full Play lifecycle ownership reaches ``Blind:press_play`` only after the
-    selected cards have left the hand and entered the private played area. This
-    entry point lets that lifecycle reuse the same canonical Tooth mutation
-    without moving the effect earlier merely to satisfy an action-shaped helper.
-    """
-    state = run.public
-    if state.phase != "SELECTING_HAND":
-        raise HeadlessTransitionError("boss press-play effect requires SELECTING_HAND phase")
-
-    cards = list(run.played_pile)
-    if not cards or len(cards) > 5:
-        raise HeadlessTransitionError(
-            "Tooth press-play played pile must contain 1 to 5 cards"
-        )
-    if len({id(card) for card in cards}) != len(cards):
-        raise HeadlessTransitionError(
-            "Tooth press-play played pile cannot contain duplicate card objects"
-        )
-
-    hand_ids = {id(card) for card in state.hand}
-    if any(id(card) in hand_ids for card in cards):
-        raise HeadlessTransitionError(
-            "Tooth press-play played cards must already have left the current hand"
-        )
-
-    playing_ids = {id(card) for card in run.require_playing_card_order()}
-    if any(id(card) not in playing_ids for card in cards):
-        raise HeadlessTransitionError(
-            "Tooth press-play played cards require authoritative permanent-card identity"
-        )
-
+    """Apply The Tooth at the exact post-hand→play ``Blind:press_play`` boundary."""
+    cards = _require_post_movement_played_pile(run, boss_name="The Tooth")
     return _apply_tooth_dollar_loss(run, len(cards))
 
 
-def apply_hook_press_play_discards(
+def _apply_hook_forced_discards(
     run: HeadlessRunState,
-    action: BalatroAction,
+    *,
+    candidate_hand_indices: list[int],
 ) -> HeadlessRunState:
-    """Apply The Hook's exact random forced-discard mutation.
-
-    Vanilla moves the player's chosen play cards from ``G.hand`` to ``G.play``
-    *before* calling ``Blind:press_play``. This narrow owner therefore excludes
-    ``action.cards`` from the Hook candidate set without also pretending to own
-    the ordinary hand→play transition.
-
-    The Hook calls ``pseudorandom_element(..., pseudoseed('hook'))`` up to twice,
-    removing the first selected candidate before the second draw. The eventual
-    ``discard_cards_from_highlighted(nil, true)`` path moves those cards to the
-    discard area but consumes no discard and does not enter DRAW_TO_HAND, so no
-    replacement cards are drawn at this boundary.
-
-    Joker/seal discard triggers are intentionally fail-closed until their own
-    action-time lifecycle is exact.
-    """
-    played_cards = _require_current_hand_play(run, action)
     state = run.public
     if str(getattr(state, "boss_name", "") or "") != "The Hook":
         raise HeadlessTransitionError("Hook press-play discard requires The Hook")
@@ -134,9 +124,19 @@ def apply_hook_press_play_discards(
             "Hook press-play with Joker discard triggers is not yet owned"
         )
 
-    played_ids = {id(card) for card in played_cards}
-    remaining = [card for card in state.hand if id(card) not in played_ids]
-    if any(getattr(card, "seal", None) is not None for card in remaining):
+    if any(
+        isinstance(index, bool)
+        or not isinstance(index, int)
+        or index < 0
+        or index >= len(state.hand)
+        for index in candidate_hand_indices
+    ):
+        raise HeadlessTransitionError("Hook candidate positions must reference the current hand")
+    if len(set(candidate_hand_indices)) != len(candidate_hand_indices):
+        raise HeadlessTransitionError("Hook candidate positions cannot contain duplicates")
+
+    candidates = [state.hand[index] for index in candidate_hand_indices]
+    if any(getattr(card, "seal", None) is not None for card in candidates):
         raise HeadlessTransitionError(
             "Hook press-play with sealed discard candidates is not yet owned"
         )
@@ -146,15 +146,7 @@ def apply_hook_press_play_discards(
         return next_run
 
     next_state = next_run.public
-    # Map the original action selection into the deep-copied current hand by its
-    # authoritative visible-hand positions; equality/copy semantics are not used
-    # as a substitute for object identity.
-    original_index_by_id = {id(card): index for index, card in enumerate(state.hand)}
-    copied_played_ids = {
-        id(next_state.hand[original_index_by_id[id(card)]]) for card in played_cards
-    }
-    candidates = [card for card in next_state.hand if id(card) not in copied_played_ids]
-
+    candidates = [next_state.hand[index] for index in candidate_hand_indices]
     creation_order = next_run.require_playing_card_order()
     creation_rank = {id(card): index for index, card in enumerate(creation_order)}
     if any(id(card) not in creation_rank for card in candidates):
@@ -189,3 +181,46 @@ def apply_hook_press_play_discards(
     # Hook=true intentionally does not decrement discards_remaining, increment a
     # discard-use counter, change phase, or draw replacement cards.
     return next_run
+
+
+def apply_hook_press_play_discards(
+    run: HeadlessRunState,
+    action: BalatroAction,
+) -> HeadlessRunState:
+    """Apply The Hook's exact random forced-discard mutation.
+
+    Vanilla moves the player's chosen play cards from ``G.hand`` to ``G.play``
+    *before* calling ``Blind:press_play``. This narrow action-shaped owner
+    therefore excludes ``action.cards`` from the Hook candidate set while leaving
+    ordinary hand→play movement to the complete Play lifecycle owner.
+    """
+    played_cards = _require_current_hand_play(run, action)
+    if str(getattr(run.public, "boss_name", "") or "") != "The Hook":
+        raise HeadlessTransitionError("Hook press-play discard requires The Hook")
+
+    played_ids = {id(card) for card in played_cards}
+    candidate_hand_indices = [
+        index
+        for index, card in enumerate(run.public.hand)
+        if id(card) not in played_ids
+    ]
+    return _apply_hook_forced_discards(
+        run,
+        candidate_hand_indices=candidate_hand_indices,
+    )
+
+
+def apply_hook_press_play_discards_from_played_pile(
+    run: HeadlessRunState,
+) -> HeadlessRunState:
+    """Apply The Hook at the exact post-hand→play ``Blind:press_play`` boundary.
+
+    At this boundary the player's selected cards already live in ``played_pile``;
+    every card still in the public hand is therefore an exact Hook candidate.
+    The helper consumes only Hook's keyed RNG and performs no replacement draw.
+    """
+    _require_post_movement_played_pile(run, boss_name="The Hook")
+    return _apply_hook_forced_discards(
+        run,
+        candidate_hand_indices=list(range(len(run.public.hand))),
+    )
