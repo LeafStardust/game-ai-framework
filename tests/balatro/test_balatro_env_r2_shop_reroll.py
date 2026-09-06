@@ -143,16 +143,22 @@ def test_env_r2_paid_reroll_rejects_free_reroll_and_bankruptcy_modifiers():
         reroll_base_main_shop(run)
 
 
-def test_env_r2_paid_reroll_rejects_incomplete_main_shop():
+def test_env_r2_paid_reroll_admits_partially_depleted_main_shop_and_refills_capacity():
     run = _generated_run()
     if run.public.shop_jokers:
         run.public.shop_jokers.pop()
     else:
         run.public.shop_consumables.pop()
 
-    assert not can_reroll_base_main_shop(run)
-    with pytest.raises(HeadlessTransitionError, match="complete current-capacity main shop"):
-        reroll_base_main_shop(run)
+    assert len(run.public.shop_jokers) + len(run.public.shop_consumables) == 1
+    assert can_reroll_base_main_shop(run)
+
+    result = reroll_base_main_shop(run)
+
+    assert len(result.run.public.shop_jokers) + len(result.run.public.shop_consumables) == 2
+    assert result.previous_cost == 5
+    assert result.next_cost == 6
+    assert result.run.public.money == 15
 
 
 def test_env_r2_paid_reroll_preserves_independent_booster_and_voucher_areas():
