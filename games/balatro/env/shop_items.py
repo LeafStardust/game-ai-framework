@@ -13,9 +13,7 @@ from dataclasses import dataclass
 from games.balatro.env.shop_joker_generation import OrdinaryShopJokerDescriptor
 from games.balatro.env.shop_pricing import price_base_shop_joker_descriptor
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
-
-
-_BASE_MAIN_SHOP_SLOTS = 2
+from games.balatro.env.voucher_capabilities import expected_main_shop_slots_for_vouchers
 
 
 @dataclass(frozen=True)
@@ -75,11 +73,11 @@ def insert_generated_shop_joker_item(
 ) -> HeadlessRunState:
     """Insert one exact generated Joker card into the public main-shop area.
 
-    The current canonical state stores main-shop Jokers and consumables in
-    category-specific lists, so the shared vanilla two-card area capacity is
-    enforced by the sum of those lists.  This operation owns placement only; it
-    intentionally does not convert the metadata item into a gameplay Joker and
-    therefore does not widen BUY_JOKER legality.
+    The canonical state stores main-shop Jokers and consumables in category-specific
+    lists, so shared main-shop capacity is enforced across their sum. Voucher-derived
+    capacity is owned by ``voucher_capabilities`` rather than duplicated here. This
+    operation owns placement only; it intentionally does not convert the metadata
+    item into a gameplay Joker and therefore does not widen BUY_JOKER legality.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -88,8 +86,11 @@ def insert_generated_shop_joker_item(
     state = run.public
     if state.phase != "SHOP" or not state.shop_active:
         raise HeadlessTransitionError("generated shop insertion requires active SHOP")
+    capacity = expected_main_shop_slots_for_vouchers(state)
+    if capacity is None:
+        raise HeadlessTransitionError("main shop capacity is not exact")
     occupied = len(state.shop_jokers) + len(state.shop_consumables)
-    if occupied >= _BASE_MAIN_SHOP_SLOTS:
+    if occupied >= capacity:
         raise HeadlessTransitionError("main shop inventory is already full")
 
     next_run = run.copy()
