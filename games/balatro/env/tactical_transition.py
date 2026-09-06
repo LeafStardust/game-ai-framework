@@ -19,6 +19,10 @@ from games.balatro.env.round_zones import (
     normalize_visible_card_indices,
     require_exact_selecting_hand_zones,
 )
+from games.balatro.env.tactical_evidence import (
+    PublicTacticalTransitionEvidence,
+    build_public_tactical_transition_evidence,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
@@ -111,16 +115,7 @@ def _selected_observation_indices(observation, action: BalatroAction) -> tuple[i
     return normalize_visible_card_indices(indices, hand_size=len(hand))
 
 
-def apply_planned_tactical_step(run: HeadlessRunState, decision_engine) -> HeadlessRunState:
-    """Decide from one policy-safe observation and execute one admitted tactical step.
-
-    R4 intentionally calls the same production-shaped ``decide(state)`` boundary
-    used by the live hand-action engine. The returned decision must carry the
-    canonical ``BalatroAction`` in ``decision.action``. The same sanitized
-    observation object is used both for decision input and for mapping selected
-    card objects back to visible positions. No hidden card identity or physical
-    draw order is supplied to the decision engine.
-    """
+def _planned_tactical_decision(run: HeadlessRunState, decision_engine):
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
     if run.public.phase != "SELECTING_HAND":
@@ -139,17 +134,54 @@ def apply_planned_tactical_step(run: HeadlessRunState, decision_engine) -> Headl
         raise HeadlessTransitionError(
             "tactical decision engine did not return BalatroAction"
         )
+    return observation, action
 
+
+def _apply_decided_tactical_action(
+    run: HeadlessRunState,
+    observation,
+    action: BalatroAction,
+) -> HeadlessRunState:
+    indices = _selected_observation_indices(observation, action)
     if action.name == DISCARD_CARDS:
-        return apply_supported_tactical_discard(
-            run,
-            _selected_observation_indices(observation, action),
-        )
+        return apply_supported_tactical_discard(run, indices)
     if action.name == PLAY_CARDS:
-        return apply_supported_ordinary_play(
-            run,
-            _selected_observation_indices(observation, action),
-        )
+        return apply_supported_ordinary_play(run, indices)
     raise HeadlessTransitionError(
         f"tactical decision engine returned unsupported action {action.name!r}"
     )
+
+
+def apply_planned_tactical_step(run: HeadlessRunState, decision_engine) -> HeadlessRunState:
+    """Decide from one policy-safe observation and execute one admitted tactical step.
+
+    R4 intentionally calls the same production-shaped ``decide(state)`` boundary
+    used by the live hand-action engine. The returned decision must carry the
+    canonical ``BalatroAction`` in ``decision.action``. The same sanitized
+    observation object is used both for decision input and for mapping selected
+    card objects back to visible positions. No hidden card identity or physical
+    draw order is supplied to the decision engine.
+    """
+    observation, action = _planned_tactical_decision(run, decision_engine)
+    return _apply_decided_tactical_action(run, observation, action)
+
+
+def apply_planned_tactical_step_with_evidence(
+    run: HeadlessRunState,
+    decision_engine,
+) -> tuple[HeadlessRunState, PublicTacticalTransitionEvidence]:
+    """Execute one admitted tactical step and return public-safe R4 evidence.
+
+    The decision engine is invoked exactly once. Evidence reuses that exact
+    sanitized decision observation and canonical action, then sanitizes the
+    public post-state. Simulator-private zones and RNG remain only on the returned
+    ``HeadlessRunState`` and are never copied into the evidence object.
+    """
+    observation, action = _planned_tactical_decision(run, decision_engine)
+    result = _apply_decided_tactical_action(run, observation, action)
+    evidence = build_public_tactical_transition_evidence(
+        observation,
+        action,
+        result.public,
+    )
+    return result, evidence
