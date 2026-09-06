@@ -35,16 +35,10 @@ def _require_current_hand_play(run: HeadlessRunState, action: BalatroAction) -> 
     return cards
 
 
-def apply_tooth_press_play_economy(
+def _apply_tooth_dollar_loss(
     run: HeadlessRunState,
-    action: BalatroAction,
+    played_count: int,
 ) -> HeadlessRunState:
-    """Apply The Tooth's exact ``-$1 per played card`` press-play mutation.
-
-    Vanilla permits dollars to become negative, so this transition deliberately
-    does not clamp at zero. The input run and RNG state are never mutated.
-    """
-    cards = _require_current_hand_play(run, action)
     state = run.public
     if str(getattr(state, "boss_name", "") or "") != "The Tooth":
         raise HeadlessTransitionError("Tooth press-play economy requires The Tooth")
@@ -53,8 +47,62 @@ def apply_tooth_press_play_economy(
     if boss_blind_disabled_by_owned_jokers(next_run.public):
         return next_run
 
-    next_run.public.money -= len(cards)
+    next_run.public.money -= played_count
     return next_run
+
+
+def apply_tooth_press_play_economy(
+    run: HeadlessRunState,
+    action: BalatroAction,
+) -> HeadlessRunState:
+    """Apply The Tooth's exact ``-$1 per played card`` press-play mutation.
+
+    This entry point validates a production-shaped Play action against the
+    current public hand. Vanilla permits dollars to become negative, so this
+    transition deliberately does not clamp at zero. The input run and RNG state
+    are never mutated.
+    """
+    cards = _require_current_hand_play(run, action)
+    return _apply_tooth_dollar_loss(run, len(cards))
+
+
+def apply_tooth_press_play_economy_from_played_pile(
+    run: HeadlessRunState,
+) -> HeadlessRunState:
+    """Apply The Tooth at the exact post-hand→play ``Blind:press_play`` boundary.
+
+    Full Play lifecycle ownership reaches ``Blind:press_play`` only after the
+    selected cards have left the hand and entered the private played area. This
+    entry point lets that lifecycle reuse the same canonical Tooth mutation
+    without moving the effect earlier merely to satisfy an action-shaped helper.
+    """
+    state = run.public
+    if state.phase != "SELECTING_HAND":
+        raise HeadlessTransitionError("boss press-play effect requires SELECTING_HAND phase")
+
+    cards = list(run.played_pile)
+    if not cards or len(cards) > 5:
+        raise HeadlessTransitionError(
+            "Tooth press-play played pile must contain 1 to 5 cards"
+        )
+    if len({id(card) for card in cards}) != len(cards):
+        raise HeadlessTransitionError(
+            "Tooth press-play played pile cannot contain duplicate card objects"
+        )
+
+    hand_ids = {id(card) for card in state.hand}
+    if any(id(card) in hand_ids for card in cards):
+        raise HeadlessTransitionError(
+            "Tooth press-play played cards must already have left the current hand"
+        )
+
+    playing_ids = {id(card) for card in run.require_playing_card_order()}
+    if any(id(card) not in playing_ids for card in cards):
+        raise HeadlessTransitionError(
+            "Tooth press-play played cards require authoritative permanent-card identity"
+        )
+
+    return _apply_tooth_dollar_loss(run, len(cards))
 
 
 def apply_hook_press_play_discards(

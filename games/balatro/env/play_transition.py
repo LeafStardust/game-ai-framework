@@ -1,10 +1,11 @@
-"""Exact narrow ordinary Play lifecycle for Phase R4.
+"""Exact narrow Play lifecycle for Phase R4.
 
-This owner intentionally admits only the deterministic Red Deck / White Stake
-Small/Big-blind slice whose action-time semantics are already exact: an
-unmodified base playing-card deck, no Jokers, Tags, consumables, Vouchers, Boss
-callbacks, or random card effects. The boundary can widen only when those
-source-order mechanics have canonical environment owners.
+This owner intentionally admits only deterministic Red Deck / White Stake slices
+whose action-time semantics are already exact: ordinary Small/Big blinds and the
+narrow The Tooth Boss path, with an unmodified base playing-card deck and no
+Joker, Tag, consumable, Voucher, random card, or other unowned callbacks. The
+boundary can widen only when those source-order mechanics have canonical
+environment owners.
 """
 
 from __future__ import annotations
@@ -12,6 +13,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from games.balatro.blinds.blind import BlindType
+from games.balatro.env.boss_play import (
+    apply_tooth_press_play_economy_from_played_pile,
+)
 from games.balatro.env.deal import draw_one_supported_card_to_hand
 from games.balatro.env.round_zones import (
     normalize_visible_card_indices,
@@ -66,20 +70,34 @@ def _require_plain_base_cards(run: HeadlessRunState) -> None:
             )
 
 
+def _is_tooth_context(state) -> bool:
+    return (
+        getattr(state.blind, "type", None) == BlindType.BOSS
+        and str(getattr(state, "boss_name", "") or "") == "The Tooth"
+    )
+
+
 def _require_supported_context(run: HeadlessRunState) -> None:
     state = run.public
     if state.phase != "SELECTING_HAND":
         raise HeadlessTransitionError("R4 baseline Play requires SELECTING_HAND phase")
     if state.blind is None:
         raise HeadlessTransitionError("R4 baseline Play requires an active blind")
-    if getattr(state.blind, "type", None) not in {BlindType.SMALL, BlindType.BIG}:
+
+    blind_type = getattr(state.blind, "type", None)
+    boss_name = str(getattr(state, "boss_name", "") or "")
+    ordinary = blind_type in {BlindType.SMALL, BlindType.BIG} and not boss_name
+    tooth = blind_type == BlindType.BOSS and boss_name == "The Tooth"
+    if not ordinary and not tooth:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds only"
+            "R4 baseline Play currently supports Small/Big blinds and The Tooth only"
         )
-    if state.boss_name is not None or getattr(state.blind, "modifiers", None):
-        raise HeadlessTransitionError("R4 baseline Play does not yet own Boss callbacks")
+    if getattr(state.blind, "modifiers", None):
+        raise HeadlessTransitionError(
+            "R4 baseline Play does not yet own additional blind modifiers"
+        )
     if bool(getattr(state.blind, "disabled", False)):
-        raise HeadlessTransitionError("R4 baseline Play requires an active ordinary blind")
+        raise HeadlessTransitionError("R4 baseline Play requires an active blind")
     if getattr(state.blind, "tag_key", None) is not None:
         raise HeadlessTransitionError("R4 baseline Play does not yet own blind-tag callbacks")
     if state.jokers:
@@ -124,7 +142,7 @@ def apply_supported_ordinary_play(
     run: HeadlessRunState,
     card_indices: Iterable[int],
 ) -> HeadlessRunState:
-    """Apply one exact ordinary Play through clear, loss, or deterministic redraw.
+    """Apply one exact admitted Play through clear, loss, or deterministic redraw.
 
     ``card_indices`` are zero-based visible-hand positions. The input run and RNG
     are never mutated. A cleared blind stops at the established headless
@@ -176,6 +194,14 @@ def apply_supported_ordinary_play(
             hand_name,
         )
     next_state.last_played_hand = hand_name
+
+    # Pinned vanilla calls Blind:press_play() here, after hand/counter history is
+    # committed but before evaluate_play(). Only The Tooth is currently admitted
+    # because its complete deterministic action-time mutation is canonically owned.
+    if _is_tooth_context(next_state):
+        next_run = apply_tooth_press_play_economy_from_played_pile(next_run)
+        next_state = next_run.public
+        selected = list(next_run.played_pile)
 
     hand_score = BalatroScorer().score(
         poker_hand,
