@@ -120,6 +120,12 @@ def headless_reroll_run_from_live_checkpoint(
             "ordinary paid-reroll parity does not admit free rerolls"
         )
 
+    payload = checkpoint.public_snapshot.payload
+    if payload.get("vouchers_observed") is not True or not isinstance(payload.get("vouchers"), list):
+        raise LiveRerollParityCheckpointError(
+            "live reroll checkpoint does not have exact Voucher reroll-cost state"
+        )
+
     translator = translator or DefaultBalatroStateTranslator()
     public = translator.translate(checkpoint.public_snapshot)
     if public.phase != "SHOP" or not public.shop_active:
