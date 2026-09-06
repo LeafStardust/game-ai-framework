@@ -82,6 +82,13 @@ R4 production decision-engine wiring:
   refactor(balatro): wire R4 tactical decision engine
 GitHub Actions run 33995495867
 2336 passed, 1595 deselected
+
+R4 ordinary Play lifecycle:
+652b32624ae2feaad9e768baac9f505b386bb271
+  feat(balatro): own ordinary R4 play lifecycle
+GitHub Actions run 33999099418
+GitHub Actions job 101394654137
+2350 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -91,7 +98,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R1 deterministic state/acquisition: **SUBSTANTIALLY COMPLETE**.
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
-- R4 deterministic tactical bridge: **IN PROGRESS**.
+- R4 deterministic tactical bridge: **IN PROGRESS — ORDINARY PLAY/DISCARD GREEN; BOSS COVERAGE REMAINS**.
 - R5 live/simulator parity harness: **NOT STARTED**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
@@ -142,7 +149,7 @@ R0 headless environment architecture COMPLETE
 R1 deterministic state/acquisition   SUBSTANTIALLY COMPLETE
 R2 RNG/lifecycle/shop generation     BROADLY GREEN / SPECIFIC GAPS REMAIN
 R3 typed action vocabulary           COMPLETE / GREEN
-R4 deterministic tactical bridge     IN PROGRESS
+R4 deterministic tactical bridge     IN PROGRESS — ORDINARY GREEN
 R5 live/simulator parity harness      NOT STARTED
 R6 environment performance gate      NOT STARTED
 O observation/action encoding        NOT STARTED
@@ -489,6 +496,19 @@ Representative later gates:
 33978049029  2320 passed, 1595 deselected   pack/sale/Planet-use era latest verified head
 ```
 
+### Headless `ROUND_EVAL` boundary
+
+The project deliberately uses `ROUND_EVAL` as the headless pre-cashout boundary consumed by `cash_out_baseline_ordinary_blind()`. This name is not a claim that the card-zone timing is identical to vanilla's internal state label.
+
+For the exact admitted lifecycle:
+
+- a completed Play has already moved its selected cards from hand → play → discard and left `played_pile` empty;
+- a cleared blind may still retain unplayed held cards in `public.hand` at this headless boundary;
+- `round_end.py` / `repopulate_round_end_deck()` owns the admitted clear-path hand/discard → deck repopulation before payout/shop progression;
+- final-hand failure enters `GAME_OVER` and does not execute clear-path repopulation.
+
+Do not duplicate this repopulation inside the tactical Play owner merely to mirror vanilla's internal state-label timing.
+
 ---
 
 # Fail-closed rule
@@ -592,21 +612,19 @@ RL controls strategic run-development boundaries while existing deterministic ha
 
 ## Canonical tactical audit — current findings
 
-The production-entry wiring audit is complete. The remaining blocker before `PLAY_CARDS` can be admitted is a real headless R1/R2 lifecycle ownership gap, not a tactical-policy interface ambiguity:
+The production-entry wiring and the narrow ordinary Small/Big-blind Play/Discard lifecycle are complete and green. The remaining R4 work is representative exact Boss tactical coverage and trajectory evidence for R5, not ordinary Play ownership:
 
 1. Canonical tactical payloads are `BalatroAction(PLAY_CARDS, cards=[...])` and `BalatroAction(DISCARD_CARDS, cards=[...])` from `games/balatro/actions.py`; selected cards are canonical public hand objects, not an RL-only index action type.
-2. The production call chain is `StrategyAwareLiveMemoryInjectedSingleStepRunner` → `_recommend_hand_with_bonds()` → `PathAwareLiveHandActionDecisionEngine(policy=StrategyAwareLiveHandActionPolicy(...))` → `.decide(state)` → `HandActionDecision.action`. The headless bridge now calls that same production-shaped `decide(state)` boundary and accepts only the canonical `BalatroAction` carried by `decision.action`; the former test-only `.plan(state)` shape is rejected rather than retained as a compatibility layer.
+2. The production call chain is `StrategyAwareLiveMemoryInjectedSingleStepRunner` → `_recommend_hand_with_bonds()` → `PathAwareLiveHandActionDecisionEngine(policy=StrategyAwareLiveHandActionPolicy(...))` → `.decide(state)` → `HandActionDecision.action`. The headless bridge calls that same production-shaped `decide(state)` boundary and accepts only the canonical `BalatroAction` carried by `decision.action`; the former test-only `.plan(state)` shape is rejected rather than retained as a compatibility layer.
 3. `D1LiveBlindClearPlanner` in `games/balatro/live/hand_action_planner.py` extends the core planner in `hand_action_planner_core.py`, obtains Play/Discard candidates from the shared generator, and filters Play candidates through `boss_play_action_is_legal`; Boss-aware score projection remains in the shared live evaluator path.
 4. Runner / To Do List target-hand evidence is owned by `games/balatro/target_hand_engine_policy.py` and consumed inside canonical D1 ranking; R4 must not duplicate that heuristic.
 5. `games/balatro/env/public_observation.py` is the policy-visible sanitization boundary. Private physical draw order remains on `HeadlessRunState` and is never passed to the tactical decision engine.
 6. The frozen strategic action contract remains `games/balatro/env_contract.py`; there is no separate `env_contract.v1.json` and no tactical learner action needs to be added to the strategic mask for R4.
-7. No complete ordinary headless Play transition currently exists. `games/balatro/env/boss_play.py` explicitly owns only Boss `Blind:press_play` mutations and explicitly does not execute an entire `PLAY_CARDS` transition; `round_zones.py` owns card-zone boundary primitives; `round_end.py` starts after a blind is already cleared; `games/balatro/scoring.py` computes hand scores but does not own action-time counters, zone movement, redraw, blind-clear/continue/loss resolution, or deterministic environment RNG integration.
-
-Therefore `PLAY_CARDS` remains fail-closed until a canonical headless action-time owner composes the complete source-order lifecycle. Do not bolt this lifecycle into the decision bridge as an R4 workaround.
+7. `games/balatro/env/play_transition.py` now owns the narrow exact ordinary Small/Big-blind action-time lifecycle. It composes canonical card selection, poker-hand recognition/scoring, hand/round counters, hand → play → discard movement, clear/continue/final-loss branching, exact redraw, and played-this-ante history while excluding unowned card/Joker/Boss/random effects.
+8. `games/balatro/env/tactical_transition.py` composes both admitted Discard and ordinary Play owners behind the production `.decide()` boundary. Unsupported tactical states still fail closed.
+9. `games/balatro/env/boss_play.py` remains intentionally narrower than a complete Play transition: it owns audited Boss `Blind:press_play` mutations only. Boss Play must be admitted only when those mutations can be composed into the complete Play lifecycle in pinned vanilla source order and all other required Boss effects are exact.
 
 ## Admitted R4 slice — green
-
-`games/balatro/env/tactical_transition.py` currently owns a deliberately narrow exact Discard bridge:
 
 ```text
 headless SELECTING_HAND
@@ -617,11 +635,11 @@ production-shaped decision_engine.decide(state)
         ↓
 HandActionDecision.action / canonical BalatroAction
         ↓
-canonical DISCARD_CARDS + selected public hand objects
+canonical PLAY_CARDS or DISCARD_CARDS
         ↓
-visible-position mapping
+visible-position mapping / exact action owner
         ↓
-exact headless discard/redraw transition
+headless transition
 ```
 
 Exact admitted behavior:
@@ -630,14 +648,12 @@ Exact admitted behavior:
 - private/public draw and discard zones must agree before mutation;
 - permanent playing-card order must remain authoritative;
 - the input run is copy-on-write;
-- selected cards move to the exact discard tail;
-- `discards_remaining` and `discards_used` update atomically;
-- redraw uses retained private physical draw order without exposing it to policy;
-- decision-engine input is `public_observation_state(run.public)`, so face-down identity remains masked;
+- Discard moves selected cards to the exact discard tail, updates `discards_remaining` / `discards_used`, and redraws from retained private physical order;
+- ordinary Play decrements hands before movement, moves hand → play → discard, records played-this-ante history, evaluates the canonical poker hand and deterministic score, updates score/hand counters/visibility/last hand, and resolves clear vs continue/redraw vs final-hand loss;
+- policy input is `public_observation_state(run.public)`, so face-down identity remains masked;
 - decision-selected foreign card objects fail closed;
 - the legacy test-only `.plan(state)` shape fails closed rather than being supported in parallel;
-- Boss discard callbacks, Joker discard callbacks, Purple Seal generation, and unsupported decision actions fail closed;
-- `PLAY_CARDS` remains explicitly fail closed until its exact lifecycle is owned.
+- unsupported Joker/card callbacks, random scoring effects, Boss action-time effects not yet composed through exact ownership, and unsupported decision actions fail closed.
 
 Green checkpoints:
 
@@ -651,6 +667,12 @@ GitHub Actions run 33982555046
   refactor(balatro): wire R4 tactical decision engine
 GitHub Actions run 33995495867
 2336 passed, 1595 deselected
+
+652b32624ae2feaad9e768baac9f505b386bb271
+  feat(balatro): own ordinary R4 play lifecycle
+GitHub Actions run 33999099418
+GitHub Actions job 101394654137
+2350 passed, 1595 deselected
 ```
 
 ## Minimal R4 bridge target
@@ -680,11 +702,11 @@ Required properties:
 
 ## Exact next task
 
-1. close the identified R1/R2 headless ordinary-Play lifecycle gap at its canonical environment owner, using the pinned vanilla source order rather than adding logic to the decision bridge;
-2. first model the narrowest exact ordinary Small/Big-blind `PLAY_CARDS` subset: selected-card legality/identity, poker-hand recognition and exact score, hand/round counters, hand→play→discard movement, blind clear versus continue versus loss, redraw/post-hand phase, and all required callbacks in source order;
-3. explicitly exclude any card/Joker/Boss/random effect whose action-time semantics or Balatro RNG ownership are not yet exact; `games/balatro/scoring.py` must not be treated as a full transition owner merely because it can project a score;
-4. compose the completed ordinary-Play owner back into `games/balatro/env/tactical_transition.py` only after the lifecycle is independently exact;
-5. add focused deterministic regressions for clear, continue, loss/final-hand, zone/counter updates, fail-closed unsupported effects, and the decision-engine bridge; then run the authoritative GitHub Actions gate.
+1. audit `games/balatro/env/boss_play.py`, production Boss tactical legality/scoring owners, and pinned vanilla `Blind:press_play()` / post-score lifecycle to identify the narrowest Boss whose complete Play transition is already exact or can be made exact without approximating unowned effects;
+2. compose Boss `press_play` mutations into `play_transition.py` only at the canonical pinned-vanilla source-order position, rather than adding Boss special cases to the decision bridge;
+3. keep every Boss whose action-time, scoring, redraw, hidden-information, forced-selection, discard, or RNG behavior is not fully owned fail closed;
+4. add representative deterministic Boss tactical regressions covering both admitted exact behavior and fail-closed unsupported Boss behavior through the production-shaped `.decide()` bridge;
+5. determine and persist the minimal tactical trajectory evidence required by R5 comparison without exposing private draw order or creating a second action representation.
 
 No live Balatro run is required for this implementation. Live validation begins only when R5 needs representative simulator/live parity evidence.
 
