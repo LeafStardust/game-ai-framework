@@ -3,6 +3,11 @@ from copy import deepcopy
 import pytest
 
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.shop_consumable_generation_state import (
+    restore_removed_shop_consumables_to_generation_pool,
+    suppress_visible_shop_consumables_from_generation_pool,
+)
+from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.env.shop_main_generation import generate_base_main_shop
 from games.balatro.env.strategic_evidence import (
     PublicStrategicTransitionEvidence,
@@ -18,6 +23,7 @@ from games.balatro.live.reroll_parity_checkpoint import (
 )
 from games.balatro.live.runtime.live_memory_shop_terms import LiveShopRerollTerms
 from games.balatro.state import BalatroState
+from games.balatro.tarots import create_tarot
 
 
 def _joker_record(rarity, key, cost):
@@ -163,6 +169,55 @@ def test_env_r5_reroll_replay_admits_partially_depleted_overstock_shop():
     assert expected.previous_cost == 5
     assert expected.next_cost == 6
     assert expected.run.public.money == 15
+
+
+def test_env_r5_consumable_pool_visibility_matches_live_reroll_shape():
+    state = BalatroState()
+    state.phase = "SHOP"
+    state.shop_active = True
+    state.consumable_generation_pool_observed = True
+    state.consumable_generation_pools = {
+        "Tarot": [
+            {**_consumable_record("Tarot", "c_empress"), "unlocked": None},
+        ],
+        "Planet": [
+            {**_consumable_record("Planet", "c_mars"), "unlocked": None},
+            {**_consumable_record("Planet", "c_pluto"), "unlocked": None},
+        ],
+    }
+    run = HeadlessRunState(public=state, seed="R5-LIVE-CONSUMABLE-POOL")
+
+    removed = create_tarot("The Hanged Man")
+    restored = restore_removed_shop_consumables_to_generation_pool(run, (removed,))
+    assert [
+        record["key"] for record in restored.public.consumable_generation_pools["Tarot"]
+    ] == ["c_empress", "c_hanged_man"]
+    hanged = restored.public.consumable_generation_pools["Tarot"][1]
+    assert hanged == {
+        "type": "Tarot",
+        "key": "c_hanged_man",
+        "cost": 3,
+        "unlocked": None,
+        "no_pool_flag": None,
+        "yes_pool_flag": None,
+        "softlock": False,
+        "hand_type": None,
+    }
+
+    visible = (
+        GeneratedShopConsumableItem("Tarot", "c_empress", 3, 3),
+        GeneratedShopConsumableItem("Planet", "c_mars", 3, 3),
+    )
+    suppressed = suppress_visible_shop_consumables_from_generation_pool(
+        restored,
+        visible,
+    )
+    assert [
+        record["key"] for record in suppressed.public.consumable_generation_pools["Tarot"]
+    ] == ["c_hanged_man"]
+    assert [
+        record["key"] for record in suppressed.public.consumable_generation_pools["Planet"]
+    ] == ["c_pluto"]
 
 
 def test_env_r5_reroll_replay_reports_public_post_state_difference():
