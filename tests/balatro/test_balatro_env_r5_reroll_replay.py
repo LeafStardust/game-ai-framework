@@ -173,6 +173,8 @@ def test_env_r5_reroll_replay_admits_partially_depleted_overstock_shop():
 
 def test_env_r5_consumable_pool_visibility_matches_live_reroll_shape():
     state = BalatroState()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
     state.phase = "SHOP"
     state.shop_active = True
     state.consumable_generation_pool_observed = True
