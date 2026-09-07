@@ -1,10 +1,11 @@
 """Source-ordered exact generation for ordinary main-shop slots.
 
 Vanilla calls ``create_card_for_shop(G.shop_jokers)`` once per missing slot and
-immediately emplaces each result. Emplacement alone does not call ``add_to_deck``
-or mutate ``G.GAME.used_jokers``, so later slot pool eligibility is unchanged by
-cards merely remaining visible in the shop. The headless boundary can therefore
-keep publication atomic while preserving RNG order.
+immediately makes each result visible. Tarot/Planet visibility participates in
+``G.GAME.used_jokers`` duplicate suppression, so a newly created consumable must
+be removed from the authoritative eligible pool before the next slot is polled.
+The headless boundary still publishes the final inventory atomically, while its
+mechanics-critical generation catalogue advances in source order.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from dataclasses import dataclass
 from games.balatro.env.shop_consumable_generation_state import (
     eligible_consumable_records_from_state,
     generate_ordinary_shop_consumable_descriptor_from_state,
+    suppress_visible_shop_consumables_from_generation_pool,
 )
 from games.balatro.env.shop_consumable_items import (
     GeneratedShopConsumableItem,
@@ -136,6 +138,11 @@ def generate_base_main_shop(run: HeadlessRunState) -> GeneratedMainShop:
     for _ in range(slot_count):
         generated_run, item = _generate_one_main_shop_item(generated_run)
         items.append(item)
+        if isinstance(item, GeneratedShopConsumableItem):
+            generated_run = suppress_visible_shop_consumables_from_generation_pool(
+                generated_run,
+                (item,),
+            )
 
     published = generated_run
     for item in items:
@@ -150,7 +157,7 @@ def generate_base_main_shop(run: HeadlessRunState) -> GeneratedMainShop:
 def generate_one_base_main_shop_addition(run: HeadlessRunState) -> GeneratedMainShopAddition:
     """Generate one ``change_shop_size(+1)`` replenishment in exact RNG order.
 
-    ``create_card_for_shop`` does not consult already-visible main-shop cards,
+    ``create_card_for_shop`` does not consult already-visible main-shop geometry,
     booster cards, or the current Voucher offer when choosing the new card. The
     lower-level generator intentionally requires an otherwise ungenerated shop,
     so this composition creates an isolated generation view, advances exactly one
@@ -177,6 +184,11 @@ def generate_one_base_main_shop_addition(run: HeadlessRunState) -> GeneratedMain
     _preflight_main_shop_generation(generation_view)
 
     generated_run, item = _generate_one_main_shop_item(generation_view)
+    if isinstance(item, GeneratedShopConsumableItem):
+        generated_run = suppress_visible_shop_consumables_from_generation_pool(
+            generated_run,
+            (item,),
+        )
     generated_run.public.shop_jokers = existing_jokers
     generated_run.public.shop_consumables = existing_consumables
     generated_run.public.shop_boosters = existing_boosters
