@@ -17,6 +17,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from games.balatro.env.shop_consumable_generation_state import (
+    restore_removed_shop_consumables_to_generation_pool,
+)
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.env.shop_items import GeneratedShopJokerItem
 from games.balatro.env.shop_main_generation import GeneratedMainShop, generate_base_main_shop
@@ -81,13 +84,6 @@ def validate_paid_base_reroll(run: HeadlessRunState) -> None:
             "paid reroll main-shop occupancy exceeds current capacity"
         )
 
-    # Vanilla reroll removes whatever cards remain in G.shop_jokers and then
-    # regenerates the shared main-shop area to its current capacity. A purchase
-    # may therefore leave fewer cards than the capacity immediately before a
-    # valid reroll; only impossible over-capacity state must fail closed here.
-    # Booster and Voucher areas are independent and remain untouched, so their
-    # presence is not a reason to reject an otherwise exact reroll.
-
 
 def can_reroll_base_main_shop(run: HeadlessRunState) -> bool:
     """Return whether the exact ordinary paid-reroll transition is available."""
@@ -104,22 +100,20 @@ def reroll_base_main_shop(run: HeadlessRunState) -> PaidBaseShopReroll:
 
     previous_cost = run.reroll_cost
     next_run = run.copy()
-
-    # Vanilla queues the dollar deduction before the immediate reroll event.
     next_run.public.money -= previous_cost
-
-    # With no free-reroll/temp modifiers, calculate_reroll_cost(false) increments
-    # reroll_cost_increase by one. Persistent Voucher reductions are already
-    # represented in base_reroll_cost, so current + 1 remains exact.
     next_run.reroll_cost = previous_cost + 1
 
-    # G.shop_jokers is the shared physical main-shop area. Canonical state splits
-    # that area by item category, so both category lists must be cleared together.
-    # The generic main-shop generator deliberately requires every shop area empty;
-    # isolate generation from the independent booster/Voucher areas, then restore
-    # those areas without letting them influence main-shop RNG or capacity.
     existing_boosters = list(next_run.public.shop_boosters)
     existing_vouchers = list(next_run.public.shop_vouchers)
+    removed_consumables = list(next_run.public.shop_consumables)
+
+    # Removing visible Tarot/Planet cards can re-admit their centers to
+    # get_current_pool before the first replacement slot is generated.
+    next_run = restore_removed_shop_consumables_to_generation_pool(
+        next_run,
+        removed_consumables,
+    )
+
     next_run.public.shop_jokers = []
     next_run.public.shop_consumables = []
     next_run.public.shop_boosters = []
