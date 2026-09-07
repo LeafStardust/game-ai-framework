@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
+from .consumable_generation_pool_observer import observe_consumable_generation_pools
 from .joker_generation_pool_observer import observe_joker_generation_pools
 from .live_memory_observer import (
     _array_table_values,
@@ -80,6 +81,11 @@ def public_joker_generation_pools(decoder, root):
     return observe_joker_generation_pools(decoder, root)
 
 
+def public_consumable_generation_pool(decoder, root):
+    """Return the exact public Tarot/Planet generation catalogue or ``None``."""
+    return observe_consumable_generation_pools(decoder, root)
+
+
 def enrich_joker_generation_pool_payload(payload: dict, generation_pools) -> dict:
     """Install or clear the authoritative Joker-generation catalogue marker.
 
@@ -96,6 +102,22 @@ def enrich_joker_generation_pool_payload(payload: dict, generation_pools) -> dic
     return enriched
 
 
+def enrich_consumable_generation_pool_payload(payload: dict, generation_pool) -> dict:
+    """Install or clear the authoritative Tarot/Planet generation catalogue marker.
+
+    The translator admits consumable generation only when the marker is true and
+    the complete Tarot/Planet catalogue is present. Clearing stale payload on an
+    incomplete live-memory read preserves that fail-closed contract.
+    """
+    enriched = dict(payload)
+    enriched["consumable_generation_pool_observed"] = generation_pool is not None
+    if generation_pool is not None:
+        enriched["consumable_generation_pool"] = generation_pool
+    else:
+        enriched.pop("consumable_generation_pool", None)
+    return enriched
+
+
 class DiscardHistorySupervisorLiveMemoryBalatroObserver(
     SupervisorLiveMemoryBalatroObserver
 ):
@@ -103,9 +125,10 @@ class DiscardHistorySupervisorLiveMemoryBalatroObserver(
 
     Besides exact discard usage, Cerulean Bell's currently forced hand card is a
     public controller constraint stored on ``card.ability.forced_selection``.
-    The same production enrichment boundary also owns the exact public Joker-
-    generation catalogue used by headless identity RNG. Catalogue observation is
-    all-or-nothing and never exposes Balatro's PRNG state or future selection.
+    The same production enrichment boundary also owns the exact public Joker and
+    Tarot/Planet generation catalogues used by headless identity RNG. Catalogue
+    observation is all-or-nothing and never exposes Balatro's PRNG state or future
+    selection.
 
     Native readiness remains authoritative in the base supervisor observer. The
     dedicated pack-to-SHOP Joker visual-settle barrier also remains authoritative
@@ -163,6 +186,12 @@ class DiscardHistorySupervisorLiveMemoryBalatroObserver(
 
         generation_pools = public_joker_generation_pools(decoder, root)
         payload = enrich_joker_generation_pool_payload(payload, generation_pools)
+        changed = True
+
+        consumable_generation_pool = public_consumable_generation_pool(decoder, root)
+        payload = enrich_consumable_generation_pool_payload(
+            payload, consumable_generation_pool
+        )
         changed = True
 
         if not changed:
