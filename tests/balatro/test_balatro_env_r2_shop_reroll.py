@@ -194,3 +194,28 @@ def test_env_r2_paid_reroll_admits_omen_globe_as_base_shop_inert():
     assert result.previous_cost == 5
     assert result.next_cost == 6
     assert result.run.public.money == 15
+
+
+def test_env_r2_paid_reroll_admits_telescope_as_base_shop_and_reroll_inert():
+    run = _generated_run("REROLL-TELESCOPE")
+    run.public.vouchers = ["v_clearance_sale", "v_telescope"]
+    run.public.vouchers_observed = True
+    run.public.shop_discount_percent = 25
+
+    assert can_reroll_base_main_shop(run)
+
+    result = reroll_base_main_shop(run)
+
+    assert result.previous_cost == 5
+    assert result.next_cost == 6
+    assert result.run.public.money == 15
+
+
+def test_env_r2_paid_reroll_still_rejects_unknown_voucher():
+    run = _generated_run("REROLL-UNKNOWN-VOUCHER")
+    run.public.vouchers = ["v_unknown"]
+    run.public.vouchers_observed = True
+
+    assert not can_reroll_base_main_shop(run)
+    with pytest.raises(HeadlessTransitionError, match="Voucher"):
+        reroll_base_main_shop(run)
