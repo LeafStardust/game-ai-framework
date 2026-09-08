@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
-from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, REFRESH_SHOP, BalatroAction
+from games.balatro.actions import BUY_JOKER, DISCARD_CARDS, PLAY_CARDS, REFRESH_SHOP, BalatroAction
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.parity import (
     PublicStrategicTrajectoryParityComparison,
@@ -23,6 +23,27 @@ from games.balatro.live.translator import DefaultBalatroStateTranslator
 
 _TACTICAL_ACTIONS = frozenset({PLAY_CARDS, DISCARD_CARDS})
 _REROLL_SHOP_LOG_ACTION = {"name": REFRESH_SHOP}
+
+
+def _canonical_joker_purchase_action(value: Any, state) -> EnvAction | None:
+    if not isinstance(value, dict):
+        raise ValueError("run-log action must be an object")
+    if str(value.get("name") or "") != BUY_JOKER:
+        return None
+    target = value.get("target")
+    if not isinstance(target, dict):
+        raise ValueError("BUY_JOKER run-log action requires a target object")
+    area_index = target.get("area_index")
+    if isinstance(area_index, bool) or not isinstance(area_index, int):
+        raise ValueError("BUY_JOKER target requires an integer area_index")
+    slots = [
+        slot
+        for slot, joker in enumerate(state.shop_jokers)
+        if getattr(joker, "area_index", None) == area_index
+    ]
+    if len(slots) != 1:
+        raise ValueError("BUY_JOKER target does not identify exactly one translated shop Joker")
+    return EnvAction.from_alias("BUY_JOKER", {"slot": slots[0]})
 
 
 def _snapshot_from_log_state(value: Any) -> LiveBalatroSnapshot:
@@ -186,4 +207,66 @@ def successful_reroll_shop_evidence_from_run_rows(rows: Iterable[dict[str, Any]]
 
 def compare_run_rows_to_simulator_reroll_shop_evidence(rows: Iterable[dict[str, Any]], simulator_evidence: Iterable[PublicStrategicTransitionEvidence], *, translator: DefaultBalatroStateTranslator | None = None) -> PublicStrategicTrajectoryParityComparison:
     live_evidence = successful_reroll_shop_evidence_from_run_rows(rows, translator=translator)
+    return compare_public_strategic_trajectory(live_evidence, simulator_evidence)
+
+
+def successful_joker_purchase_evidence_from_run_rows(rows: Iterable[dict[str, Any]], *, translator: DefaultBalatroStateTranslator | None = None) -> tuple[PublicStrategicTransitionEvidence, ...]:
+    """Extract successful supported Joker purchases from durable live rows."""
+    translator = translator or DefaultBalatroStateTranslator()
+    last_observation: dict[str, Any] | None = None
+    pending_purchase: dict[str, Any] | None = None
+    evidence: list[PublicStrategicTransitionEvidence] = []
+
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("run-log row must be an object")
+        event = str(row.get("event") or "")
+        data = row.get("data")
+        if not isinstance(data, dict):
+            continue
+        if event == "observation":
+            state = data.get("state")
+            if not isinstance(state, dict):
+                raise ValueError("observation row requires state")
+            last_observation = state
+            pending_purchase = None
+            continue
+        if event == "decision":
+            action = data.get("action")
+            if not isinstance(action, dict):
+                raise ValueError("decision row requires action")
+            if str(action.get("name") or "") == BUY_JOKER:
+                if last_observation is None:
+                    raise ValueError("BUY_JOKER decision has no preceding observation")
+                pending_purchase = action
+            else:
+                pending_purchase = None
+            continue
+        if event != "action_result":
+            continue
+        action = data.get("action")
+        if not isinstance(action, dict) or str(action.get("name") or "") != BUY_JOKER:
+            continue
+        if last_observation is None or pending_purchase is None:
+            raise ValueError("BUY_JOKER action_result has no captured decision boundary")
+        if action != pending_purchase:
+            raise ValueError("BUY_JOKER action_result does not match captured decision")
+        if data.get("success") is not True:
+            raise ValueError("BUY_JOKER parity requires a successful action_result")
+
+        before = translator.translate(_snapshot_from_log_state(last_observation))
+        after = translator.translate(_snapshot_from_log_state(data.get("state")))
+        if before.phase != "SHOP" or after.phase != "SHOP":
+            raise ValueError("BUY_JOKER parity requires SHOP before and after")
+        canonical = _canonical_joker_purchase_action(action, before)
+        if canonical is None:
+            raise AssertionError("Joker purchase classification changed unexpectedly")
+        evidence.append(build_public_strategic_transition_evidence(before, canonical, after))
+        pending_purchase = None
+
+    return tuple(evidence)
+
+
+def compare_run_rows_to_simulator_joker_purchase_evidence(rows: Iterable[dict[str, Any]], simulator_evidence: Iterable[PublicStrategicTransitionEvidence], *, translator: DefaultBalatroStateTranslator | None = None) -> PublicStrategicTrajectoryParityComparison:
+    live_evidence = successful_joker_purchase_evidence_from_run_rows(rows, translator=translator)
     return compare_public_strategic_trajectory(live_evidence, simulator_evidence)

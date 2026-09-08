@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.shop_reroll import PaidBaseShopReroll, reroll_base_main_shop
-from games.balatro.env.transition import HeadlessRunState
+from games.balatro.env.transition import HeadlessRunState, ShopTransitionEngine
 from games.balatro.state import BalatroState
 
 
@@ -67,5 +67,26 @@ def reroll_shop_with_public_evidence(
         before,
         action,
         result.run.public,
+    )
+    return result, evidence
+
+
+def buy_joker_with_public_evidence(
+    run: HeadlessRunState,
+    *,
+    slot: int,
+) -> tuple[HeadlessRunState, PublicStrategicTransitionEvidence]:
+    """Execute the canonical exact Joker-purchase owner and capture R5 evidence."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    if isinstance(slot, bool) or not isinstance(slot, int):
+        raise TypeError("slot must be an integer")
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": slot})
+    before = run.public
+    result = ShopTransitionEngine().step(run, action)
+    evidence = build_public_strategic_transition_evidence(
+        before,
+        action,
+        result.public,
     )
     return result, evidence
