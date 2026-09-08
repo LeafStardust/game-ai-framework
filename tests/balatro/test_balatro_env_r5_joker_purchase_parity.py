@@ -107,7 +107,7 @@ def test_env_r5_headless_joker_purchase_wraps_canonical_owner_and_matches_live_s
     joker.cost = 2
     joker.base_cost = 2
     state.shop_jokers = [joker]
-    run = HeadlessRunState(public=state)
+    run = HeadlessRunState(public=state, seed="r5-joker-purchase-parity")
 
     result, simulator = buy_joker_with_public_evidence(run, slot=0)
 
