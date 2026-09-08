@@ -1,0 +1,479 @@
+from __future__ import annotations
+
+"""Public-state adapters for realized engine strength and Build Health.
+
+This module intentionally reads only ordinary BalatroState/Joker state. It does
+not inspect hidden draw order, RNG state, seed data, or future shop contents.
+Legacy strategy-tier coherence is intentionally not reconstructed here; canonical
+Bond/composition health owns structural coherence.
+"""
+
+from copy import deepcopy
+from dataclasses import dataclass
+from math import prod
+from typing import Iterable
+
+from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
+from games.balatro.build_health import (
+    BuildHealth,
+    BuildHealthEvaluator,
+    BuildHealthInputs,
+    EngineState,
+    RealizedEngineStrength,
+)
+from games.balatro.scoring import BalatroScorer
+
+
+def _normalize(value: object) -> str:
+    return "".join(character for character in str(value).lower() if character.isalnum())
+
+
+def _joker_token(joker: object) -> str:
+    for candidate in (
+        getattr(joker, "name", None),
+        getattr(joker, "label", None),
+        getattr(joker, "ability_name", None),
+        type(joker).__name__,
+    ):
+        token = _normalize(candidate or "")
+        if token:
+            return token
+    return ""
+
+
+def _public_number(joker: object, key: str, default: float = 0.0) -> float:
+    value = getattr(joker, key, None)
+    if value is None:
+        public = getattr(joker, "public_state", None)
+        if isinstance(public, dict):
+            value = public.get(key, default)
+        elif public is not None:
+            value = getattr(public, key, default)
+        else:
+            value = default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
+
+
+def _blind_target(state) -> float:
+    for value in (
+        getattr(state, "blind_score", 0),
+        getattr(state, "blind_requirement", 0),
+    ):
+        try:
+            number = float(value or 0)
+        except (TypeError, ValueError):
+            continue
+        if number > 0:
+            return number
+    blind = getattr(state, "blind", None)
+    for key in ("requirement", "score", "chips"):
+        try:
+            number = float(getattr(blind, key, 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if number > 0:
+            return number
+    return 0.0
+
+
+def _hands_budget(state) -> int:
+    try:
+        hands = int(getattr(state, "hands_remaining", 0) or 0)
+    except (TypeError, ValueError):
+        hands = 0
+    if hands <= 0 and str(getattr(state, "phase", "")).upper() == "SHOP":
+        return 4
+    return max(1, hands)
+
+
+def _opening_hand_size(state) -> int:
+    try:
+        value = int(getattr(state, "hand_size", 0) or 0)
+    except (TypeError, ValueError):
+        value = 0
+    return value if value > 0 else 8
+
+
+def _deck_size(state) -> int:
+    phase = str(getattr(state, "phase", "")).upper()
+    if phase == "SHOP":
+        owned = getattr(state, "owned_deck", None)
+        if owned is not None:
+            try:
+                return max(0, len(owned) - _opening_hand_size(state))
+            except TypeError:
+                pass
+    try:
+        deck = getattr(state, "deck", ()) or ()
+        if deck or phase != "SHOP":
+            return len(deck)
+    except TypeError:
+        pass
+    owned = getattr(state, "owned_deck", None)
+    try:
+        return max(0, len(owned or ()) - _opening_hand_size(state))
+    except TypeError:
+        return 0
+
+
+def _normal_blue_remainder(state) -> int:
+    return max(0, 52 - _opening_hand_size(state))
+
+
+def _card_public_sort_key(card: object) -> tuple[str, ...]:
+    return (
+        str(getattr(card, "rank", "") or ""),
+        str(getattr(card, "suit", "") or ""),
+        str(getattr(card, "enhancement", "") or ""),
+        str(getattr(card, "seal", "") or ""),
+        str(getattr(card, "edition", "") or ""),
+        str(int(getattr(card, "permanent_bonus", 0) or 0)),
+        "1" if bool(getattr(card, "debuffed", False)) else "0",
+    )
+
+
+def _progress_state(progress_ratio: float) -> EngineState:
+    progress = max(0.0, float(progress_ratio))
+    if progress <= 0.0:
+        return EngineState.OWNED_INACTIVE
+    if progress < 0.50:
+        return EngineState.ACTIVATED_WEAK
+    if progress < 1.50:
+        return EngineState.ACTIVATED_HEALTHY
+    return EngineState.MATURE
+
+
+def _runway_need(state: EngineState, ante: int) -> float:
+    base = {
+        EngineState.NOT_OWNED: 0.0,
+        EngineState.OWNED_INACTIVE: 0.75,
+        EngineState.ACTIVATED_WEAK: 0.50,
+        EngineState.ACTIVATED_HEALTHY: 0.20,
+        EngineState.MATURE: 0.0,
+    }[state]
+    if state in {EngineState.OWNED_INACTIVE, EngineState.ACTIVATED_WEAK} and ante >= 5:
+        base += 0.15
+    return min(1.0, base)
+
+
+@dataclass(frozen=True)
+class RealizedEngineAnalyzer:
+    """Translate observable Joker progress into comparable engine lifecycle states."""
+
+    def analyze(self, state) -> tuple[RealizedEngineStrength, ...]:
+        jokers = tuple(getattr(state, "jokers", ()) or ())
+        tokenized = tuple((_joker_token(joker), joker) for joker in jokers)
+        ante = max(1, int(getattr(state, "ante", 1) or 1))
+        target = _blind_target(state)
+        pace = target / max(1, _hands_budget(state)) if target > 0 else 0.0
+        engines: list[RealizedEngineStrength] = []
+
+        def find_all(*needles: str):
+            normalized = tuple(_normalize(value) for value in needles)
+            return tuple(
+                joker
+                for token, joker in tokenized
+                if any(token == needle or token.endswith(needle) for needle in normalized)
+            )
+
+        has_card_generator = bool(
+            find_all("certificate", "certificatejoker", "marblejoker", "marble")
+        )
+
+        holograms = find_all("hologram", "hologramjoker")
+        if holograms:
+            x_mults = tuple(max(1.0, _public_number(joker, "x_mult", 1.0)) for joker in holograms)
+            combined_x_mult = float(prod(x_mults))
+            total_gain = sum(max(0.0, value - 1.0) for value in x_mults)
+            target_gain = max(0.25, 0.25 * max(1, ante - 1)) * len(holograms)
+            engine_state = _progress_state(total_gain / target_gain if target_gain else 0.0)
+            engines.append(
+                RealizedEngineStrength(
+                    engine_id="hologram",
+                    state=engine_state,
+                    current_strength=combined_x_mult,
+                    growth_rate=1.0 if has_card_generator else 0.25 if total_gain > 0 else 0.0,
+                    runway_need=_runway_need(engine_state, ante),
+                    rationale=(
+                        f"Hologram copies={len(holograms)}; combined public xMult={combined_x_mult:.3f}",
+                        f"aggregate realized growth={total_gain:.2f}; target={target_gain:.2f}",
+                        f"card generator owned={'yes' if has_card_generator else 'no'}",
+                    ),
+                )
+            )
+
+        blue_jokers = find_all("bluejoker", "bluejokerjoker")
+        if blue_jokers:
+            cards = _deck_size(state)
+            normal_remainder = _normal_blue_remainder(state)
+            chips = max(0.0, cards * 2.0 * len(blue_jokers))
+            engine_state = _progress_state(chips / max(pace * 0.20, 1.0) if pace > 0 else chips / 100.0)
+            growth_rate = 1.0 if has_card_generator else 0.50 if cards >= normal_remainder else 0.20
+            engines.append(
+                RealizedEngineStrength(
+                    engine_id="blue_joker",
+                    state=engine_state,
+                    current_strength=chips,
+                    growth_rate=growth_rate,
+                    runway_need=_runway_need(engine_state, ante),
+                    rationale=(
+                        f"Blue Joker copies={len(blue_jokers)}; scoring deck size={cards}; contribution={chips:.0f} chips",
+                        f"normal 52-card first-hand remainder={normal_remainder} at hand size {_opening_hand_size(state)}",
+                        "active-blind strength uses remaining draw pile; shop projection subtracts the public opening hand size from the permanent owned deck",
+                        f"card generator owned={'yes' if has_card_generator else 'no'}",
+                    ),
+                )
+            )
+
+        green_jokers = find_all("greenjoker", "greenjokerjoker")
+        if green_jokers:
+            mult = sum(max(0.0, _public_number(joker, "mult", 0.0)) for joker in green_jokers)
+            target_mult = max(4.0, float(ante * 2)) * len(green_jokers)
+            engine_state = _progress_state(mult / target_mult)
+            engines.append(RealizedEngineStrength(
+                engine_id="green_joker", state=engine_state, current_strength=mult,
+                growth_rate=1.0, runway_need=_runway_need(engine_state, ante),
+                rationale=(f"Green Joker copies={len(green_jokers)}; aggregate Mult=+{mult:.0f}", f"aggregate realized Ante {ante} target=+{target_mult:.0f} Mult"),
+            ))
+
+        castles = find_all("castle", "castlejoker")
+        if castles:
+            chips = sum(max(0.0, _public_number(joker, "chips", 0.0)) for joker in castles)
+            engine_state = _progress_state(chips / max(pace * 0.10, 1.0) if pace > 0 else chips / 30.0)
+            discards = max(0, int(getattr(state, "discards_remaining", 0) or 0))
+            engines.append(RealizedEngineStrength(
+                engine_id="castle", state=engine_state, current_strength=chips,
+                growth_rate=min(1.0, discards / 3.0), runway_need=_runway_need(engine_state, ante),
+                rationale=(f"Castle copies={len(castles)}; aggregate chips=+{chips:.0f}", f"discards currently available={discards}"),
+            ))
+
+        runners = find_all("runner", "runnerjoker")
+        if runners:
+            chips = sum(max(0.0, _public_number(joker, "chips", 0.0)) for joker in runners)
+            engine_state = _progress_state(chips / max(pace * 0.10, 15.0) if pace > 0 else chips / 30.0)
+            counts = getattr(state, "hand_play_counts", {}) or {}
+            straight_plays = int(counts.get("STRAIGHT", counts.get("Straight", 0)) or 0)
+            straight_flush_plays = int(counts.get("STRAIGHT_FLUSH", counts.get("Straight Flush", 0)) or 0)
+            runner_growth_plays = straight_plays + straight_flush_plays
+            engines.append(RealizedEngineStrength(
+                engine_id="runner", state=engine_state, current_strength=chips,
+                growth_rate=min(1.0, runner_growth_plays / max(1.0, float(ante * 2))),
+                runway_need=_runway_need(engine_state, ante),
+                rationale=(
+                    f"Runner copies={len(runners)}; aggregate chips=+{chips:.0f}",
+                    f"Runner growth-hand history={runner_growth_plays} (Straight={straight_plays}, Straight Flush={straight_flush_plays})",
+                ),
+            ))
+
+        red_cards = find_all("redcard", "redcardjoker")
+        if red_cards:
+            mult = sum(max(0.0, _public_number(joker, "mult", 0.0)) for joker in red_cards)
+            target_mult = max(3.0, float(max(1, ante - 1) * 3)) * len(red_cards)
+            engine_state = _progress_state(mult / target_mult)
+            engines.append(RealizedEngineStrength(
+                engine_id="red_card", state=engine_state, current_strength=mult,
+                growth_rate=0.50, runway_need=_runway_need(engine_state, ante),
+                rationale=(f"Red Card copies={len(red_cards)}; aggregate Mult=+{mult:.0f}", f"aggregate realized Ante {ante} target=+{target_mult:.0f} Mult"),
+            ))
+
+        burnt_jokers = find_all("burntjoker", "burnt")
+        if burnt_jokers:
+            levels = getattr(state, "hand_levels", {}) or {}
+            max_level = max((int(value or 1) for value in levels.values()), default=1)
+            progress_levels = max(0, max_level - 1)
+            target_levels = max(1, ante - 1)
+            engine_state = _progress_state(progress_levels / target_levels)
+            phase = str(getattr(state, "phase", "")).upper()
+            discards = max(0, int(getattr(state, "discards_remaining", 0) or 0))
+            discards_used = getattr(state, "discards_used", None)
+            first_discard_available = phase == "SHOP" or (
+                discards > 0 and discards_used is not None and int(discards_used) == 0
+            )
+            engines.append(RealizedEngineStrength(
+                engine_id="burnt_joker", state=engine_state, current_strength=float(max_level),
+                growth_rate=1.0 if first_discard_available else 0.50,
+                runway_need=_runway_need(engine_state, ante),
+                rationale=(
+                    f"Burnt Joker copies={len(burnt_jokers)}; highest public hand level={max_level}",
+                    f"realized Burnt target by Ante {ante}=level {target_levels + 1}",
+                    f"first-discard activation available now/next={'yes' if first_discard_available else 'no'}; discards_remaining={discards}; discards_used={discards_used}",
+                ),
+            ))
+
+        bulls = find_all("bull", "bulljoker")
+        bootstraps = find_all("bootstraps", "bootstrapsjoker")
+        if bulls or bootstraps:
+            money = max(0, int(getattr(state, "money", 0) or 0))
+            target_cash = max(10.0, float(ante * 5))
+            engine_state = _progress_state(money / target_cash)
+            bull_chips = len(bulls) * money * 2.0
+            bootstraps_mult = len(bootstraps) * (money // 5) * 2.0
+            engines.append(RealizedEngineStrength(
+                engine_id="cash_scoring", state=engine_state, current_strength=float(money),
+                growth_rate=0.75 if money >= 5 else 0.25,
+                runway_need=_runway_need(engine_state, ante),
+                rationale=(
+                    f"cash=${money}; realized Ante {ante} cash target=${target_cash:.0f}",
+                    f"Bull copies={len(bulls)}; aggregate Bull output=+{bull_chips:.0f} chips",
+                    f"Bootstraps copies={len(bootstraps)}; aggregate Bootstraps output=+{bootstraps_mult:.0f} Mult",
+                ),
+            ))
+
+        return tuple(engines)
+
+
+class RuntimeBuildHealthEvaluator:
+    """Evaluate legacy numeric Build Health from current public state.
+
+    ``strategy_tracker`` is retained as a compatibility keyword only. Structural
+    coherence is neutral here because canonical Bond/composition health owns that
+    dimension after the strategy-tree retirement.
+    """
+
+    _ENGINE_SCORE = {
+        EngineState.NOT_OWNED: 0.0,
+        EngineState.OWNED_INACTIVE: 0.10,
+        EngineState.ACTIVATED_WEAK: 0.35,
+        EngineState.ACTIVATED_HEALTHY: 0.70,
+        EngineState.MATURE: 1.0,
+    }
+    # These engines can grow throughout a run, but their output is additive.  A
+    # single mature additive scaler is not by itself an Ante-8-capable scoring
+    # composition and must not report the same scaling ceiling as xMult.
+    _SOLO_ADDITIVE_ENGINE_CAP = {
+        "blue_joker": 0.45,
+        "green_joker": 0.45,
+        "castle": 0.55,
+        "runner": 0.55,
+        "red_card": 0.55,
+    }
+
+    def __init__(self, *, scorer=None, engine_analyzer=None, health_evaluator=None) -> None:
+        self.scorer = scorer or BalatroScorer()
+        self.engine_analyzer = engine_analyzer or RealizedEngineAnalyzer()
+        self.health_evaluator = health_evaluator or BuildHealthEvaluator()
+
+    @staticmethod
+    def _scoring_probe_state(state):
+        probe_state = deepcopy(state)
+        if str(getattr(state, "phase", "")).upper() == "SHOP":
+            owned = getattr(state, "owned_deck", None)
+            if owned is not None:
+                cards = deepcopy(list(owned))
+                cards.sort(key=_card_public_sort_key)
+                opening = min(len(cards), _opening_hand_size(state))
+                probe_state.deck = cards[opening:]
+            probe_state.score = 0
+        return probe_state
+
+    def _representative_best_score(self, state) -> float:
+        scores: list[float] = []
+        for hand, template_cards in JokerBuildValueEvaluator.PROBES:
+            probe_state = self._scoring_probe_state(state)
+            cards = deepcopy(list(template_cards))
+            probe_state.hand = deepcopy(cards)
+            try:
+                score = self.scorer.score(
+                    hand,
+                    state=probe_state,
+                    cards=cards,
+                    resolve_random_effects=False,
+                ).total
+            except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
+                continue
+            scores.append(max(0.0, float(score)))
+        return max(scores, default=0.0)
+
+    @staticmethod
+    def _effective_survival_target(state, target: float) -> float:
+        if str(getattr(state, "phase", "")).upper() == "SHOP":
+            return target
+        try:
+            score = max(0.0, float(getattr(state, "score", 0) or 0))
+        except (TypeError, ValueError):
+            score = 0.0
+        return max(0.0, target - score)
+
+    def _survival_and_immediate(self, state) -> tuple[float, float]:
+        target = _blind_target(state)
+        if str(getattr(state, "phase", "")).upper() == "GAME_OVER":
+            try:
+                score = max(0.0, float(getattr(state, "score", 0) or 0))
+            except (TypeError, ValueError):
+                score = 0.0
+            cleared = target > 0.0 and score >= target
+            return (1.0, 1.0) if cleared else (0.0, 0.0)
+        if target <= 0:
+            return 0.50, 0.50
+        remaining = self._effective_survival_target(state, target)
+        if remaining <= 0:
+            return 1.0, 1.0
+        hands = _hands_budget(state)
+        best = self._representative_best_score(state)
+        pace = remaining / max(1, hands)
+        immediate = min(1.0, best / max(pace, 1.0))
+        survival = min(1.0, best * hands / remaining)
+        return survival, immediate
+
+    def _scaling(self, state, engines) -> float:
+        ante = max(1, int(getattr(state, "ante", 1) or 1))
+        if not engines:
+            return 0.65 if ante <= 2 else 0.25
+        values = sorted(
+            (
+                min(1.0, self._ENGINE_SCORE[engine.state] + 0.15 * max(0.0, min(1.0, engine.growth_rate)))
+                for engine in engines
+            ),
+            reverse=True,
+        )
+        if len(values) == 1:
+            cap = self._SOLO_ADDITIVE_ENGINE_CAP.get(engines[0].engine_id, 1.0)
+            return min(values[0], cap) if ante >= 4 else values[0]
+        return min(1.0, values[0] * 0.70 + values[1] * 0.30)
+
+    @staticmethod
+    def _coherence(state, tracker) -> float:
+        """Return a neutral compatibility value for the retired health dimension.
+
+        Runtime Build Health must not reconstruct strategic identity from diagnostic
+        composition candidates. BuildValue/StrategyDelta own learned strategic value;
+        this legacy numeric health adapter therefore keeps coherence non-authoritative.
+        """
+        del state, tracker
+        return 0.50
+
+    @staticmethod
+    def _runway(state, engines) -> float:
+        ante = max(1, int(getattr(state, "ante", 1) or 1))
+        horizon = max(0.0, min(1.0, (9.0 - ante) / 8.0))
+        if not engines:
+            return max(0.20, horizon)
+        need = max((max(0.0, min(1.0, engine.runway_need)) for engine in engines), default=0.0)
+        if need <= 0.0:
+            return 1.0
+        return 1.0 if horizon >= need else max(0.0, min(1.0, horizon / need))
+
+    def inputs(self, state, *, strategy_tracker=None) -> BuildHealthInputs:
+        engines = self.engine_analyzer.analyze(state)
+        survival, immediate = self._survival_and_immediate(state)
+        return BuildHealthInputs(
+            survival_probability=survival,
+            immediate_score_ratio=immediate,
+            scaling_ratio=self._scaling(state, engines),
+            coherence_ratio=self._coherence(state, strategy_tracker),
+            runway_ratio=self._runway(state, engines),
+            engines=engines,
+        )
+
+    def evaluate(self, state, *, strategy_tracker=None) -> BuildHealth:
+        return self.health_evaluator.evaluate(self.inputs(state, strategy_tracker=strategy_tracker))
+
+
+def projected_state_with_jokers(state, jokers: Iterable[object]):
+    copier = getattr(state, "copy", None)
+    projected = copier() if callable(copier) else deepcopy(state)
+    projected.jokers = list(jokers)
+    return projected

@@ -1,0 +1,69 @@
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from games.balatro.luchador_activation_policy import _should_sell_luchador
+
+
+class LuchadorJoker:
+    area_index = 0
+
+
+def _state(boss_name: str, *, hands: int = 4, discards: int = 3):
+    return SimpleNamespace(
+        boss_name=boss_name,
+        hands_remaining=hands,
+        discards_remaining=discards,
+        jokers=[LuchadorJoker()],
+    )
+
+
+def _should_sell(state, notes):
+    return _should_sell_luchador(state, notes)[0]
+
+
+def test_luchador_proactively_disables_suit_debuff_boss_before_recovery():
+    with patch(
+        "games.balatro.luchador_activation_policy._proactive_disable_clear_gain",
+        return_value=(True, 0.25, 0.75),
+    ):
+        assert _should_sell(
+            _state("The Head"),
+            ("mode=PACE_PLAY",),
+        )
+        assert _should_sell(
+            _state("The Window"),
+            ("mode=PACE_PLAY",),
+        )
+
+
+def test_luchador_proactively_disables_face_card_debuff_boss():
+    with patch(
+        "games.balatro.luchador_activation_policy._proactive_disable_clear_gain",
+        return_value=(True, 0.25, 0.75),
+    ):
+        assert _should_sell(
+            _state("The Plant"),
+            ("mode=PACE_PLAY",),
+        )
+
+
+def test_luchador_proactive_boss_is_preserved_without_survival_gain():
+    with patch(
+        "games.balatro.luchador_activation_policy._proactive_disable_clear_gain",
+        return_value=(False, 0.75, 0.75),
+    ):
+        assert not _should_sell(
+            _state("The Plant"),
+            ("mode=PACE_PLAY",),
+        )
+
+
+def test_luchador_keeps_conservative_trigger_for_nonproactive_boss():
+    assert not _should_sell(
+        _state("The Wall"),
+        ("mode=PACE_PLAY",),
+    )
+    assert _should_sell(
+        _state("The Wall"),
+        ("mode=PACE_RECOVERY",),
+    )

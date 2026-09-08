@@ -1,0 +1,5 @@
+@echo off
+setlocal
+cd /d "%~dp0"
+py -m games.balatro.live.runtime.v09g_release_report %*
+endlocal

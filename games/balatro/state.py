@@ -1,0 +1,200 @@
+from copy import deepcopy
+
+from framework.core.state import GameState
+
+from games.balatro.card import BalatroCard
+
+
+class BalatroState(GameState):
+
+    def __init__(self):
+
+        self.money: int = 0
+        self.ante: int = 1
+        self.round: int = 1
+        self.score: int = 0
+        self.blind_score: int = 0
+        self.blind = None
+        self.boss_name: str | None = None
+        self.boss_blind_state_observed: bool = False
+        self.boss_blind_hands: set[str] = set()
+        self.boss_blind_only_hand: str | None = None
+        self.round_most_played_hand: str | None = None
+        self.deck_name: str = "BASE"
+        self.stake_name: str = "WHITE"
+        self.deck: list[BalatroCard] = self._create_deck()
+        self.owned_deck: list[BalatroCard] | None = None
+        self.hand: list[BalatroCard] = []
+        self.hand_size: int = 8
+        self.ectoplasm_hand_size_penalty: int = 1
+        self.hands_remaining: int = 4
+        self.round_reset_hands_observed: bool = False
+        self.round_reset_hands: int = 0
+        self.discard_pile: list[BalatroCard] = []
+        self.discards_remaining: int = 3
+        self.discards_used: int | None = None
+        self.round_reset_discards_observed: bool = False
+        self.round_reset_discards: int = 0
+        self.jokers: list = []
+        self.joker_slots: int = 5
+        self.consumables: list = []
+        self.shop_jokers: list = []
+        self.shop_consumables: list = []
+        self.shop_boosters: list = []
+        self.shop_vouchers: list = []
+        self.shop_active = False
+        self.shop_inflation_observed: bool = False
+        self.shop_inflation: int = 0
+        self.shop_discount_percent_observed: bool = False
+        self.shop_discount_percent: int = 0
+        self.consumable_slots = 2
+        self.hand_levels = {
+            "HIGH_CARD": 1,
+            "PAIR": 1,
+            "TWO_PAIR": 1,
+            "THREE_OF_A_KIND": 1,
+            "STRAIGHT": 1,
+            "FLUSH": 1,
+            "FULL_HOUSE": 1,
+            "FOUR_OF_A_KIND": 1,
+            "STRAIGHT_FLUSH": 1,
+            "FIVE_OF_A_KIND": 1,
+            "FLUSH_HOUSE": 1,
+            "FLUSH_FIVE": 1,
+        }
+        self.hand_play_counts = {hand: 0 for hand in self.hand_levels}
+        self.round_hand_play_counts = {hand: 0 for hand in self.hand_levels}
+        self.vouchers_observed: bool = False
+        self.vouchers: list[str] = []
+        # Vanilla normal mode begins with an interest cap of $25. Keep an
+        # observation bit because live Seed Money / Money Tree ownership must be
+        # checked against G.GAME.interest_cap rather than inferred from ownership.
+        self.interest_cap_observed: bool = False
+        self.interest_cap: int = 25
+        self.phase: str = "ROUND_START"
+        self.glass_cards_destroyed: int = 0
+        self.last_played_hand: str | None = None
+        self.last_tarot_planet: str | None = None
+        self.joker_unlocks: dict[str, dict[str, bool]] = {}
+        self.joker_generation_pool_observed: bool = False
+        self.joker_generation_pools: dict[str, list[dict]] = {}
+        self.joker_generation_edition_rate: float = 1.0
+        self.tarot_rate: float = 4.0
+        self.planet_rate: float = 4.0
+        self.consumable_generation_pool_observed: bool = False
+        self.consumable_generation_pools: dict[str, list[dict]] = {}
+        self.voucher_generation_pool_observed: bool = False
+        self.voucher_generation_pool: list[dict] = []
+        self.visible_poker_hands: tuple[str, ...] = ()
+
+    @property
+    def deck_size(self) -> int:
+        return len(self.deck)
+
+    @property
+    def blind_requirement(self):
+        if self.blind is None:
+            return 0
+        return self.blind.requirement
+
+    @blind_requirement.setter
+    def blind_requirement(self, value):
+        if self.blind is not None:
+            self.blind.requirement = value
+
+    def _create_deck(self):
+        ranks = [
+            "2", "3", "4", "5", "6",
+            "7", "8", "9", "10",
+            "J", "Q", "K", "A"
+        ]
+        suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
+        return [BalatroCard(rank, suit) for rank in ranks for suit in suits]
+
+    def copy(self):
+        new_state = BalatroState()
+        new_state.money = self.money
+        new_state.ante = self.ante
+        new_state.round = self.round
+        new_state.score = self.score
+        new_state.blind_score = self.blind_score
+        if self.blind is not None:
+            copy_method = getattr(self.blind, "copy", None)
+            new_state.blind = copy_method() if callable(copy_method) else deepcopy(self.blind)
+        new_state.boss_name = self.boss_name
+        new_state.boss_blind_state_observed = self.boss_blind_state_observed
+        new_state.boss_blind_hands = self.boss_blind_hands.copy()
+        new_state.boss_blind_only_hand = self.boss_blind_only_hand
+        new_state.round_most_played_hand = self.round_most_played_hand
+        new_state.deck_name = self.deck_name
+        new_state.stake_name = self.stake_name
+        new_state.deck = self.deck.copy()
+        new_state.owned_deck = self.owned_deck.copy() if self.owned_deck is not None else None
+        new_state.hand = self.hand.copy()
+        new_state.hand_size = self.hand_size
+        new_state.ectoplasm_hand_size_penalty = self.ectoplasm_hand_size_penalty
+        new_state.hands_remaining = self.hands_remaining
+        new_state.round_reset_hands_observed = self.round_reset_hands_observed
+        new_state.round_reset_hands = self.round_reset_hands
+        new_state.discard_pile = self.discard_pile.copy()
+        new_state.discards_remaining = self.discards_remaining
+        new_state.discards_used = self.discards_used
+        new_state.round_reset_discards_observed = self.round_reset_discards_observed
+        new_state.round_reset_discards = self.round_reset_discards
+        new_state.jokers = self.jokers.copy()
+        new_state.joker_slots = self.joker_slots
+        new_state.consumables = self.consumables.copy()
+        new_state.shop_jokers = self.shop_jokers.copy()
+        new_state.shop_consumables = self.shop_consumables.copy()
+        new_state.shop_boosters = self.shop_boosters.copy()
+        new_state.shop_vouchers = self.shop_vouchers.copy()
+        new_state.shop_active = self.shop_active
+        new_state.shop_inflation_observed = self.shop_inflation_observed
+        new_state.shop_inflation = self.shop_inflation
+        new_state.shop_discount_percent_observed = self.shop_discount_percent_observed
+        new_state.shop_discount_percent = self.shop_discount_percent
+        new_state.consumable_slots = self.consumable_slots
+        new_state.hand_levels = self.hand_levels.copy()
+        new_state.hand_play_counts = self.hand_play_counts.copy()
+        new_state.round_hand_play_counts = self.round_hand_play_counts.copy()
+        new_state.vouchers_observed = self.vouchers_observed
+        new_state.vouchers = self.vouchers.copy()
+        new_state.interest_cap_observed = self.interest_cap_observed
+        new_state.interest_cap = self.interest_cap
+        new_state.phase = self.phase
+        new_state.glass_cards_destroyed = self.glass_cards_destroyed
+        new_state.last_played_hand = self.last_played_hand
+        new_state.last_tarot_planet = self.last_tarot_planet
+        new_state.joker_unlocks = {key: dict(value) for key, value in self.joker_unlocks.items()}
+        new_state.joker_generation_pool_observed = self.joker_generation_pool_observed
+        new_state.joker_generation_pools = {
+            str(rarity): [dict(record) for record in records]
+            for rarity, records in self.joker_generation_pools.items()
+        }
+        new_state.joker_generation_edition_rate = self.joker_generation_edition_rate
+        new_state.tarot_rate = self.tarot_rate
+        new_state.planet_rate = self.planet_rate
+        new_state.consumable_generation_pool_observed = self.consumable_generation_pool_observed
+        new_state.consumable_generation_pools = {
+            str(card_type): [dict(record) for record in records]
+            for card_type, records in self.consumable_generation_pools.items()
+        }
+        new_state.voucher_generation_pool_observed = self.voucher_generation_pool_observed
+        new_state.voucher_generation_pool = [
+            {**dict(record), "requires": list(record.get("requires", []))}
+            for record in self.voucher_generation_pool
+        ]
+        new_state.visible_poker_hands = tuple(self.visible_poker_hands)
+        return new_state
+
+    def add_consumable(self, consumable) -> bool:
+        if len(self.consumables) >= self.consumable_slots:
+            return False
+        self.consumables.append(consumable)
+        return True
+
+    def remove_consumable(self, consumable) -> bool:
+        if consumable not in self.consumables:
+            return False
+        self.consumables.remove(consumable)
+        return True

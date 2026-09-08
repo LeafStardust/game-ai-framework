@@ -1,0 +1,577 @@
+from itertools import combinations
+
+from games.balatro.card import BalatroCard
+from games.balatro.card_destruction import project_destroyed_playing_cards
+from games.balatro.consumable import ConsumableContext, TarotCard
+from games.balatro.planets import create_planet, random_planet
+
+
+def _enhancement_targets(state, enhancement: str, *, maximum: int) -> list[list[BalatroCard]]:
+    eligible = [
+        card
+        for card in state.hand
+        if getattr(card, "enhancement", None) != enhancement
+    ]
+    return [
+        list(cards)
+        for size in range(1, maximum + 1)
+        if size <= len(eligible)
+        for cards in combinations(eligible, size)
+    ]
+
+
+def _editionless_jokers(state) -> list:
+    return [
+        joker
+        for joker in getattr(state, "jokers", ())
+        if getattr(joker, "edition", None) in (None, "")
+    ]
+
+
+def _wheel_success_probability(state) -> float:
+    oops_count = sum(
+        1
+        for joker in getattr(state, "jokers", ())
+        if type(joker).__name__ == "OopsAll6sJoker"
+        and not bool(getattr(joker, "debuffed", False))
+    )
+    return min(1.0, 0.25 * (2.0 ** oops_count))
+
+
+def _roll_vanilla_edition(rng) -> str:
+    roll = rng.random()
+    if roll < 0.50:
+        return "Foil"
+    if roll < 0.85:
+        return "Holographic"
+    return "Polychrome"
+
+
+class Fool(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Fool")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return context.target is not None
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        context.data["copy"] = context.target
+        return context
+
+
+class Magician(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Magician")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            0 < len(context.cards) <= 2
+            and context.has_valid_cards()
+            and all(card.enhancement != "Lucky" for card in context.cards)
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        for card in context.cards:
+            card.enhancement = "Lucky"
+
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return _enhancement_targets(state, "Lucky", maximum=2)
+
+
+class HighPriestess(TarotCard):
+
+    def __init__(self):
+        super().__init__("The High Priestess")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return True
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        context.data["created"] = [
+            random_planet(context.data["rng"])
+            for _ in range(2)
+        ]
+
+        return context
+
+
+class Empress(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Empress")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            0 < len(context.cards) <= 2
+            and context.has_valid_cards()
+            and all(card.enhancement != "Mult" for card in context.cards)
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        for card in context.cards:
+            card.enhancement = "Mult"
+
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return _enhancement_targets(state, "Mult", maximum=2)
+
+
+class Emperor(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Emperor")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return True
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        context.data["created"] = [
+            context.data["random_tarot"]()
+            for _ in range(2)
+        ]
+
+        return context
+
+
+class Hierophant(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Hierophant")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            0 < len(context.cards) <= 2
+            and context.has_valid_cards()
+            and all(card.enhancement != "Bonus" for card in context.cards)
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        for card in context.cards:
+            card.enhancement = "Bonus"
+
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return _enhancement_targets(state, "Bonus", maximum=2)
+
+
+class Lovers(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Lovers")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            len(context.cards) == 1
+            and context.has_valid_cards()
+            and context.cards[0].enhancement != "Wild"
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        context.cards[0].enhancement = "Wild"
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return _enhancement_targets(state, "Wild", maximum=1)
+
+
+class Chariot(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Chariot")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            len(context.cards) == 1
+            and context.has_valid_cards()
+            and context.cards[0].enhancement != "Steel"
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        context.cards[0].enhancement = "Steel"
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return _enhancement_targets(state, "Steel", maximum=1)
+
+
+class Justice(TarotCard):
+
+    def __init__(self):
+        super().__init__("Justice")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            len(context.cards) == 1
+            and context.has_valid_cards()
+            and context.cards[0].enhancement != "Glass"
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        context.cards[0].enhancement = "Glass"
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return _enhancement_targets(state, "Glass", maximum=1)
+
+
+class Hermit(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Hermit")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return context.state.money > 0
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        money_before = context.state.money
+        gain = min(money_before, 20)
+        context.state.money += gain
+        context.data["money_before"] = money_before
+        context.data["money_after"] = context.state.money
+        context.data["money"] = gain
+
+        return context
+
+
+class WheelOfFortune(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Wheel of Fortune")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return bool(_editionless_jokers(context.state))
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        rng = context.data["rng"]
+        if rng.random() < _wheel_success_probability(context.state):
+            target = rng.choice(_editionless_jokers(context.state))
+            edition = _roll_vanilla_edition(rng)
+            target.edition = edition
+            context.target = target
+            context.data["edition"] = edition
+        else:
+            context.data["edition"] = None
+
+        return context
+
+
+class Strength(TarotCard):
+
+    def __init__(self):
+        super().__init__("Strength")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            0 < len(context.cards) <= 2
+            and context.has_valid_cards()
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        ranks = [
+            "2", "3", "4", "5", "6",
+            "7", "8", "9", "10",
+            "J", "Q", "K", "A"
+        ]
+
+        for card in context.cards:
+            index = ranks.index(card.rank)
+            card.rank = ranks[(index + 1) % len(ranks)]
+
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return [
+            list(cards)
+            for size in (1, 2)
+            if size <= len(state.hand)
+            for cards in combinations(state.hand, size)
+        ]
+
+
+class HangedMan(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Hanged Man")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            0 < len(context.cards) <= 2
+            and context.has_valid_cards()
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        destroyed = []
+        for card in context.cards:
+            if card in context.state.hand:
+                context.state.hand.remove(card)
+                destroyed.append(card)
+
+        project_destroyed_playing_cards(context.state, destroyed)
+        context.data["destroyed"] = destroyed
+
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return [
+            list(cards)
+            for size in (1, 2)
+            if size <= len(state.hand)
+            for cards in combinations(state.hand, size)
+        ]
+
+
+class Death(TarotCard):
+
+    def __init__(self):
+        super().__init__("Death")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            len(context.cards) == 2
+            and context.has_valid_cards()
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        source, target = context.cards
+        source.rank = target.rank
+        source.suit = target.suit
+        source.enhancement = target.enhancement
+        source.edition = target.edition
+        source.seal = target.seal
+
+        context.data["converted"] = source
+
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return [
+            list(cards)
+            for cards in combinations(state.hand, 2)
+        ]
+
+
+class Temperance(TarotCard):
+
+    def __init__(self):
+        super().__init__("Temperance")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return bool(context.state.jokers)
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        total = sum(
+            max(0, int(getattr(joker, "sell_value", 0)))
+            for joker in context.state.jokers
+        )
+        gain = min(total, 50)
+        context.state.money += gain
+        context.data["money"] = gain
+
+        return context
+
+
+class Devil(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Devil")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            len(context.cards) == 1
+            and context.has_valid_cards()
+            and context.cards[0].enhancement != "Gold"
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        context.cards[0].enhancement = "Gold"
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return _enhancement_targets(state, "Gold", maximum=1)
+
+
+class Tower(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Tower")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            len(context.cards) == 1
+            and context.has_valid_cards()
+            and context.cards[0].enhancement != "Stone"
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        context.cards[0].enhancement = "Stone"
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return _enhancement_targets(state, "Stone", maximum=1)
+
+
+class Star(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Star")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            0 < len(context.cards) <= 3
+            and context.has_valid_cards()
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        for card in context.cards:
+            card.suit = "Diamonds"
+
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return [
+            list(cards)
+            for size in (1, 2, 3)
+            if size <= len(state.hand)
+            for cards in combinations(state.hand, size)
+        ]
+
+
+class Moon(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Moon")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            0 < len(context.cards) <= 3
+            and context.has_valid_cards()
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        for card in context.cards:
+            card.suit = "Clubs"
+
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return [
+            list(cards)
+            for size in (1, 2, 3)
+            if size <= len(state.hand)
+            for cards in combinations(state.hand, size)
+        ]
+
+
+class Sun(TarotCard):
+
+    def __init__(self):
+        super().__init__("The Sun")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            0 < len(context.cards) <= 3
+            and context.has_valid_cards()
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        for card in context.cards:
+            card.suit = "Hearts"
+
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return [
+            list(cards)
+            for size in (1, 2, 3)
+            if size <= len(state.hand)
+            for cards in combinations(state.hand, size)
+        ]
+
+
+class Judgement(TarotCard):
+
+    def __init__(self):
+        super().__init__("Judgement")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        joker_slots = max(
+            0,
+            int(getattr(context.state, "joker_slots", 5) or 5),
+        )
+        return len(context.state.jokers) < joker_slots
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        context.data["create_joker"] = True
+        context.data["joker"] = (
+            context.data["random_joker"]()
+        )
+
+        return context
+
+
+class World(TarotCard):
+
+    def __init__(self):
+        super().__init__("The World")
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return (
+            0 < len(context.cards) <= 3
+            and context.has_valid_cards()
+        )
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        for card in context.cards:
+            card.suit = "Spades"
+
+        return context
+
+    def get_target_cards(self, state) -> list[list[BalatroCard]]:
+        return [
+            list(cards)
+            for size in (1, 2, 3)
+            if size <= len(state.hand)
+            for cards in combinations(state.hand, size)
+        ]
+
+
+TAROT_CARDS = {
+    "The Fool": Fool,
+    "The Magician": Magician,
+    "The High Priestess": HighPriestess,
+    "The Empress": Empress,
+    "The Emperor": Emperor,
+    "The Hierophant": Hierophant,
+    "The Lovers": Lovers,
+    "The Chariot": Chariot,
+    "Justice": Justice,
+    "The Hermit": Hermit,
+    "The Wheel of Fortune": WheelOfFortune,
+    "Strength": Strength,
+    "The Hanged Man": HangedMan,
+    "Death": Death,
+    "Temperance": Temperance,
+    "The Devil": Devil,
+    "The Tower": Tower,
+    "The Star": Star,
+    "The Moon": Moon,
+    "The Sun": Sun,
+    "Judgement": Judgement,
+    "The World": World,
+}
+
+
+def create_tarot(name: str) -> TarotCard:
+    return TAROT_CARDS[name]()
+
+
+def random_tarot(rng) -> TarotCard:
+    return create_tarot(
+        rng.choice(list(TAROT_CARDS))
+    )

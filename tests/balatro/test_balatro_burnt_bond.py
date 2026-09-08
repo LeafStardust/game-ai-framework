@@ -1,0 +1,135 @@
+from types import SimpleNamespace
+
+from games.balatro.bonds.burnt import BurntBondContext, evaluate_hand_leveling_bond
+from games.balatro.bonds.model import BondRank
+
+
+def _joker(name: str):
+    return SimpleNamespace(name=name)
+
+
+def _voucher(name: str):
+    return SimpleNamespace(name=name)
+
+
+def _card(*, seal=""):
+    return SimpleNamespace(seal=seal)
+
+
+def _state(*, jokers=(), vouchers=(), deck=(), hand_levels=None, hand_play_counts=None):
+    return SimpleNamespace(
+        jokers=list(jokers),
+        vouchers=list(vouchers),
+        owned_deck=list(deck),
+        deck=list(deck),
+        hand_levels=dict(hand_levels or {}),
+        hand_play_counts=dict(hand_play_counts or {}),
+    )
+
+
+def test_hand_leveling_is_not_hard_locked_by_burnt_joker():
+    developed = evaluate_hand_leveling_bond(
+        _state(
+            vouchers=(_voucher("Telescope"),),
+            deck=(_card(seal="Blue"),) * 4,
+            hand_levels={"HIGH_CARD": 12},
+        )
+    )
+    assert developed.unlocked is True
+    assert developed.rank >= BondRank.R1
+    assert developed.contribution > 0.0
+
+    burnt = evaluate_hand_leveling_bond(_state(jokers=(_joker("Burnt Joker"),)))
+    assert burnt.unlocked is True
+    assert burnt.rank == BondRank.R1
+    assert burnt.contribution == 8.0
+
+
+def test_telescope_is_one_alternative_path_to_r2_not_a_gate():
+    result = evaluate_hand_leveling_bond(
+        _state(jokers=(_joker("Burnt Joker"),), vouchers=(_voucher("Telescope"),))
+    )
+    assert result.rank == BondRank.R2
+    assert result.contribution == 12.0
+
+
+def test_strong_blue_seal_infrastructure_reaches_r2_without_telescope():
+    result = evaluate_hand_leveling_bond(
+        _state(
+            jokers=(_joker("Burnt Joker"),),
+            deck=tuple(_card(seal="Blue") for _ in range(3)),
+        )
+    )
+    assert result.rank == BondRank.R2
+    assert result.contribution == 13.0
+
+
+def test_blueprint_reaches_r2_without_telescope_or_blue_seals():
+    result = evaluate_hand_leveling_bond(
+        _state(jokers=(_joker("Burnt Joker"), _joker("Blueprint")))
+    )
+    assert result.rank == BondRank.R2
+    assert result.contribution == 13.0
+
+
+def test_alternative_sources_add_into_one_pool_for_higher_ranks():
+    result = evaluate_hand_leveling_bond(
+        _state(
+            jokers=(
+                _joker("Burnt Joker"),
+                _joker("Blueprint"),
+                _joker("Brainstorm"),
+            ),
+            vouchers=(_voucher("Telescope"),),
+            deck=tuple(_card(seal="Blue") for _ in range(3)),
+            hand_levels={"PAIR": 8},
+        ),
+        context=BurntBondContext(target_hand="PAIR"),
+    )
+    assert result.rank == BondRank.R5
+    assert result.contribution == 32.0
+    assert result.target == "PAIR"
+
+
+def test_target_selects_invested_pair_without_allowing_complex_hands():
+    result = evaluate_hand_leveling_bond(
+        _state(jokers=(_joker("Burnt Joker"),), hand_levels={"HIGH_CARD": 7, "PAIR": 12})
+    )
+    assert result.target == "PAIR"
+    assert result.contribution == 15.0
+
+
+def test_target_defaults_to_high_card_on_equal_public_evidence():
+    result = evaluate_hand_leveling_bond(_state(jokers=(_joker("Burnt Joker"),)))
+    assert result.target == "HIGH_CARD"
+
+
+def test_unsupported_requested_target_is_normalized_to_high_card_or_pair():
+    result = evaluate_hand_leveling_bond(
+        _state(
+            jokers=(_joker("Burnt Joker"),),
+            hand_levels={"HIGH_CARD": 1, "PAIR": 2, "THREE_OF_A_KIND": 20},
+        ),
+        context=BurntBondContext(target_hand="THREE_OF_A_KIND"),
+    )
+    assert result.target == "PAIR"
+    assert result.contribution == 9.0
+
+
+def test_selected_target_uses_that_hands_permanent_investment():
+    result = evaluate_hand_leveling_bond(
+        _state(jokers=(_joker("Burnt Joker"),), hand_levels={"HIGH_CARD": 1, "PAIR": 8}),
+        context=BurntBondContext(target_hand="PAIR"),
+    )
+    assert result.target == "PAIR"
+    assert result.contribution == 13.0
+    assert result.rank == BondRank.R2
+
+
+def test_extra_discard_capacity_is_burnt_specific_support_not_axis_requirement():
+    result = evaluate_hand_leveling_bond(
+        _state(jokers=(_joker("Burnt Joker"),)),
+        context=BurntBondContext(discards_per_round=20),
+    )
+    assert result.contribution == 11.0
+    assert result.rank == BondRank.R1

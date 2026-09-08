@@ -1,0 +1,195 @@
+from games.balatro.actions import (
+    BUY_BOOSTER,
+    BUY_CONSUMABLE,
+    BUY_JOKER,
+    BUY_VOUCHER,
+    END_SHOP,
+    REFRESH_SHOP,
+    SELECT_BLIND,
+    SELECT_PACK_CARD,
+    SELL_JOKER,
+    SKIP_BLIND,
+    SKIP_BOOSTER,
+    USE_CONSUMABLE,
+)
+from games.balatro.env.actions import EnvAction, validate_training_action
+from games.balatro.env_contract import (
+    BALATRO_ENV_CONTRACT_VERSION,
+    CapabilityStatus,
+    contract_for,
+    training_action_contracts,
+    validate_env_contract,
+)
+
+
+def test_environment_contract_is_versioned_and_valid():
+    assert BALATRO_ENV_CONTRACT_VERSION == "l3-v1"
+    validate_env_contract()
+
+
+def test_only_frozen_actions_are_training_exposed():
+    exposed = {
+        contract.alias: contract.action_id
+        for contract in training_action_contracts()
+    }
+    assert exposed == {
+        "END_SHOP": END_SHOP,
+        "BUY_JOKER": BUY_JOKER,
+        "BUY_VOUCHER": BUY_VOUCHER,
+        "BUY_CONSUMABLE": BUY_CONSUMABLE,
+        "OPEN_PACK": BUY_BOOSTER,
+        "REROLL_SHOP": REFRESH_SHOP,
+        "SELL_JOKER": SELL_JOKER,
+        "CHOOSE_PACK_OPTION": SELECT_PACK_CARD,
+        "SKIP_PACK": SKIP_BOOSTER,
+        "USE_CONSUMABLE": USE_CONSUMABLE,
+        "SKIP_BLIND": SKIP_BLIND,
+        "SELECT_BLIND": SELECT_BLIND,
+    }
+    assert all(
+        contract.legality_owner and contract.execution_owner
+        for contract in training_action_contracts()
+    )
+
+
+def test_reroll_shop_uses_canonical_action_and_dedicated_exact_owners():
+    contract = contract_for("REROLL_SHOP")
+
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == REFRESH_SHOP
+    assert contract.legality_owner == (
+        "games.balatro.env.shop_reroll.can_reroll_base_main_shop"
+    )
+    assert contract.execution_owner == (
+        "games.balatro.live.injected.action_dispatcher."
+        "LiveMemoryInjectedActionDispatcher.dispatch"
+    )
+
+    action = EnvAction.from_alias("REROLL_SHOP")
+    assert action.action_id == REFRESH_SHOP
+    validate_training_action(action)
+
+
+def test_sell_joker_uses_canonical_action_and_narrow_exact_owners():
+    contract = contract_for("SELL_JOKER")
+
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == SELL_JOKER
+    assert contract.legality_owner == (
+        "games.balatro.env.joker_sale.can_sell_joker_exact"
+    )
+    assert contract.execution_owner == (
+        "games.balatro.live.injected.action_dispatcher."
+        "LiveMemoryInjectedActionDispatcher.dispatch"
+    )
+
+    action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert action.action_id == SELL_JOKER
+    assert action.payload() == {"joker_index": 0}
+    validate_training_action(action)
+
+
+def test_choose_pack_option_uses_canonical_action_and_narrow_exact_owners():
+    contract = contract_for("CHOOSE_PACK_OPTION")
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == SELECT_PACK_CARD
+    assert contract.legality_owner == (
+        "games.balatro.env.pack.can_choose_pack_option_exact"
+    )
+    action = EnvAction.from_alias("CHOOSE_PACK_OPTION", {"option_index": 0})
+    assert action.action_id == SELECT_PACK_CARD
+    validate_training_action(action)
+
+
+def test_skip_pack_uses_canonical_action_and_narrow_exact_owners():
+    contract = contract_for("SKIP_PACK")
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == SKIP_BOOSTER
+    assert contract.legality_owner == "games.balatro.env.pack.can_skip_pack_exact"
+    assert contract.execution_owner == (
+        "games.balatro.live.injected.action_dispatcher."
+        "LiveMemoryInjectedActionDispatcher.dispatch"
+    )
+    action = EnvAction.from_alias("SKIP_PACK")
+    assert action.action_id == SKIP_BOOSTER
+    validate_training_action(action)
+
+
+def test_use_consumable_uses_canonical_action_and_narrow_exact_owners():
+    contract = contract_for("USE_CONSUMABLE")
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == USE_CONSUMABLE
+    assert contract.legality_owner == (
+        "games.balatro.env.consumable_use.can_use_planet_exact"
+    )
+    action = EnvAction.from_alias("USE_CONSUMABLE", {"consumable_index": 0})
+    assert action.action_id == USE_CONSUMABLE
+    validate_training_action(action)
+
+
+def test_skip_blind_uses_canonical_action_and_narrow_exact_owners():
+    contract = contract_for("SKIP_BLIND")
+
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == SKIP_BLIND
+    assert contract.legality_owner == (
+        "games.balatro.env.skip_blind.can_skip_blind_exact"
+    )
+    assert contract.execution_owner == (
+        "games.balatro.live.injected.action_dispatcher."
+        "LiveMemoryInjectedActionDispatcher.dispatch"
+    )
+
+    action = EnvAction.from_alias("SKIP_BLIND")
+    assert action.action_id == SKIP_BLIND
+    validate_training_action(action)
+
+
+def test_select_blind_uses_canonical_action_and_exact_owners():
+    contract = contract_for("SELECT_BLIND")
+
+    assert contract.status is CapabilityStatus.SUPPORTED
+    assert contract.action_id == SELECT_BLIND
+    assert contract.legality_owner
+    assert contract.execution_owner
+
+    action = EnvAction.from_alias("SELECT_BLIND")
+    assert action.action_id == SELECT_BLIND
+    validate_training_action(action)
+
+
+def test_rl_aliases_preserve_canonical_production_action_ids():
+    expected = {
+        "REROLL_SHOP": REFRESH_SHOP,
+        "SELL_JOKER": SELL_JOKER,
+        "CHOOSE_PACK_OPTION": SELECT_PACK_CARD,
+        "SKIP_PACK": SKIP_BOOSTER,
+        "USE_CONSUMABLE": USE_CONSUMABLE,
+        "SKIP_BLIND": SKIP_BLIND,
+        "SELECT_BLIND": SELECT_BLIND,
+    }
+    for alias, action_id in expected.items():
+        assert contract_for(alias).action_id == action_id
+
+
+def test_unavailable_capabilities_never_enter_training_mask():
+    exposed_aliases = {contract.alias for contract in training_action_contracts()}
+
+    for alias in (
+        "BUY_CARD",
+        "REROLL_BOSS",
+    ):
+        assert alias not in exposed_aliases
+        contract = contract_for(alias)
+        assert contract.status is CapabilityStatus.UNAVAILABLE
+        assert contract.action_id is None
+
+
+def test_buy_card_is_explicitly_unavailable_without_canonical_production_owner():
+    contract = contract_for("BUY_CARD")
+
+    assert contract.status is CapabilityStatus.UNAVAILABLE
+    assert contract.action_id is None
+    assert contract.legality_owner is None
+    assert contract.execution_owner is None
+    assert "No dedicated canonical BUY_CARD" in contract.note

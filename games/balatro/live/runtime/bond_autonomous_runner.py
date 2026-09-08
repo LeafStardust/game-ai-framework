@@ -1,0 +1,412 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from time import perf_counter
+from typing import Any
+
+from games.balatro.actions import BalatroAction
+from games.balatro.blind_skip_policy import (
+    BlindSkipThresholds,
+    BuildAwareBlindSkipPolicy,
+)
+from games.balatro.build.joker_strategy import (
+    JokerBuildTransitionPlanner,
+    JokerBuildValueEvaluator,
+)
+from games.balatro.build.profile import BalatroBuildProfiler
+from games.balatro.live.bond_build_log import (
+    BondBuildLogTracker,
+    PreparedBondBuildLog,
+)
+from games.balatro.live.hand_action_policy import HandActionThresholds
+from games.balatro.live.path_aware_hand_action_engine import (
+    PathAwareLiveHandActionDecisionEngine as LiveHandActionDecisionEngine,
+)
+from games.balatro.live.hand_build_policy import BuildAwareLiveHandActionPolicy
+from games.balatro.live.planet_policy import LivePlanetPolicy
+from games.balatro.playbook import default_balatro_playbooks
+from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
+from games.balatro.playbook_pack_policy import PlaybookBalatroPackPolicy
+from games.balatro.playbook_shop_policy import (
+    PlaybookBuildAwareShopArbiter,
+    PlaybookVoucherAwareBalatroShopPolicy,
+)
+from games.balatro.shop_policy import DefaultShopItemValueEstimator
+from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
+
+from .live_memory_autonomous_step_injected import (
+    AutonomousStepDecision,
+    LiveMemoryInjectedSingleStepRunner,
+    _indices,
+    _pack_choice_signature,
+    _search_schedule_mode,
+)
+
+
+BOSS_D1_MAX_HORIZON = 2
+BOSS_D1_MAX_SEARCH_NODES = 500
+LATE_ANTE_D1_START = 7
+LATE_ANTE_D1_MAX_HORIZON = 2
+LATE_ANTE_D1_MAX_SEARCH_NODES = 750
+
+
+def _bounded_d1_limits(state, max_horizon: int, max_search_nodes: int):
+    """Keep live high-complexity replans within an interactive envelope."""
+    if getattr(state, "boss_name", None):
+        return (
+            min(int(max_horizon), BOSS_D1_MAX_HORIZON),
+            min(int(max_search_nodes), BOSS_D1_MAX_SEARCH_NODES),
+            "boss",
+        )
+    ante = max(1, int(getattr(state, "ante", 1) or 1))
+    if ante >= LATE_ANTE_D1_START:
+        return (
+            min(int(max_horizon), LATE_ANTE_D1_MAX_HORIZON),
+            min(int(max_search_nodes), LATE_ANTE_D1_MAX_SEARCH_NODES),
+            "late_ante",
+        )
+    return int(max_horizon), int(max_search_nodes), None
+
+
+@dataclass(frozen=True)
+class BondAutonomousStepDecision(AutonomousStepDecision):
+    bond_build: PreparedBondBuildLog | None = None
+    decision_diagnostics: dict[str, Any] | None = None
+
+
+class BondAwareLiveMemoryInjectedSingleStepRunner(
+    LiveMemoryInjectedSingleStepRunner
+):
+    """Production single-step runner with canonical Bond/build telemetry.
+
+    The base runner remains the mechanics/execution implementation. This adapter
+    wires mechanical build evaluation into D1, D2, D7, D9, D13, and D14 while
+    leaving strategic direction exclusively to canonical Bond/composition and
+    StrategyPlan layers. A supervisor retry creates a fresh telemetry lifecycle.
+    """
+
+    def __init__(self, observer, **kwargs) -> None:
+        custom_hand_recommender = kwargs.get("hand_recommender") is not None
+        custom_pack_recommender = kwargs.get("pack_recommender") is not None
+        custom_consumable_timing_policy = (
+            kwargs.get("consumable_timing_policy") is not None
+        )
+        super().__init__(observer, **kwargs)
+
+        self.build_profiler = BalatroBuildProfiler()
+        self.bond_build_log_tracker = BondBuildLogTracker(
+            profiler=self.build_profiler,
+        )
+        self.blind_skip_policy = BuildAwareBlindSkipPolicy(
+            profiler=self.build_profiler,
+        )
+
+        if not custom_consumable_timing_policy:
+            self.consumable_timing_policy.planet_policy = LivePlanetPolicy(
+                hand_evaluator=self.consumable_timing_policy.hand_evaluator,
+            )
+
+        joker_build_value = JokerBuildValueEvaluator()
+        joker_transition_planner = JokerBuildTransitionPlanner(
+            evaluator=joker_build_value,
+        )
+        shared_item_estimator = DefaultShopItemValueEstimator(
+            joker_build_value=joker_build_value,
+        )
+        self.shop_policy = PlaybookVoucherAwareBalatroShopPolicy(
+            item_value_estimator=shared_item_estimator,
+        )
+        self.shop_reroll_policy = BuildAwareShopRerollPolicy(
+            shop_policy=self.shop_policy,
+        )
+        self.shop_arbiter = PlaybookBuildAwareShopArbiter(
+            shop_policy=self.shop_policy,
+            reroll_policy=self.shop_reroll_policy,
+            joker_policy=PlaybookJokerAcquisitionPolicy(
+                joker_transition_planner,
+            ),
+        )
+        self.pack_policy = PlaybookBalatroPackPolicy(
+            item_estimator=shared_item_estimator,
+        )
+        self._pending_decision_diagnostics: dict[str, Any] = {}
+        self.last_hand_action_engine = None
+        self.last_hand_action_decision = None
+
+        if not custom_hand_recommender:
+            self.hand_recommender = self._recommend_hand_with_bonds
+        if not custom_pack_recommender:
+            self.pack_recommender = self._recommend_pack_with_diagnostics
+
+    def decide(self) -> BondAutonomousStepDecision:
+        self._pending_decision_diagnostics = {}
+        decision = super().decide()
+        playbook = default_balatro_playbooks().for_state(decision.state)
+
+        # The mechanics runner keeps the v0.9 snapshot-only D13 fallback for legacy
+        # callers. Production replaces only a settled BLIND_SELECT recommendation
+        # with the contextual v1.0 policy, reusing the exact translated state and
+        # run-scoped mechanical build profile shared by the competence layers.
+        if str(decision.snapshot.phase) == "BLIND_SELECT":
+            thresholds = BlindSkipThresholds.from_mapping(
+                playbook.thresholds_for("D13")
+            )
+            policy_started = perf_counter()
+            blind_decision = self.blind_skip_policy.decide(
+                decision.snapshot,
+                decision.state,
+                thresholds=thresholds,
+            )
+            self.last_policy_seconds = perf_counter() - policy_started
+            decision = AutonomousStepDecision(
+                snapshot=decision.snapshot,
+                state=decision.state,
+                action=BalatroAction(blind_decision.action_name),
+                source="D13 contextual blind play-vs-skip policy",
+                notes=(
+                    f"playbook={playbook.name} v{playbook.version}",
+                    *blind_decision.notes,
+                ),
+                pack_signature=decision.pack_signature,
+            )
+            self._pending_decision_diagnostics = {
+                "layer": "D13",
+                "active_thresholds": playbook.thresholds_for("D13"),
+                "selected": {
+                    "action": str(blind_decision.action_name),
+                    "blind_type": str(blind_decision.blind_type),
+                    "tag_key": blind_decision.tag_key,
+                    "build_readiness": float(blind_decision.build_readiness),
+                    "play_ev": float(blind_decision.play_ev),
+                    "blind_reward_ev": float(blind_decision.blind_reward_ev),
+                    "interest_opportunity_cost": float(
+                        blind_decision.interest_opportunity_cost
+                    ),
+                    "shop_opportunity_cost": float(
+                        blind_decision.shop_opportunity_cost
+                    ),
+                    "boss_preparation_cost": float(
+                        blind_decision.boss_preparation_cost
+                    ),
+                    "tag_ev": float(blind_decision.tag_ev),
+                    "tag_build_adjustment": float(
+                        blind_decision.tag_build_adjustment
+                    ),
+                    "skip_ev": float(blind_decision.skip_ev),
+                    "margin": float(blind_decision.margin),
+                    "threshold": float(blind_decision.threshold),
+                },
+            }
+
+        diagnostics = dict(self._pending_decision_diagnostics)
+        diagnostics.setdefault("decision_source", str(decision.source))
+        diagnostics.setdefault(
+            "active_thresholds",
+            playbook.strategy.get("decision_thresholds", {}),
+        )
+        return BondAutonomousStepDecision(
+            snapshot=decision.snapshot,
+            state=decision.state,
+            action=decision.action,
+            source=decision.source,
+            notes=decision.notes,
+            pack_signature=decision.pack_signature,
+            bond_build=self.bond_build_log_tracker.prepare(decision.state),
+            decision_diagnostics=diagnostics,
+        )
+
+    def _hand_policy(
+        self,
+        thresholds: HandActionThresholds,
+    ) -> BuildAwareLiveHandActionPolicy:
+        return BuildAwareLiveHandActionPolicy(
+            thresholds,
+            profiler=self.build_profiler,
+        )
+
+    def _recommend_pack_with_diagnostics(self, state, snapshot):
+        del snapshot
+        choices = tuple(self.pack_choice_reader())
+        actions = self.pack_generator.generate_actions(state, list(choices))
+        ranked = self.pack_policy.rank_actions(state, actions)
+        if not ranked:
+            raise RuntimeError("pack policy produced no scoreable action")
+
+        candidates = []
+        for result in ranked:
+            target = getattr(result.action, "target", None)
+            candidates.append(
+                {
+                    "action": str(result.action.name),
+                    "score": float(result.total),
+                    "area_index": getattr(target, "area_index", None),
+                    "label": getattr(target, "label", None),
+                    "notes": [str(note) for note in result.notes],
+                }
+            )
+        playbook = default_balatro_playbooks().for_state(state)
+        self._pending_decision_diagnostics = {
+            "layer": "D9/D10",
+            "candidate_scores": candidates,
+            "active_thresholds": {
+                "pack_choice": playbook.thresholds_for("D9"),
+                "pack_target": playbook.thresholds_for("D10"),
+            },
+        }
+
+        selected = ranked[0]
+        notes = [f"policy_score={selected.total:.6f}"]
+        notes.extend(str(note) for note in selected.notes)
+        return selected.action, tuple(notes), _pack_choice_signature(choices)
+
+    def _recommend_hand_with_bonds(self, state, snapshot):
+        del snapshot
+        playbook = default_balatro_playbooks().for_state(state)
+        thresholds = HandActionThresholds.from_mapping(
+            playbook.strategy.get("decision_thresholds", {}).get("hand_action", {})
+        )
+        planner_config = playbook.strategy.get("planner", {})
+        max_horizon = (
+            self.max_horizon
+            if self.max_horizon is not None
+            else int(planner_config.get("max_horizon", 8))
+        )
+        max_search_nodes = (
+            self.max_search_nodes
+            if self.max_search_nodes is not None
+            else int(planner_config.get("max_search_nodes", 5000))
+        )
+        max_search_seconds = float(planner_config.get("max_search_seconds", 8.0))
+        max_horizon, max_search_nodes, search_bound_reason = _bounded_d1_limits(
+            state,
+            max_horizon,
+            max_search_nodes,
+        )
+        search_schedule_mode = _search_schedule_mode(
+            planner_config,
+            max_horizon_override=self.max_horizon,
+            max_search_nodes_override=self.max_search_nodes,
+        )
+        engine = LiveHandActionDecisionEngine(
+            policy=self._hand_policy(thresholds),
+            max_horizon=max_horizon,
+            max_search_nodes=max_search_nodes,
+            exact_limit=self.exact_limit,
+            child_exact_limit=self.child_exact_limit,
+            search_schedule_mode=search_schedule_mode,
+            max_search_seconds=max_search_seconds,
+        )
+
+        rank_timings: list[float] = []
+        original_rank_plans = engine.rank_plans
+
+        def timed_rank_plans(current_state, *, planner=None):
+            started = perf_counter()
+            try:
+                return original_rank_plans(current_state, planner=planner)
+            finally:
+                rank_timings.append(perf_counter() - started)
+
+        engine.rank_plans = timed_rank_plans
+        decision_started = perf_counter()
+        decision = engine.decide(state)
+        self.last_hand_action_engine = engine
+        self.last_hand_action_decision = decision
+        d1_elapsed = perf_counter() - decision_started
+
+        notes = [
+            f"playbook={playbook.name} v{playbook.version}",
+            f"search_schedule={search_schedule_mode}",
+            f"mode={decision.mode}",
+            f"confidence={decision.confidence:.6f}",
+            f"indices={_indices(state, decision.action)}",
+            (
+                "clear_probability="
+                f"{decision.selected_plan.value.clear_probability:.6f}"
+            ),
+            f"path_exact={decision.selected_plan.exact}",
+            f"d1_decision_seconds={d1_elapsed:.3f}",
+            f"d1_search_time_budget={max_search_seconds:.3f}s",
+        ]
+        if search_bound_reason is not None:
+            notes.append(
+                f"d1_search_bound={search_bound_reason};"
+                f"horizon<={max_horizon},nodes<={max_search_nodes}"
+            )
+        if decision.selected_pace_ratio is not None:
+            notes.append(f"pace_ratio={decision.selected_pace_ratio:.6f}")
+
+        notes.extend(str(note) for note in decision.rationale if note.startswith("D1 "))
+
+        search_diagnostics = []
+        for index, attempt in enumerate(decision.search_attempts):
+            elapsed = rank_timings[index] if index < len(rank_timings) else float("nan")
+            best_action = attempt.best_action or "NONE"
+            search_diagnostics.append(
+                {
+                    "stage": "confirmation" if attempt.confirmation else "adaptive",
+                    "horizon": int(attempt.horizon),
+                    "samples": int(attempt.samples),
+                    "nodes_evaluated": int(attempt.nodes_evaluated),
+                    "max_nodes": int(attempt.max_nodes),
+                    "budget_exceeded": bool(attempt.budget_exceeded),
+                    "best_action": best_action,
+                    "best_clear_probability": attempt.best_clear_probability,
+                    "best_expected_score": attempt.best_expected_score,
+                    "best_exact": attempt.best_exact,
+                    "elapsed_seconds": float(elapsed),
+                }
+            )
+            best_clear_probability = (
+                f"{attempt.best_clear_probability:.6f}"
+                if attempt.best_clear_probability is not None
+                else "NONE"
+            )
+            best_expected_score = (
+                f"{attempt.best_expected_score:.3f}"
+                if attempt.best_expected_score is not None
+                else "NONE"
+            )
+            best_exact = (
+                str(attempt.best_exact) if attempt.best_exact is not None else "NONE"
+            )
+            notes.append(
+                "search[{}]={} h={} samples={} nodes={}/{} budget_exceeded={} "
+                "elapsed={:.3f}s best_action={} best_clear_probability={} "
+                "best_expected_score={} best_exact={}".format(
+                    index,
+                    "confirmation" if attempt.confirmation else "adaptive",
+                    attempt.horizon,
+                    attempt.samples,
+                    attempt.nodes_evaluated,
+                    attempt.max_nodes,
+                    attempt.budget_exceeded,
+                    elapsed,
+                    best_action,
+                    best_clear_probability,
+                    best_expected_score,
+                    best_exact,
+                )
+            )
+
+        self._pending_decision_diagnostics = {
+            "layer": "D1",
+            "active_thresholds": playbook.strategy.get("decision_thresholds", {}).get(
+                "hand_action", {}
+            ),
+            "selected": {
+                "action": str(decision.action.name),
+                "confidence": float(decision.confidence),
+                "clear_probability": float(decision.selected_plan.value.clear_probability),
+                "expected_score": float(decision.selected_plan.value.expected_score),
+                "exact": bool(decision.selected_plan.exact),
+                "pace_ratio": decision.selected_pace_ratio,
+            },
+            "search_attempts": search_diagnostics,
+        }
+
+        if len(rank_timings) > len(decision.search_attempts):
+            fallback_elapsed = sum(rank_timings[len(decision.search_attempts):])
+            notes.append(f"fallback_search_elapsed={fallback_elapsed:.3f}s")
+
+        return decision.action, tuple(notes)
