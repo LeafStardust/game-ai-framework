@@ -36,6 +36,7 @@ def _joker(*, area_index, live_id="joker-1"):
         "live_id": live_id,
         "center": "j_joker",
         "label": "Joker",
+        "rarity": "COMMON",
         "cost": 2,
         "base_cost": 2,
     }
