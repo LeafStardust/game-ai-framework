@@ -43,7 +43,7 @@ def _install_visible_inventory(run, voucher):
             card_type="Planet",
             center_key="c_mercury",
             base_cost=3,
-            price=6 if run.public.shop_discount_percent == 0 else 4,
+            price=3 if run.public.shop_discount_percent == 0 else 2,
         )
     ]
     run.public.shop_vouchers = [voucher]
@@ -70,7 +70,7 @@ def test_env_r2_clearance_redemption_pays_old_price_then_reprices_remaining_shop
     assert result.public.shop_discount_percent_observed is True
     assert result.public.shop_discount_percent == 25
     assert result.public.shop_jokers[0].price == 5
-    assert result.public.shop_consumables[0].price == 4
+    assert result.public.shop_consumables[0].price == 2
     assert result.rng_snapshot() == before_rng
 
     # Input isolation: neither economy nor visible metadata may be mutated in place.
@@ -78,7 +78,7 @@ def test_env_r2_clearance_redemption_pays_old_price_then_reprices_remaining_shop
     assert run.public.vouchers == []
     assert run.public.shop_discount_percent == 0
     assert run.public.shop_jokers[0].price == 7
-    assert run.public.shop_consumables[0].price == 6
+    assert run.public.shop_consumables[0].price == 3
     assert run.public.shop_vouchers[0].price == 10
     assert run.rng_snapshot() == before_rng
 
@@ -112,7 +112,7 @@ def test_env_r2_liquidation_requires_clearance_then_reprices_25_to_50_percent():
     assert result.public.vouchers == ["v_clearance_sale", "v_liquidation"]
     assert result.public.shop_discount_percent == 50
     assert result.public.shop_jokers[0].price == 3
-    assert result.public.shop_consumables[0].price == 2
+    assert result.public.shop_consumables[0].price == 1
     assert result.rng_snapshot() == before_rng
 
 

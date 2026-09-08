@@ -26,7 +26,7 @@ def test_env_r2_shop_joker_center_empty_pool_uses_joker_fallback_without_resampl
     assert result.rarity == 3
     assert result.resamples == 0
     assert run.rng_snapshot() == before_rng
-    assert "Joker3sho" in result.run.rng.nodes
+    assert "Joker3sho1" in result.run.rng.nodes
     assert all("resample" not in key for key in result.run.rng.nodes)
 
 
@@ -37,16 +37,16 @@ def test_env_r2_shop_joker_center_preserves_source_resample_numbering():
     # make that position unavailable so the production helper must take the
     # vanilla `_resample2` path rather than a compacted-pool shortcut.
     probe = _shop_run()
-    first_index = probe.rng.pseudorandom_element_index(len(common), "Joker1sho")
+    first_index = probe.rng.pseudorandom_element_index(len(common), "Joker1sho1")
     eligible_key = common[(first_index + 1) % len(common)]
 
     result = poll_base_shop_joker_center(_shop_run(), 1, {eligible_key})
 
     assert result.center_key == eligible_key
     assert result.resamples >= 1
-    assert "Joker1sho" in result.run.rng.nodes
-    assert "Joker1sho_resample2" in result.run.rng.nodes
-    assert "Joker1sho_resample1" not in result.run.rng.nodes
+    assert "Joker1sho1" in result.run.rng.nodes
+    assert "Joker1sho1_resample2" in result.run.rng.nodes
+    assert "Joker1sho1_resample1" not in result.run.rng.nodes
 
 
 def test_env_r2_shop_joker_center_is_deterministic_and_isolates_input_rng():

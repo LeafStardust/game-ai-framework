@@ -12,6 +12,7 @@ record also carries the exact immutable center ``cost`` needed by the downstream
 
 from __future__ import annotations
 
+from games.balatro.env.joker_centers import joker_rarity_id, vanilla_joker_pool
 from games.balatro.env.shop_generation import (
     ShopJokerCenterPoll,
     poll_base_shop_joker_center,
@@ -20,6 +21,145 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 
 
 _REQUIRED_RARITY_KEYS = ("1", "2", "3", "4")
+_VANILLA_JOKER_KEYS = frozenset(
+    key
+    for rarity in (1, 2, 3, 4)
+    for key in vanilla_joker_pool(rarity)
+)
+
+
+def _showman_present(run: HeadlessRunState) -> bool:
+    return any(type(joker).__name__ == "ShowmanJoker" for joker in run.public.jokers)
+
+
+def _visible_joker_record(run: HeadlessRunState, item) -> dict:
+    center_key = getattr(item, "center_key", None) or getattr(item, "center", None)
+    if not isinstance(center_key, str) or center_key not in _VANILLA_JOKER_KEYS:
+        raise HeadlessTransitionError("visible shop Joker center is not pinned")
+
+    raw_rarity = getattr(item, "rarity", None)
+    if isinstance(raw_rarity, str):
+        raw_rarity = raw_rarity.title()
+    try:
+        rarity = joker_rarity_id(raw_rarity)
+    except (TypeError, ValueError) as exc:
+        raise HeadlessTransitionError("visible shop Joker rarity is not exact") from exc
+
+    raw_base_cost = getattr(item, "base_cost", None)
+    if type(raw_base_cost) is int and raw_base_cost >= 0:
+        base_cost = raw_base_cost
+    elif (
+        isinstance(raw_base_cost, float)
+        and raw_base_cost.is_integer()
+        and raw_base_cost >= 0
+    ):
+        base_cost = int(raw_base_cost)
+    else:
+        # Compatibility for already-captured checkpoints which predate direct
+        # Card.base_cost observation. Only a unique inverse is exact; discounted
+        # or minimum-price ambiguity remains fail-closed.
+        from games.balatro.env.shop_pricing import vanilla_card_cost
+
+        price = getattr(item, "price", None)
+        if price is None:
+            price = getattr(item, "cost", None)
+        if isinstance(price, float) and price.is_integer():
+            price = int(price)
+        edition = getattr(item, "edition", None)
+        if isinstance(edition, str):
+            edition = edition.title()
+        candidates = [
+            candidate
+            for candidate in range(21)
+            if vanilla_card_cost(
+                candidate,
+                edition=edition,
+                inflation=run.public.shop_inflation,
+                discount_percent=run.public.shop_discount_percent,
+            )
+            == price
+        ] if type(price) is int and price >= 0 else []
+        if len(candidates) != 1:
+            raise HeadlessTransitionError("visible shop Joker base cost is not exact")
+        base_cost = candidates[0]
+
+    return {
+        "rarity": rarity,
+        "key": center_key,
+        "cost": base_cost,
+        # Ordinary shop generation cannot create a locked non-Legendary Joker.
+        # Visibility therefore proves this dynamic predicate was true.
+        "unlocked": True,
+        "no_pool_flag": None,
+        "yes_pool_flag": None,
+    }
+
+
+def _ordered_joker_records(rarity: int, records_by_key: dict[str, dict]) -> list[dict]:
+    return [
+        dict(records_by_key[key])
+        for key in vanilla_joker_pool(rarity)
+        if key in records_by_key
+    ]
+
+
+def restore_removed_shop_jokers_to_generation_pool(
+    run: HeadlessRunState,
+    removed_jokers,
+) -> HeadlessRunState:
+    """Re-admit removed visible Jokers before ordinary reroll generation."""
+    pools = _validate_observed_joker_generation_pools(run)
+    next_run = run.copy()
+    if _showman_present(run):
+        return next_run
+
+    owned_keys = {
+        getattr(joker, "center_key", None) or getattr(joker, "center", None)
+        for joker in run.public.jokers
+    }
+    by_rarity = {
+        rarity: {
+            record["key"]: dict(record)
+            for record in pools[str(rarity)]
+        }
+        for rarity in (1, 2, 3, 4)
+    }
+    for item in removed_jokers:
+        record = _visible_joker_record(run, item)
+        if record["key"] in owned_keys:
+            continue
+        by_rarity[record["rarity"]].setdefault(record["key"], record)
+
+    next_run.public.joker_generation_pools = {
+        str(rarity): _ordered_joker_records(rarity, by_rarity[rarity])
+        for rarity in (1, 2, 3, 4)
+    }
+    return next_run
+
+
+def suppress_visible_shop_jokers_from_generation_pool(
+    run: HeadlessRunState,
+    visible_jokers,
+) -> HeadlessRunState:
+    """Apply vanilla used_jokers suppression to newly visible shop Jokers."""
+    pools = _validate_observed_joker_generation_pools(run)
+    next_run = run.copy()
+    if _showman_present(run):
+        return next_run
+
+    visible_keys = {
+        _visible_joker_record(run, item)["key"]
+        for item in visible_jokers
+    }
+    next_run.public.joker_generation_pools = {
+        rarity: [
+            dict(record)
+            for record in pools[rarity]
+            if record["key"] not in visible_keys
+        ]
+        for rarity in _REQUIRED_RARITY_KEYS
+    }
+    return next_run
 
 
 def _validate_observed_joker_generation_pools(run: HeadlessRunState) -> dict[str, list[dict]]:

@@ -251,7 +251,7 @@ def poll_base_shop_joker_center(
 
     pool = current_joker_pool_from_eligible_keys(rarity, eligible_keys)
     next_run = run.copy()
-    pool_key = f"Joker{rarity}sho"
+    pool_key = f"Joker{rarity}sho{run.public.ante}"
 
     index = next_run.rng.pseudorandom_element_index(len(pool), pool_key)
     center = pool[index]

@@ -4,8 +4,7 @@ This module deliberately keeps live/runtime eligibility records explicit.  The
 normal live observer already produces authoritative eligible Tarot/Planet records;
 this layer validates that record set all-or-nothing, performs the existing exact
 identity poll, carries the selected center's observed immutable base cost, and
-applies vanilla ``Card:set_cost`` pricing with no edition surcharge. Planet cards
-apply vanilla's post-discount x2 shop-cost rule.
+applies vanilla ``Card:set_cost`` pricing with no edition surcharge.
 
 Gameplay-object construction and purchase legality remain separate exactness
 boundaries. Generated metadata may be inserted into the shared main shop only
@@ -166,7 +165,6 @@ def materialize_base_shop_consumable_descriptor(
         edition=None,
         inflation=state.shop_inflation,
         discount_percent=state.shop_discount_percent,
-        post_discount_multiplier=2 if descriptor.card_type == "Planet" else 1,
     )
     item = GeneratedShopConsumableItem(
         card_type=descriptor.card_type,

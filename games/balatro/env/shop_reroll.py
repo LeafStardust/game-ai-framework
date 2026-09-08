@@ -21,6 +21,9 @@ from games.balatro.env.shop_consumable_generation_state import (
     restore_removed_shop_consumables_to_generation_pool,
 )
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
+from games.balatro.env.shop_generation_state import (
+    restore_removed_shop_jokers_to_generation_pool,
+)
 from games.balatro.env.shop_items import GeneratedShopJokerItem
 from games.balatro.env.shop_main_generation import GeneratedMainShop, generate_base_main_shop
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
@@ -105,8 +108,15 @@ def reroll_base_main_shop(run: HeadlessRunState) -> PaidBaseShopReroll:
 
     existing_boosters = list(next_run.public.shop_boosters)
     existing_vouchers = list(next_run.public.shop_vouchers)
+    removed_jokers = list(next_run.public.shop_jokers)
     removed_consumables = list(next_run.public.shop_consumables)
 
+    # Removing visible Jokers clears their used_jokers suppression before the
+    # first replacement slot is generated.
+    next_run = restore_removed_shop_jokers_to_generation_pool(
+        next_run,
+        removed_jokers,
+    )
     # Removing visible Tarot/Planet cards can re-admit their centers to
     # get_current_pool before the first replacement slot is generated.
     next_run = restore_removed_shop_consumables_to_generation_pool(

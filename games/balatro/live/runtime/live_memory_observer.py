@@ -588,6 +588,10 @@ def _normalize_item(
         if value is not None:
             result[field] = value
 
+    base_cost = _number(card.get("base_cost"))
+    if base_cost is not None:
+        result["base_cost"] = base_cost
+
     public_state = _normalize_public_item_state(
         decoder,
         center_key,

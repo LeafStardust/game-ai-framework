@@ -24,9 +24,7 @@ def _run() -> HeadlessRunState:
     return HeadlessRunState(public=state, seed="PLANET-COST")
 
 
-def test_env_r2_planet_multiplier_is_post_discount():
-    # Vanilla: floor((3 + 1 + 0.5) * .75) == 3, then Planet doubles to 6.
-    # Applying x2 before discount would produce 5 and is therefore observably wrong.
+def test_env_r2_explicit_post_discount_multiplier_remains_available():
     assert vanilla_card_cost(
         3,
         edition=None,
@@ -36,7 +34,7 @@ def test_env_r2_planet_multiplier_is_post_discount():
     ) == 6
 
 
-def test_env_r2_planet_materialization_doubles_after_discount_but_tarot_does_not():
+def test_env_r2_planet_and_tarot_materialization_use_vanilla_card_cost_once():
     run = _run()
 
     planet_run, planet = materialize_base_shop_consumable_descriptor(
@@ -58,7 +56,7 @@ def test_env_r2_planet_materialization_doubles_after_discount_but_tarot_does_not
         )
     )
 
-    assert planet.price == 6
+    assert planet.price == 3
     assert tarot.price == 3
     assert planet_run.public.shop_discount_percent == 25
     assert tarot_run.public.shop_inflation == 1

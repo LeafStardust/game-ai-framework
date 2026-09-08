@@ -17,6 +17,7 @@ def test_live_joker_factory_resolves_save_center_and_preserves_metadata():
             "center": "j_acrobat",
             "label": "Acrobat",
             "live_id": 640,
+            "base_cost": 6,
             "cost": 6,
         }
     )
@@ -25,6 +26,7 @@ def test_live_joker_factory_resolves_save_center_and_preserves_metadata():
     assert joker.live_id == 640
     assert joker.center == "j_acrobat"
     assert joker.label == "Acrobat"
+    assert joker.base_cost == 6
     assert joker.cost == 6
 
 

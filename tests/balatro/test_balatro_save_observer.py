@@ -125,6 +125,7 @@ def _save_snapshot(*, sha256="abc", state_id=1):
                     1: {
                         "sort_id": 641,
                         "label": "Rough Gem",
+                        "base_cost": 7,
                         "cost": 7,
                         "save_fields": {
                             "center": "j_rough_gem",
@@ -214,6 +215,7 @@ def test_snapshot_from_save_normalizes_live_state():
         }
     ]
     assert snapshot.payload["shop_jokers"]["cards"][0]["label"] == "Rough Gem"
+    assert snapshot.payload["shop_jokers"]["cards"][0]["base_cost"] == 7
     assert snapshot.payload["shop_jokers"]["cards"][0]["cost"] == 7
     assert snapshot.payload["shop_boosters"]["cards"][0]["label"] == "Celestial Pack"
     assert snapshot.payload["shop_vouchers"]["cards"][0]["label"] == "Crystal Ball"

@@ -61,7 +61,8 @@ def test_env_r2_ordinary_shop_joker_descriptor_is_deterministic_and_source_order
 
     nodes = result.run.rng.nodes
     assert "rarity1sho" in nodes
-    assert f"Joker{result.rarity}sho" in nodes
+    assert f"Joker{result.rarity}sho1" in nodes
+    assert "etperpoll1" in nodes
     assert "edisho1" in nodes
 
 

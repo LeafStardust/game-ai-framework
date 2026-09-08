@@ -8,7 +8,8 @@ slot type ``Joker`` and reproduces the Joker-specific portion of
 1. rarity poll;
 2. authoritative dynamic pool materialization + center identity/resampling;
 3. immutable center base-cost lookup from that same authoritative pool;
-4. edition poll.
+4. unconditional eternal/perishable poll consumed by vanilla shop Jokers;
+5. edition poll.
 
 The result is a deterministic descriptor only. Pricing, placement in public shop
 inventory, runtime strategy-object construction, and purchase legality remain
@@ -54,7 +55,9 @@ def generate_ordinary_shop_joker_descriptor(
         rarity_poll.rarity,
         center_poll.center_key,
     )
-    edition_poll = poll_base_shop_joker_edition(center_poll.run)
+    pre_edition_run = center_poll.run.copy()
+    pre_edition_run.rng.random(f"etperpoll{run.public.ante}")
+    edition_poll = poll_base_shop_joker_edition(pre_edition_run)
     return OrdinaryShopJokerDescriptor(
         run=edition_poll.run,
         center_key=center_poll.center_key,

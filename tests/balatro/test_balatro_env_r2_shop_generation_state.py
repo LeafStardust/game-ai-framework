@@ -1,9 +1,13 @@
 import pytest
+from types import SimpleNamespace
 
 from games.balatro.env.shop_generation_state import (
     eligible_joker_keys_from_state,
     joker_center_cost_from_state,
+    restore_removed_shop_jokers_to_generation_pool,
+    suppress_visible_shop_jokers_from_generation_pool,
 )
+from games.balatro.env.shop_items import GeneratedShopJokerItem
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
 
@@ -99,3 +103,38 @@ def test_env_r2_shop_generation_state_rejects_duplicate_keys_across_catalogue():
 
     with pytest.raises(HeadlessTransitionError, match="duplicate center keys"):
         eligible_joker_keys_from_state(run, 1)
+
+
+def test_env_r2_shop_joker_visibility_restores_then_suppresses_exact_pool_record():
+    run = _run()
+    run.public.phase = "SHOP"
+    run.public.shop_active = True
+    run.public.shop_inflation_observed = True
+    run.public.shop_discount_percent_observed = True
+    run.public.joker_generation_pools["1"] = [
+        record
+        for record in run.public.joker_generation_pools["1"]
+        if record["key"] != "j_greedy_joker"
+    ]
+    removed = SimpleNamespace(
+        center="j_greedy_joker",
+        rarity="COMMON",
+        base_cost=5,
+        cost=5,
+        edition=None,
+    )
+
+    restored = restore_removed_shop_jokers_to_generation_pool(run, (removed,))
+
+    assert [record["key"] for record in restored.public.joker_generation_pools["1"]] == [
+        "j_joker",
+        "j_greedy_joker",
+    ]
+    assert restored.public.joker_generation_pools["1"][1]["cost"] == 5
+    assert restored.public.joker_generation_pools["1"][1]["unlocked"] is True
+
+    visible = GeneratedShopJokerItem("j_joker", 1, 2, None, 2)
+    suppressed = suppress_visible_shop_jokers_from_generation_pool(restored, (visible,))
+    assert [record["key"] for record in suppressed.public.joker_generation_pools["1"]] == [
+        "j_greedy_joker",
+    ]

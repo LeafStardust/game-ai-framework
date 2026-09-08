@@ -23,7 +23,10 @@ from games.balatro.env.shop_consumable_items import (
     materialize_base_shop_consumable_descriptor,
 )
 from games.balatro.env.shop_generation import poll_base_shop_card_type
-from games.balatro.env.shop_generation_state import eligible_joker_keys_from_state
+from games.balatro.env.shop_generation_state import (
+    eligible_joker_keys_from_state,
+    suppress_visible_shop_jokers_from_generation_pool,
+)
 from games.balatro.env.shop_items import (
     GeneratedShopJokerItem,
     insert_generated_shop_joker_item,
@@ -138,7 +141,12 @@ def generate_base_main_shop(run: HeadlessRunState) -> GeneratedMainShop:
     for _ in range(slot_count):
         generated_run, item = _generate_one_main_shop_item(generated_run)
         items.append(item)
-        if isinstance(item, GeneratedShopConsumableItem):
+        if isinstance(item, GeneratedShopJokerItem):
+            generated_run = suppress_visible_shop_jokers_from_generation_pool(
+                generated_run,
+                (item,),
+            )
+        elif isinstance(item, GeneratedShopConsumableItem):
             generated_run = suppress_visible_shop_consumables_from_generation_pool(
                 generated_run,
                 (item,),
@@ -184,7 +192,12 @@ def generate_one_base_main_shop_addition(run: HeadlessRunState) -> GeneratedMain
     _preflight_main_shop_generation(generation_view)
 
     generated_run, item = _generate_one_main_shop_item(generation_view)
-    if isinstance(item, GeneratedShopConsumableItem):
+    if isinstance(item, GeneratedShopJokerItem):
+        generated_run = suppress_visible_shop_jokers_from_generation_pool(
+            generated_run,
+            (item,),
+        )
+    elif isinstance(item, GeneratedShopConsumableItem):
         generated_run = suppress_visible_shop_consumables_from_generation_pool(
             generated_run,
             (item,),

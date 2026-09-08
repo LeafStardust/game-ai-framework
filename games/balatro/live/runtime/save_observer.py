@@ -228,6 +228,10 @@ def _normalize_item(
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             result[field] = value
 
+    base_cost = card.get("base_cost")
+    if isinstance(base_cost, (int, float)) and not isinstance(base_cost, bool):
+        result["base_cost"] = base_cost
+
     public_state = _normalize_public_item_state(label, ability)
     if public_state:
         result["public_state"] = public_state

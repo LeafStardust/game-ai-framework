@@ -76,6 +76,7 @@ class LiveJokerFactory:
             "label",
             "rarity",
             "edition",
+            "base_cost",
             "cost",
             "sell_cost",
             "discovered",

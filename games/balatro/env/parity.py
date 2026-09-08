@@ -9,8 +9,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from copy import copy
 from typing import Any, Iterable
 
+from games.balatro.env.joker_centers import joker_rarity_id
+from games.balatro.env.shop_consumable_generation_state import (
+    _visible_consumable_record,
+)
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.strategic_evidence import PublicStrategicTransitionEvidence
 from games.balatro.env.tactical_evidence import PublicTacticalTransitionEvidence
@@ -46,7 +51,56 @@ def _canonical_public_value(value: Any):
 def canonical_public_state_signature(state: BalatroState) -> tuple:
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
-    return _canonical_public_value(public_observation_state(state))
+    observation = public_observation_state(state)
+    normalized = copy(observation)
+    normalized.shop_jokers = [
+        _canonical_shop_joker(item)
+        for item in observation.shop_jokers
+    ]
+    normalized.shop_consumables = [
+        _canonical_shop_consumable(item)
+        for item in observation.shop_consumables
+    ]
+    return _canonical_public_value(normalized)
+
+
+def _exact_public_price(item: Any) -> int:
+    value = getattr(item, "price", None)
+    if value is None:
+        value = getattr(item, "cost", None)
+    if isinstance(value, float) and value.is_integer():
+        value = int(value)
+    if type(value) is not int or value < 0:
+        raise TypeError("R5 public shop item price must be an exact nonnegative integer")
+    return value
+
+
+def _canonical_shop_joker(item: Any) -> tuple:
+    center = getattr(item, "center_key", None) or getattr(item, "center", None)
+    if not isinstance(center, str) or not center:
+        raise TypeError("R5 public shop Joker center must be exact")
+    rarity = getattr(item, "rarity", None)
+    if isinstance(rarity, str):
+        rarity = rarity.title()
+    try:
+        rarity_id = joker_rarity_id(rarity)
+    except (TypeError, ValueError) as exc:
+        raise TypeError("R5 public shop Joker rarity must be exact") from exc
+    edition = getattr(item, "edition", None)
+    normalized_edition = str(edition).upper() if edition else None
+    return ("JOKER", center, rarity_id, normalized_edition, _exact_public_price(item))
+
+
+def _canonical_shop_consumable(item: Any) -> tuple:
+    record = _visible_consumable_record(item)
+    if record is None:
+        raise TypeError("R5 public shop consumable identity must be exact")
+    return (
+        "CONSUMABLE",
+        record["type"],
+        record["key"],
+        _exact_public_price(item),
+    )
 
 
 @dataclass(frozen=True)

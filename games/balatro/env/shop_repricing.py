@@ -103,7 +103,6 @@ def reprice_exact_generated_shop(
                 edition=None,
                 inflation=next_state.shop_inflation,
                 discount_percent=discount_percent,
-                post_discount_multiplier=2 if item.card_type == "Planet" else 1,
             ),
         )
         for item in next_state.shop_consumables
