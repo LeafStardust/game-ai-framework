@@ -245,6 +245,21 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             result.append(self._card(card, live_id))
         return result
 
+    @staticmethod
+    def _exact_playing_card_live_id(value) -> int | None:
+        """Canonicalize Lua numeric playing-card ids without guessing identity."""
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            raise ValueError("playing-card live id cannot be boolean")
+        if isinstance(value, int):
+            if value < 0:
+                raise ValueError("playing-card live id cannot be negative")
+            return value
+        if isinstance(value, float) and value >= 0 and value.is_integer():
+            return int(value)
+        raise ValueError("playing-card live id must be an exact nonnegative integer")
+
     def _strict_owned_cards(self, value) -> list[BalatroCard] | None:
         """Translate permanent playing cards only when the whole source is exact."""
 
@@ -324,8 +339,9 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
                 # marker; accepting it otherwise would collapse unknown into false.
                 return None
 
-            live_id = card.get("live_id", card.get("id", index))
+            raw_live_id = card.get("live_id", card.get("id"))
             try:
+                live_id = self._exact_playing_card_live_id(raw_live_id)
                 result.append(self._card(card, live_id))
             except (KeyError, TypeError, ValueError):
                 return None
