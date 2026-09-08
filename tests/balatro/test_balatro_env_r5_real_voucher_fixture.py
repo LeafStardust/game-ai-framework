@@ -1,6 +1,6 @@
-import gzip
 import hashlib
 import json
+import lzma
 from pathlib import Path
 
 from games.balatro.env.strategic_evidence import buy_voucher_with_public_evidence
@@ -15,13 +15,13 @@ FIXTURE = (
     Path(__file__).parent
     / "fixtures"
     / "r5"
-    / "balatro-20260908T135908Z-3f93a77a-attempt-001.buy-paint-brush.jsonl.gz"
+    / "balatro-20260908T135908Z-3f93a77a-attempt-001.buy-paint-brush.jsonl.xz"
 )
 _FIXTURE_SHA256 = "36d25e575079e279c33d42e9df6cbd00467209fdc146ce0bd67395f2b3f0b7d3"
 
 
 def _fixture_bytes() -> bytes:
-    with gzip.open(FIXTURE, "rb") as handle:
+    with lzma.open(FIXTURE, "rb") as handle:
         return handle.read()
 
 
