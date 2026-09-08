@@ -76,17 +76,18 @@ def test_production_live_observer_installs_authoritative_consumable_generation_p
     snapshot = observer._observe_public()
 
     assert snapshot.payload["consumable_generation_pool_observed"] is True
-    assert snapshot.payload["consumable_generation_pool"] == generation_pool
+    assert snapshot.payload["consumable_generation_pools"] == generation_pool
+    assert "consumable_generation_pool" not in snapshot.payload
 
 
 def test_consumable_generation_pool_enrichment_clears_stale_authority():
     payload = {
         "consumable_generation_pool_observed": True,
-        "consumable_generation_pool": _pool(),
+        "consumable_generation_pools": _pool(),
     }
 
     enriched = enrich_consumable_generation_pool_payload(payload, None)
 
     assert enriched["consumable_generation_pool_observed"] is False
-    assert "consumable_generation_pool" not in enriched
-    assert "consumable_generation_pool" in payload
+    assert "consumable_generation_pools" not in enriched
+    assert "consumable_generation_pools" in payload
