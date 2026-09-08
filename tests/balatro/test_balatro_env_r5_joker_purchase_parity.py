@@ -1,14 +1,11 @@
 import pytest
 
-from games.balatro.env.strategic_evidence import PublicStrategicTransitionEvidence
 from games.balatro.env.strategic_evidence import buy_joker_with_public_evidence
 from games.balatro.env.transition import HeadlessRunState
-from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.live.parity_capture import (
     compare_run_rows_to_simulator_joker_purchase_evidence,
     successful_joker_purchase_evidence_from_run_rows,
 )
-from games.balatro.state import BalatroState
 
 
 def _shop_state(*, sequence, money, shop_cards, jokers=()):
@@ -96,39 +93,23 @@ def test_env_r5_live_joker_purchase_rejects_failed_or_mismatched_result():
         successful_joker_purchase_evidence_from_run_rows(rows)
 
 
-def test_env_r5_headless_joker_purchase_wraps_canonical_owner_and_matches_live_shape():
-    state = BalatroState()
-    state.deck_name = "RED"
-    state.stake_name = "WHITE"
-    state.phase = "SHOP"
-    state.shop_active = True
-    state.money = 8
-    joker = FlatMultJoker()
-    joker.area_index = 1
-    joker.cost = 2
-    joker.base_cost = 2
-    state.shop_jokers = [joker]
-    run = HeadlessRunState(public=state, seed="r5-joker-purchase-parity")
+def test_env_r5_headless_joker_purchase_replays_translated_live_before_state():
+    live_rows = _rows()
+    live = successful_joker_purchase_evidence_from_run_rows(live_rows)
+    before = live[0].before
+    purchased = before.shop_jokers[0]
+    run = HeadlessRunState(public=before, seed="r5-joker-purchase-parity")
 
     result, simulator = buy_joker_with_public_evidence(run, slot=0)
 
     assert run.public.money == 8
-    assert run.public.shop_jokers == [joker]
+    assert run.public.shop_jokers == [purchased]
     assert result.public.money == 6
     assert result.public.shop_jokers == []
-    assert len(result.public.jokers) == 1
-    live_rows = _rows()
-    live = successful_joker_purchase_evidence_from_run_rows(live_rows)
-    # Normalize the independently built live state to the exact same supported
-    # public boundary; comparison must use the canonical strategic comparator.
-    comparable_simulator = PublicStrategicTransitionEvidence(
-        before=live[0].before,
-        action=simulator.action,
-        after=live[0].after,
-    )
+    assert result.public.jokers == [purchased]
     comparison = compare_run_rows_to_simulator_joker_purchase_evidence(
         live_rows,
-        (comparable_simulator,),
+        (simulator,),
     )
     assert comparison.matches is True
     assert comparison.differences == ()
