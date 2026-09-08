@@ -60,7 +60,7 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 
 ---
 
-# Current checkpoint — 2026-09-06
+# Current checkpoint — 2026-09-08
 
 ```text
 Branch: feat/v1.0-red-white-competence
@@ -135,6 +135,25 @@ b15fab5fe2bec0080c383a009dbef4f00cc89e12
 GitHub Actions run 34024889806
 GitHub Actions job 101463994146
 2409 passed, 1595 deselected
+
+R5 paid-reroll live-fixture readiness repairs:
+b092783e9bb44831e2333b5bf70439af4b37c785
+  fix(balatro): admit depleted paid-reroll shops
+fc65fa09855a7e3a2febf60c04c8a9ef9f86877a
+  fix(balatro): expose reroll replay rejection cause
+c3ed2b712fe3422c523ffe3e9ae67b604369facf
+  fix(balatro): model shop consumable pool visibility
+15db1dbc2d5fecd29d49c3ffa28b9bd6cb344562
+  fix(balatro): observe consumable pool in production
+9083d4170bad8d2ce799ec47debb585fe94d9943
+  fix(balatro): admit Omen Globe for base shop parity
+3f9ef026b768342aa18cbad4e5defda8b5a8bc1d
+  fix(balatro): decouple exact reroll voucher capability
+99a4776ce8d01b47fb0a460cdc31d5ea63558b2e
+  test(balatro): cover Telescope paid reroll parity state
+GitHub Actions run 34213635015
+GitHub Actions job 102020161503
+2419 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -145,7 +164,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — TACTICAL EVIDENCE/COMPARISON AND EXACT STRATEGIC PAID-REROLL REPLAY/CAPTURE INFRASTRUCTURE GREEN; REPRESENTATIVE REAL LIVE/SIM FIXTURES REMAIN**.
+- R5 live/simulator parity harness: **IN PROGRESS — TACTICAL EVIDENCE/COMPARISON, PAID-REROLL REPLAY/CAPTURE, AND KNOWN LIVE-FIXTURE PRECONDITION REPAIRS GREEN; THE FIRST REAL PAID-REROLL FIXTURE REMAINS**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
@@ -430,11 +449,11 @@ ShopTransitionEngine legal mask + BUY_VOUCHER execution
 
 The path fails closed when retained progression is absent/stale, the required current/persistent allowance is unobserved or irreducible, price is malformed/unaffordable, or Petroglyph lacks Hieroglyph. Successful redemption consumes no RNG and atomically updates public and private state.
 
-### Remaining unsupported Voucher centers
+### Boundary-limited or unsupported Voucher centers
 
 ```text
-v_omen_globe
-v_telescope
+v_omen_globe      base-shop generation / paid-reroll zero-effect boundary only
+v_telescope       base-shop generation / paid-reroll zero-effect boundary only
 v_observatory
 v_blank
 v_magic_trick
@@ -790,7 +809,19 @@ b15fab5fe2bec0080c383a009dbef4f00cc89e12
 GitHub Actions run 34024889806
 GitHub Actions job 101463994146
 2409 passed, 1595 deselected
+
+99a4776ce8d01b47fb0a460cdc31d5ea63558b2e
+  test(balatro): cover Telescope paid reroll parity state
+GitHub Actions run 34213635015
+GitHub Actions job 102020161503
+2419 passed, 1595 deselected
 ```
+
+Post-capture readiness repairs now own depleted-shop rerolls, exact Tarot/Planet
+duplicate-suppression pool lifecycle, production publication of authoritative
+consumable-generation catalogues, surfaced replay rejection causes, and explicit
+Omen Globe/Telescope zero-effect capability at the ordinary base-shop/paid-reroll
+boundary. These repairs do not constitute a live parity fixture.
 
 ## Priority parity fixtures
 
@@ -811,7 +842,7 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The first strategic fixture contract is now frozen. The next gate is a **single real ordinary paid `REFRESH_SHOP` transition**, not more infrastructure work and not an open-ended Balatro batch.
+The first strategic fixture contract and all currently known deterministic/live-observation prerequisites are green at `99a4776c`. The next gate is a **single real ordinary paid `REFRESH_SHOP` transition**, not more infrastructure work and not an open-ended Balatro batch.
 
 Required fixture preconditions:
 
