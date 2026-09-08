@@ -175,3 +175,22 @@ def test_env_r2_paid_reroll_preserves_independent_booster_and_voucher_areas():
     assert result.run.public.shop_vouchers == [voucher]
     assert run.public.shop_boosters == [booster]
     assert run.public.shop_vouchers == [voucher]
+
+
+def test_env_r2_paid_reroll_admits_omen_globe_as_base_shop_inert():
+    run = _generated_run("REROLL-OMEN-GLOBE")
+    run.public.vouchers = [
+        "v_crystal_ball",
+        "v_omen_globe",
+        "v_tarot_merchant",
+    ]
+    run.public.vouchers_observed = True
+    run.public.tarot_rate = 9.6
+
+    assert can_reroll_base_main_shop(run)
+
+    result = reroll_base_main_shop(run)
+
+    assert result.previous_cost == 5
+    assert result.next_cost == 6
+    assert result.run.public.money == 15
