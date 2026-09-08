@@ -27,6 +27,12 @@ EXACT_INTEREST_CAP_VOUCHER_KEYS = frozenset({"v_seed_money", "v_money_tree"})
 EXACT_SHOP_SIZE_VOUCHER_KEYS = frozenset({"v_overstock_norm", "v_overstock_plus"})
 EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 
+# These Vouchers have no effect on ordinary base-shop generation. They are
+# nevertheless admitted explicitly at this boundary so authoritative ownership
+# does not become "inexact" merely because another exact subsystem owns their
+# consequences. Omen Globe only modifies Arcana-pack Spectral generation.
+EXACT_SHOP_BASE_NO_EFFECT_VOUCHER_KEYS = frozenset({"v_omen_globe"})
+
 SHOP_BASE_GENERATION_VOUCHER_KEYS = (
     EXACT_RESOURCE_VOUCHER_KEYS
     | EXACT_EDITION_RATE_VOUCHER_KEYS
@@ -36,6 +42,7 @@ SHOP_BASE_GENERATION_VOUCHER_KEYS = (
     | EXACT_INTEREST_CAP_VOUCHER_KEYS
     | EXACT_SHOP_SIZE_VOUCHER_KEYS
     | EXACT_ANTE_VOUCHER_KEYS
+    | EXACT_SHOP_BASE_NO_EFFECT_VOUCHER_KEYS
 )
 
 
