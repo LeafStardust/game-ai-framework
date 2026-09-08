@@ -106,7 +106,26 @@ def test_env_r5_headless_joker_purchase_replays_translated_live_before_state():
     assert run.public.shop_jokers == [purchased]
     assert result.public.money == 6
     assert result.public.shop_jokers == []
-    assert result.public.jokers == [purchased]
+    assert len(result.public.jokers) == 1
+    acquired = result.public.jokers[0]
+    assert type(acquired) is type(purchased)
+    assert (
+        acquired.live_id,
+        acquired.area_index,
+        acquired.center,
+        acquired.label,
+        acquired.rarity,
+        acquired.cost,
+        acquired.base_cost,
+    ) == (
+        purchased.live_id,
+        purchased.area_index,
+        purchased.center,
+        purchased.label,
+        purchased.rarity,
+        purchased.cost,
+        purchased.base_cost,
+    )
     comparison = compare_run_rows_to_simulator_joker_purchase_evidence(
         live_rows,
         (simulator,),
