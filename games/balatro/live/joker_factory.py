@@ -34,6 +34,7 @@ class LiveJokerFactory:
         "rank",
         "suit",
     }
+    EXACT_INTEGER_METADATA_FIELDS = frozenset({"base_cost", "cost", "sell_cost"})
 
     RANKS = {
         "Ace": "A",
@@ -84,6 +85,8 @@ class LiveJokerFactory:
         ):
             value = data.get(field)
             if value is not None:
+                if field in self.EXACT_INTEGER_METADATA_FIELDS:
+                    value = self._normalize_exact_integer_metadata(value)
                 setattr(joker, field, value)
 
         # ``Card.debuff`` is public for Jokers and is the authoritative live
@@ -189,6 +192,14 @@ class LiveJokerFactory:
                 expanded.append(f"the_{candidate}")
 
         return list(dict.fromkeys(expanded))
+
+    @staticmethod
+    def _normalize_exact_integer_metadata(value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        return value
 
     def _normalize_constructor_value(self, name: str, value: str) -> str:
         if name == "rank":
