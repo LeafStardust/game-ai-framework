@@ -112,9 +112,9 @@ def enrich_consumable_generation_pool_payload(payload: dict, generation_pool) ->
     enriched = dict(payload)
     enriched["consumable_generation_pool_observed"] = generation_pool is not None
     if generation_pool is not None:
-        enriched["consumable_generation_pool"] = generation_pool
+        enriched["consumable_generation_pools"] = generation_pool
     else:
-        enriched.pop("consumable_generation_pool", None)
+        enriched.pop("consumable_generation_pools", None)
     return enriched
 
 
