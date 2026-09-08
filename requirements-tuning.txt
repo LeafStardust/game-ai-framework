@@ -1,2 +1,0 @@
--r requirements.txt
-optuna>=4.9,<5.0

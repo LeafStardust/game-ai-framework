@@ -12,26 +12,26 @@ ATTEMPT_SUPERVISOR_MODULE = (
 )
 
 
-def _consume_attempts(argv: list[str]) -> int:
+def _consume_attempt(argv: list[str]) -> int:
     for index, arg in enumerate(list(argv)):
-        if arg.lower() != "--attempts":
+        if arg.lower() != "--attempt":
             continue
         if index + 1 >= len(argv):
-            raise ValueError("--attempts requires a positive integer")
+            raise ValueError("--attempt requires a positive integer")
         raw = argv[index + 1]
         try:
             attempts = int(raw)
         except ValueError as error:
-            raise ValueError("--attempts requires a positive integer") from error
+            raise ValueError("--attempt requires a positive integer") from error
         if attempts <= 0:
-            raise ValueError("--attempts requires a positive integer")
+            raise ValueError("--attempt requires a positive integer")
         del argv[index : index + 2]
         return attempts
-    raise ValueError("--attempts is required")
+    raise ValueError("--attempt is required")
 
 
 def main() -> int:
-    attempts = _consume_attempts(sys.argv)
+    attempts = _consume_attempt(sys.argv)
     previous_module = base_toggle.SUPERVISOR_MODULE
     previous_attempts = os.environ.get(ATTEMPTS_ENV)
     base_toggle.SUPERVISOR_MODULE = ATTEMPT_SUPERVISOR_MODULE
