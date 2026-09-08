@@ -196,6 +196,27 @@ a709b9c74e688f20ebaa82ba8fed5e02d2e231fa
 GitHub Actions run 34229665010
 GitHub Actions job 102072335608
 2437 passed, 1595 deselected
+
+R5 supported Voucher purchase evidence and live identity normalization:
+e67d19d754c447f1dea116bcf82948dc7545c697
+  test(balatro): cover R5 Voucher purchase parity
+e792d007469b4440740ae5317fb024d82b2eda17
+  fix(balatro): add Voucher parity evidence wrapper
+36bbe5eb2f7057bb41d4846996c8efca9b466811
+  fix(balatro): normalize live shop center identity
+GitHub Actions run 34234881414
+GitHub Actions job 102089904106
+2443 passed, 1595 deselected
+
+R5 first real supported Voucher-purchase fixture:
+b4350d99e538d9c423724c6f2ba77bd079dfc70d
+  test(balatro): replay real R5 Voucher purchase fixture
+  intermediate CI exposed fixture gzip transport CRC only; 2443 prior tests remained green
+4aba3b42f40f03b1d35dc58414d913e62537b369
+  fix(balatro): preserve real Voucher fixture bytes
+GitHub Actions run 34237730786
+GitHub Actions job 102099701468
+2445 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -206,11 +227,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — TACTICAL EVIDENCE/COMPARISON, THE FIRST REAL ORDINARY PAID-REROLL FIXTURE, AND THE FIRST REAL ORDINARY `BUY_JOKER` FIXTURE ARE GREEN; THE NEXT SLICE IS REPRESENTATIVE VOUCHER REDEMPTION PARITY**.
+- R5 live/simulator parity harness: **IN PROGRESS — TACTICAL EVIDENCE/COMPARISON, THE FIRST REAL ORDINARY PAID-REROLL FIXTURE, THE FIRST REAL ORDINARY `BUY_JOKER` FIXTURE, AND THE FIRST REAL SUPPORTED `BUY_VOUCHER` FIXTURE ARE GREEN; THE NEXT SLICE IS REPRESENTATIVE BLIND START/CLEAR PARITY**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOT CURRENTLY REQUIRED; INSPECT EXISTING DURABLE EVIDENCE FOR A SUPPORTED VOUCHER REDEMPTION BEFORE REQUESTING A NEW LIVE RUN**.
+- Live Balatro validation: **NOT CURRENTLY REQUIRED; THE FRESH 2026-09-08 RUN ALREADY CONTAINS SETTLED BLIND START/CLEAR PUBLIC EVIDENCE. INSPECT WHETHER PRIVATE RNG/DRAW REPLAY AUTHORITY IS ALSO REQUIRED BEFORE REQUESTING ANOTHER RUN.**
 
 ## Current strategic action contract
 
@@ -821,6 +842,10 @@ Required before treating the simulator as authoritative training truth.
 - the supported `BUY_JOKER` regression now rebuilds `HeadlessRunState` directly from the translated live-before state, executes `ShopTransitionEngine` through `buy_joker_with_public_evidence`, and compares the resulting strategic evidence without copying/normalizing live before/after state into the simulator side.
 - `games/balatro/live/joker_purchase_fixture.py` provides an offline opt-in preservation seam that selects one coherent settled `BUY_JOKER` boundary from the canonical public run log and writes the original `balatro-run-experience-v1` observation/decision/action-result rows unchanged; it creates no production-side action/evidence schema.
 - exact integral live Joker price metadata is canonicalized at `LiveJokerFactory`, aligning Lua numeric values such as `4.0` with the headless integer-price contract while leaving non-integral prices fail-closed.
+- successful supported live `BUY_VOUCHER` run-log transitions now reuse the same targeted-purchase action mapping and `PublicStrategicTransitionEvidence` path, mapping live combined-shop `area_index` to the translated Voucher slot and rejecting unsupported centers or mismatched identities.
+- `games/balatro/live/voucher_purchase_fixture.py` reuses the generic purchase-fixture seam and preserves one coherent successful `BUY_VOUCHER` observation/decision/action-result boundary without inventing Voucher-specific production truth.
+- translated live shop items expose their authoritative center identity through the canonical `center_key` interface expected by exact headless Voucher mechanics while retaining `center` for live-target structural comparison.
+- the first real supported Voucher fixture is preserved byte-for-byte after decompression with a SHA-256 guard and replays unchanged through the canonical headless Voucher owner.
 - `games/balatro/live/reroll_parity_checkpoint.py` captures coherent complete-SHOP public state plus exact private RNG/reroll replay authority and rejects active Tags, free rerolls, unobserved Voucher state, or unstable checkpoints rather than normalizing them away.
 - exact ordinary paid `REROLL_SHOP` can be rebuilt from a private checkpoint and replayed through the canonical headless reroll owner; the comparator checks public transition evidence, previous/next reroll cost, and post-action RNG snapshot.
 - `games/balatro/live/reroll_parity_capture.py` persists this private replay authority in an opt-in per-run sidecar. The normal durable run-experience JSONL remains public-only.
@@ -899,6 +924,18 @@ a709b9c74e688f20ebaa82ba8fed5e02d2e231fa
 GitHub Actions run 34229665010
 GitHub Actions job 102072335608
 2437 passed, 1595 deselected
+
+36bbe5eb2f7057bb41d4846996c8efca9b466811
+  fix(balatro): normalize live shop center identity
+GitHub Actions run 34234881414
+GitHub Actions job 102089904106
+2443 passed, 1595 deselected
+
+4aba3b42f40f03b1d35dc58414d913e62537b369
+  fix(balatro): preserve real Voucher fixture bytes
+GitHub Actions run 34237730786
+GitHub Actions job 102099701468
+2445 passed, 1595 deselected
 ```
 
 The first real paid-reroll fixture,
@@ -933,10 +970,32 @@ prices. `LiveJokerFactory` now canonicalizes only integral numeric price metadat
 non-integral values remain unsupported rather than rounded. The unchanged real
 fixture then passed canonical strategic parity at `a709b9c7`.
 
-## Priority parity fixtures
+The first real supported Voucher-purchase fixture is repository-preserved from
+`balatro-20260908T135908Z-3f93a77a-attempt-001`, sequences 59–61. It is the
+unchanged canonical public observation/decision/action-result boundary for
+buying Paint Brush (`v_paint_brush`) at combined shop `area_index=0`. The live
+boundary spends money 18 → 8, removes Paint Brush from the shop, appends
+`v_paint_brush` to ordered Voucher ownership, and changes public hand size 8 → 9.
+The first deterministic replay exposed the actual canonical integration defect:
+translated `LiveShopItem` identity was published as `center`, while the exact
+headless Voucher owner reads canonical `center_key`. The live shop-item model now
+normalizes that same authoritative center identity at its canonical interface;
+there is no Voucher-only legality bypass. The real fixture is stored compressed
+but its exact decompressed original rows are guarded by SHA-256
+`36d25e575079e279c33d42e9df6cbd00467209fdc146ce0bd67395f2b3f0b7d3`.
+The intermediate `b4350d99` run failed only because the first committed gzip
+transport had a CRC mismatch; all 2443 pre-existing selected tests passed. The
+replacement XZ fixture at `4aba3b42` replays unchanged and passed canonical
+strategic parity with 2445 selected tests green.
 
-- ordinary shop generation/purchase/reroll;
-- Voucher redemption;
+## Completed priority parity gates
+
+- ordinary shop paid reroll;
+- representative ordinary Joker purchase;
+- representative supported Voucher redemption.
+
+## Remaining priority parity fixtures
+
 - blind start/clear;
 - blind skip/Tag flow;
 - representative Buffoon pack choice/skip;
@@ -952,32 +1011,38 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The representative ordinary shop reroll and Joker-purchase gates are green. Do
-not request another reroll or purchase run for those same gates.
+The representative ordinary shop reroll, Joker-purchase, and supported Voucher
+redemption gates are green. Do not request another run for those same gates.
 
-Continue R5 with **representative supported Voucher redemption parity**:
+Continue R5 with **representative blind start/clear parity**:
 
-1. inspect the canonical production `BUY_VOUCHER` target/dispatch/settlement path,
-   the live Voucher translation fields, the existing `PublicStrategicTransitionEvidence`
-   adapter/comparator, and the exact headless Voucher redemption owners before editing;
-2. search existing durable Red/White run evidence for one settled supported
-   `BUY_VOUCHER` transition whose complete public before/action/after state is
-   sufficient to rebuild the exact headless boundary; prefer an existing fixture
-   over requesting a new Balatro run;
-3. add the smallest canonical run-log adapter/preservation seam needed for
-   `BUY_VOUCHER`, reusing the frozen R3 action vocabulary and strategic evidence
-   schema rather than creating Voucher-specific action truth;
-4. add focused deterministic regressions for exact live target → headless slot
-   mapping, before/after preservation, supported redemption effects, and
-   malformed/unsupported/mismatched fail-closed behavior at the owning boundary;
-5. replay one preserved real supported Voucher purchase unchanged through the
-   canonical headless `BUY_VOUCHER` owner and require public strategic parity;
-6. push and require the GitHub Actions deterministic gate to pass;
-7. request one live Voucher purchase only if no existing durable supported
-   transition can satisfy the unchanged real-fixture replay gate.
+1. inspect the canonical production `SELECT_BLIND` target/dispatch/settlement
+   path and the ordinary blind-clear/cash-out path, the live translation fields,
+   the existing public strategic evidence/comparator, the exact headless
+   `blind_start.py` / deal / round-end owners, and pinned vanilla source order;
+2. inspect the fresh durable run
+   `balatro-20260908T135908Z-3f93a77a-attempt-001`, which already contains
+   multiple settled `SELECT_BLIND` and clear/cash-out boundaries, before asking
+   for any additional Balatro execution;
+3. determine explicitly whether public before/action/after rows are sufficient
+   for exact replay or whether shuffle/deal requires private RNG / physical-order
+   authority; never infer hidden draw order from the visible dealt hand;
+4. if private authority is required, add the smallest opt-in checkpoint/capture
+   seam at the canonical live boundary, analogous in principle to reroll parity,
+   while keeping the ordinary durable run log public-only;
+5. add focused fail-closed regressions for production action → R3 action mapping,
+   public before/after preservation, exact resource/round transition, and any
+   required private RNG/order snapshot validation;
+6. replay one representative ordinary Small-Blind start and its clear/cash-out
+   boundary through the canonical headless owners and require public strategic
+   parity, plus private replay parity only for state that is genuinely simulator
+   authority and never policy-visible;
+7. push and require the authoritative GitHub Actions deterministic gate to pass;
+8. request one new live run only if the existing durable evidence cannot satisfy
+   the gate **after** any required private capture support exists.
 
-Do not broaden this slice to unsupported Voucher centers, playing-card shop
-purchases, Boss reroll, policy tuning, or another open-ended live batch.
+Do not broaden this slice to blind skip/Tag flow, pack parity, unsupported Boss
+paths, policy tuning, playing-card shop purchases, or Boss reroll.
 `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
 ## R5 exit criteria
