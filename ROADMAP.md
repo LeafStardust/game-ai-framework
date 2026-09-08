@@ -217,6 +217,17 @@ b4350d99e538d9c423724c6f2ba77bd079dfc70d
 GitHub Actions run 34237730786
 GitHub Actions job 102099701468
 2445 passed, 1595 deselected
+
+R5 blind-start replay prerequisites:
+9af3cc3691b75b4aac178265124927537542630e
+  fix(balatro): normalize exact playing-card live ids
+2c2d96055b84a8791fafe53372446bbc25e54314
+  test(balatro): freeze exact playing-card live ids
+92d2a2abc6301c32fef2927c11eb76a3e6e2dd74
+  test(balatro): select exact playing-card id regressions
+GitHub Actions run 34250416208
+GitHub Actions job 102143121535
+2452 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -846,6 +857,7 @@ Required before treating the simulator as authoritative training truth.
 - `games/balatro/live/voucher_purchase_fixture.py` reuses the generic purchase-fixture seam and preserves one coherent successful `BUY_VOUCHER` observation/decision/action-result boundary without inventing Voucher-specific production truth.
 - translated live shop items expose their authoritative center identity through the canonical `center_key` interface expected by exact headless Voucher mechanics while retaining `center` for live-target structural comparison.
 - the first real supported Voucher fixture is preserved byte-for-byte after decompression with a SHA-256 guard and replays unchanged through the canonical headless Voucher owner.
+- live permanent playing-card identity now retains only exact observed `live_id` values: integral Lua numbers normalize to integers; missing identity remains missing; invalid/partial identity never falls back to public array position. This lets headless permanent creation order be derived from authoritative IDs without exposing future physical draw order.
 - `games/balatro/live/reroll_parity_checkpoint.py` captures coherent complete-SHOP public state plus exact private RNG/reroll replay authority and rejects active Tags, free rerolls, unobserved Voucher state, or unstable checkpoints rather than normalizing them away.
 - exact ordinary paid `REROLL_SHOP` can be rebuilt from a private checkpoint and replayed through the canonical headless reroll owner; the comparator checks public transition evidence, previous/next reroll cost, and post-action RNG snapshot.
 - `games/balatro/live/reroll_parity_capture.py` persists this private replay authority in an opt-in per-run sidecar. The normal durable run-experience JSONL remains public-only.
@@ -936,6 +948,16 @@ GitHub Actions job 102089904106
 GitHub Actions run 34237730786
 GitHub Actions job 102099701468
 2445 passed, 1595 deselected
+
+9af3cc3691b75b4aac178265124927537542630e
+  fix(balatro): normalize exact playing-card live ids
+2c2d96055b84a8791fafe53372446bbc25e54314
+  test(balatro): freeze exact playing-card live ids
+92d2a2abc6301c32fef2927c11eb76a3e6e2dd74
+  test(balatro): select exact playing-card id regressions
+GitHub Actions run 34250416208
+GitHub Actions job 102143121535
+2452 passed, 1595 deselected
 ```
 
 The first real paid-reroll fixture,
@@ -988,6 +1010,17 @@ transport had a CRC mismatch; all 2443 pre-existing selected tests passed. The
 replacement XZ fixture at `4aba3b42` replays unchanged and passed canonical
 strategic parity with 2445 selected tests green.
 
+For blind-start replay, the permanent creation-order prerequisite is now exact:
+`G.playing_cards` remains the permanent-deck truth, and the live translator keeps
+only exact observed playing-card IDs. Integral Lua IDs normalize to Python ints;
+missing IDs remain missing, and invalid or partial identities fail closed instead
+of being replaced with observation-array positions. `HeadlessRunState` can thus
+derive authoritative permanent creation order from unique IDs without putting
+future physical shuffle/deal order into public evidence. The remaining extra
+replay authority for an ordinary blind start is private Balatro RNG state plus
+proof that acquired active Tags are absent; those belong in an opt-in diagnostic
+checkpoint, not in the ordinary durable run log.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1024,22 +1057,24 @@ Continue R5 with **representative blind start/clear parity**:
    `balatro-20260908T135908Z-3f93a77a-attempt-001`, which already contains
    multiple settled `SELECT_BLIND` and clear/cash-out boundaries, before asking
    for any additional Balatro execution;
-3. determine explicitly whether public before/action/after rows are sufficient
-   for exact replay or whether shuffle/deal requires private RNG / physical-order
-   authority; never infer hidden draw order from the visible dealt hand;
-4. if private authority is required, add the smallest opt-in checkpoint/capture
-   seam at the canonical live boundary, analogous in principle to reroll parity,
-   while keeping the ordinary durable run log public-only;
+3. public permanent-card IDs are now sufficient to reconstruct authoritative
+   permanent creation order, but exact blind-start shuffle/deal still requires
+   private RNG replay authority and proof that acquired active Tags are absent;
+   never infer hidden future draw order from the visible dealt hand;
+4. add the smallest opt-in blind-start checkpoint/capture seam at the canonical
+   live boundary, reusing the existing private RNG replay primitive and keeping
+   the ordinary durable run log public-only;
 5. add focused fail-closed regressions for production action → R3 action mapping,
-   public before/after preservation, exact resource/round transition, and any
-   required private RNG/order snapshot validation;
+   public before/after preservation, exact resource/round transition, stable
+   checkpoint capture, active-Tag rejection, exact card-ID/order restoration,
+   and private post-action RNG comparison;
 6. replay one representative ordinary Small-Blind start and its clear/cash-out
    boundary through the canonical headless owners and require public strategic
    parity, plus private replay parity only for state that is genuinely simulator
    authority and never policy-visible;
 7. push and require the authoritative GitHub Actions deterministic gate to pass;
 8. request one new live run only if the existing durable evidence cannot satisfy
-   the gate **after** any required private capture support exists.
+   the gate **after** the private blind-start capture support is green.
 
 Do not broaden this slice to blind skip/Tag flow, pack parity, unsupported Boss
 paths, policy tuning, playing-card shop purchases, or Boss reroll.
