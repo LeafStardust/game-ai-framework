@@ -170,6 +170,21 @@ Canonical attempt-count correction and branch-tree repair:
 GitHub Actions run 34218019368
 GitHub Actions job 102034289630
 2427 passed, 1595 deselected
+
+R5 supported Joker purchase evidence and true headless replay:
+256d56baf36f0d5a32b9aabf827cbbdc2643c3f5
+  feat(balatro): add Joker purchase parity evidence
+adfa8458fbee9f6b51db0f7b8b25e8ab36d0c56c
+  test(balatro): seed R5 joker purchase replay
+0183d09d729dad15f72948be0326a10432ecea07
+  test(balatro): complete R5 joker purchase fixture metadata
+30b8ca49678f1826b92d8939d9337997d5275dbc
+  test(balatro): replay R5 Joker purchase without normalization
+8d6b64adc3ab2884d59e5d59a9d2a8f448f83ed5
+  test(balatro): compare R5 purchase identity structurally
+GitHub Actions run 34222351675
+GitHub Actions job 102048209359
+2431 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -180,11 +195,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — TACTICAL EVIDENCE/COMPARISON AND THE FIRST REAL ORDINARY PAID-REROLL FIXTURE ARE GREEN; THE NEXT SLICE IS ONE EXACT ORDINARY SHOP PURCHASE FIXTURE**.
+- R5 live/simulator parity harness: **IN PROGRESS — TACTICAL EVIDENCE/COMPARISON, THE FIRST REAL ORDINARY PAID-REROLL FIXTURE, AND THE SUPPORTED `BUY_JOKER` RUN-LOG ADAPTER/TRUE HEADLESS REPLAY ARE GREEN; THE NEXT SLICE IS PRESERVING ONE EXACT REAL ORDINARY JOKER-PURCHASE FIXTURE**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOT CURRENTLY REQUIRED; THE CAPTURED PAID-REROLL FIXTURE IS SUFFICIENT FOR THAT GATE. REQUEST THE NEXT LIVE RUN ONLY AFTER THE ORDINARY SHOP-purchase capture path is deterministic and CI-green**.
+- Live Balatro validation: **NOT CURRENTLY REQUIRED; DO NOT REQUEST A PURCHASE RUN UNTIL THE OPT-IN PURCHASE-FIXTURE CAPTURE/PRESERVATION PATH IS DETERMINISTIC AND CI-GREEN, AND ONLY THEN IF NO EXISTING CAPTURE CAN SATISFY THE GATE**.
 
 ## Current strategic action contract
 
@@ -791,6 +806,8 @@ Required before treating the simulator as authoritative training truth.
 - ordered tactical trajectory comparison treats transition count and order as evidence; it never truncates one side to manufacture a match.
 - durable live-log rows can now be compared directly against an ordered simulator evidence trajectory through the same canonical comparator.
 - `PublicStrategicTransitionEvidence` is the canonical public strategic pre/action/post record and reuses the frozen R3 `EnvAction` vocabulary rather than inventing a second strategic action schema.
+- successful supported live `BUY_JOKER` run-log transitions map the combined live shop `area_index` to the exact translated Joker slot and fail closed when the target cannot identify exactly one supported translated Joker.
+- the supported `BUY_JOKER` regression now rebuilds `HeadlessRunState` directly from the translated live-before state, executes `ShopTransitionEngine` through `buy_joker_with_public_evidence`, and compares the resulting strategic evidence without copying/normalizing live before/after state into the simulator side.
 - `games/balatro/live/reroll_parity_checkpoint.py` captures coherent complete-SHOP public state plus exact private RNG/reroll replay authority and rejects active Tags, free rerolls, unobserved Voucher state, or unstable checkpoints rather than normalizing them away.
 - exact ordinary paid `REROLL_SHOP` can be rebuilt from a private checkpoint and replayed through the canonical headless reroll owner; the comparator checks public transition evidence, previous/next reroll cost, and post-action RNG snapshot.
 - `games/balatro/live/reroll_parity_capture.py` persists this private replay authority in an opt-in per-run sidecar. The normal durable run-experience JSONL remains public-only.
@@ -845,6 +862,20 @@ GitHub Actions job 102032815831
 GitHub Actions run 34218019368
 GitHub Actions job 102034289630
 2427 passed, 1595 deselected
+
+256d56baf36f0d5a32b9aabf827cbbdc2643c3f5
+  feat(balatro): add Joker purchase parity evidence
+adfa8458fbee9f6b51db0f7b8b25e8ab36d0c56c
+  test(balatro): seed R5 joker purchase replay
+0183d09d729dad15f72948be0326a10432ecea07
+  test(balatro): complete R5 joker purchase fixture metadata
+30b8ca49678f1826b92d8939d9337997d5275dbc
+  test(balatro): replay R5 Joker purchase without normalization
+8d6b64adc3ab2884d59e5d59a9d2a8f448f83ed5
+  test(balatro): compare R5 purchase identity structurally
+GitHub Actions run 34222351675
+GitHub Actions job 102048209359
+2431 passed, 1595 deselected
 ```
 
 The first real paid-reroll fixture,
@@ -865,6 +896,13 @@ duplicate-suppression pool lifecycle, production publication of authoritative
 consumable-generation catalogues, surfaced replay rejection causes, and explicit
 Omen Globe/Telescope zero-effect capability at the ordinary base-shop/paid-reroll
 boundary. These repairs do not constitute a live parity fixture.
+
+The generic successful-transition run log already contains public pre/action/post
+rows for settled `BUY_JOKER` actions, and historical Red/White logs with such
+purchases have been located. They are evidence that a real purchase transition
+exists, but indexed historical records are not yet a repository-preserved replay
+fixture. Do not call that gate passed until one exact real purchase transition is
+preserved and replayed unchanged through the canonical adapter/headless owner.
 
 ## Priority parity fixtures
 
@@ -888,22 +926,27 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 The first real ordinary paid-reroll fixture is green. Do not request another
 reroll run for the same gate.
 
-Continue the first priority family with **one exact ordinary shop purchase
-fixture**, beginning with the already-supported `BUY_JOKER` subset:
+The supported `BUY_JOKER` run-log adapter and true synthetic headless replay are
+now green without state normalization. Continue the **same ordinary shop
+purchase fixture** slice; do not advance to another parity family yet:
 
-1. inspect the canonical production purchase action/payload, settled live-log
-   boundary, translator shop metadata, R3 `BUY_JOKER` mapping, and
-   `ShopTransitionEngine` purchase owner;
-2. add one canonical run-log-to-`PublicStrategicTransitionEvidence` adapter for
-   successful supported Joker purchases; do not create a second action schema;
-3. add deterministic regressions for exact slot mapping, price/money mutation,
-   shop removal, inventory/order acquisition, and malformed/unsupported
-   fail-closed cases;
-4. add the smallest opt-in live fixture capture path needed to preserve exact
-   pre/action/post purchase evidence without affecting production behavior;
+1. inspect the existing generic successful-transition run logger and the opt-in
+   reroll sidecar pattern to identify the smallest purchase-fixture preservation
+   seam that does not change production action semantics or create a second
+   action/evidence schema;
+2. add only the minimal opt-in capture/preservation path needed to retain one
+   exact settled `BUY_JOKER` pre/action/post public transition in a canonical
+   fixture form;
+3. add focused deterministic regressions proving opt-in behavior, exact action
+   target/slot preservation, settled before/after state preservation, and
+   malformed/mismatched fail-closed behavior where the new seam owns it;
+4. replay the preserved real fixture unchanged through
+   `successful_joker_purchase_evidence_from_run_rows`, rebuild a supported
+   `HeadlessRunState` from its translated before state, execute
+   `buy_joker_with_public_evidence`, and require canonical strategic parity;
 5. push and require the GitHub Actions deterministic gate to pass;
 6. only then request one live purchase fixture if no existing captured evidence
-   can satisfy the gate.
+   can be preserved to satisfy step 4.
 
 Do not broaden this slice to Voucher/consumable purchase, playing-card purchase,
 shop policy tuning, or another live batch. `BUY_CARD` remains unavailable.
