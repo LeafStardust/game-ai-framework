@@ -30,8 +30,11 @@ EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 # These Vouchers have no effect on ordinary base-shop generation. They are
 # nevertheless admitted explicitly at this boundary so authoritative ownership
 # does not become "inexact" merely because another exact subsystem owns their
-# consequences. Omen Globe only modifies Arcana-pack Spectral generation.
-EXACT_SHOP_BASE_NO_EFFECT_VOUCHER_KEYS = frozenset({"v_omen_globe"})
+# consequences. Omen Globe only modifies Arcana-pack Spectral generation;
+# Telescope only changes Celestial-pack Planet selection.
+EXACT_SHOP_BASE_NO_EFFECT_VOUCHER_KEYS = frozenset(
+    {"v_omen_globe", "v_telescope"}
+)
 
 SHOP_BASE_GENERATION_VOUCHER_KEYS = (
     EXACT_RESOURCE_VOUCHER_KEYS
@@ -45,8 +48,20 @@ SHOP_BASE_GENERATION_VOUCHER_KEYS = (
     | EXACT_SHOP_BASE_NO_EFFECT_VOUCHER_KEYS
 )
 
+# Reroll cost is a narrower capability than base-shop generation. Every Voucher
+# admitted here has either an explicitly owned reroll-cost effect or an audited
+# zero effect on ordinary paid rerolls. Keep this boundary independent so adding
+# or withholding support for another shop-generation consequence cannot silently
+# change whether reroll cost itself is exact.
+REROLL_COST_EXACT_VOUCHER_KEYS = (
+    SHOP_BASE_GENERATION_VOUCHER_KEYS
+)
 
-def _owned_supported_vouchers(state: BalatroState) -> set[str] | None:
+
+def _owned_supported_vouchers(
+    state: BalatroState,
+    supported_keys: frozenset[str] = SHOP_BASE_GENERATION_VOUCHER_KEYS,
+) -> set[str] | None:
     vouchers = state.vouchers
     if not isinstance(vouchers, list):
         return None
@@ -56,7 +71,7 @@ def _owned_supported_vouchers(state: BalatroState) -> set[str] | None:
         return None
     if vouchers and state.vouchers_observed is not True:
         return None
-    if any(key not in SHOP_BASE_GENERATION_VOUCHER_KEYS for key in vouchers):
+    if any(key not in supported_keys for key in vouchers):
         return None
     owned = set(vouchers)
     if "v_petroglyph" in owned and "v_hieroglyph" not in owned:
@@ -134,7 +149,7 @@ def expected_planet_rate_for_vouchers(state: BalatroState) -> float | None:
 def expected_base_reroll_cost_for_vouchers(state: BalatroState) -> int | None:
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
-    owned = _owned_supported_vouchers(state)
+    owned = _owned_supported_vouchers(state, REROLL_COST_EXACT_VOUCHER_KEYS)
     if owned is None or ("v_reroll_glut" in owned and "v_reroll_surplus" not in owned):
         return None
     if "v_reroll_glut" in owned:
