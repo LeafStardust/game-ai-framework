@@ -234,9 +234,14 @@ def joker_center_cost_from_state(run: HeadlessRunState, rarity: int, center_key:
         raise HeadlessTransitionError("Joker center key must be a nonempty string")
 
     pools = _validate_observed_joker_generation_pools(run)
-    for record in pools[str(rarity)]:
+    records = pools[str(rarity)]
+    for record in records:
         if record["key"] == center_key:
             return record["cost"]
+    if center_key == "j_joker" and not records:
+        # Pinned vanilla replaces a completely unavailable Joker pool with the
+        # base Joker. Its immutable P_CENTERS cost is 2.
+        return 2
     raise HeadlessTransitionError(
         "selected Joker center is absent from the authoritative eligible pool"
     )

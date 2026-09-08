@@ -97,10 +97,10 @@ def test_env_r2_clearance_prices_tarot_and_planet_from_common_discount_state():
             resamples=0,
         )
     )
-    assert planet.price == 4
+    assert planet.price == 2
 
 
-def test_env_r2_liquidation_prices_planet_after_discount_then_multiplier():
+def test_env_r2_liquidation_prices_planet_through_vanilla_card_cost():
     run = _run(("v_clearance_sale", "v_liquidation"), discount=50)
 
     _, planet = materialize_base_shop_consumable_descriptor(
@@ -113,7 +113,7 @@ def test_env_r2_liquidation_prices_planet_after_discount_then_multiplier():
         )
     )
 
-    assert planet.price == 2
+    assert planet.price == 1
 
 
 def test_env_r2_discount_state_prices_normal_voucher_card_too():

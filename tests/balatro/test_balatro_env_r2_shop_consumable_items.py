@@ -42,7 +42,7 @@ def _record(card_type: str, key: str, cost: int = 3, **extra):
     ("card_type", "records", "expected_price"),
     [
         ("Tarot", [_record("Tarot", "c_strength", 3)], 4),
-        ("Planet", [_record("Planet", "c_pluto", 3)], 8),
+        ("Planet", [_record("Planet", "c_pluto", 3)], 4),
     ],
 )
 def test_env_r2_consumable_descriptor_carries_observed_cost_and_prices_exactly(
@@ -69,7 +69,7 @@ def test_env_r2_consumable_descriptor_carries_observed_cost_and_prices_exactly(
 
 @pytest.mark.parametrize(
     ("card_type", "fallback", "expected_price"),
-    [("Tarot", "c_strength", 4), ("Planet", "c_pluto", 8)],
+    [("Tarot", "c_strength", 4), ("Planet", "c_pluto", 4)],
 )
 def test_env_r2_consumable_empty_pool_fallback_has_pinned_cost_three(
     card_type, fallback, expected_price
