@@ -26,6 +26,11 @@ class LiveShopItem:
     edition: str | None = None
     discovered: bool | None = None
 
+    @property
+    def center_key(self) -> str | None:
+        """Expose the authoritative live center through the canonical shop identity."""
+        return self.center
+
 
 class LiveShopItemFactory:
 
