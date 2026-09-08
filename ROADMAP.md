@@ -22,7 +22,7 @@ The project has pivoted from manually tuned Bond-value strategy to reinforcement
 - Permanent deck truth is `G.playing_cards`; never substitute `G.deck.cards`.
 - Hidden physical draw order and face-down card/Joker identity-to-position mappings are not policy-visible.
 - Python `random` is not Balatro RNG.
-- Do not reintroduce legacy attempt flags such as `--one`, `--three`, or `--five`; retain the canonical attempt-count interface.
+- Do not reintroduce legacy attempt flags such as `--one`, `--three`, `--five`, or plural `--attempts`; the sole canonical attempt-count interface is `--attempt N`.
 - If context becomes insufficient to continue safely, **stop immediately rather than guessing**.
 
 ## Continuation procedure
@@ -154,6 +154,22 @@ c3ed2b712fe3422c523ffe3e9ae67b604369facf
 GitHub Actions run 34213635015
 GitHub Actions job 102020161503
 2419 passed, 1595 deselected
+
+R5 first real paid-reroll fixture repair:
+606c7b4535176e92f9bc87192cc9a049670a0d6e
+  fix(balatro): align paid reroll with live parity
+9fbfe70386e3141c565cd07c655decd5194dd1cb
+  test(balatro): align exact reroll regressions
+GitHub Actions run 34217561085
+GitHub Actions job 102032815831
+2421 passed, 1595 deselected
+
+Canonical attempt-count correction and branch-tree repair:
+7b1fb06f7a307a2ac2d0fec8613f18c6eaeeb79d
+  fix(balatro): restore branch tree after launcher update
+GitHub Actions run 34218019368
+GitHub Actions job 102034289630
+2427 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -164,11 +180,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — TACTICAL EVIDENCE/COMPARISON, PAID-REROLL REPLAY/CAPTURE, AND KNOWN LIVE-FIXTURE PRECONDITION REPAIRS GREEN; THE FIRST REAL PAID-REROLL FIXTURE REMAINS**.
+- R5 live/simulator parity harness: **IN PROGRESS — TACTICAL EVIDENCE/COMPARISON AND THE FIRST REAL ORDINARY PAID-REROLL FIXTURE ARE GREEN; THE NEXT SLICE IS ONE EXACT ORDINARY SHOP PURCHASE FIXTURE**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOW REQUIRED FOR THE FIRST NARROW R5 PAID-REROLL FIXTURE; DO NOT RUN AN OPEN-ENDED BATCH**.
+- Live Balatro validation: **NOT CURRENTLY REQUIRED; THE CAPTURED PAID-REROLL FIXTURE IS SUFFICIENT FOR THAT GATE. REQUEST THE NEXT LIVE RUN ONLY AFTER THE ORDINARY SHOP-purchase capture path is deterministic and CI-green**.
 
 ## Current strategic action contract
 
@@ -815,7 +831,34 @@ GitHub Actions job 101463994146
 GitHub Actions run 34213635015
 GitHub Actions job 102020161503
 2419 passed, 1595 deselected
+
+606c7b4535176e92f9bc87192cc9a049670a0d6e
+  fix(balatro): align paid reroll with live parity
+9fbfe70386e3141c565cd07c655decd5194dd1cb
+  test(balatro): align exact reroll regressions
+GitHub Actions run 34217561085
+GitHub Actions job 102032815831
+2421 passed, 1595 deselected
+
+7b1fb06f7a307a2ac2d0fec8613f18c6eaeeb79d
+  fix(balatro): restore branch tree after launcher update
+GitHub Actions run 34218019368
+GitHub Actions job 102034289630
+2427 passed, 1595 deselected
 ```
+
+The first real paid-reroll fixture,
+`balatro-20260908T091943Z-e7a1ad15-attempt-001`, contains two settled
+`REFRESH_SHOP` transitions. Its original verdicts exposed exact canonical
+defects: the Joker pool seed omitted Ante, White Stake failed to consume the
+unconditional `etperpoll{ante}` draw, visible Joker pool lifecycle was not
+restored/suppressed across reroll, Planet shop pricing was doubled contrary to
+pinned vanilla, live shop cards did not retain exact base cost, and parity
+compared engine-local item classes instead of public shop identity/price.
+Those owners were repaired at `606c7b45` and their exact regressions aligned at
+`9fbfe703`. Replaying the unchanged two-row fixture now yields
+`comparison.matches == true` for both transitions, including public state,
+reroll-cost state, and post-action RNG.
 
 Post-capture readiness repairs now own depleted-shop rerolls, exact Tarot/Planet
 duplicate-suppression pool lifecycle, production publication of authoritative
@@ -842,26 +885,28 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The first strategic fixture contract and all currently known deterministic/live-observation prerequisites are green at `99a4776c`. The next gate is a **single real ordinary paid `REFRESH_SHOP` transition**, not more infrastructure work and not an open-ended Balatro batch.
+The first real ordinary paid-reroll fixture is green. Do not request another
+reroll run for the same gate.
 
-Required fixture preconditions:
+Continue the first priority family with **one exact ordinary shop purchase
+fixture**, beginning with the already-supported `BUY_JOKER` subset:
 
-1. complete ordinary `SHOP` state on the Red Deck / White Stake path;
-2. zero active Tags;
-3. zero free rerolls;
-4. authoritative observed Voucher ownership so reroll-cost state is exact;
-5. enough money for the current ordinary paid reroll;
-6. run the production supervisor with the opt-in private reroll parity directory enabled;
-7. allow one canonical production `REFRESH_SHOP` action to settle normally.
+1. inspect the canonical production purchase action/payload, settled live-log
+   boundary, translator shop metadata, R3 `BUY_JOKER` mapping, and
+   `ShopTransitionEngine` purchase owner;
+2. add one canonical run-log-to-`PublicStrategicTransitionEvidence` adapter for
+   successful supported Joker purchases; do not create a second action schema;
+3. add deterministic regressions for exact slot mapping, price/money mutation,
+   shop removal, inventory/order acquisition, and malformed/unsupported
+   fail-closed cases;
+4. add the smallest opt-in live fixture capture path needed to preserve exact
+   pre/action/post purchase evidence without affecting production behavior;
+5. push and require the GitHub Actions deterministic gate to pass;
+6. only then request one live purchase fixture if no existing captured evidence
+   can satisfy the gate.
 
-After capture:
-
-1. inspect the private reroll-parity sidecar and normal public run/diagnostic evidence;
-2. require `comparison.matches == true` for the first real strategic parity verdict;
-3. if it mismatches, classify the first differing public/reroll-cost/RNG field and repair that canonical owner only;
-4. if it matches, freeze the paid-reroll live fixture as the first strategic parity proof and proceed to the next representative strategic fixture from the priority list.
-
-Do not request repeated runs to search for defects. One admitted paid-reroll fixture is sufficient for this gate; additional live captures must be tied to a named parity hypothesis.
+Do not broaden this slice to Voucher/consumable purchase, playing-card purchase,
+shop policy tuning, or another live batch. `BUY_CARD` remains unavailable.
 
 ## R5 exit criteria
 
