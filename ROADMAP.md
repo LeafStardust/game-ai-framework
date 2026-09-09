@@ -269,6 +269,13 @@ R5 first complete private blind-start capture and pending-requirement repair:
 GitHub Actions run 34332070925
 GitHub Actions job 102402745553
 2471 passed, 1595 deselected
+
+R5 first real passing ordinary Small-Blind start fixture:
+74a5acfa533932d407fa2032a051b49897667081
+  test(balatro): replay real blind-start fixture
+GitHub Actions run 34334451991
+GitHub Actions job 102410451037
+2473 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -279,11 +286,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES, EXACT OFFLINE BLIND-START RESTORATION/REPLAY, OPT-IN PRODUCTION CAPTURE, THE CANONICAL `--attempt N` LAUNCHER HANDOFF, AND BOTH LIVE-EXPOSED ACQUISITION REPAIRS ARE GREEN; THE NEXT SLICE IS ONE POST-REPAIR RECAPTURE, THEN ITS CLEAR/CASH-OUT BOUNDARY**.
+- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES AND THE FIRST REAL ORDINARY SMALL-BLIND START FIXTURE ARE GREEN; THE NEXT SLICE IS THAT SAME RUN'S FIRST CLEAR/CASH-OUT BOUNDARY**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **REQUIRED NOW — EXACTLY ONE POST-REPAIR ORDINARY TAG-FREE SMALL-BLIND `SELECT_BLIND` TRANSITION USING `--attempt 1` WITH THE OPT-IN PRIVATE DIRECTORY. THE FIRST COMPLETE SIDECAR PROVED PRIVATE RNG PARITY AND EXPOSED THE PENDING-REQUIREMENT ACQUISITION DEFECT; ITS IMMUTABLE PRE-ACTION SNAPSHOT CANNOT BE REWRITTEN INTO A PASS.**
+- Live Balatro validation: **NOT REQUIRED NOW — THE POST-REPAIR ORDINARY SMALL-BLIND CAPTURE IS PRESERVED AND PASSES EXACT PUBLIC/PRIVATE REPLAY. REQUEST ANOTHER LIVE RUN ONLY IF THE EXISTING RUN CANNOT SUPPLY PRIVATE AUTHORITY GENUINELY REQUIRED FOR ITS FIRST CLEAR/CASH-OUT BOUNDARY.**
 
 ## Current strategic action contract
 
@@ -1077,7 +1084,7 @@ shared translator now normalizes authoritative `live_id` values while preserving
 the older opaque `id` compatibility field used by tactical fixtures. CI is green
 at `cedd0f11`. The failed capture did not serialize its private RNG checkpoints,
 so the public run and diagnostics cannot be converted into a real replay fixture;
-one replacement live transition remains required.
+one replacement live transition was required and is recorded below.
 
 The first complete private sidecar,
 `balatro-20260909T030757Z-a8d1a02d-attempt-001.blind-start-parity.jsonl`,
@@ -1090,9 +1097,23 @@ ante scaling. Pinned vanilla source confirms that ownership boundary. The live
 observer now installs only exact Red/White pending Small/Big requirements from
 `blind_ante`; Bosses, other stakes/decks, missing authority, and unowned endless
 Antes are not synthesized by this owner and remain behind their existing
-capability gates. CI is green at `9d45292f`. Because the recorded
-pre-action snapshot is immutable, one post-repair recapture is required before
-freezing the passing fixture.
+capability gates. CI is green at `9d45292f`. Because that recorded pre-action
+snapshot is immutable, it was not rewritten into a pass; the post-repair
+replacement below is the authoritative passing fixture.
+
+The post-repair attempt,
+`balatro-20260909T090428Z-a5968591-attempt-001`, supplies the first passing real
+ordinary Small-Blind start fixture. The repository preserves the original
+public observation/decision/action-result rows (sequences 2, 4, and 5) and the
+complete private sidecar row unchanged in XZ transport. Decompressed SHA-256
+guards are respectively
+`1c3823b66bbbc3559332f8f38369507483edec8d49c00007929064c307ad7d64`
+and
+`f353095e5cd93caee6a82e3ea85b848e7a5f7a14df95fe49d9ea8f21cb81feb5`.
+The parameterless `SELECT_BLIND` transition replays through canonical
+`select_blind_exact` with the 300-chip requirement, zero active Tags, exact
+public before/action/after parity, and exact private post-action RNG parity.
+CI is green at `74a5acfa` with 2473 selected tests passing.
 
 ## Completed priority parity gates
 
@@ -1102,7 +1123,7 @@ freezing the passing fixture.
 
 ## Remaining priority parity fixtures
 
-- blind start/clear;
+- blind clear/cash-out (blind start is complete);
 - blind skip/Tag flow;
 - representative Buffoon pack choice/skip;
 - held Planet use;
@@ -1117,25 +1138,20 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The opt-in production blind-start recorder, canonical launcher handoff, and both
-live-exposed acquisition repairs are green. Continue R5 with **one post-repair
-recapture of the real ordinary Small-Blind fixture**:
+The first real ordinary Small-Blind start fixture is green. Continue R5 with
+**the same attempt's first ordinary clear/`END_ROUND` boundary**:
 
-1. pull the latest branch state, which contains the green pending-requirement
-   repair at `9d45292f072c248c00271f2e4e88df185ea9db63`, and request exactly one
-   ordinary tag-free Small-Blind `SELECT_BLIND` transition using the PowerShell
-   command below;
-
-   ```bat
-   .\BalatroAgentToggle.bat --attempt 1 --blind-start-parity-directory logs/balatro/r5-blind-start-parity
-   ```
-
-2. preserve the resulting public run log plus private sidecar unchanged;
-3. freeze and replay that unchanged fixture through `select_blind_exact`,
-   requiring public parity plus private post-action RNG parity;
-4. then inspect the same run's ordinary clear/`END_ROUND` boundary and add only
-   the private zone authority genuinely required by canonical
-   `cash_out_baseline_ordinary_blind`.
+1. inspect the unchanged public rows surrounding the first successful
+   `END_ROUND` decision and resulting `SHOP`/`CASHED_OUT` state;
+2. read canonical `cash_out_baseline_ordinary_blind` and the existing strategic
+   parity/capture owners before changing code;
+3. identify the minimum private zone authority, if any, that is genuinely
+   required to rebuild and replay that exact boundary;
+4. preserve the public boundary unchanged and add one focused fail-closed
+   regression through the canonical cash-out owner;
+5. request another live `--attempt N` capture only if the existing run cannot
+   provide authority that cannot be recovered from its already-recorded public
+   evidence.
 
 Do not broaden this slice to blind skip/Tag flow, pack parity, unsupported Boss
 paths, policy tuning, playing-card shop purchases, or Boss reroll.
