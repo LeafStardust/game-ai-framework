@@ -11,6 +11,9 @@ from __future__ import annotations
 
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.joker_order import JokerOrderError
+from games.balatro.env.shop_generation_state import (
+    restore_removed_shop_jokers_to_generation_pool,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.red_card import RedCardJoker
@@ -98,6 +101,18 @@ def choose_pack_option_exact(
     validate_choose_pack_option_exact(run, option_index)
     next_run = run.copy()
     joker = next_run.pack_choices[option_index]
+    if next_run.public.joker_generation_pool_observed:
+        # Live used_jokers suppression covers every visible Buffoon option while
+        # the pack is open. Closing the pack re-admits each unchosen Joker; the
+        # acquired Joker remains suppressed by ownership.
+        next_run = restore_removed_shop_jokers_to_generation_pool(
+            next_run,
+            (
+                offered
+                for index, offered in enumerate(next_run.pack_choices)
+                if index != option_index
+            ),
+        )
     if next_run.joker_order_state is not None:
         try:
             next_run.joker_order_state.acquire(joker, next_run.public.jokers)

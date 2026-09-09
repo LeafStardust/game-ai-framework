@@ -3,6 +3,7 @@ import pytest
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.pack import PackTransitionEngine, can_skip_pack_exact, skip_pack_exact
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.red_card import RedCardJoker
@@ -102,6 +103,51 @@ def test_env_r3_final_buffoon_choice_adds_exact_inventory_only_joker():
     assert result.rng_snapshot() == before_rng
     assert len(run.public.jokers) == 2
     result.require_joker_order_state()
+
+
+def test_env_r3_final_buffoon_choice_restores_only_unchosen_joker_to_observed_pool():
+    selected = LiveJokerFactory().create(
+        {
+            "label": "Shoot the Moon",
+            "center": "j_shoot_the_moon",
+            "rarity": "COMMON",
+            "base_cost": 5,
+            "live_id": 70,
+        }
+    )
+    unchosen = LiveJokerFactory().create(
+        {
+            "label": "Droll Joker",
+            "center": "j_droll",
+            "rarity": "COMMON",
+            "base_cost": 4,
+            "live_id": 71,
+        }
+    )
+    run = _buffoon_choice_run(selected)
+    run.pack_choices.append(unchosen)
+    run.public.joker_generation_pool_observed = True
+    run.public.joker_generation_pools = {
+        "1": [{"rarity": 1, "key": "j_joker", "cost": 2}],
+        "2": [],
+        "3": [],
+        "4": [],
+    }
+
+    result = PackTransitionEngine().step(
+        run,
+        EnvAction.from_alias("CHOOSE_PACK_OPTION", {"option_index": 0}),
+    )
+
+    assert [
+        record["key"] for record in result.public.joker_generation_pools["1"]
+    ] == ["j_joker", "j_droll"]
+    assert "j_shoot_the_moon" not in {
+        record["key"] for record in result.public.joker_generation_pools["1"]
+    }
+    assert [
+        record["key"] for record in run.public.joker_generation_pools["1"]
+    ] == ["j_joker"]
 
 
 def test_env_r3_buffoon_choice_masks_resource_mutation_and_nonfinal_choice():
