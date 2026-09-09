@@ -79,9 +79,11 @@ def skip_blind_exact(run: HeadlessRunState) -> HeadlessRunState:
 
     next_state = next_run.public
     next_state.money += min(40, max(0, state.money))
+    next_requirement = red_white_base_blind_amount(state.ante) * 3 // 2
+    next_state.blind_score = next_requirement
     next_state.blind = Blind(
         BlindType.BIG,
-        red_white_base_blind_amount(state.ante) * 3 // 2,
+        next_requirement,
         reward=4,
         tag_key=next_progression.big_tag,
     )

@@ -51,6 +51,7 @@ def test_env_r3_small_economy_skip_applies_exact_transition(money, expected):
     assert result.public.phase == "BLIND_SELECT"
     assert result.public.blind.type is BlindType.BIG
     assert result.public.blind.requirement == 1_200
+    assert result.public.blind_score == 1_200
     assert result.public.blind.reward == 4
     assert result.public.blind.tag_key == "tag_meteor"
     progression = result.require_blind_progression_state()

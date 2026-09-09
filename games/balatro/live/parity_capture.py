@@ -11,6 +11,7 @@ from games.balatro.actions import (
     PLAY_CARDS,
     REFRESH_SHOP,
     SELECT_BLIND,
+    SKIP_BLIND,
     BalatroAction,
 )
 from games.balatro.env.actions import EnvAction
@@ -42,6 +43,7 @@ from games.balatro.live.translator import DefaultBalatroStateTranslator
 _TACTICAL_ACTIONS = frozenset({PLAY_CARDS, DISCARD_CARDS})
 _REROLL_SHOP_LOG_ACTION = {"name": REFRESH_SHOP}
 _SELECT_BLIND_LOG_ACTION = {"name": SELECT_BLIND}
+_SKIP_BLIND_LOG_ACTION = {"name": SKIP_BLIND}
 _EXACT_REDEEMABLE_VOUCHER_KEYS = (
     EXACT_RESOURCE_VOUCHER_KEYS
     | EXACT_EDITION_RATE_VOUCHER_KEYS
@@ -554,6 +556,87 @@ def compare_run_rows_to_simulator_select_blind_evidence(
     translator: DefaultBalatroStateTranslator | None = None,
 ) -> PublicStrategicTrajectoryParityComparison:
     live_evidence = successful_select_blind_evidence_from_run_rows(
+        rows,
+        translator=translator,
+    )
+    return compare_public_strategic_trajectory(live_evidence, simulator_evidence)
+
+
+def successful_skip_blind_evidence_from_run_rows(
+    rows: Iterable[dict[str, Any]],
+    *,
+    translator: DefaultBalatroStateTranslator | None = None,
+) -> tuple[PublicStrategicTransitionEvidence, ...]:
+    """Extract exact settled parameterless SKIP_BLIND transitions."""
+    translator = translator or DefaultBalatroStateTranslator()
+    last_observation: dict[str, Any] | None = None
+    pending_skip: dict[str, Any] | None = None
+    evidence: list[PublicStrategicTransitionEvidence] = []
+
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("run-log row must be an object")
+        event = str(row.get("event") or "")
+        data = row.get("data")
+        if not isinstance(data, dict):
+            continue
+        if event == "observation":
+            state = data.get("state")
+            if not isinstance(state, dict):
+                raise ValueError("observation row requires state")
+            last_observation = state
+            pending_skip = None
+            continue
+        if event == "decision":
+            action = data.get("action")
+            if not isinstance(action, dict):
+                raise ValueError("decision row requires action")
+            if str(action.get("name") or "") == SKIP_BLIND:
+                if action != _SKIP_BLIND_LOG_ACTION:
+                    raise ValueError("SKIP_BLIND run-log action must not contain parameters")
+                if last_observation is None:
+                    raise ValueError("SKIP_BLIND decision has no preceding observation")
+                pending_skip = action
+            else:
+                pending_skip = None
+            continue
+        if event != "action_result":
+            continue
+        action = data.get("action")
+        if not isinstance(action, dict) or str(action.get("name") or "") != SKIP_BLIND:
+            continue
+        if action != _SKIP_BLIND_LOG_ACTION:
+            raise ValueError("SKIP_BLIND run-log action must not contain parameters")
+        if last_observation is None or pending_skip is None:
+            raise ValueError("SKIP_BLIND action_result has no captured decision boundary")
+        if action != pending_skip:
+            raise ValueError("SKIP_BLIND action_result does not match captured decision")
+        if data.get("success") is not True:
+            raise ValueError("SKIP_BLIND parity requires a successful action_result")
+
+        before = translator.translate(_snapshot_from_log_state(last_observation))
+        after = translator.translate(_snapshot_from_log_state(data.get("state")))
+        if before.phase != "BLIND_SELECT" or after.phase != "BLIND_SELECT":
+            raise ValueError("SKIP_BLIND parity requires BLIND_SELECT before and after")
+        evidence.append(
+            build_public_strategic_transition_evidence(
+                before,
+                EnvAction.from_alias("SKIP_BLIND"),
+                after,
+            )
+        )
+        pending_skip = None
+
+    return tuple(evidence)
+
+
+def compare_run_rows_to_simulator_skip_blind_evidence(
+    rows: Iterable[dict[str, Any]],
+    simulator_evidence: Iterable[PublicStrategicTransitionEvidence],
+    *,
+    translator: DefaultBalatroStateTranslator | None = None,
+) -> PublicStrategicTrajectoryParityComparison:
+    live_evidence = successful_skip_blind_evidence_from_run_rows(
         rows,
         translator=translator,
     )

@@ -177,6 +177,7 @@ def start_agent(
     unlock_jokers: tuple[str, ...] = (),
     collection_first: bool = False,
     blind_start_parity_directory: str | None = None,
+    blind_skip_parity_directory: str | None = None,
     launch_live_monitor: bool = True,
 ) -> int:
     running = control.running_pid()
@@ -202,6 +203,10 @@ def start_agent(
     if blind_start_parity_directory:
         command.extend(
             ("--blind-start-parity-directory", blind_start_parity_directory)
+        )
+    if blind_skip_parity_directory:
+        command.extend(
+            ("--blind-skip-parity-directory", blind_skip_parity_directory)
         )
 
     control.ensure_directory()
@@ -318,6 +323,7 @@ def restart_agent(
     unlock_jokers: tuple[str, ...] = (),
     collection_first: bool = False,
     blind_start_parity_directory: str | None = None,
+    blind_skip_parity_directory: str | None = None,
 ) -> tuple[int | None, int]:
     """Restart the supervisor without opening another live-monitor window."""
     previous_pid = control.running_pid()
@@ -330,6 +336,7 @@ def restart_agent(
         unlock_jokers=unlock_jokers,
         collection_first=collection_first,
         blind_start_parity_directory=blind_start_parity_directory,
+        blind_skip_parity_directory=blind_skip_parity_directory,
         launch_live_monitor=False,
     )
     return previous_pid, new_pid
@@ -342,6 +349,7 @@ def toggle_agent(
     unlock_jokers: tuple[str, ...] = (),
     collection_first: bool = False,
     blind_start_parity_directory: str | None = None,
+    blind_skip_parity_directory: str | None = None,
 ) -> tuple[str, int | None]:
     running = control.running_pid()
     if running is not None:
@@ -353,6 +361,7 @@ def toggle_agent(
         unlock_jokers=unlock_jokers,
         collection_first=collection_first,
         blind_start_parity_directory=blind_start_parity_directory,
+        blind_skip_parity_directory=blind_skip_parity_directory,
     )
 
 
@@ -385,6 +394,13 @@ def main() -> int:
         help=(
             "opt-in private R5 blind-start replay evidence directory forwarded "
             "to the detached supervisor"
+        ),
+    )
+    parser.add_argument(
+        "--blind-skip-parity-directory",
+        help=(
+            "opt-in private R5 Economy-Tag blind-skip replay evidence directory "
+            "forwarded to the detached supervisor"
         ),
     )
     mode = parser.add_mutually_exclusive_group()
@@ -447,6 +463,7 @@ def main() -> int:
                 unlock_jokers=tuple(args.unlock_joker),
                 collection_first=args.collection_first,
                 blind_start_parity_directory=args.blind_start_parity_directory,
+                blind_skip_parity_directory=args.blind_skip_parity_directory,
             )
         except Exception as error:
             print("Balatro Agent restart -> FAIL")
@@ -473,6 +490,7 @@ def main() -> int:
             unlock_jokers=tuple(args.unlock_joker),
             collection_first=args.collection_first,
             blind_start_parity_directory=args.blind_start_parity_directory,
+            blind_skip_parity_directory=args.blind_skip_parity_directory,
         )
     except Exception as error:
         print("Balatro Agent toggle -> FAIL")
