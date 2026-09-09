@@ -58,6 +58,10 @@ def _cleared_run(*, money, vouchers=(), cap=25, cap_observed=False):
     state.interest_cap_observed = cap_observed
     state.shop_discount_percent_observed = True
     state.shop_discount_percent = 0
+    state.round_reset_hands_observed = True
+    state.round_reset_hands = 4
+    state.round_reset_discards_observed = True
+    state.round_reset_discards = 4
     run = HeadlessRunState(public=state, seed="INTEREST-CASHOUT")
     run.draw_pile = list(state.deck)
     return run
