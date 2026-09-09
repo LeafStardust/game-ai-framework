@@ -13,13 +13,18 @@ _PLANET_KEY_BY_NAME = {
     planet.name: f"c_{name.lower()}"
     for name, planet in PLANET_CARDS.items()
 }
+_PLANET_USE_PHASES = frozenset({"SHOP", "SELECTING_HAND"})
 
 
 def validate_use_planet_exact(run: HeadlessRunState, consumable_index: int) -> None:
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
     state = run.public
-    if state.phase != "SHOP" or not state.shop_active:
+    if state.phase not in _PLANET_USE_PHASES:
+        raise HeadlessTransitionError(
+            "exact Planet use requires active SHOP or SELECTING_HAND"
+        )
+    if state.phase == "SHOP" and not state.shop_active:
         raise HeadlessTransitionError("exact Planet use requires active SHOP")
     if not run.consumable_usage_observed:
         raise HeadlessTransitionError("Planet use requires authoritative usage history")
