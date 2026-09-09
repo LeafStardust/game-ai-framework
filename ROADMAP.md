@@ -308,6 +308,13 @@ R5 first real passing Economy-Tag blind-skip fixture:
 GitHub Actions run 34375666032
 GitHub Actions job 102547699010
 2488 passed, 1596 deselected
+
+R5 canonical Buffoon pack public evidence seam:
+9daea5a4a874f39b27790755e6d391ac21a720b1
+  feat(balatro): add Buffoon pack parity evidence
+GitHub Actions run 34377040125
+GitHub Actions job 102552347902
+2495 passed, 1596 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -318,7 +325,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — THE ECONOMY-TAG BLIND-SKIP PRIORITY GATE IS COMPLETE; REPRESENTATIVE BUFFOON PACK CHOICE/SKIP IS NEXT**.
+- R5 live/simulator parity harness: **IN PROGRESS — BUFFOON PUBLIC EVIDENCE IS GREEN; EXACT PRIVATE PRE-ACTION REPLAY CAPTURE IS NEXT**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
@@ -950,6 +957,12 @@ Required before treating the simulator as authoritative training truth.
   Tag identities, active-Tag count, and the run skip counter. It captures no RNG
   because this admitted transition consumes none. Unsupported Tags, pre-existing
   active Tags, missing progression facts, and Big-to-Boss skips remain fail-closed.
+- settled final `BUFFOON_PACK` `SELECT_PACK_CARD` and `SKIP_BOOSTER` rows now map
+  to the frozen `CHOOSE_PACK_OPTION` / `SKIP_PACK` aliases through the shared
+  public strategic evidence path. Selection requires an exact nonnegative area
+  index and visible identity; targeted hand-card selections, malformed skips,
+  failed results, and nonterminal pack transitions fail closed. The evidence
+  wrappers delegate directly to the existing exact R3 pack owners.
 
 Green checkpoints:
 
@@ -1211,6 +1224,17 @@ fixture now passes canonical public and private replay at `9c0d5c68`. GitHub
 Actions run `34375666032`, job `102547699010`, passed with **2488 passed, 1596
 deselected**.
 
+The canonical public Buffoon evidence seam is green at `9daea5a4`. It adds no
+pack mechanics or policy layer: final Buffoon selections and skips are extracted
+from durable live rows into the frozen R3 action vocabulary, while headless
+evidence wrappers call `choose_pack_option_exact` / `skip_pack_exact` directly.
+GitHub Actions run `34377040125`, job `102552347902`, passed with **2495 passed,
+1596 deselected**. The existing live batch `balatro-20260909T150330Z-186b22a6`
+contains multiple genuine Buffoon selections, but its public log intentionally
+does not contain the ordered visible choice roster, remaining-pick count, or
+`PACK_INTERRUPT` return origin. Those rows are evidence that the production
+path executes, not sufficient authority for headless replay.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1234,21 +1258,24 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The Economy-Tag blind-skip priority gate is complete. Continue R5 with one
-representative Buffoon pack choice/skip seam:
+The Buffoon public evidence seam is green. Add the smallest opt-in private
+pre-action replay checkpoint for exact final one-pick Buffoon packs:
 
-1. inspect the frozen `CHOOSE_PACK_OPTION` / `SKIP_PACK` contracts, canonical
-   headless pack owner, production Buffoon policy/dispatcher, and existing pack
-   regressions before changing code;
-2. define the smallest canonical public evidence and any strictly necessary
-   private replay authority for exact final one-pick Buffoon packs only;
-3. add focused deterministic regressions for one supported Joker choice and one
-   skip, with unsupported pack sizes, picks, contents, replacements, or missing
-   identity failing closed rather than being approximated;
-4. use GitHub Actions as the deterministic gate and record its exact job-log
-   counts;
-5. request a live capture only after the deterministic seam proves that the
-   remaining evidence can be obtained only from Balatro.
+1. capture one stable complete `BUFFOON_PACK` public snapshot plus exact
+   `G.GAME.pack_choices == 1`, ordered visible Joker records, and the exact
+   `G.GAME.PACK_INTERRUPT` phase resolved through `G.STATES`;
+2. admit only `SHOP` / `BLIND_SELECT` return origins and visible Jokers that the
+   existing exact inventory-only acquisition owner can construct; missing,
+   malformed, unsupported, edition-bearing, resource-mutating, multi-pick, or
+   capacity-blocked choices fail closed;
+3. replay `CHOOSE_PACK_OPTION` or `SKIP_PACK` through the canonical owner and
+   compare the ordinary public post-state. No RNG checkpoint is needed because
+   the admitted final choice/skip transition consumes no RNG;
+4. wire the recorder behind one explicit opt-in directory flag using the sole
+   `--attempt N` launcher path, add focused deterministic regressions, and use
+   GitHub Actions as the gate;
+5. only after that seam is green, request one natural live capture containing a
+   supported Buffoon choice or skip.
 
 Do not broaden this slice to other booster families, unsupported Buffoon pack
 sizes or multi-pick paths, policy tuning, playing-card shop purchases, Boss skip
