@@ -294,6 +294,13 @@ R5 exact Economy-Tag blind-skip capture/replay seam:
 GitHub Actions run 34362156416
 GitHub Actions job 102501607817
 2486 passed, 1595 deselected
+
+R5 live Economy-Tag skip settlement repair:
+0966658fba8de7277c23ddfa8e3a1c07d718b793
+  fix(balatro): await Economy Tag skip payout
+GitHub Actions run 34367250892
+GitHub Actions job 102519067100
+2486 passed, 1596 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -1162,6 +1169,19 @@ GitHub Actions run `34362156416`, job `102501607817`, passed with **2486 passed,
 it cannot supply retained progression or skip-count authority and must not be
 upgraded into a fixture by inference.
 
+The first post-seam live batch,
+`balatro-20260909T142647Z-ff774350`, executed supported Small/Economy skips in
+attempt 001 at public sequence 152 and attempt 003 at sequence 140, but emitted
+no private sidecar. The public boundaries classified the defect without needing
+private diagnostics: the action result advanced to Big while money remained
+25/18, then the next observation exposed the completed Economy payout at 50/36.
+The canonical injected dispatcher had treated the next Blind identity as a
+settled skip even while the immediate Tag event was still pending. It now waits
+for the exact Economy result `money + min(40, max(0, money))`; other supported
+dispatcher paths are unchanged. CI is green at `0966658f` with **2486 passed,
+1596 deselected**. The failed batch has no private authority and is evidence for
+the timing repair, not a promotable parity fixture.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1188,7 +1208,7 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 The exact Economy-Tag blind-skip seam is green. The next task is one genuinely
 live-only fixture capture:
 
-1. on a checkout containing `3236a67b` or later, launch through the sole
+1. on a checkout containing `0966658f` or later, launch through the sole
    canonical attempt interface:
 
    ```powershell
