@@ -178,6 +178,21 @@ def test_env_r5_blind_start_restore_rebinds_exact_live_ids_and_rejects_tags():
         headless_blind_start_run_from_live_checkpoint(tagged)
 
 
+def test_env_r5_blind_start_restore_normalizes_live_numeric_deck_ids():
+    snapshot = _snapshot()
+    for area in ("cards", "owned_cards"):
+        for card in snapshot.payload[area]["cards"]:
+            card["live_id"] = float(card["live_id"])
+
+    run = headless_blind_start_run_from_live_checkpoint(_checkpoint(snapshot))
+
+    assert [card.live_id for card in run.public.deck] == list(range(1, 53))
+    assert all(type(card.live_id) is int for card in run.public.deck)
+    assert {id(card) for card in run.public.deck} == {
+        id(card) for card in run.public.owned_deck
+    }
+
+
 def test_env_r5_blind_start_restore_rejects_mismatched_permanent_ids():
     snapshot = _snapshot()
     snapshot.payload["owned_cards"]["cards"][0]["live_id"] = 999
