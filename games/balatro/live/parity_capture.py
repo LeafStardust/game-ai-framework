@@ -10,6 +10,7 @@ from games.balatro.actions import (
     DISCARD_CARDS,
     PLAY_CARDS,
     REFRESH_SHOP,
+    SELECT_BLIND,
     BalatroAction,
 )
 from games.balatro.env.actions import EnvAction
@@ -40,6 +41,7 @@ from games.balatro.live.translator import DefaultBalatroStateTranslator
 
 _TACTICAL_ACTIONS = frozenset({PLAY_CARDS, DISCARD_CARDS})
 _REROLL_SHOP_LOG_ACTION = {"name": REFRESH_SHOP}
+_SELECT_BLIND_LOG_ACTION = {"name": SELECT_BLIND}
 _EXACT_REDEEMABLE_VOUCHER_KEYS = (
     EXACT_RESOURCE_VOUCHER_KEYS
     | EXACT_EDITION_RATE_VOUCHER_KEYS
@@ -469,6 +471,89 @@ def compare_run_rows_to_simulator_voucher_purchase_evidence(
     translator: DefaultBalatroStateTranslator | None = None,
 ) -> PublicStrategicTrajectoryParityComparison:
     live_evidence = successful_voucher_purchase_evidence_from_run_rows(
+        rows,
+        translator=translator,
+    )
+    return compare_public_strategic_trajectory(live_evidence, simulator_evidence)
+
+
+def successful_select_blind_evidence_from_run_rows(
+    rows: Iterable[dict[str, Any]],
+    *,
+    translator: DefaultBalatroStateTranslator | None = None,
+) -> tuple[PublicStrategicTransitionEvidence, ...]:
+    """Extract exact settled parameterless SELECT_BLIND transitions."""
+    translator = translator or DefaultBalatroStateTranslator()
+    last_observation: dict[str, Any] | None = None
+    pending_select: dict[str, Any] | None = None
+    evidence: list[PublicStrategicTransitionEvidence] = []
+
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("run-log row must be an object")
+        event = str(row.get("event") or "")
+        data = row.get("data")
+        if not isinstance(data, dict):
+            continue
+        if event == "observation":
+            state = data.get("state")
+            if not isinstance(state, dict):
+                raise ValueError("observation row requires state")
+            last_observation = state
+            pending_select = None
+            continue
+        if event == "decision":
+            action = data.get("action")
+            if not isinstance(action, dict):
+                raise ValueError("decision row requires action")
+            if str(action.get("name") or "") == SELECT_BLIND:
+                if action != _SELECT_BLIND_LOG_ACTION:
+                    raise ValueError("SELECT_BLIND run-log action must not contain parameters")
+                if last_observation is None:
+                    raise ValueError("SELECT_BLIND decision has no preceding observation")
+                pending_select = action
+            else:
+                pending_select = None
+            continue
+        if event != "action_result":
+            continue
+        action = data.get("action")
+        if not isinstance(action, dict) or str(action.get("name") or "") != SELECT_BLIND:
+            continue
+        if action != _SELECT_BLIND_LOG_ACTION:
+            raise ValueError("SELECT_BLIND run-log action must not contain parameters")
+        if last_observation is None or pending_select is None:
+            raise ValueError("SELECT_BLIND action_result has no captured decision boundary")
+        if action != pending_select:
+            raise ValueError("SELECT_BLIND action_result does not match captured decision")
+        if data.get("success") is not True:
+            raise ValueError("SELECT_BLIND parity requires a successful action_result")
+
+        before = translator.translate(_snapshot_from_log_state(last_observation))
+        after = translator.translate(_snapshot_from_log_state(data.get("state")))
+        if before.phase != "BLIND_SELECT" or after.phase != "SELECTING_HAND":
+            raise ValueError(
+                "SELECT_BLIND parity requires BLIND_SELECT before and SELECTING_HAND after"
+            )
+        evidence.append(
+            build_public_strategic_transition_evidence(
+                before,
+                EnvAction.from_alias("SELECT_BLIND"),
+                after,
+            )
+        )
+        pending_select = None
+
+    return tuple(evidence)
+
+
+def compare_run_rows_to_simulator_select_blind_evidence(
+    rows: Iterable[dict[str, Any]],
+    simulator_evidence: Iterable[PublicStrategicTransitionEvidence],
+    *,
+    translator: DefaultBalatroStateTranslator | None = None,
+) -> PublicStrategicTrajectoryParityComparison:
+    live_evidence = successful_select_blind_evidence_from_run_rows(
         rows,
         translator=translator,
     )

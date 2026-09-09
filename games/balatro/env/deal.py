@@ -72,8 +72,6 @@ def _is_provably_base_order_allowing_transient_debuff(
     """
     if len(cards) != 52:
         return False
-    if any(card.live_id is not None for card in cards):
-        return False
     identities = [(card.rank, card.suit) for card in cards]
     if len(set(identities)) != 52 or set(identities) != _VANILLA_BASE_IDENTITIES:
         return False

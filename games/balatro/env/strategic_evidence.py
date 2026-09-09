@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.public_observation import public_observation_state
+from games.balatro.env.select_blind import select_blind_exact
 from games.balatro.env.shop_reroll import PaidBaseShopReroll, reroll_base_main_shop
 from games.balatro.env.transition import HeadlessRunState, ShopTransitionEngine
 from games.balatro.state import BalatroState
@@ -105,6 +106,23 @@ def buy_voucher_with_public_evidence(
     action = EnvAction.from_alias("BUY_VOUCHER", {"slot": slot})
     before = run.public
     result = ShopTransitionEngine().step(run, action)
+    evidence = build_public_strategic_transition_evidence(
+        before,
+        action,
+        result.public,
+    )
+    return result, evidence
+
+
+def select_blind_with_public_evidence(
+    run: HeadlessRunState,
+) -> tuple[HeadlessRunState, PublicStrategicTransitionEvidence]:
+    """Execute the canonical exact blind-start owner and capture R5 evidence."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    action = EnvAction.from_alias("SELECT_BLIND")
+    before = run.public
+    result = select_blind_exact(run)
     evidence = build_public_strategic_transition_evidence(
         before,
         action,

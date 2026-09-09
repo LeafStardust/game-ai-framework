@@ -24,6 +24,10 @@ from games.balatro.env.strategic_evidence import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import expected_base_reroll_cost_for_vouchers
 from games.balatro.live.protocol import LiveBalatroSnapshot
+from games.balatro.live.private_run_state import (
+    LivePrivateRunStateError,
+    active_tag_count_from_live_memory,
+)
 from games.balatro.live.rng_replay_capture import (
     LiveRNGReplayCaptureError,
     rng_replay_snapshot_from_live_memory,
@@ -32,8 +36,6 @@ from games.balatro.live.runtime.live_memory_shop_terms import (
     LiveShopRerollTerms,
     read_live_shop_reroll_terms,
 )
-from games.balatro.live.runtime.luajit_memory import LuaJITMemoryError
-from games.balatro.live.runtime.process_memory import BalatroProcessMemoryError
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 
 
@@ -64,28 +66,6 @@ class LiveRerollReplayComparison:
     simulator_evidence: PublicStrategicTransitionEvidence
 
 
-def _active_tag_count_from_live_memory(decoder, root) -> int:
-    game_value = root.get("GAME")
-    if game_value is None or getattr(game_value, "kind", None) != "table":
-        raise LiveRerollParityCheckpointError("live Balatro G.GAME table is unavailable")
-    try:
-        game = decoder.string_fields(int(game_value.value))
-    except (BalatroProcessMemoryError, LuaJITMemoryError, TypeError, ValueError) as exc:
-        raise LiveRerollParityCheckpointError("unable to read live Balatro G.GAME table") from exc
-
-    tags_value = game.get("tags")
-    if tags_value is None or getattr(tags_value, "kind", None) != "table":
-        raise LiveRerollParityCheckpointError("live Balatro G.GAME.tags table is unavailable")
-    try:
-        items = list(decoder.array_items(int(tags_value.value)))
-    except (BalatroProcessMemoryError, LuaJITMemoryError, TypeError, ValueError) as exc:
-        raise LiveRerollParityCheckpointError("unable to read live Balatro active Tags") from exc
-    for _, value in items:
-        if value is None or getattr(value, "kind", None) != "table":
-            raise LiveRerollParityCheckpointError("live Balatro active Tag array is malformed")
-    return len(items)
-
-
 def capture_live_reroll_parity_checkpoint(observer) -> LiveRerollParityCheckpoint:
     """Capture stable public + private replay authority before one paid reroll.
 
@@ -102,9 +82,9 @@ def capture_live_reroll_parity_checkpoint(observer) -> LiveRerollParityCheckpoin
     try:
         decoder, _, root = observer._root()
         rng_snapshot = rng_replay_snapshot_from_live_memory(decoder, root)
-        active_tag_count = _active_tag_count_from_live_memory(decoder, root)
+        active_tag_count = active_tag_count_from_live_memory(decoder, root)
         reroll_terms = read_live_shop_reroll_terms(observer)
-    except (LiveRNGReplayCaptureError, RuntimeError) as exc:
+    except (LiveRNGReplayCaptureError, LivePrivateRunStateError, RuntimeError) as exc:
         if isinstance(exc, LiveRerollParityCheckpointError):
             raise
         raise LiveRerollParityCheckpointError("unable to capture exact live reroll replay authority") from exc
