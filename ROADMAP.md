@@ -315,6 +315,13 @@ R5 canonical Buffoon pack public evidence seam:
 GitHub Actions run 34377040125
 GitHub Actions job 102552347902
 2495 passed, 1596 deselected
+
+R5 opt-in exact Buffoon pack private capture:
+ccb1cc887af1fea3be24f595119156f6caf0cb2b
+  feat(balatro): capture Buffoon pack parity
+GitHub Actions run 34378808960
+GitHub Actions job 102558247537
+2507 passed, 1596 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -325,11 +332,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — BUFFOON PUBLIC EVIDENCE IS GREEN; EXACT PRIVATE PRE-ACTION REPLAY CAPTURE IS NEXT**.
+- R5 live/simulator parity harness: **IN PROGRESS — THE EXACT BUFFOON CAPTURE/REPLAY SEAM IS GREEN; ONE NATURAL LIVE FIXTURE IS REQUIRED**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOT REQUIRED UNTIL THE BUFFOON PACK PARITY SEAM REACHES A GENUINELY LIVE-ONLY CAPTURE GATE.**
+- Live Balatro validation: **REQUIRED NOW — CAPTURE ONE NATURAL SUPPORTED FINAL BUFFOON CHOICE OR SKIP WITH THE OPT-IN RECORDER.**
 
 ## Current strategic action contract
 
@@ -963,6 +970,16 @@ Required before treating the simulator as authoritative training truth.
   index and visible identity; targeted hand-card selections, malformed skips,
   failed results, and nonterminal pack transitions fail closed. The evidence
   wrappers delegate directly to the existing exact R3 pack owners.
+- `games/balatro/live/buffoon_pack_parity_capture.py` owns the opt-in private
+  pre-action checkpoint: one stable complete Buffoon snapshot, exact
+  `G.GAME.pack_choices == 1`, ordered visible Joker records, and
+  `G.GAME.PACK_INTERRUPT` resolved through Balatro's own `G.STATES`. It strips
+  UI geometry, preserves exact live identity, admits no unsupported Joker,
+  edition, multi-pick, capacity-blocked choice, or inexact return origin, and
+  replays through the canonical R3 pack owners without inventing RNG authority.
+- `--buffoon-pack-parity-directory` is forwarded through the sole canonical
+  `BalatroAgentToggle.bat --attempt N` path. Capture/replay failures are
+  diagnostic only and cannot suppress or rewrite a settled gameplay action.
 
 Green checkpoints:
 
@@ -1235,6 +1252,15 @@ does not contain the ordered visible choice roster, remaining-pick count, or
 `PACK_INTERRUPT` return origin. Those rows are evidence that the production
 path executes, not sufficient authority for headless replay.
 
+The exact private Buffoon capture/replay seam is green at `ccb1cc88`. It records
+only the missing pre-action authority, verifies the planned visible target by
+area index, label, center, and live ID, and compares the normal public post-state
+after canonical `CHOOSE_PACK_OPTION` or `SKIP_PACK` replay. Final admitted pack
+choice/skip consumes no RNG, so no RNG state is captured. GitHub Actions run
+`34378808960`, job `102558247537`, passed with **2507 passed, 1596 deselected**.
+No existing public-only run may be retrofitted into a private fixture; one new
+natural capture is required.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1258,24 +1284,28 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The Buffoon public evidence seam is green. Add the smallest opt-in private
-pre-action replay checkpoint for exact final one-pick Buffoon packs:
+The exact Buffoon capture/replay seam is green. Obtain one genuinely live-only
+fixture without changing production policy:
 
-1. capture one stable complete `BUFFOON_PACK` public snapshot plus exact
-   `G.GAME.pack_choices == 1`, ordered visible Joker records, and the exact
-   `G.GAME.PACK_INTERRUPT` phase resolved through `G.STATES`;
-2. admit only `SHOP` / `BLIND_SELECT` return origins and visible Jokers that the
-   existing exact inventory-only acquisition owner can construct; missing,
-   malformed, unsupported, edition-bearing, resource-mutating, multi-pick, or
-   capacity-blocked choices fail closed;
-3. replay `CHOOSE_PACK_OPTION` or `SKIP_PACK` through the canonical owner and
-   compare the ordinary public post-state. No RNG checkpoint is needed because
-   the admitted final choice/skip transition consumes no RNG;
-4. wire the recorder behind one explicit opt-in directory flag using the sole
-   `--attempt N` launcher path, add focused deterministic regressions, and use
-   GitHub Actions as the gate;
-5. only after that seam is green, request one natural live capture containing a
-   supported Buffoon choice or skip.
+1. update to `ccb1cc88` or later and launch through the sole canonical attempt
+   interface:
+
+   ```powershell
+   .\BalatroAgentToggle.bat --attempt 5 --buffoon-pack-parity-directory logs\balatro\parity
+   ```
+
+2. allow ordinary production policy to run; do not force a Buffoon purchase,
+   choice, skip, or change D8/D9/D2 valuation to manufacture the fixture;
+3. if an exact final one-pick Buffoon choice or skip naturally falls inside the
+   admitted subset, preserve the public run JSONL and emitted
+   `logs\balatro\parity\<run-id>.buffoon-pack-parity.jsonl` sidecar;
+4. replay the unchanged capture, fix only the first concrete canonical-owner
+   mismatch, otherwise preserve the passing real fixture and move to held
+   Planet use.
+
+The parity directory/file is created only when an exact supported Buffoon
+transition is written. A batch with no admitted transition may finish without a
+sidecar; that is not a recorder defect.
 
 Do not broaden this slice to other booster families, unsupported Buffoon pack
 sizes or multi-pick paths, policy tuning, playing-card shop purchases, Boss skip
