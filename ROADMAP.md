@@ -276,6 +276,17 @@ R5 first real passing ordinary Small-Blind start fixture:
 GitHub Actions run 34334451991
 GitHub Actions job 102410451037
 2473 passed, 1595 deselected
+
+R5 first real ordinary Small-Blind cash-out fixture:
+6e7c59c4b9c46f198ec56d0652670d05e7550218
+  fix(balatro): replay ordinary blind cashout
+8102cbddd58c80e79c797d6bd8573ccffce6018e
+  test(balatro): align cashout fixture authority
+c304f8d4b3d82bc53ba5eab545447a7f7bae04f2
+  test(balatro): declare cashout reset authority
+GitHub Actions run 34337142981
+GitHub Actions job 102419085820
+2476 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -286,11 +297,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES AND THE FIRST REAL ORDINARY SMALL-BLIND START FIXTURE ARE GREEN; THE NEXT SLICE IS THAT SAME RUN'S FIRST CLEAR/CASH-OUT BOUNDARY**.
+- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES AND THE FIRST REAL ORDINARY SMALL-BLIND START/CASH-OUT FIXTURES ARE GREEN; THE NEXT SLICE IS BLIND SKIP/TAG FLOW**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOT REQUIRED NOW — THE POST-REPAIR ORDINARY SMALL-BLIND CAPTURE IS PRESERVED AND PASSES EXACT PUBLIC/PRIVATE REPLAY. REQUEST ANOTHER LIVE RUN ONLY IF THE EXISTING RUN CANNOT SUPPLY PRIVATE AUTHORITY GENUINELY REQUIRED FOR ITS FIRST CLEAR/CASH-OUT BOUNDARY.**
+- Live Balatro validation: **NOT REQUIRED NOW — INSPECT AND COMPLETE THE DETERMINISTIC BLIND SKIP/TAG PARITY SEAM FIRST. REQUEST A LIVE RUN ONLY AFTER THAT SEAM CAN CAPTURE A GENUINELY REQUIRED SUPPORTED TRANSITION.**
 
 ## Current strategic action contract
 
@@ -1115,15 +1126,28 @@ The parameterless `SELECT_BLIND` transition replays through canonical
 public before/action/after parity, and exact private post-action RNG parity.
 CI is green at `74a5acfa` with 2473 selected tests passing.
 
+The same attempt's unchanged public rows 11–13 preserve its first successful
+ordinary `END_ROUND` boundary. Pinned vanilla inspection exposed four exact
+gaps in the canonical path: the displayed skip Tag leaked into active-blind
+callbacks after selection; missing Red/White reward/cleared-requirement facts
+were translated as zero; the cash-out owner omitted `cashout{ante}` deck
+shuffle; and shop entry did not reset score, hands, discards, or the blind
+shell. These are repaired at `6e7c59c4`. The unchanged boundary now rebuilds
+from the complete live-ID deck plus the already-preserved post-start RNG
+checkpoint and matches the full canonical public shop signature. No additional
+private capture was required. Its decompressed public-boundary SHA-256 is
+`f77b50b0152d4f9a3a6fbb0969e3cf4e4e8d199c90ff1a260f1bf1e0cd7095e8`.
+CI is green at `c304f8d4` with 2476 selected tests passing.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
 - representative ordinary Joker purchase;
 - representative supported Voucher redemption.
+- ordinary Small-Blind start and clear/cash-out.
 
 ## Remaining priority parity fixtures
 
-- blind clear/cash-out (blind start is complete);
 - blind skip/Tag flow;
 - representative Buffoon pack choice/skip;
 - held Planet use;
@@ -1138,20 +1162,21 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The first real ordinary Small-Blind start fixture is green. Continue R5 with
-**the same attempt's first ordinary clear/`END_ROUND` boundary**:
+Ordinary blind start and clear/cash-out are green. Continue R5 with **blind
+skip/Tag flow**:
 
-1. inspect the unchanged public rows surrounding the first successful
-   `END_ROUND` decision and resulting `SHOP`/`CASHED_OUT` state;
-2. read canonical `cash_out_baseline_ordinary_blind` and the existing strategic
-   parity/capture owners before changing code;
-3. identify the minimum private zone authority, if any, that is genuinely
-   required to rebuild and replay that exact boundary;
-4. preserve the public boundary unchanged and add one focused fail-closed
-   regression through the canonical cash-out owner;
-5. request another live `--attempt N` capture only if the existing run cannot
-   provide authority that cannot be recovered from its already-recorded public
-   evidence.
+1. read the canonical `skip_blind_exact` owner, retained blind progression/Tag
+   authority, current live dispatcher, and existing strategic parity adapters;
+2. keep the current supported surface narrow: Small Blind plus immediately
+   resolved Economy Tag only; every other Tag and Big-to-Boss skip remains
+   fail-closed;
+3. add one canonical public evidence/capture/replay seam for the parameterless
+   production `SKIP_BLIND` action without creating a second action schema;
+4. add focused deterministic regressions for exact money, skip count, retained
+   progression, next Big-Blind identity/requirement/reward/Tag, and rejection of
+   unsupported or missing private authority;
+5. use CI as the gate, then request one live `--attempt N` fixture only if the
+   exact supported Economy-Tag opportunity must be captured in Balatro.
 
 Do not broaden this slice to blind skip/Tag flow, pack parity, unsupported Boss
 paths, policy tuning, playing-card shop purchases, or Boss reroll.
