@@ -1099,12 +1099,13 @@ The opt-in production blind-start recorder, canonical launcher handoff, and the
 first live-exposed exact-ID repair are green. Continue R5 with **one replacement
 real ordinary Small-Blind fixture**:
 
-1. pull through `cedd0f114ff01899d13a9f9df641f3a37da8b3f0` and request
-   exactly one ordinary tag-free Small-Blind `SELECT_BLIND` transition using the
-   command below;
+1. pull the latest branch state, which contains the green repair at
+   `cedd0f114ff01899d13a9f9df641f3a37da8b3f0`, and request exactly one ordinary
+   tag-free Small-Blind `SELECT_BLIND` transition using the PowerShell command
+   below;
 
    ```bat
-   BalatroAgentToggle.bat --attempt 1 --blind-start-parity-directory logs/balatro/r5-blind-start-parity
+   .\BalatroAgentToggle.bat --attempt 1 --blind-start-parity-directory logs/balatro/r5-blind-start-parity
    ```
 
 2. preserve the resulting public run log plus private sidecar unchanged;
