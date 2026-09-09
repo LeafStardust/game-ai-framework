@@ -125,6 +125,7 @@ class _Observer:
 def test_env_r5_exact_planet_owner_admits_selecting_hand_without_phase_change():
     checkpoint = LiveHeldPlanetParityCheckpoint(_snapshot(1), _usage())
     run = headless_held_planet_run_from_checkpoint(checkpoint)
+    hand_type = run.public.consumables[0].hand_type
 
     assert can_use_planet_exact(run, 0) is True
     result, evidence = use_planet_with_public_evidence(run, consumable_index=0)
@@ -133,7 +134,7 @@ def test_env_r5_exact_planet_owner_admits_selecting_hand_without_phase_change():
     assert evidence.after.phase == "SELECTING_HAND"
     assert result.public.phase == "SELECTING_HAND"
     assert result.public.consumables == []
-    assert result.public.hand_levels["High Card"] == 2
+    assert result.public.hand_levels[hand_type] == 2
     assert result.public.last_tarot_planet == "c_pluto"
     assert result.consumable_usage_counts == {"c_pluto": 1}
     assert result.consumable_usage_totals["planet"] == 1
