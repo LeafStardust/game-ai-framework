@@ -17,12 +17,12 @@ from games.balatro.live.injected.hand_dispatcher import LiveInjectedActionResult
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
-def _snapshot(sequence, phase="BLIND_SELECT"):
+def _snapshot(sequence, phase="BLIND_SELECT", *, money=4):
     return LiveBalatroSnapshot(
         sequence=sequence,
         phase=phase,
         state_complete=True,
-        payload={"deck": "RED", "stake": "WHITE", "money": 4},
+        payload={"deck": "RED", "stake": "WHITE", "money": money},
     )
 
 
@@ -134,7 +134,11 @@ def test_env_r5_blind_start_recorder_rejects_post_checkpoint_drift(
     import games.balatro.live.blind_start_parity_capture as capture
 
     before = _checkpoint(1)
-    drifted = _checkpoint(3, "SELECTING_HAND")
+    drifted = LiveBlindStartParityCheckpoint(
+        public_snapshot=_snapshot(3, "SELECTING_HAND", money=3),
+        rng_snapshot=_checkpoint(3, "SELECTING_HAND").rng_snapshot,
+        active_tag_count=0,
+    )
     checkpoints = iter((before, drifted))
     monkeypatch.setattr(
         capture,
