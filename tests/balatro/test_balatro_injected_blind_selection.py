@@ -19,8 +19,11 @@ def _snapshot(
     state_complete: bool = True,
     blind_type: str | None = None,
     blind_tag: str | None = None,
+    money: int | None = None,
 ):
     payload = {}
+    if money is not None:
+        payload["money"] = money
     if blind_type is not None or blind_tag is not None:
         payload["blind"] = {}
         if blind_type is not None:
@@ -138,6 +141,41 @@ def test_injected_dispatcher_skip_blind_waits_for_exact_next_blind(
     assert result.after is after
     assert result.details["blind_before"] == before_blind
     assert result.details["blind_after"] == expected_blind
+
+
+def test_injected_dispatcher_economy_skip_waits_for_delayed_exact_payout():
+    before = _snapshot(
+        20,
+        "BLIND_SELECT",
+        blind_type="SMALL",
+        blind_tag="tag_economy",
+        money=25,
+    )
+    before_payout = _snapshot(
+        21,
+        "BLIND_SELECT",
+        blind_type="BIG",
+        blind_tag="tag_ethereal",
+        money=25,
+    )
+    after_payout = _snapshot(
+        22,
+        "BLIND_SELECT",
+        blind_type="BIG",
+        blind_tag="tag_ethereal",
+        money=50,
+    )
+    bridge = FakeBridge()
+    dispatcher = LiveMemoryInjectedActionDispatcher(
+        FakeObserver(before_payout, after_payout),
+        bridge=bridge,
+        poll_interval=0,
+    )
+
+    result = dispatcher.dispatch(BalatroAction(SKIP_BLIND), snapshot=before)
+
+    assert bridge.calls == [("skip_blind",)]
+    assert result.after is after_payout
 
 
 @pytest.mark.parametrize(

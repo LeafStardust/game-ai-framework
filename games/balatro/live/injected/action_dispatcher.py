@@ -551,6 +551,17 @@ class LiveMemoryInjectedActionDispatcher:
             before_tag = _blind_tag(before)
             expected_blind = _NEXT_BLIND_AFTER_SKIP.get(before_blind)
             expected_pack_phase = _PACK_PHASE_AFTER_SKIP_TAG.get(before_tag)
+            expected_economy_money = None
+            if before_tag == "tag_economy":
+                before_money = _money(before)
+                if before_money is None or not before_money.is_integer():
+                    raise UnsupportedInjectedAction(
+                        "Economy Tag SKIP_BLIND requires exact observed money"
+                    )
+                expected_economy_money = before_money + min(
+                    40.0,
+                    max(0.0, before_money),
+                )
             if expected_blind is None:
                 raise UnsupportedInjectedAction(
                     f"SKIP_BLIND requires a skippable Small/Big blind, observed {before_blind}"
@@ -565,7 +576,10 @@ class LiveMemoryInjectedActionDispatcher:
                 ):
                     return False
                 if value.phase == "BLIND_SELECT":
-                    return True
+                    return (
+                        expected_economy_money is None
+                        or _money(value) == expected_economy_money
+                    )
                 return (
                     expected_pack_phase is not None
                     and value.phase == expected_pack_phase
