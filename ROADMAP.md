@@ -301,6 +301,13 @@ R5 live Economy-Tag skip settlement repair:
 GitHub Actions run 34367250892
 GitHub Actions job 102519067100
 2486 passed, 1596 deselected
+
+R5 first real passing Economy-Tag blind-skip fixture:
+9c0d5c68d36895fcb175f53c1b4004fee0d475a5
+  fix(balatro): replay live Economy Tag skip
+GitHub Actions run 34375666032
+GitHub Actions job 102547699010
+2488 passed, 1596 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -311,11 +318,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — THE EXACT ECONOMY-TAG BLIND-SKIP SEAM IS GREEN; ONE NEW LIVE PRIVATE FIXTURE IS NOW REQUIRED**.
+- R5 live/simulator parity harness: **IN PROGRESS — THE ECONOMY-TAG BLIND-SKIP PRIORITY GATE IS COMPLETE; REPRESENTATIVE BUFFOON PACK CHOICE/SKIP IS NEXT**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **REQUIRED NOW — CAPTURE ONE SMALL-BLIND ECONOMY-TAG SKIP WITH THE GREEN OPT-IN PRIVATE RECORDER.**
+- Live Balatro validation: **NOT REQUIRED UNTIL THE BUFFOON PACK PARITY SEAM REACHES A GENUINELY LIVE-ONLY CAPTURE GATE.**
 
 ## Current strategic action contract
 
@@ -1182,16 +1189,38 @@ dispatcher paths are unchanged. CI is green at `0966658f` with **2486 passed,
 1596 deselected**. The failed batch has no private authority and is evidence for
 the timing repair, not a promotable parity fixture.
 
+The post-settlement batch,
+`balatro-20260909T150330Z-186b22a6`, supplies the first complete real supported
+Small-Blind/Economy-Tag skip fixture in attempt 005. The unchanged public rows
+243--245 and unchanged private sidecar row are preserved in XZ transport. Their
+decompressed SHA-256 guards are respectively
+`20898032d15279b00397eef9bbc530989931fd0a90df2fdc998e4d98d336cf29`
+and
+`e79c97beb6634d5c230ca02a49e62085bac0486c2be46988af6ecbd5bc465d2c`.
+The live boundary settles the complete exact transition: money 36 -> 72,
+Small `Select` -> `Skipped`, Big `Upcoming` -> `Select`, `blind_on_deck`
+Small -> Big, skips 0 -> 1, no active Tags, and the visible Tag
+`tag_economy` -> `tag_juggle`. The original sidecar verdict remains immutable
+and records one `public.after` mismatch. Exact replay localized that mismatch
+to translation rather than skip mechanics: while selecting Big, the live
+observer's inactive round shell still reported `round.chips == 0` even though
+the visible pending `Blind.requirement` was 7500. `BalatroStateTranslator` now
+publishes that already-observed requirement as `blind_score` during
+`BLIND_SELECT`; it does not synthesize unsupported requirements. The unchanged
+fixture now passes canonical public and private replay at `9c0d5c68`. GitHub
+Actions run `34375666032`, job `102547699010`, passed with **2488 passed, 1596
+deselected**.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
 - representative ordinary Joker purchase;
 - representative supported Voucher redemption.
 - ordinary Small-Blind start and clear/cash-out.
+- supported Small-Blind/Economy-Tag skip flow.
 
 ## Remaining priority parity fixtures
 
-- blind skip/Tag flow;
 - representative Buffoon pack choice/skip;
 - held Planet use;
 - audited Joker sale;
@@ -1205,31 +1234,25 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The exact Economy-Tag blind-skip seam is green. The next task is one genuinely
-live-only fixture capture:
+The Economy-Tag blind-skip priority gate is complete. Continue R5 with one
+representative Buffoon pack choice/skip seam:
 
-1. on a checkout containing `0966658f` or later, launch through the sole
-   canonical attempt interface:
+1. inspect the frozen `CHOOSE_PACK_OPTION` / `SKIP_PACK` contracts, canonical
+   headless pack owner, production Buffoon policy/dispatcher, and existing pack
+   regressions before changing code;
+2. define the smallest canonical public evidence and any strictly necessary
+   private replay authority for exact final one-pick Buffoon packs only;
+3. add focused deterministic regressions for one supported Joker choice and one
+   skip, with unsupported pack sizes, picks, contents, replacements, or missing
+   identity failing closed rather than being approximated;
+4. use GitHub Actions as the deterministic gate and record its exact job-log
+   counts;
+5. request a live capture only after the deterministic seam proves that the
+   remaining evidence can be obtained only from Balatro.
 
-   ```powershell
-   .\BalatroAgentToggle.bat --attempt 5 --blind-skip-parity-directory logs\balatro\parity
-   ```
-
-2. allow ordinary production policy to run; do not force a skip or change Tag
-   valuation to manufacture the fixture;
-3. if a Small Blind carrying `tag_economy` is naturally skipped, preserve both
-   the public run JSONL and the emitted
-   `logs\balatro\parity\<run-id>.blind-skip-parity.jsonl` sidecar;
-4. replay the unchanged rows/checkpoints through the canonical comparator;
-5. fix only a concrete first-owner mismatch, otherwise preserve the passing
-   fixture and move to representative Buffoon pack choice/skip.
-
-The parity directory/file is created only when an exact supported `SKIP_BLIND`
-capture is written. A batch with no natural Small/Economy skip may therefore
-finish without a sidecar; that is not a recorder defect.
-
-Do not broaden this slice to pack parity, unsupported Tags or Boss skip paths,
-policy tuning, playing-card shop purchases, or Boss reroll.
+Do not broaden this slice to other booster families, unsupported Buffoon pack
+sizes or multi-pick paths, policy tuning, playing-card shop purchases, Boss skip
+paths, or Boss reroll.
 `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
 ## R5 exit criteria
