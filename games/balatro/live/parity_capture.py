@@ -14,8 +14,10 @@ from games.balatro.actions import (
     SELECT_BLIND,
     SKIP_BOOSTER,
     SKIP_BLIND,
+    USE_CONSUMABLE,
     BalatroAction,
 )
+from games.balatro.consumable import PlanetCard
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.parity import (
     PublicStrategicTrajectoryParityComparison,
@@ -750,6 +752,132 @@ def compare_run_rows_to_simulator_buffoon_pack_evidence(
     translator: DefaultBalatroStateTranslator | None = None,
 ) -> PublicStrategicTrajectoryParityComparison:
     live_evidence = successful_buffoon_pack_evidence_from_run_rows(
+        rows,
+        translator=translator,
+    )
+    return compare_public_strategic_trajectory(live_evidence, simulator_evidence)
+
+
+def _canonical_held_planet_action(value: Any, state) -> EnvAction | None:
+    if not isinstance(value, dict):
+        raise ValueError("run-log action must be an object")
+    if str(value.get("name") or "") != USE_CONSUMABLE:
+        return None
+    if "indices" in value:
+        raise ValueError("held Planet USE_CONSUMABLE must not target hand cards")
+    target = value.get("target")
+    if not isinstance(target, dict):
+        raise ValueError("held Planet USE_CONSUMABLE requires a target object")
+    area_index = target.get("area_index")
+    if (
+        isinstance(area_index, bool)
+        or not isinstance(area_index, int)
+        or area_index < 0
+    ):
+        raise ValueError(
+            "held Planet USE_CONSUMABLE requires a nonnegative integer area_index"
+        )
+    slots = [
+        slot
+        for slot, item in enumerate(state.consumables)
+        if getattr(item, "area_index", None) == area_index
+    ]
+    if len(slots) != 1:
+        raise ValueError(
+            "held Planet target does not identify exactly one translated consumable"
+        )
+    slot = slots[0]
+    planet = state.consumables[slot]
+    if type(planet) is not PlanetCard:
+        raise ValueError("USE_CONSUMABLE target is not an exact held Planet")
+    target_name = target.get("name")
+    if not isinstance(target_name, str) or target_name != planet.name:
+        raise ValueError("held Planet target name does not match translated consumable")
+    return EnvAction.from_alias(
+        "USE_CONSUMABLE",
+        {"consumable_index": slot},
+    )
+
+
+def successful_held_planet_use_evidence_from_run_rows(
+    rows: Iterable[dict[str, Any]],
+    *,
+    translator: DefaultBalatroStateTranslator | None = None,
+) -> tuple[PublicStrategicTransitionEvidence, ...]:
+    """Extract settled exact held-Planet uses from durable public run rows."""
+    translator = translator or DefaultBalatroStateTranslator()
+    last_observation: dict[str, Any] | None = None
+    pending_action: dict[str, Any] | None = None
+    evidence: list[PublicStrategicTransitionEvidence] = []
+
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("run-log row must be an object")
+        event = str(row.get("event") or "")
+        data = row.get("data")
+        if not isinstance(data, dict):
+            continue
+        if event == "observation":
+            state = data.get("state")
+            if not isinstance(state, dict):
+                raise ValueError("observation row requires state")
+            last_observation = state
+            pending_action = None
+            continue
+        if event == "decision":
+            action = data.get("action")
+            if not isinstance(action, dict):
+                raise ValueError("decision row requires action")
+            if str(action.get("name") or "") == USE_CONSUMABLE:
+                if last_observation is None:
+                    raise ValueError(
+                        "held Planet decision has no preceding observation"
+                    )
+                pending_action = action
+            else:
+                pending_action = None
+            continue
+        if event != "action_result":
+            continue
+        action = data.get("action")
+        if (
+            not isinstance(action, dict)
+            or str(action.get("name") or "") != USE_CONSUMABLE
+        ):
+            continue
+        if last_observation is None or pending_action is None:
+            raise ValueError(
+                "held Planet action_result has no captured decision boundary"
+            )
+        if action != pending_action:
+            raise ValueError(
+                "held Planet action_result does not match captured decision"
+            )
+        if data.get("success") is not True:
+            raise ValueError("held Planet parity requires a successful action_result")
+
+        before = translator.translate(_snapshot_from_log_state(last_observation))
+        after = translator.translate(_snapshot_from_log_state(data.get("state")))
+        if before.phase != "SHOP" or after.phase != "SHOP":
+            raise ValueError("held Planet parity requires SHOP before and after")
+        canonical = _canonical_held_planet_action(action, before)
+        if canonical is None:
+            raise AssertionError("held Planet classification changed unexpectedly")
+        evidence.append(
+            build_public_strategic_transition_evidence(before, canonical, after)
+        )
+        pending_action = None
+
+    return tuple(evidence)
+
+
+def compare_run_rows_to_simulator_held_planet_use_evidence(
+    rows: Iterable[dict[str, Any]],
+    simulator_evidence: Iterable[PublicStrategicTransitionEvidence],
+    *,
+    translator: DefaultBalatroStateTranslator | None = None,
+) -> PublicStrategicTrajectoryParityComparison:
+    live_evidence = successful_held_planet_use_evidence_from_run_rows(
         rows,
         translator=translator,
     )

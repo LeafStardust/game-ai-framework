@@ -11,6 +11,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.consumable_use import use_planet_exact
 from games.balatro.env.pack import choose_pack_option_exact, skip_pack_exact
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.select_blind import select_blind_exact
@@ -183,6 +184,30 @@ def skip_pack_with_public_evidence(
     action = EnvAction.from_alias("SKIP_PACK")
     before = run.public
     result = skip_pack_exact(run)
+    evidence = build_public_strategic_transition_evidence(
+        before,
+        action,
+        result.public,
+    )
+    return result, evidence
+
+
+def use_planet_with_public_evidence(
+    run: HeadlessRunState,
+    *,
+    consumable_index: int,
+) -> tuple[HeadlessRunState, PublicStrategicTransitionEvidence]:
+    """Execute canonical exact held-Planet use and capture public R5 evidence."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    if isinstance(consumable_index, bool) or not isinstance(consumable_index, int):
+        raise TypeError("consumable_index must be an integer")
+    action = EnvAction.from_alias(
+        "USE_CONSUMABLE",
+        {"consumable_index": consumable_index},
+    )
+    before = run.public
+    result = use_planet_exact(run, consumable_index)
     evidence = build_public_strategic_transition_evidence(
         before,
         action,
