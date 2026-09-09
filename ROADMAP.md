@@ -322,6 +322,15 @@ ccb1cc887af1fea3be24f595119156f6caf0cb2b
 GitHub Actions run 34378808960
 GitHub Actions job 102558247537
 2507 passed, 1596 deselected
+
+R5 first real Buffoon choice fixture and used-Joker pool repair:
+6f0a57ce890494326c11f1f25f33b3888be1abc4
+  fix(balatro): replay live Buffoon choice pool
+19c3af33a4c0a090c31330d097769a6dc8fa29aa
+  test(balatro): use exact Buffoon offer pair
+GitHub Actions run 34394979554
+GitHub Actions job 102612318553
+2510 passed, 1596 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -332,11 +341,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — THE EXACT BUFFOON CAPTURE/REPLAY SEAM IS GREEN; ONE NATURAL LIVE FIXTURE IS REQUIRED**.
+- R5 live/simulator parity harness: **IN PROGRESS — THE BUFFOON FIXTURE GATE IS COMPLETE; HELD-PLANET USE IS NEXT**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **REQUIRED NOW — CAPTURE ONE NATURAL SUPPORTED FINAL BUFFOON CHOICE OR SKIP WITH THE OPT-IN RECORDER.**
+- Live Balatro validation: **NOT REQUIRED NOW — BUILD THE HELD-PLANET PUBLIC EVIDENCE/REPLAY SEAM FIRST**.
 
 ## Current strategic action contract
 
@@ -980,6 +989,14 @@ Required before treating the simulator as authoritative training truth.
 - `--buffoon-pack-parity-directory` is forwarded through the sole canonical
   `BalatroAgentToggle.bat --attempt N` path. Capture/replay failures are
   diagnostic only and cannot suppress or rewrite a settled gameplay action.
+- the first natural supported Buffoon fixture is preserved with decompressed
+  SHA-256 guards for both its unchanged public transition rows and private
+  sidecar. It exposed one concrete canonical-owner mismatch: live temporarily
+  removes every visible Buffoon option from `used_jokers`, then re-admits the
+  unchosen option when the pack closes. `choose_pack_option_exact` now delegates
+  that restoration to the existing generation-pool owner while leaving the
+  acquired Joker suppressed. The unchanged fixture passes both public and
+  private replay.
 
 Green checkpoints:
 
@@ -1258,8 +1275,14 @@ area index, label, center, and live ID, and compares the normal public post-stat
 after canonical `CHOOSE_PACK_OPTION` or `SKIP_PACK` replay. Final admitted pack
 choice/skip consumes no RNG, so no RNG state is captured. GitHub Actions run
 `34378808960`, job `102558247537`, passed with **2507 passed, 1596 deselected**.
-No existing public-only run may be retrofitted into a private fixture; one new
-natural capture is required.
+The first natural capture `balatro-20260909T190805Z-9926231c-attempt-001`
+originally reported `public.after`. The mismatch was solely the missing
+re-admission of unchosen Droll Joker to the observed common generation pool;
+the selected Shoot the Moon correctly remained suppressed after ownership.
+The canonical R3 pack owner was repaired at `6f0a57ce`, the exact two-choice
+regression corrected at `19c3af33`, and GitHub Actions run `34394979554`, job
+`102612318553`, passed with **2510 passed, 1596 deselected**. Buffoon pack parity
+is complete for the required representative R5 gate.
 
 ## Completed priority parity gates
 
@@ -1268,10 +1291,10 @@ natural capture is required.
 - representative supported Voucher redemption.
 - ordinary Small-Blind start and clear/cash-out.
 - supported Small-Blind/Economy-Tag skip flow.
+- representative Buffoon pack choice.
 
 ## Remaining priority parity fixtures
 
-- representative Buffoon pack choice/skip;
 - held Planet use;
 - audited Joker sale;
 - representative Bosses;
@@ -1284,33 +1307,28 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The exact Buffoon capture/replay seam is green. Obtain one genuinely live-only
-fixture without changing production policy:
+Build the held-Planet public evidence/replay seam before requesting any new live
+run:
 
-1. update to `ccb1cc88` or later and launch through the sole canonical attempt
-   interface:
+1. map only successful settled live `USE_CONSUMABLE` actions whose exact visible
+   target resolves to one translated held `PlanetCard` index;
+2. reuse the frozen `EnvAction.from_alias("USE_CONSUMABLE", {"consumable_index":
+   ...})` vocabulary and `PublicStrategicTransitionEvidence`; do not add a
+   Planet-specific action schema;
+3. add an evidence wrapper that calls the canonical
+   `games.balatro.env.consumable_use.use_planet_exact` owner directly;
+4. reject Tarot/Spectral use, targeted-card consumables, missing or ambiguous
+   identity/index, failed results, non-SHOP use, and any transition without exact
+   authoritative usage-history replay state;
+5. add focused deterministic extraction, replay, mismatch, and fail-closed
+   regressions, push them, and use GitHub Actions as the gate;
+6. only after that seam is green, determine the minimum private live checkpoint
+   needed for `consumable_usage_counts` / totals and request a natural held-Planet
+   fixture if Balatro-only authority is still required.
 
-   ```powershell
-   .\BalatroAgentToggle.bat --attempt 5 --buffoon-pack-parity-directory logs\balatro\parity
-   ```
-
-2. allow ordinary production policy to run; do not force a Buffoon purchase,
-   choice, skip, or change D8/D9/D2 valuation to manufacture the fixture;
-3. if an exact final one-pick Buffoon choice or skip naturally falls inside the
-   admitted subset, preserve the public run JSONL and emitted
-   `logs\balatro\parity\<run-id>.buffoon-pack-parity.jsonl` sidecar;
-4. replay the unchanged capture, fix only the first concrete canonical-owner
-   mismatch, otherwise preserve the passing real fixture and move to held
-   Planet use.
-
-The parity directory/file is created only when an exact supported Buffoon
-transition is written. A batch with no admitted transition may finish without a
-sidecar; that is not a recorder defect.
-
-Do not broaden this slice to other booster families, unsupported Buffoon pack
-sizes or multi-pick paths, policy tuning, playing-card shop purchases, Boss skip
-paths, or Boss reroll.
-`BUY_CARD` and `REROLL_BOSS` remain unavailable.
+Do not broaden this slice to shop buy-and-use, Tarot/Spectral mechanics, booster
+Planet choices, policy valuation/tuning, playing-card shop purchases, Boss skip
+paths, or Boss reroll. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
 ## R5 exit criteria
 
