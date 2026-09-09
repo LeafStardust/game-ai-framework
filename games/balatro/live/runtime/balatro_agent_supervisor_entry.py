@@ -5,8 +5,9 @@ import traceback
 from dataclasses import replace
 from time import sleep
 
-from games.balatro.actions import END_ROUND, REFRESH_SHOP
+from games.balatro.actions import END_ROUND, REFRESH_SHOP, SELECT_BLIND
 from games.balatro.build_health_diagnostics import build_health_diagnostics_payload
+from games.balatro.live.blind_start_parity_capture import LiveBlindStartParityRecorder
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
 from games.balatro.live.reroll_parity_capture import LiveRerollParityRecorder
 from games.balatro.live.run_diagnostics import BalatroDiagnosticLogger
@@ -81,6 +82,7 @@ def _diagnostic_runner_factory(
     session_id: str,
     diagnostic_directory: str,
     reroll_parity_directory: str | None = None,
+    blind_start_parity_directory: str | None = None,
     unlock_campaign_config: UnlockCampaignConfig | None = None,
     collection_first: bool = False,
 ):
@@ -94,6 +96,7 @@ def _diagnostic_runner_factory(
     original_decide = runner.decide
     original_execute = runner.execute
     reroll_recorders: dict[str, LiveRerollParityRecorder] = {}
+    blind_start_recorders: dict[str, LiveBlindStartParityRecorder] = {}
 
     def _diagnostic_failure(stage: str, error: BaseException, decision, *, status=None):
         try:
@@ -132,6 +135,9 @@ def _diagnostic_runner_factory(
         parity_recorder = None
         parity_before = None
         parity_status = None
+        blind_start_recorder = None
+        blind_start_before = None
+        blind_start_status = None
         action_name = str(getattr(decision.action, "name", ""))
 
         if reroll_parity_directory and action_name == REFRESH_SHOP:
@@ -160,6 +166,33 @@ def _diagnostic_runner_factory(
                 )
                 parity_recorder = None
                 parity_before = None
+
+        if blind_start_parity_directory and action_name == SELECT_BLIND:
+            try:
+                blind_start_status = control.read_status()
+                run_id = str(blind_start_status.get("run_id", "")).strip()
+                if not run_id:
+                    raise RuntimeError(
+                        "R5 blind-start parity capture requires current supervisor run_id"
+                    )
+                blind_start_recorder = blind_start_recorders.get(run_id)
+                if blind_start_recorder is None:
+                    blind_start_recorder = LiveBlindStartParityRecorder(
+                        run_id,
+                        observer,
+                        directory=blind_start_parity_directory,
+                    )
+                    blind_start_recorders[run_id] = blind_start_recorder
+                blind_start_before = blind_start_recorder.capture_before(decision)
+            except Exception as error:
+                _diagnostic_failure(
+                    "blind_start_parity_capture_before",
+                    error,
+                    decision,
+                    status=blind_start_status,
+                )
+                blind_start_recorder = None
+                blind_start_before = None
 
         try:
             if action_name == END_ROUND:
@@ -207,6 +240,38 @@ def _diagnostic_runner_factory(
                     status=parity_status,
                 )
 
+        if blind_start_recorder is not None and blind_start_before is not None:
+            try:
+                dispatch_result, _ = execution
+                comparison = blind_start_recorder.record_after(
+                    blind_start_before,
+                    decision,
+                    dispatch_result,
+                )
+                if not comparison.matches:
+                    try:
+                        BalatroDiagnosticLogger(
+                            session_id,
+                            directory=diagnostic_directory,
+                        ).record(
+                            "blind_start_parity_mismatch",
+                            status=control.read_status(),
+                            action=action_name,
+                            phase=str(decision.snapshot.phase),
+                            checkpoint_sequence=int(decision.snapshot.sequence),
+                            differences=list(comparison.differences),
+                            parity_path=str(blind_start_recorder.path),
+                        )
+                    except Exception:
+                        pass
+            except Exception as error:
+                _diagnostic_failure(
+                    "blind_start_parity_capture_after",
+                    error,
+                    decision,
+                    status=blind_start_status,
+                )
+
         return execution
 
     runner.decide = decide_with_build_health
@@ -243,6 +308,13 @@ def main() -> int:
             "authority is written here and never to the public run-experience log"
         ),
     )
+    parser.add_argument(
+        "--blind-start-parity-directory",
+        help=(
+            "opt-in private R5 blind-start replay evidence directory; exact RNG "
+            "authority is written here and never to the public run-experience log"
+        ),
+    )
     parser.add_argument("--session-id")
     parser.add_argument("--no-retry-losses", action="store_true")
     parser.add_argument(
@@ -276,6 +348,7 @@ def main() -> int:
             session_id=supervisor.session_id,
             diagnostic_directory=args.diagnostic_directory,
             reroll_parity_directory=args.reroll_parity_directory,
+            blind_start_parity_directory=args.blind_start_parity_directory,
             unlock_campaign_config=unlock_campaign_config,
             collection_first=args.collection_first,
         )
