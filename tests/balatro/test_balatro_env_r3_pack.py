@@ -125,7 +125,7 @@ def test_env_r3_final_buffoon_choice_restores_only_unchosen_joker_to_observed_po
         }
     )
     run = _buffoon_choice_run(selected)
-    run.pack_choices.append(unchosen)
+    run.pack_choices = [selected, unchosen]
     run.public.joker_generation_pool_observed = True
     run.public.joker_generation_pools = {
         "1": [{"rarity": 1, "key": "j_joker", "cost": 2}],
