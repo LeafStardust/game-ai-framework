@@ -3,6 +3,8 @@ from pathlib import Path
 import pytest
 
 from games.balatro.live.runtime import balatro_agent_attempts_toggle as toggle
+from games.balatro.live.runtime import balatro_agent_toggle as base_toggle
+from games.balatro.live.runtime.agent_control import BalatroAgentControl
 
 
 def test_env_r5_attempt_launcher_consumes_canonical_singular_count():
@@ -33,3 +35,40 @@ def test_env_r5_windows_launcher_routes_only_canonical_attempt_selector():
     assert '"--one"' not in launcher
     assert '"--three"' not in launcher
     assert '"--five"' not in launcher
+
+
+def test_env_r5_attempt_launcher_forwards_blind_start_parity_directory(
+    tmp_path, monkeypatch
+):
+    launched = []
+
+    class _Process:
+        pid = 4242
+
+    monkeypatch.setattr(
+        base_toggle.subprocess,
+        "Popen",
+        lambda command, **_kwargs: launched.append(list(command)) or _Process(),
+    )
+    monkeypatch.setattr(base_toggle, "_repo_root", lambda: tmp_path)
+
+    control = BalatroAgentControl(tmp_path / "control")
+    parity_directory = str(tmp_path / "blind-start-parity")
+    pid = base_toggle.start_agent(
+        control,
+        blind_start_parity_directory=parity_directory,
+        launch_live_monitor=False,
+    )
+
+    assert pid == 4242
+    assert launched == [
+        [
+            base_toggle.sys.executable,
+            "-m",
+            base_toggle.SUPERVISOR_MODULE,
+            "--control-dir",
+            str(control.directory),
+            "--blind-start-parity-directory",
+            parity_directory,
+        ]
+    ]
