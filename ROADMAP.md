@@ -287,6 +287,13 @@ c304f8d4b3d82bc53ba5eab545447a7f7bae04f2
 GitHub Actions run 34337142981
 GitHub Actions job 102419085820
 2476 passed, 1595 deselected
+
+R5 exact Economy-Tag blind-skip capture/replay seam:
+3236a67b2dfe2cdd5e32cb7b31d1231b6659b25d
+  feat(balatro): capture exact blind skip parity
+GitHub Actions run 34362156416
+GitHub Actions job 102501607817
+2486 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -297,11 +304,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES AND THE FIRST REAL ORDINARY SMALL-BLIND START/CASH-OUT FIXTURES ARE GREEN; THE NEXT SLICE IS BLIND SKIP/TAG FLOW**.
+- R5 live/simulator parity harness: **IN PROGRESS — THE EXACT ECONOMY-TAG BLIND-SKIP SEAM IS GREEN; ONE NEW LIVE PRIVATE FIXTURE IS NOW REQUIRED**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOT REQUIRED NOW — INSPECT AND COMPLETE THE DETERMINISTIC BLIND SKIP/TAG PARITY SEAM FIRST. REQUEST A LIVE RUN ONLY AFTER THAT SEAM CAN CAPTURE A GENUINELY REQUIRED SUPPORTED TRANSITION.**
+- Live Balatro validation: **REQUIRED NOW — CAPTURE ONE SMALL-BLIND ECONOMY-TAG SKIP WITH THE GREEN OPT-IN PRIVATE RECORDER.**
 
 ## Current strategic action contract
 
@@ -923,6 +930,12 @@ Required before treating the simulator as authoritative training truth.
 - exact ordinary paid `REROLL_SHOP` can be rebuilt from a private checkpoint and replayed through the canonical headless reroll owner; the comparator checks public transition evidence, previous/next reroll cost, and post-action RNG snapshot.
 - `games/balatro/live/reroll_parity_capture.py` persists this private replay authority in an opt-in per-run sidecar. The normal durable run-experience JSONL remains public-only.
 - the production live entry exposes `--reroll-parity-directory`. Capture failures and replay mismatches are diagnostic/observational only: they cannot suppress, rewrite, or falsely relabel a successfully settled production action.
+- parameterless live `SKIP_BLIND` rows now map to the frozen R3 action and the
+  exact Small-Blind/Economy-Tag headless owner. The opt-in private checkpoint
+  retains Small/Big/Boss statuses, `blind_on_deck`, `blind_ante`, both generated
+  Tag identities, active-Tag count, and the run skip counter. It captures no RNG
+  because this admitted transition consumes none. Unsupported Tags, pre-existing
+  active Tags, missing progression facts, and Big-to-Boss skips remain fail-closed.
 
 Green checkpoints:
 
@@ -1139,6 +1152,16 @@ private capture was required. Its decompressed public-boundary SHA-256 is
 `f77b50b0152d4f9a3a6fbb0969e3cf4e4e8d199c90ff1a260f1bf1e0cd7095e8`.
 CI is green at `c304f8d4` with 2476 selected tests passing.
 
+The blind-skip seam is green at `3236a67b`. Its first deterministic replay
+exposed a canonical mechanics defect: `skip_blind_exact` advanced the public
+`Blind` object to Big but retained the skipped Small Blind's `blind_score`.
+The canonical owner now advances both representations to the exact Big target.
+GitHub Actions run `34362156416`, job `102501607817`, passed with **2486 passed,
+1595 deselected**. The already-recorded public Economy-Tag skip in
+`balatro-20260909T030757Z-a8d1a02d-attempt-001` predates this private recorder;
+it cannot supply retained progression or skip-count authority and must not be
+upgraded into a fixture by inference.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1162,24 +1185,31 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-Ordinary blind start and clear/cash-out are green. Continue R5 with **blind
-skip/Tag flow**:
+The exact Economy-Tag blind-skip seam is green. The next task is one genuinely
+live-only fixture capture:
 
-1. read the canonical `skip_blind_exact` owner, retained blind progression/Tag
-   authority, current live dispatcher, and existing strategic parity adapters;
-2. keep the current supported surface narrow: Small Blind plus immediately
-   resolved Economy Tag only; every other Tag and Big-to-Boss skip remains
-   fail-closed;
-3. add one canonical public evidence/capture/replay seam for the parameterless
-   production `SKIP_BLIND` action without creating a second action schema;
-4. add focused deterministic regressions for exact money, skip count, retained
-   progression, next Big-Blind identity/requirement/reward/Tag, and rejection of
-   unsupported or missing private authority;
-5. use CI as the gate, then request one live `--attempt N` fixture only if the
-   exact supported Economy-Tag opportunity must be captured in Balatro.
+1. on a checkout containing `3236a67b` or later, launch through the sole
+   canonical attempt interface:
 
-Do not broaden this slice to blind skip/Tag flow, pack parity, unsupported Boss
-paths, policy tuning, playing-card shop purchases, or Boss reroll.
+   ```powershell
+   .\BalatroAgentToggle.bat --attempt 5 --blind-skip-parity-directory logs\balatro\parity
+   ```
+
+2. allow ordinary production policy to run; do not force a skip or change Tag
+   valuation to manufacture the fixture;
+3. if a Small Blind carrying `tag_economy` is naturally skipped, preserve both
+   the public run JSONL and the emitted
+   `logs\balatro\parity\<run-id>.blind-skip-parity.jsonl` sidecar;
+4. replay the unchanged rows/checkpoints through the canonical comparator;
+5. fix only a concrete first-owner mismatch, otherwise preserve the passing
+   fixture and move to representative Buffoon pack choice/skip.
+
+The parity directory/file is created only when an exact supported `SKIP_BLIND`
+capture is written. A batch with no natural Small/Economy skip may therefore
+finish without a sidecar; that is not a recorder defect.
+
+Do not broaden this slice to pack parity, unsupported Tags or Boss skip paths,
+policy tuning, playing-card shop purchases, or Boss reroll.
 `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
 ## R5 exit criteria
