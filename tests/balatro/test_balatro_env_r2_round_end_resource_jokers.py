@@ -21,6 +21,10 @@ def _cleared_run() -> HeadlessRunState:
     state.vouchers_observed = True
     state.shop_discount_percent_observed = True
     state.shop_discount_percent = 0
+    state.round_reset_hands_observed = True
+    state.round_reset_hands = 4
+    state.round_reset_discards_observed = True
+    state.round_reset_discards = 4
 
     run = deal_pristine_round_start(HeadlessRunState(public=state, seed="RESOURCE-CASHOUT"))
     run.public.phase = "ROUND_EVAL"

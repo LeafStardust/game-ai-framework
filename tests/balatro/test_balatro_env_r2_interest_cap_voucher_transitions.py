@@ -29,6 +29,10 @@ def _shop_run(*, money=30, vouchers=(), cap=25, cap_observed=False) -> HeadlessR
     state.interest_cap_observed = cap_observed
     state.shop_discount_percent_observed = True
     state.shop_discount_percent = 0
+    state.round_reset_hands_observed = True
+    state.round_reset_hands = 4
+    state.round_reset_discards_observed = True
+    state.round_reset_discards = 4
     return HeadlessRunState(public=state, seed="INTEREST-TRANSITION")
 
 

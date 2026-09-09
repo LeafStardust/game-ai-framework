@@ -136,7 +136,7 @@ def test_env_r2_cashout_pays_exact_golden_cloud9_and_delayed_gratification_rows(
     run.public.jokers.extend([GoldenJoker(), Cloud9Joker(), DelayedGratificationJoker()])
     result = cash_out_baseline_ordinary_blind(run)
     assert result.public.money == 43
-    assert result.public.discards_remaining == 2
+    assert result.public.discards_remaining == 4
 
 
 def test_env_r2_cashout_delayed_gratification_does_not_pay_after_any_discard_used():
