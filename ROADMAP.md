@@ -331,6 +331,13 @@ R5 first real Buffoon choice fixture and used-Joker pool repair:
 GitHub Actions run 34394979554
 GitHub Actions job 102612318553
 2510 passed, 1596 deselected
+
+R5 canonical held-Planet public evidence seam:
+17be3ae6517b65054c81d7094e36f54673beccf2
+  feat(balatro): add held Planet parity evidence
+GitHub Actions run 34396027499
+GitHub Actions job 102615838664
+2520 passed, 1596 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -341,11 +348,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — THE BUFFOON FIXTURE GATE IS COMPLETE; HELD-PLANET USE IS NEXT**.
+- R5 live/simulator parity harness: **IN PROGRESS — HELD-PLANET PUBLIC EVIDENCE IS GREEN; PRIVATE USAGE-HISTORY CAPTURE IS NEXT**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOT REQUIRED NOW — BUILD THE HELD-PLANET PUBLIC EVIDENCE/REPLAY SEAM FIRST**.
+- Live Balatro validation: **NOT REQUIRED NOW — BUILD THE HELD-PLANET PRIVATE CAPTURE/REPLAY SEAM FIRST**.
 
 ## Current strategic action contract
 
@@ -997,6 +1004,12 @@ Required before treating the simulator as authoritative training truth.
   that restoration to the existing generation-pool owner while leaving the
   acquired Joker suppressed. The unchanged fixture passes both public and
   private replay.
+- settled held-Planet `USE_CONSUMABLE` rows now map an exact visible area index
+  and name to one translated `PlanetCard`, reuse the frozen R3 action vocabulary,
+  and compare through shared public strategic evidence. Replay delegates to
+  `use_planet_exact`; targeted-card consumables, Tarot/Spectral use, non-SHOP
+  transitions, ambiguous identity, failed results, and missing private usage
+  history remain fail-closed.
 
 Green checkpoints:
 
@@ -1284,6 +1297,16 @@ regression corrected at `19c3af33`, and GitHub Actions run `34394979554`, job
 `102612318553`, passed with **2510 passed, 1596 deselected**. Buffoon pack parity
 is complete for the required representative R5 gate.
 
+The held-Planet public evidence seam is green at `17be3ae6`. It adds no new
+mechanics or action authority: durable live rows map to the existing
+`USE_CONSUMABLE` contract, and the simulator wrapper calls `use_planet_exact`
+directly. GitHub Actions run `34396027499`, job `102615838664`, passed with
+**2520 passed, 1596 deselected**. The public snapshot already carries the held
+Planet, hand levels, `last_tarot_planet`, and Constellation state. The remaining
+private replay authority is exactly Balatro's per-center
+`G.GAME.consumeable_usage` counts plus `G.GAME.consumeable_usage_total`; these
+are not policy observations and must stay in the opt-in sidecar.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1307,24 +1330,26 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-Build the held-Planet public evidence/replay seam before requesting any new live
-run:
+Build the opt-in held-Planet private capture/replay seam before requesting any
+new live run:
 
-1. map only successful settled live `USE_CONSUMABLE` actions whose exact visible
-   target resolves to one translated held `PlanetCard` index;
-2. reuse the frozen `EnvAction.from_alias("USE_CONSUMABLE", {"consumable_index":
-   ...})` vocabulary and `PublicStrategicTransitionEvidence`; do not add a
-   Planet-specific action schema;
-3. add an evidence wrapper that calls the canonical
-   `games.balatro.env.consumable_use.use_planet_exact` owner directly;
-4. reject Tarot/Spectral use, targeted-card consumables, missing or ambiguous
-   identity/index, failed results, non-SHOP use, and any transition without exact
-   authoritative usage-history replay state;
-5. add focused deterministic extraction, replay, mismatch, and fail-closed
-   regressions, push them, and use GitHub Actions as the gate;
-6. only after that seam is green, determine the minimum private live checkpoint
-   needed for `consumable_usage_counts` / totals and request a natural held-Planet
-   fixture if Balatro-only authority is still required.
+1. capture one stable complete active-SHOP public snapshot plus exact private
+   `G.GAME.consumeable_usage` per-center counts and the complete
+   `G.GAME.consumeable_usage_total` table; read twice and reject drift;
+2. admit only an untargeted held `PlanetCard` action already accepted by the
+   green public mapper, and reconstruct `HeadlessRunState` with
+   `consumable_usage_observed=True` from the private checkpoint;
+3. replay through `use_planet_with_public_evidence` / `use_planet_exact`, compare
+   the settled public transition, and separately prove that only the chosen
+   center count plus `planet`, `tarot_planet`, and `all` totals increment once;
+4. fail closed on malformed/missing counts, unknown usage keys or sets,
+   incomplete totals, state drift, non-SHOP timing, Constellation/public mismatch,
+   or any Tarot/Spectral/targeted-card action;
+5. wire an opt-in diagnostic recorder and one canonical `--attempt N` launcher
+   option without changing normal production decisions; add focused capture,
+   serialization, replay, supervisor-observational, and launcher regressions;
+6. push and use GitHub Actions as the gate. Only after green may a natural live
+   held-Planet fixture be requested.
 
 Do not broaden this slice to shop buy-and-use, Tarot/Spectral mechanics, booster
 Planet choices, policy valuation/tuning, playing-card shop purchases, Boss skip
