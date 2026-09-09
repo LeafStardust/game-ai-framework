@@ -125,16 +125,32 @@ def test_env_r2_pristine_round_start_rejects_wrong_phase_and_nonempty_zones():
         deal_pristine_round_start(run)
 
 
-def test_env_r2_pristine_round_start_fails_closed_on_modified_or_live_decks():
+def test_env_r2_pristine_round_start_fails_closed_on_modified_decks():
     run = _run()
     run.public.deck[0].enhancement = "Bonus"
     with pytest.raises(HeadlessTransitionError, match="hand sort is unavailable"):
         deal_pristine_round_start(run)
 
+
+
+def test_env_r2_pristine_round_start_accepts_exact_unique_live_creation_ids():
     run = _run()
     for index, card in enumerate(run.public.deck, start=1):
         card.live_id = index
-    # Reconstruct the state so its retained creation order reflects those ids.
     live_run = HeadlessRunState(public=run.public, seed="TESTSEED")
-    with pytest.raises(HeadlessTransitionError, match="hand sort is unavailable"):
+
+    result = deal_pristine_round_start(live_run)
+
+    assert result.public.phase == "SELECTING_HAND"
+    assert len(result.public.hand) == 8
+
+
+def test_env_r2_pristine_round_start_rejects_duplicate_live_creation_ids():
+    run = _run()
+    for index, card in enumerate(run.public.deck, start=1):
+        card.live_id = index
+    run.public.deck[-1].live_id = 1
+    live_run = HeadlessRunState(public=run.public, seed="TESTSEED")
+
+    with pytest.raises(HeadlessTransitionError, match="creation order is unavailable"):
         deal_pristine_round_start(live_run)
