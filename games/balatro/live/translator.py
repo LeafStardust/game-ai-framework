@@ -241,14 +241,13 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             value = card.get("value") or card
             rank, suit = value.get("rank"), value.get("suit")
             if rank is None or suit is None: continue
-            if "live_id" in card or "id" in card:
-                live_id = self._exact_playing_card_live_id(
-                    card.get("live_id", card.get("id"))
-                )
+            if "live_id" in card:
+                live_id = self._exact_playing_card_live_id(card.get("live_id"))
             else:
-                # Retain the legacy local index only when no live identity was
-                # published at all. An observed identity is exact or rejected.
-                live_id = index
+                # ``id`` predates process-memory playing-card identity and may
+                # be an opaque fixture identifier. Only authoritative
+                # ``live_id`` uses the exact Lua-numeric contract.
+                live_id = card.get("id", index)
             result.append(self._card(card, live_id))
         return result
 
