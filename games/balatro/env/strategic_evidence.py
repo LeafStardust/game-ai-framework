@@ -11,6 +11,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.pack import choose_pack_option_exact, skip_pack_exact
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.select_blind import select_blind_exact
 from games.balatro.env.skip_blind import skip_blind_exact
@@ -141,6 +142,47 @@ def skip_blind_with_public_evidence(
     action = EnvAction.from_alias("SKIP_BLIND")
     before = run.public
     result = skip_blind_exact(run)
+    evidence = build_public_strategic_transition_evidence(
+        before,
+        action,
+        result.public,
+    )
+    return result, evidence
+
+
+def choose_pack_option_with_public_evidence(
+    run: HeadlessRunState,
+    *,
+    option_index: int,
+) -> tuple[HeadlessRunState, PublicStrategicTransitionEvidence]:
+    """Execute the canonical final Buffoon choice and capture public R5 evidence."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    if isinstance(option_index, bool) or not isinstance(option_index, int):
+        raise TypeError("option_index must be an integer")
+    action = EnvAction.from_alias(
+        "CHOOSE_PACK_OPTION",
+        {"option_index": option_index},
+    )
+    before = run.public
+    result = choose_pack_option_exact(run, option_index)
+    evidence = build_public_strategic_transition_evidence(
+        before,
+        action,
+        result.public,
+    )
+    return result, evidence
+
+
+def skip_pack_with_public_evidence(
+    run: HeadlessRunState,
+) -> tuple[HeadlessRunState, PublicStrategicTransitionEvidence]:
+    """Execute the canonical exact pack skip and capture public R5 evidence."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    action = EnvAction.from_alias("SKIP_PACK")
+    before = run.public
+    result = skip_pack_exact(run)
     evidence = build_public_strategic_transition_evidence(
         before,
         action,

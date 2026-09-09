@@ -10,7 +10,9 @@ from games.balatro.actions import (
     DISCARD_CARDS,
     PLAY_CARDS,
     REFRESH_SHOP,
+    SELECT_PACK_CARD,
     SELECT_BLIND,
+    SKIP_BOOSTER,
     SKIP_BLIND,
     BalatroAction,
 )
@@ -44,6 +46,7 @@ _TACTICAL_ACTIONS = frozenset({PLAY_CARDS, DISCARD_CARDS})
 _REROLL_SHOP_LOG_ACTION = {"name": REFRESH_SHOP}
 _SELECT_BLIND_LOG_ACTION = {"name": SELECT_BLIND}
 _SKIP_BLIND_LOG_ACTION = {"name": SKIP_BLIND}
+_SKIP_PACK_LOG_ACTION = {"name": SKIP_BOOSTER}
 _EXACT_REDEEMABLE_VOUCHER_KEYS = (
     EXACT_RESOURCE_VOUCHER_KEYS
     | EXACT_EDITION_RATE_VOUCHER_KEYS
@@ -637,6 +640,116 @@ def compare_run_rows_to_simulator_skip_blind_evidence(
     translator: DefaultBalatroStateTranslator | None = None,
 ) -> PublicStrategicTrajectoryParityComparison:
     live_evidence = successful_skip_blind_evidence_from_run_rows(
+        rows,
+        translator=translator,
+    )
+    return compare_public_strategic_trajectory(live_evidence, simulator_evidence)
+
+
+def _canonical_buffoon_pack_action(value: Any) -> EnvAction | None:
+    if not isinstance(value, dict):
+        raise ValueError("run-log action must be an object")
+    name = str(value.get("name") or "")
+    if name == SKIP_BOOSTER:
+        if value != _SKIP_PACK_LOG_ACTION:
+            raise ValueError("SKIP_BOOSTER run-log action must not contain parameters")
+        return EnvAction.from_alias("SKIP_PACK")
+    if name != SELECT_PACK_CARD:
+        return None
+    if "indices" in value:
+        raise ValueError("Buffoon SELECT_PACK_CARD must not select hand cards")
+    target = value.get("target")
+    if not isinstance(target, dict):
+        raise ValueError("Buffoon SELECT_PACK_CARD requires a target object")
+    option_index = target.get("area_index")
+    if (
+        isinstance(option_index, bool)
+        or not isinstance(option_index, int)
+        or option_index < 0
+    ):
+        raise ValueError(
+            "Buffoon SELECT_PACK_CARD target requires a nonnegative integer area_index"
+        )
+    label = target.get("label")
+    if not isinstance(label, str) or not label.strip():
+        raise ValueError("Buffoon SELECT_PACK_CARD target requires exact visible identity")
+    return EnvAction.from_alias(
+        "CHOOSE_PACK_OPTION",
+        {"option_index": option_index},
+    )
+
+
+def successful_buffoon_pack_evidence_from_run_rows(
+    rows: Iterable[dict[str, Any]],
+    *,
+    translator: DefaultBalatroStateTranslator | None = None,
+) -> tuple[PublicStrategicTransitionEvidence, ...]:
+    """Extract settled final Buffoon choice/skip transitions from durable rows."""
+    translator = translator or DefaultBalatroStateTranslator()
+    last_observation: dict[str, Any] | None = None
+    pending_action: dict[str, Any] | None = None
+    evidence: list[PublicStrategicTransitionEvidence] = []
+
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("run-log row must be an object")
+        event = str(row.get("event") or "")
+        data = row.get("data")
+        if not isinstance(data, dict):
+            continue
+        if event == "observation":
+            state = data.get("state")
+            if not isinstance(state, dict):
+                raise ValueError("observation row requires state")
+            last_observation = state
+            pending_action = None
+            continue
+        if event == "decision":
+            action = data.get("action")
+            canonical = _canonical_buffoon_pack_action(action)
+            if canonical is not None:
+                if last_observation is None:
+                    raise ValueError("pack decision has no preceding observation")
+                pending_action = action
+            else:
+                pending_action = None
+            continue
+        if event != "action_result":
+            continue
+        action = data.get("action")
+        canonical = _canonical_buffoon_pack_action(action)
+        if canonical is None:
+            continue
+        if last_observation is None or pending_action is None:
+            raise ValueError("pack action_result has no captured decision boundary")
+        if action != pending_action:
+            raise ValueError("pack action_result does not match captured decision")
+        if data.get("success") is not True:
+            raise ValueError("Buffoon pack parity requires a successful action_result")
+
+        before = translator.translate(_snapshot_from_log_state(last_observation))
+        after = translator.translate(_snapshot_from_log_state(data.get("state")))
+        if before.phase != "BUFFOON_PACK":
+            raise ValueError("Buffoon pack parity requires BUFFOON_PACK before")
+        if after.phase not in {"SHOP", "BLIND_SELECT"}:
+            raise ValueError(
+                "final Buffoon pack parity requires SHOP or BLIND_SELECT after"
+            )
+        evidence.append(
+            build_public_strategic_transition_evidence(before, canonical, after)
+        )
+        pending_action = None
+
+    return tuple(evidence)
+
+
+def compare_run_rows_to_simulator_buffoon_pack_evidence(
+    rows: Iterable[dict[str, Any]],
+    simulator_evidence: Iterable[PublicStrategicTransitionEvidence],
+    *,
+    translator: DefaultBalatroStateTranslator | None = None,
+) -> PublicStrategicTrajectoryParityComparison:
+    live_evidence = successful_buffoon_pack_evidence_from_run_rows(
         rows,
         translator=translator,
     )
