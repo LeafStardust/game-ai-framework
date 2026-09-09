@@ -222,6 +222,7 @@ def test_translator_preserves_public_blind_skip_tag_identity_and_copy():
 
     assert state.blind is not None
     assert state.blind.tag_key == "tag_standard"
+    assert state.blind_score == 300
     copied = state.copy()
     assert copied.blind is not state.blind
     assert copied.blind.tag_key == "tag_standard"

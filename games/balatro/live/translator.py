@@ -462,6 +462,12 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             reward,
             tag_key=tag_key,
         )
+        if state.phase == "BLIND_SELECT":
+            # The inactive live Blind shell keeps ``round.chips`` at zero while
+            # the public selection UI exposes the pending target on the blind
+            # record itself. Canonical public state must retain that visible
+            # requirement for skip/select parity and policy observation.
+            state.blind_score = requirement
         if blind_type == BlindType.BOSS:
             state.boss_name = blind.get("name")
             boss_name = str(state.boss_name or "")
