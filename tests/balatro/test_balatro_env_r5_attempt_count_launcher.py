@@ -126,3 +126,30 @@ def test_env_r5_attempt_launcher_forwards_buffoon_pack_parity_directory(
 
     assert pid == 4242
     assert launched[0][-2:] == ["--buffoon-pack-parity-directory", parity_directory]
+
+
+def test_env_r5_attempt_launcher_forwards_held_planet_parity_directory(
+    tmp_path, monkeypatch
+):
+    launched = []
+
+    class _Process:
+        pid = 4242
+
+    monkeypatch.setattr(
+        base_toggle.subprocess,
+        "Popen",
+        lambda command, **_kwargs: launched.append(list(command)) or _Process(),
+    )
+    monkeypatch.setattr(base_toggle, "_repo_root", lambda: tmp_path)
+
+    control = BalatroAgentControl(tmp_path / "control")
+    parity_directory = str(tmp_path / "held-planet-parity")
+    pid = base_toggle.start_agent(
+        control,
+        held_planet_parity_directory=parity_directory,
+        launch_live_monitor=False,
+    )
+
+    assert pid == 4242
+    assert launched[0][-2:] == ["--held-planet-parity-directory", parity_directory]

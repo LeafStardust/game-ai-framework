@@ -12,11 +12,13 @@ from games.balatro.actions import (
     SELECT_PACK_CARD,
     SKIP_BLIND,
     SKIP_BOOSTER,
+    USE_CONSUMABLE,
 )
 from games.balatro.build_health_diagnostics import build_health_diagnostics_payload
 from games.balatro.live.blind_skip_parity_capture import LiveBlindSkipParityRecorder
 from games.balatro.live.blind_start_parity_capture import LiveBlindStartParityRecorder
 from games.balatro.live.buffoon_pack_parity_capture import LiveBuffoonPackParityRecorder
+from games.balatro.live.held_planet_parity_capture import LiveHeldPlanetParityRecorder
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
 from games.balatro.live.reroll_parity_capture import LiveRerollParityRecorder
 from games.balatro.live.run_diagnostics import BalatroDiagnosticLogger
@@ -94,6 +96,7 @@ def _diagnostic_runner_factory(
     blind_start_parity_directory: str | None = None,
     blind_skip_parity_directory: str | None = None,
     buffoon_pack_parity_directory: str | None = None,
+    held_planet_parity_directory: str | None = None,
     unlock_campaign_config: UnlockCampaignConfig | None = None,
     collection_first: bool = False,
 ):
@@ -110,6 +113,7 @@ def _diagnostic_runner_factory(
     blind_start_recorders: dict[str, LiveBlindStartParityRecorder] = {}
     blind_skip_recorders: dict[str, LiveBlindSkipParityRecorder] = {}
     buffoon_pack_recorders: dict[str, LiveBuffoonPackParityRecorder] = {}
+    held_planet_recorders: dict[str, LiveHeldPlanetParityRecorder] = {}
 
     def _diagnostic_failure(stage: str, error: BaseException, decision, *, status=None):
         try:
@@ -157,6 +161,9 @@ def _diagnostic_runner_factory(
         buffoon_pack_recorder = None
         buffoon_pack_before = None
         buffoon_pack_status = None
+        held_planet_recorder = None
+        held_planet_before = None
+        held_planet_status = None
         action_name = str(getattr(decision.action, "name", ""))
 
         if reroll_parity_directory and action_name == REFRESH_SHOP:
@@ -270,6 +277,33 @@ def _diagnostic_runner_factory(
                 )
                 buffoon_pack_recorder = None
                 buffoon_pack_before = None
+
+        if held_planet_parity_directory and action_name == USE_CONSUMABLE:
+            try:
+                held_planet_status = control.read_status()
+                run_id = str(held_planet_status.get("run_id", "")).strip()
+                if not run_id:
+                    raise RuntimeError(
+                        "R5 held-Planet parity capture requires current supervisor run_id"
+                    )
+                held_planet_recorder = held_planet_recorders.get(run_id)
+                if held_planet_recorder is None:
+                    held_planet_recorder = LiveHeldPlanetParityRecorder(
+                        run_id,
+                        observer,
+                        directory=held_planet_parity_directory,
+                    )
+                    held_planet_recorders[run_id] = held_planet_recorder
+                held_planet_before = held_planet_recorder.capture_before(decision)
+            except Exception as error:
+                _diagnostic_failure(
+                    "held_planet_parity_capture_before",
+                    error,
+                    decision,
+                    status=held_planet_status,
+                )
+                held_planet_recorder = None
+                held_planet_before = None
 
         try:
             if action_name == END_ROUND:
@@ -413,6 +447,38 @@ def _diagnostic_runner_factory(
                     status=buffoon_pack_status,
                 )
 
+        if held_planet_recorder is not None and held_planet_before is not None:
+            try:
+                dispatch_result, _ = execution
+                comparison = held_planet_recorder.record_after(
+                    held_planet_before,
+                    decision,
+                    dispatch_result,
+                )
+                if not comparison.matches:
+                    try:
+                        BalatroDiagnosticLogger(
+                            session_id,
+                            directory=diagnostic_directory,
+                        ).record(
+                            "held_planet_parity_mismatch",
+                            status=control.read_status(),
+                            action=action_name,
+                            phase=str(decision.snapshot.phase),
+                            checkpoint_sequence=int(decision.snapshot.sequence),
+                            differences=list(comparison.differences),
+                            parity_path=str(held_planet_recorder.path),
+                        )
+                    except Exception:
+                        pass
+            except Exception as error:
+                _diagnostic_failure(
+                    "held_planet_parity_capture_after",
+                    error,
+                    decision,
+                    status=held_planet_status,
+                )
+
         return execution
 
     runner.decide = decide_with_build_health
@@ -470,6 +536,13 @@ def main() -> int:
             "visible pack authority is never written to the public run log"
         ),
     )
+    parser.add_argument(
+        "--held-planet-parity-directory",
+        help=(
+            "opt-in private R5 held-Planet replay evidence directory; exact "
+            "consumable usage history is never written to the public run log"
+        ),
+    )
     parser.add_argument("--session-id")
     parser.add_argument("--no-retry-losses", action="store_true")
     parser.add_argument(
@@ -506,6 +579,7 @@ def main() -> int:
             blind_start_parity_directory=args.blind_start_parity_directory,
             blind_skip_parity_directory=args.blind_skip_parity_directory,
             buffoon_pack_parity_directory=args.buffoon_pack_parity_directory,
+            held_planet_parity_directory=args.held_planet_parity_directory,
             unlock_campaign_config=unlock_campaign_config,
             collection_first=args.collection_first,
         )
