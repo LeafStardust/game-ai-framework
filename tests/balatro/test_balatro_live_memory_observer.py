@@ -1,4 +1,5 @@
 from games.balatro.live.external.live_memory_observer import (
+    _install_pending_red_white_nonboss_requirement,
     _normalize_joker_unlocks,
     _normalize_hand_levels,
     _normalize_round_joker_public_state,
@@ -62,6 +63,34 @@ def test_live_memory_exposes_only_supported_joker_unlock_bits():
         "j_hit_the_road": {"unlocked": False},
         "j_stuntman": {"unlocked": True},
     }
+
+
+def test_live_memory_installs_exact_pending_red_white_nonboss_requirement():
+    resets = {"blind_ante": _number(1)}
+    small = {"type": "SMALL", "score": 0}
+    big = {"type": "BIG", "score": 0}
+
+    for blind in (small, big):
+        _install_pending_red_white_nonboss_requirement(
+            blind,
+            phase="BLIND_SELECT",
+            deck_name="RED",
+            stake_name="WHITE",
+            round_resets=resets,
+        )
+
+    assert small["score"] == 300
+    assert big["score"] == 450
+
+    unsupported = {"type": "BOSS", "score": 0}
+    _install_pending_red_white_nonboss_requirement(
+        unsupported,
+        phase="BLIND_SELECT",
+        deck_name="RED",
+        stake_name="WHITE",
+        round_resets=resets,
+    )
+    assert unsupported["score"] == 0
 
 
 def _card_tables(base_address, *, rank, suit, live_id):

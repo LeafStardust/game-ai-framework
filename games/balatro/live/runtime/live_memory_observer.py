@@ -4,6 +4,10 @@ import hashlib
 import json
 from typing import Any
 
+from games.balatro.env.blind_requirement import (
+    BlindRequirementError,
+    red_white_base_blind_amount,
+)
 from games.balatro.live.joker_state_reader import declared_joker_state_specs
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
@@ -146,6 +150,8 @@ def snapshot_payload_from_live_memory(
     phase = _phase_name(decoder, root)
     state_complete = _boolean(root.get("STATE_COMPLETE"), False)
     stake_id = _integer(game.get("stake"), 1)
+    deck_name = _deck_name(decoder, game)
+    stake_name = STAKE_NAMES.get(stake_id, str(stake_id))
     round_joker_state = _normalize_round_joker_public_state(decoder, current_round)
     blind_tags = _normalize_blind_tags(decoder, round_resets.get("blind_tags"))
     normalized_blind = _normalize_blind(decoder, blind, game)
@@ -170,6 +176,13 @@ def snapshot_payload_from_live_memory(
     current_tag = blind_tags.get(str(normalized_blind.get("type") or "").lower())
     if current_tag:
         normalized_blind["tag"] = current_tag
+    _install_pending_red_white_nonboss_requirement(
+        normalized_blind,
+        phase=phase,
+        deck_name=deck_name,
+        stake_name=stake_name,
+        round_resets=round_resets,
+    )
 
     hand = _normalize_area(decoder, root.get("hand"), preserve_order=True)
     jokers = _normalize_item_area(
@@ -221,8 +234,8 @@ def snapshot_payload_from_live_memory(
         "money": _integer(game.get("dollars"), 0),
         "ante_num": _integer(round_resets.get("ante"), 1),
         "round_num": _integer(game.get("round"), 1),
-        "deck": _deck_name(decoder, game),
-        "stake": STAKE_NAMES.get(stake_id, str(stake_id)),
+        "deck": deck_name,
+        "stake": stake_name,
         "last_tarot_planet": _string(game.get("last_tarot_planet")),
         "joker_unlocks": joker_unlocks,
         "vouchers_observed": vouchers_observed,
@@ -772,6 +785,37 @@ def _normalize_blind(
         result["only_hand"] = _string(only_hand_value)
 
     return result
+
+
+def _install_pending_red_white_nonboss_requirement(
+    blind: dict[str, Any],
+    *,
+    phase: str,
+    deck_name: str,
+    stake_name: str,
+    round_resets: dict[str, LuaValue],
+) -> None:
+    """Install the exact public pending Small/Big requirement at BLIND_SELECT.
+
+    Before selection, ``G.GAME.blind.chips`` still describes the inactive Blind
+    object and is zero. Vanilla's public blind-select UI instead computes the
+    displayed amount from ``round_resets.blind_ante``, the center multiplier,
+    and the deck/stake ante scaling. Only the currently owned Red/White domain is
+    admitted here; every other surface retains the raw observation.
+    """
+    if phase != "BLIND_SELECT" or deck_name != "RED" or stake_name != "WHITE":
+        return
+    blind_type = str(blind.get("type") or "").upper()
+    if blind_type not in {"SMALL", "BIG"}:
+        return
+    blind_ante = _exact_integral_number(round_resets.get("blind_ante"))
+    if blind_ante is None:
+        return
+    try:
+        base = red_white_base_blind_amount(blind_ante)
+    except BlindRequirementError:
+        return
+    blind["score"] = base if blind_type == "SMALL" else base * 3 // 2
 
 
 def _deck_name(
