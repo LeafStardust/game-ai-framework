@@ -106,6 +106,27 @@ def test_env_r4_ordinary_play_clear_stops_at_pre_cashout_round_eval_without_redr
     assert result.rng_snapshot() == rng_before
 
 
+def test_env_r4_selecting_blind_does_not_activate_its_skip_tag():
+    state = BalatroState()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
+    state.phase = "BLIND_SELECT"
+    state.round = 0
+    state.blind = Blind(BlindType.SMALL, 300, reward=3, tag_key="tag_double")
+    state.round_reset_hands_observed = True
+    state.round_reset_hands = 4
+    state.round_reset_discards_observed = True
+    state.round_reset_discards = 4
+    run = HeadlessRunState(public=state, seed="R4-SKIP-TAG")
+
+    from games.balatro.env.select_blind import select_blind_exact
+
+    selected = select_blind_exact(run)
+
+    assert selected.public.blind.tag_key is None
+    assert run.public.blind.tag_key == "tag_double"
+
+
 def test_env_r4_ordinary_play_final_hand_failure_enters_game_over_without_redraw():
     run = _play_run(requirement=9999, hands_remaining=1)
     selected_signature = _card_signature(run.public.hand[0])

@@ -226,3 +226,54 @@ def test_translator_preserves_public_blind_skip_tag_identity_and_copy():
     assert copied.blind is not state.blind
     assert copied.blind.tag_key == "tag_standard"
 
+
+def test_translator_drops_skip_tag_after_selection_and_recovers_red_white_cashout_facts():
+    active = LiveBalatroSnapshot(
+        sequence=2,
+        phase="SELECTING_HAND",
+        state_complete=True,
+        payload={
+            "deck": "RED",
+            "stake": "WHITE",
+            "ante_num": 1,
+            "blind": {"type": "SMALL", "score": 300, "tag": "tag_double"},
+        },
+    )
+    cleared = LiveBalatroSnapshot(
+        sequence=3,
+        phase="ROUND_EVAL",
+        state_complete=True,
+        payload={
+            "deck": "RED",
+            "stake": "WHITE",
+            "ante_num": 1,
+            "score": 316,
+            "blind": {"type": "SMALL", "score": 0, "tag": "tag_double"},
+        },
+    )
+    shop = LiveBalatroSnapshot(
+        sequence=4,
+        phase="SHOP",
+        state_complete=True,
+        payload={
+            "deck": "RED",
+            "stake": "WHITE",
+            "ante_num": 1,
+            "score": 110,
+            "blind": {"type": "SMALL", "score": 0, "tag": "tag_double"},
+        },
+    )
+
+    active_state = DefaultBalatroStateTranslator().translate(active)
+    cleared_state = DefaultBalatroStateTranslator().translate(cleared)
+    shop_state = DefaultBalatroStateTranslator().translate(shop)
+
+    assert active_state.blind.tag_key is None
+    assert active_state.blind.reward == 3
+    assert cleared_state.blind.requirement == 300
+    assert cleared_state.blind.reward == 3
+    assert cleared_state.blind.tag_key is None
+    assert shop_state.score == 0
+    assert shop_state.blind.requirement == 0
+    assert shop_state.blind.reward == 0
+    assert shop_state.blind.tag_key is None

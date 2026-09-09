@@ -28,6 +28,10 @@ def _cleared_run(
     state.vouchers_observed = True
     state.shop_discount_percent_observed = True
     state.shop_discount_percent = 0
+    state.round_reset_hands_observed = True
+    state.round_reset_hands = 4
+    state.round_reset_discards_observed = True
+    state.round_reset_discards = 4
 
     run = deal_pristine_round_start(HeadlessRunState(public=state, seed="CASHOUT"))
     run.public.phase = "ROUND_EVAL"
@@ -81,7 +85,7 @@ def test_env_r2_cashout_stops_before_shop_inventory_rng():
     assert result.public.shop_vouchers == []
 
 
-def test_env_r2_cashout_isolates_input_state_and_rng():
+def test_env_r2_cashout_isolates_input_and_consumes_exact_cashout_shuffle_rng():
     run = _cleared_run()
     before_money = run.public.money
     before_hand = list(run.public.hand)
@@ -95,7 +99,14 @@ def test_env_r2_cashout_isolates_input_state_and_rng():
     assert run.public.hand == before_hand
     assert run.draw_pile == before_draw
     assert run.rng_snapshot() == before_rng
-    assert result.rng_snapshot() == before_rng
+    assert result.rng_snapshot() != before_rng
+    assert "cashout1" in result.rng_snapshot()["nodes"]
+    assert result.public.score == 0
+    assert result.public.blind_score == 0
+    assert result.public.hands_remaining == 4
+    assert result.public.discards_remaining == 4
+    assert result.public.blind.requirement == 0
+    assert result.public.blind.reward == 0
 
 
 def test_env_r2_cashout_supports_big_blind_baseline_too():

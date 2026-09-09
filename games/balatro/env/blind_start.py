@@ -92,6 +92,9 @@ def _begin_predeal_lifecycle(run: HeadlessRunState) -> HeadlessRunState:
     # G.FUNCS.select_blind queues ease_round(1) before new_round().
     next_state.round += 1
     next_state.blind_score = next_state.blind.requirement
+    # ``round_resets.blind_tags`` describes the public skip offer. Selecting the
+    # Blind does not activate that Tag or carry it into hand-level callbacks.
+    next_state.blind.tag_key = None
     next_state.boss_blind_state_observed = False
     next_state.boss_blind_hands = set()
     next_state.boss_blind_only_hand = None

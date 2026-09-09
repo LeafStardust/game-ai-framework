@@ -10,8 +10,13 @@ from games.balatro.live.blind_start_parity_checkpoint import (
     compare_live_blind_start_replay,
 )
 from games.balatro.live.parity_capture import (
+    _snapshot_from_log_state,
     successful_select_blind_evidence_from_run_rows,
 )
+from games.balatro.live.translator import DefaultBalatroStateTranslator
+from games.balatro.env.parity import canonical_public_state_signature
+from games.balatro.env.round_end import cash_out_baseline_ordinary_blind
+from games.balatro.env.transition import HeadlessRunState
 
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "r5"
@@ -23,8 +28,13 @@ PRIVATE_FIXTURE = (
     FIXTURE_ROOT
     / "balatro-20260909T090428Z-a5968591-attempt-001.blind-start-parity.jsonl.xz"
 )
+CASH_OUT_FIXTURE = (
+    FIXTURE_ROOT
+    / "balatro-20260909T090428Z-a5968591-attempt-001.cash-out.jsonl.xz"
+)
 _PUBLIC_SHA256 = "1c3823b66bbbc3559332f8f38369507483edec8d49c00007929064c307ad7d64"
 _PRIVATE_SHA256 = "f353095e5cd93caee6a82e3ea85b848e7a5f7a14df95fe49d9ea8f21cb81feb5"
+_CASH_OUT_SHA256 = "f77b50b0152d4f9a3a6fbb0969e3cf4e4e8d199c90ff1a260f1bf1e0cd7095e8"
 
 
 def _fixture_bytes(path: Path) -> bytes:
@@ -85,3 +95,49 @@ def test_env_r5_real_small_blind_fixture_replays_unchanged_through_exact_owner()
     assert comparison.differences == ()
     assert comparison.public.matches is True
     assert comparison.public.differences == ()
+
+
+def test_env_r5_real_small_blind_cashout_replays_unchanged_through_exact_owner():
+    cash_out_raw = _fixture_bytes(CASH_OUT_FIXTURE)
+    rows = _fixture_rows(CASH_OUT_FIXTURE)
+    private_row = _fixture_rows(PRIVATE_FIXTURE)[0]
+
+    assert hashlib.sha256(cash_out_raw).hexdigest() == _CASH_OUT_SHA256
+    assert [row["sequence"] for row in rows] == [11, 12, 13]
+    assert [row["event"] for row in rows] == [
+        "observation",
+        "decision",
+        "action_result",
+    ]
+    assert rows[1]["data"]["action"] == {"name": "END_ROUND"}
+    assert rows[2]["data"]["action"] == {"name": "END_ROUND"}
+    assert rows[2]["data"]["success"] is True
+
+    translator = DefaultBalatroStateTranslator()
+    before = translator.translate(_snapshot_from_log_state(rows[0]["data"]["state"]))
+    live_after = translator.translate(
+        _snapshot_from_log_state(rows[2]["data"]["state"])
+    )
+
+    # At ROUND_EVAL vanilla has already repopulated G.deck. Physical order is
+    # hidden, but cash_out pseudoshuffle first sorts by creation order, so the
+    # exact complete live-id collection is sufficient replay authority.
+    owned_by_id = {card.live_id: card for card in before.owned_deck or ()}
+    assert len(owned_by_id) == len(before.deck) == 52
+    before.deck = [owned_by_id[card.live_id] for card in before.deck]
+    after_blind_start = blind_start_parity_checkpoint_from_payload(
+        private_row["after"]
+    )
+    run = HeadlessRunState(
+        public=before,
+        seed=after_blind_start.rng_snapshot["seed"],
+        rng_state=after_blind_start.rng_snapshot,
+        draw_pile=list(before.deck),
+    )
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    assert canonical_public_state_signature(result.public) == (
+        canonical_public_state_signature(live_after)
+    )
+    assert "cashout1" in result.rng_snapshot()["nodes"]

@@ -46,3 +46,13 @@ def red_white_base_blind_amount(ante: int) -> int:
     raise BlindRequirementError(
         "Red/White base blind amount beyond Ante 8 is not yet owned"
     )
+
+
+def red_white_nonboss_blind_reward(blind_type: str) -> int:
+    """Return the exact White-Stake reward for an ordinary Blind."""
+    normalized = str(blind_type).strip().upper()
+    if normalized == "SMALL":
+        return 3
+    if normalized == "BIG":
+        return 4
+    raise BlindRequirementError("Red/White non-Boss reward requires Small or Big")

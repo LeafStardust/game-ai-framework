@@ -174,7 +174,7 @@ def snapshot_payload_from_live_memory(
     )
     round_most_played_hand = _string(current_round.get("most_played_poker_hand"))
     current_tag = blind_tags.get(str(normalized_blind.get("type") or "").lower())
-    if current_tag:
+    if phase == "BLIND_SELECT" and current_tag:
         normalized_blind["tag"] = current_tag
     _install_pending_red_white_nonboss_requirement(
         normalized_blind,

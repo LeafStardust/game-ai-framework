@@ -8,7 +8,8 @@ separate owner.
 
 from __future__ import annotations
 
-from games.balatro.blinds.blind import BlindType
+from games.balatro.blinds.blind import Blind, BlindType
+from games.balatro.env.deal import _public_card_sort_key
 from games.balatro.env.round_zones import repopulate_round_end_deck
 from games.balatro.env.transition import (
     _EXACT_R1_JOKER_ACQUISITION_TYPES,
@@ -234,9 +235,35 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     joker_dollars = _round_end_joker_dollars(run)
     payout = blind_reward + hands_remaining + joker_dollars + interest
 
+    if not state.round_reset_hands_observed or not state.round_reset_discards_observed:
+        raise HeadlessTransitionError(
+            "ordinary cash-out requires authoritative round-reset resources"
+        )
+    reset_hands = _require_exact_int("round_reset_hands", state.round_reset_hands)
+    reset_discards = _require_exact_int(
+        "round_reset_discards", state.round_reset_discards
+    )
+    if reset_hands < 0 or reset_discards < 0:
+        raise HeadlessTransitionError("round-reset resources cannot be negative")
+
     next_run = repopulate_round_end_deck(run)
     next_state = next_run.public
+    creation_order = next_run.require_playing_card_order()
+    creation_index = {id(card): index for index, card in enumerate(creation_order)}
+    next_run.rng.shuffle_in_place(
+        next_run.draw_pile,
+        f"cashout{state.ante}",
+        sort_key=lambda card: creation_index[id(card)],
+    )
+    next_state.deck = sorted(next_run.draw_pile, key=_public_card_sort_key)
     next_state.money = money + payout
+    next_state.score = 0
+    next_state.blind_score = 0
+    next_state.hands_remaining = max(1, reset_hands + next_run.round_bonus_hands)
+    next_state.discards_remaining = max(
+        0, reset_discards + next_run.round_bonus_discards
+    )
+    next_state.blind = Blind(blind_type, requirement=0, reward=0)
     next_state.phase = "SHOP"
     next_state.shop_active = True
     next_state.shop_inflation_observed = True

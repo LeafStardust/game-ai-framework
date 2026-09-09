@@ -1,4 +1,9 @@
 from games.balatro.blinds.blind import Blind, BlindType
+from games.balatro.env.blind_requirement import (
+    BlindRequirementError,
+    red_white_base_blind_amount,
+    red_white_nonboss_blind_reward,
+)
 from games.balatro.card import BalatroCard
 from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.consumable_generation_pool_translation import (
@@ -183,6 +188,11 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             state.vouchers_observed = False
             state.vouchers = []
         state.phase = snapshot.phase
+        if state.phase == "SHOP":
+            # Vanilla cash_out has already targeted ease_chips(0). Process
+            # memory may expose an intermediate eased value after SHOP becomes
+            # active; that transient UI value is not settled run score.
+            state.score = 0
 
         hand_area = self._area(payload.get("hand"))
         deck_area = self._area(payload.get("cards", payload.get("deck")))
@@ -427,14 +437,29 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         if blind is None: return
         blind_type_name = str(blind.get("type", "SMALL")).upper()
         blind_type = BlindType.__members__.get(blind_type_name, BlindType.SMALL)
-        raw_tag = blind.get("tag")
+        raw_tag = blind.get("tag") if state.phase == "BLIND_SELECT" else None
         tag_key = None
         if isinstance(raw_tag, str) and raw_tag.strip():
             tag_key = raw_tag.strip().lower()
+        requirement = int(blind.get("score", blind.get("chips", 0)))
+        reward = int(blind.get("reward", 0))
+        if (
+            state.deck_name == "RED"
+            and state.stake_name == "WHITE"
+            and blind_type in {BlindType.SMALL, BlindType.BIG}
+        ):
+            try:
+                if state.phase == "ROUND_EVAL" and requirement == 0:
+                    base = red_white_base_blind_amount(state.ante)
+                    requirement = base if blind_type is BlindType.SMALL else base * 3 // 2
+                if state.phase in {"BLIND_SELECT", "SELECTING_HAND", "ROUND_EVAL"} and reward == 0:
+                    reward = red_white_nonboss_blind_reward(blind_type.name)
+            except BlindRequirementError:
+                pass
         state.blind = Blind(
             blind_type,
-            int(blind.get("score", blind.get("chips", 0))),
-            int(blind.get("reward", 0)),
+            requirement,
+            reward,
             tag_key=tag_key,
         )
         if blind_type == BlindType.BOSS:
