@@ -246,6 +246,13 @@ c46d29217a3f650033f6bf16a8a385555e414a24
 GitHub Actions run 34302658025
 GitHub Actions job 102312696793
 2468 passed, 1595 deselected
+
+R5 canonical blind-start capture launcher handoff:
+833b2efe73e12cb50099f7928d5617b1266e839b
+  fix(balatro): forward blind-start parity capture
+GitHub Actions run 34303241025
+GitHub Actions job 102314477860
+2469 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -256,11 +263,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES, EXACT OFFLINE BLIND-START RESTORATION/REPLAY, AND OPT-IN PRODUCTION CAPTURE ARE GREEN; THE NEXT SLICE IS THE CANONICAL `--attempt N` LAUNCHER HANDOFF, THEN ONE REAL START FIXTURE AND ITS CLEAR/CASH-OUT BOUNDARY**.
+- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES, EXACT OFFLINE BLIND-START RESTORATION/REPLAY, OPT-IN PRODUCTION CAPTURE, AND THE CANONICAL `--attempt N` LAUNCHER HANDOFF ARE GREEN; THE NEXT SLICE IS ONE REAL START FIXTURE AND ITS CLEAR/CASH-OUT BOUNDARY**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **BLOCKED ONLY ON THE CANONICAL `--attempt N` LAUNCHER HANDOFF. AFTER THAT HANDOFF IS GREEN, EXACTLY ONE ORDINARY TAG-FREE SMALL-BLIND `SELECT_BLIND` TRANSITION IS REQUIRED BECAUSE NO PRIOR RUN CONTAINS THE NEW PRIVATE BLIND-START SIDECAR.**
+- Live Balatro validation: **REQUIRED NOW — EXACTLY ONE ORDINARY TAG-FREE SMALL-BLIND `SELECT_BLIND` TRANSITION USING `--attempt 1` WITH THE OPT-IN PRIVATE DIRECTORY. NO PRIOR RUN CONTAINS THE NEW BLIND-START SIDECAR.**
 
 ## Current strategic action contract
 
@@ -1039,8 +1046,10 @@ Stable keyed-RNG and active-Tag checkpoint capture, parameterless
 `SELECT_BLIND` evidence mapping, public/private comparison, canonical
 `select_blind_exact` replay, and opt-in append-only production capture are green
 at `2ac3ddd4`. Capture is observational only and remains outside the public
-run-experience log. No prior run contains this new private sidecar, so no real
-blind-start fixture is claimed yet.
+run-experience log. The canonical toggle/start/restart path forwards the opt-in
+directory at `833b2efe`, including launches routed through
+`BalatroAgentToggle.bat --attempt N`. No prior run contains this new private
+sidecar, so no real blind-start fixture is claimed yet.
 
 ## Completed priority parity gates
 
@@ -1065,21 +1074,21 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The opt-in production blind-start recorder and its focused regressions are green.
-Continue R5 with the **canonical launcher handoff**, then one real ordinary
-Small-Blind fixture:
+The opt-in production blind-start recorder, its focused regressions, and the
+canonical `--attempt N` launcher handoff are green. Continue R5 with **one real
+ordinary Small-Blind fixture**:
 
-1. thread `--blind-start-parity-directory` through the normal toggle/start/
-   restart path used by `BalatroAgentToggle.bat --attempt N`; the attempt-count
-   convention must remain singular and canonical;
-2. add one focused deterministic regression proving the detached supervisor
-   command receives the exact directory without altering ordinary launches;
-3. push and require the authoritative GitHub Actions deterministic gate;
-4. after that green gate, request exactly one ordinary tag-free Small-Blind
-   `SELECT_BLIND` transition using `--attempt 1` with the opt-in directory;
-5. freeze and replay that unchanged fixture through `select_blind_exact`,
+1. request exactly one ordinary tag-free Small-Blind `SELECT_BLIND` transition
+   using the command below;
+
+   ```bat
+   BalatroAgentToggle.bat --attempt 1 --blind-start-parity-directory logs/balatro/r5-blind-start-parity
+   ```
+
+2. preserve the resulting public run log plus private sidecar unchanged;
+3. freeze and replay that unchanged fixture through `select_blind_exact`,
    requiring public parity plus private post-action RNG parity;
-6. then inspect the same run's ordinary clear/`END_ROUND` boundary and add only
+4. then inspect the same run's ordinary clear/`END_ROUND` boundary and add only
    the private zone authority genuinely required by canonical
    `cash_out_baseline_ordinary_blind`.
 
