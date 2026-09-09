@@ -5,10 +5,18 @@ import traceback
 from dataclasses import replace
 from time import sleep
 
-from games.balatro.actions import END_ROUND, REFRESH_SHOP, SELECT_BLIND, SKIP_BLIND
+from games.balatro.actions import (
+    END_ROUND,
+    REFRESH_SHOP,
+    SELECT_BLIND,
+    SELECT_PACK_CARD,
+    SKIP_BLIND,
+    SKIP_BOOSTER,
+)
 from games.balatro.build_health_diagnostics import build_health_diagnostics_payload
 from games.balatro.live.blind_skip_parity_capture import LiveBlindSkipParityRecorder
 from games.balatro.live.blind_start_parity_capture import LiveBlindStartParityRecorder
+from games.balatro.live.buffoon_pack_parity_capture import LiveBuffoonPackParityRecorder
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
 from games.balatro.live.reroll_parity_capture import LiveRerollParityRecorder
 from games.balatro.live.run_diagnostics import BalatroDiagnosticLogger
@@ -85,6 +93,7 @@ def _diagnostic_runner_factory(
     reroll_parity_directory: str | None = None,
     blind_start_parity_directory: str | None = None,
     blind_skip_parity_directory: str | None = None,
+    buffoon_pack_parity_directory: str | None = None,
     unlock_campaign_config: UnlockCampaignConfig | None = None,
     collection_first: bool = False,
 ):
@@ -100,6 +109,7 @@ def _diagnostic_runner_factory(
     reroll_recorders: dict[str, LiveRerollParityRecorder] = {}
     blind_start_recorders: dict[str, LiveBlindStartParityRecorder] = {}
     blind_skip_recorders: dict[str, LiveBlindSkipParityRecorder] = {}
+    buffoon_pack_recorders: dict[str, LiveBuffoonPackParityRecorder] = {}
 
     def _diagnostic_failure(stage: str, error: BaseException, decision, *, status=None):
         try:
@@ -144,6 +154,9 @@ def _diagnostic_runner_factory(
         blind_skip_recorder = None
         blind_skip_before = None
         blind_skip_status = None
+        buffoon_pack_recorder = None
+        buffoon_pack_before = None
+        buffoon_pack_status = None
         action_name = str(getattr(decision.action, "name", ""))
 
         if reroll_parity_directory and action_name == REFRESH_SHOP:
@@ -226,6 +239,37 @@ def _diagnostic_runner_factory(
                 )
                 blind_skip_recorder = None
                 blind_skip_before = None
+
+        if (
+            buffoon_pack_parity_directory
+            and decision.snapshot.phase == "BUFFOON_PACK"
+            and action_name in {SELECT_PACK_CARD, SKIP_BOOSTER}
+        ):
+            try:
+                buffoon_pack_status = control.read_status()
+                run_id = str(buffoon_pack_status.get("run_id", "")).strip()
+                if not run_id:
+                    raise RuntimeError(
+                        "R5 Buffoon parity capture requires current supervisor run_id"
+                    )
+                buffoon_pack_recorder = buffoon_pack_recorders.get(run_id)
+                if buffoon_pack_recorder is None:
+                    buffoon_pack_recorder = LiveBuffoonPackParityRecorder(
+                        run_id,
+                        observer,
+                        directory=buffoon_pack_parity_directory,
+                    )
+                    buffoon_pack_recorders[run_id] = buffoon_pack_recorder
+                buffoon_pack_before = buffoon_pack_recorder.capture_before(decision)
+            except Exception as error:
+                _diagnostic_failure(
+                    "buffoon_pack_parity_capture_before",
+                    error,
+                    decision,
+                    status=buffoon_pack_status,
+                )
+                buffoon_pack_recorder = None
+                buffoon_pack_before = None
 
         try:
             if action_name == END_ROUND:
@@ -337,6 +381,38 @@ def _diagnostic_runner_factory(
                     status=blind_skip_status,
                 )
 
+        if buffoon_pack_recorder is not None and buffoon_pack_before is not None:
+            try:
+                dispatch_result, _ = execution
+                comparison = buffoon_pack_recorder.record_after(
+                    buffoon_pack_before,
+                    decision,
+                    dispatch_result,
+                )
+                if not comparison.matches:
+                    try:
+                        BalatroDiagnosticLogger(
+                            session_id,
+                            directory=diagnostic_directory,
+                        ).record(
+                            "buffoon_pack_parity_mismatch",
+                            status=control.read_status(),
+                            action=action_name,
+                            phase=str(decision.snapshot.phase),
+                            checkpoint_sequence=int(decision.snapshot.sequence),
+                            differences=list(comparison.differences),
+                            parity_path=str(buffoon_pack_recorder.path),
+                        )
+                    except Exception:
+                        pass
+            except Exception as error:
+                _diagnostic_failure(
+                    "buffoon_pack_parity_capture_after",
+                    error,
+                    decision,
+                    status=buffoon_pack_status,
+                )
+
         return execution
 
     runner.decide = decide_with_build_health
@@ -387,6 +463,13 @@ def main() -> int:
             "private progression authority is never written to the public run log"
         ),
     )
+    parser.add_argument(
+        "--buffoon-pack-parity-directory",
+        help=(
+            "opt-in private R5 final Buffoon choice/skip replay evidence directory; "
+            "visible pack authority is never written to the public run log"
+        ),
+    )
     parser.add_argument("--session-id")
     parser.add_argument("--no-retry-losses", action="store_true")
     parser.add_argument(
@@ -422,6 +505,7 @@ def main() -> int:
             reroll_parity_directory=args.reroll_parity_directory,
             blind_start_parity_directory=args.blind_start_parity_directory,
             blind_skip_parity_directory=args.blind_skip_parity_directory,
+            buffoon_pack_parity_directory=args.buffoon_pack_parity_directory,
             unlock_campaign_config=unlock_campaign_config,
             collection_first=args.collection_first,
         )

@@ -178,6 +178,7 @@ def start_agent(
     collection_first: bool = False,
     blind_start_parity_directory: str | None = None,
     blind_skip_parity_directory: str | None = None,
+    buffoon_pack_parity_directory: str | None = None,
     launch_live_monitor: bool = True,
 ) -> int:
     running = control.running_pid()
@@ -207,6 +208,10 @@ def start_agent(
     if blind_skip_parity_directory:
         command.extend(
             ("--blind-skip-parity-directory", blind_skip_parity_directory)
+        )
+    if buffoon_pack_parity_directory:
+        command.extend(
+            ("--buffoon-pack-parity-directory", buffoon_pack_parity_directory)
         )
 
     control.ensure_directory()
@@ -324,6 +329,7 @@ def restart_agent(
     collection_first: bool = False,
     blind_start_parity_directory: str | None = None,
     blind_skip_parity_directory: str | None = None,
+    buffoon_pack_parity_directory: str | None = None,
 ) -> tuple[int | None, int]:
     """Restart the supervisor without opening another live-monitor window."""
     previous_pid = control.running_pid()
@@ -337,6 +343,7 @@ def restart_agent(
         collection_first=collection_first,
         blind_start_parity_directory=blind_start_parity_directory,
         blind_skip_parity_directory=blind_skip_parity_directory,
+        buffoon_pack_parity_directory=buffoon_pack_parity_directory,
         launch_live_monitor=False,
     )
     return previous_pid, new_pid
@@ -350,6 +357,7 @@ def toggle_agent(
     collection_first: bool = False,
     blind_start_parity_directory: str | None = None,
     blind_skip_parity_directory: str | None = None,
+    buffoon_pack_parity_directory: str | None = None,
 ) -> tuple[str, int | None]:
     running = control.running_pid()
     if running is not None:
@@ -362,6 +370,7 @@ def toggle_agent(
         collection_first=collection_first,
         blind_start_parity_directory=blind_start_parity_directory,
         blind_skip_parity_directory=blind_skip_parity_directory,
+        buffoon_pack_parity_directory=buffoon_pack_parity_directory,
     )
 
 
@@ -400,6 +409,13 @@ def main() -> int:
         "--blind-skip-parity-directory",
         help=(
             "opt-in private R5 Economy-Tag blind-skip replay evidence directory "
+            "forwarded to the detached supervisor"
+        ),
+    )
+    parser.add_argument(
+        "--buffoon-pack-parity-directory",
+        help=(
+            "opt-in private R5 final Buffoon choice/skip replay evidence directory "
             "forwarded to the detached supervisor"
         ),
     )
@@ -464,6 +480,7 @@ def main() -> int:
                 collection_first=args.collection_first,
                 blind_start_parity_directory=args.blind_start_parity_directory,
                 blind_skip_parity_directory=args.blind_skip_parity_directory,
+                buffoon_pack_parity_directory=args.buffoon_pack_parity_directory,
             )
         except Exception as error:
             print("Balatro Agent restart -> FAIL")
@@ -491,6 +508,7 @@ def main() -> int:
             collection_first=args.collection_first,
             blind_start_parity_directory=args.blind_start_parity_directory,
             blind_skip_parity_directory=args.blind_skip_parity_directory,
+            buffoon_pack_parity_directory=args.buffoon_pack_parity_directory,
         )
     except Exception as error:
         print("Balatro Agent toggle -> FAIL")
