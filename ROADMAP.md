@@ -60,7 +60,7 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 
 ---
 
-# Current checkpoint — 2026-09-08
+# Current checkpoint — 2026-09-09
 
 ```text
 Branch: feat/v1.0-red-white-competence
@@ -228,6 +228,15 @@ R5 blind-start replay prerequisites:
 GitHub Actions run 34250416208
 GitHub Actions job 102143121535
 2452 passed, 1595 deselected
+
+R5 exact blind-start checkpoint restoration/replay:
+a8ebd04f5988775f9decef031ba036af2543d222
+  feat(balatro): replay exact blind starts
+6d0441a0e36571f6cc162baae1e88f0e628d07fc
+  test(balatro): admit exact live-id base deals
+GitHub Actions run 34301741520
+GitHub Actions job 102309893935
+2460 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -238,7 +247,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — TACTICAL EVIDENCE/COMPARISON, THE FIRST REAL ORDINARY PAID-REROLL FIXTURE, THE FIRST REAL ORDINARY `BUY_JOKER` FIXTURE, AND THE FIRST REAL SUPPORTED `BUY_VOUCHER` FIXTURE ARE GREEN; THE NEXT SLICE IS REPRESENTATIVE BLIND START/CLEAR PARITY**.
+- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES AND EXACT OFFLINE BLIND-START RESTORATION/REPLAY ARE GREEN; THE NEXT SLICE IS THE OPT-IN LIVE BLIND-START RECORDER, THEN ONE REAL START FIXTURE AND ITS CLEAR/CASH-OUT BOUNDARY**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
@@ -858,6 +867,8 @@ Required before treating the simulator as authoritative training truth.
 - translated live shop items expose their authoritative center identity through the canonical `center_key` interface expected by exact headless Voucher mechanics while retaining `center` for live-target structural comparison.
 - the first real supported Voucher fixture is preserved byte-for-byte after decompression with a SHA-256 guard and replays unchanged through the canonical headless Voucher owner.
 - live permanent playing-card identity now retains only exact observed `live_id` values: integral Lua numbers normalize to integers; missing identity remains missing; invalid/partial identity never falls back to public array position. This lets headless permanent creation order be derived from authoritative IDs without exposing future physical draw order.
+- structurally untouched complete base decks remain exact when those cards carry authoritative live IDs; the canonical deal owner now treats the IDs as creation-order evidence rather than as a deck modification.
+- `games/balatro/live/blind_start_parity_checkpoint.py` captures stable public state, keyed-RNG replay authority, and active-Tag count; it restores the complete deck by exact permanent IDs, delegates to `select_blind_exact`, compares public evidence separately from private post-action RNG, and fails closed on drift, active Tags, or mismatched card identity.
 - `games/balatro/live/reroll_parity_checkpoint.py` captures coherent complete-SHOP public state plus exact private RNG/reroll replay authority and rejects active Tags, free rerolls, unobserved Voucher state, or unstable checkpoints rather than normalizing them away.
 - exact ordinary paid `REROLL_SHOP` can be rebuilt from a private checkpoint and replayed through the canonical headless reroll owner; the comparator checks public transition evidence, previous/next reroll cost, and post-action RNG snapshot.
 - `games/balatro/live/reroll_parity_capture.py` persists this private replay authority in an opt-in per-run sidecar. The normal durable run-experience JSONL remains public-only.
@@ -1010,16 +1021,15 @@ transport had a CRC mismatch; all 2443 pre-existing selected tests passed. The
 replacement XZ fixture at `4aba3b42` replays unchanged and passed canonical
 strategic parity with 2445 selected tests green.
 
-For blind-start replay, the permanent creation-order prerequisite is now exact:
-`G.playing_cards` remains the permanent-deck truth, and the live translator keeps
-only exact observed playing-card IDs. Integral Lua IDs normalize to Python ints;
-missing IDs remain missing, and invalid or partial identities fail closed instead
-of being replaced with observation-array positions. `HeadlessRunState` can thus
-derive authoritative permanent creation order from unique IDs without putting
-future physical shuffle/deal order into public evidence. The remaining extra
-replay authority for an ordinary blind start is private Balatro RNG state plus
-proof that acquired active Tags are absent; those belong in an opt-in diagnostic
-checkpoint, not in the ordinary durable run log.
+For blind-start replay, permanent creation order and offline replay restoration
+are now exact. `G.playing_cards` remains permanent-deck truth; live IDs restore
+canonical card-object identity without exposing future physical draw order.
+A complete structurally untouched base deck remains eligible for exact
+original-suit/hand-sort mechanics even when those authoritative IDs are present.
+Stable keyed-RNG and active-Tag checkpoint capture, parameterless
+`SELECT_BLIND` evidence mapping, public/private comparison, and canonical
+`select_blind_exact` replay are green at `6d0441a0`. The private checkpoint is
+not written by production yet, so no real blind-start fixture is claimed.
 
 ## Completed priority parity gates
 
@@ -1044,37 +1054,29 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The representative ordinary shop reroll, Joker-purchase, and supported Voucher
-redemption gates are green. Do not request another run for those same gates.
+Exact offline blind-start checkpoint restoration/replay is green. Continue R5
+with the **opt-in production blind-start recorder**, then one real ordinary
+Small-Blind fixture:
 
-Continue R5 with **representative blind start/clear parity**:
-
-1. inspect the canonical production `SELECT_BLIND` target/dispatch/settlement
-   path and the ordinary blind-clear/cash-out path, the live translation fields,
-   the existing public strategic evidence/comparator, the exact headless
-   `blind_start.py` / deal / round-end owners, and pinned vanilla source order;
-2. inspect the fresh durable run
-   `balatro-20260908T135908Z-3f93a77a-attempt-001`, which already contains
-   multiple settled `SELECT_BLIND` and clear/cash-out boundaries, before asking
-   for any additional Balatro execution;
-3. public permanent-card IDs are now sufficient to reconstruct authoritative
-   permanent creation order, but exact blind-start shuffle/deal still requires
-   private RNG replay authority and proof that acquired active Tags are absent;
-   never infer hidden future draw order from the visible dealt hand;
-4. add the smallest opt-in blind-start checkpoint/capture seam at the canonical
-   live boundary, reusing the existing private RNG replay primitive and keeping
-   the ordinary durable run log public-only;
-5. add focused fail-closed regressions for production action → R3 action mapping,
-   public before/after preservation, exact resource/round transition, stable
-   checkpoint capture, active-Tag rejection, exact card-ID/order restoration,
-   and private post-action RNG comparison;
-6. replay one representative ordinary Small-Blind start and its clear/cash-out
-   boundary through the canonical headless owners and require public strategic
-   parity, plus private replay parity only for state that is genuinely simulator
-   authority and never policy-visible;
-7. push and require the authoritative GitHub Actions deterministic gate to pass;
-8. request one new live run only if the existing durable evidence cannot satisfy
-   the gate **after** the private blind-start capture support is green.
+1. add a dedicated append-only private recorder for parameterless
+   `SELECT_BLIND`, serializing the already-green
+   `LiveBlindStartParityCheckpoint` before and after the settled action;
+2. wire it into the canonical supervisor entry behind
+   `--blind-start-parity-directory`; capture failures/mismatches must remain
+   diagnostic-only and must never block or relabel a successful production
+   action;
+3. add focused deterministic regressions for payload round-trip, contiguous
+   sequence resume, decision/dispatch snapshot coherence, post-checkpoint drift,
+   mismatch diagnostics, and observational-only failure behavior;
+4. push and require the authoritative GitHub Actions deterministic gate;
+5. only after that green gate, use existing evidence if it contains the private
+   sidecar; otherwise request exactly one ordinary tag-free Small-Blind
+   `SELECT_BLIND` transition with the opt-in directory enabled;
+6. freeze and replay that unchanged fixture through `select_blind_exact`,
+   requiring public parity plus private post-action RNG parity;
+7. then inspect the same run's ordinary clear/`END_ROUND` boundary and add only
+   the private zone authority genuinely required by canonical
+   `cash_out_baseline_ordinary_blind`.
 
 Do not broaden this slice to blind skip/Tag flow, pack parity, unsupported Boss
 paths, policy tuning, playing-card shop purchases, or Boss reroll.
