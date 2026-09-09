@@ -237,6 +237,15 @@ a8ebd04f5988775f9decef031ba036af2543d222
 GitHub Actions run 34301741520
 GitHub Actions job 102309893935
 2460 passed, 1595 deselected
+
+R5 opt-in production blind-start capture:
+c46d29217a3f650033f6bf16a8a385555e414a24
+  feat(balatro): capture live blind-start parity
+2ac3ddd48fcb95651ffb1c33e59cd30d2144e774
+  test(balatro): use semantic blind-start drift
+GitHub Actions run 34302658025
+GitHub Actions job 102312696793
+2468 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -247,11 +256,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES AND EXACT OFFLINE BLIND-START RESTORATION/REPLAY ARE GREEN; THE NEXT SLICE IS THE OPT-IN LIVE BLIND-START RECORDER, THEN ONE REAL START FIXTURE AND ITS CLEAR/CASH-OUT BOUNDARY**.
+- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES, EXACT OFFLINE BLIND-START RESTORATION/REPLAY, AND OPT-IN PRODUCTION CAPTURE ARE GREEN; THE NEXT SLICE IS THE CANONICAL `--attempt N` LAUNCHER HANDOFF, THEN ONE REAL START FIXTURE AND ITS CLEAR/CASH-OUT BOUNDARY**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOT CURRENTLY REQUIRED; THE FRESH 2026-09-08 RUN ALREADY CONTAINS SETTLED BLIND START/CLEAR PUBLIC EVIDENCE. INSPECT WHETHER PRIVATE RNG/DRAW REPLAY AUTHORITY IS ALSO REQUIRED BEFORE REQUESTING ANOTHER RUN.**
+- Live Balatro validation: **BLOCKED ONLY ON THE CANONICAL `--attempt N` LAUNCHER HANDOFF. AFTER THAT HANDOFF IS GREEN, EXACTLY ONE ORDINARY TAG-FREE SMALL-BLIND `SELECT_BLIND` TRANSITION IS REQUIRED BECAUSE NO PRIOR RUN CONTAINS THE NEW PRIVATE BLIND-START SIDECAR.**
 
 ## Current strategic action contract
 
@@ -1027,9 +1036,11 @@ canonical card-object identity without exposing future physical draw order.
 A complete structurally untouched base deck remains eligible for exact
 original-suit/hand-sort mechanics even when those authoritative IDs are present.
 Stable keyed-RNG and active-Tag checkpoint capture, parameterless
-`SELECT_BLIND` evidence mapping, public/private comparison, and canonical
-`select_blind_exact` replay are green at `6d0441a0`. The private checkpoint is
-not written by production yet, so no real blind-start fixture is claimed.
+`SELECT_BLIND` evidence mapping, public/private comparison, canonical
+`select_blind_exact` replay, and opt-in append-only production capture are green
+at `2ac3ddd4`. Capture is observational only and remains outside the public
+run-experience log. No prior run contains this new private sidecar, so no real
+blind-start fixture is claimed yet.
 
 ## Completed priority parity gates
 
@@ -1054,27 +1065,21 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-Exact offline blind-start checkpoint restoration/replay is green. Continue R5
-with the **opt-in production blind-start recorder**, then one real ordinary
+The opt-in production blind-start recorder and its focused regressions are green.
+Continue R5 with the **canonical launcher handoff**, then one real ordinary
 Small-Blind fixture:
 
-1. add a dedicated append-only private recorder for parameterless
-   `SELECT_BLIND`, serializing the already-green
-   `LiveBlindStartParityCheckpoint` before and after the settled action;
-2. wire it into the canonical supervisor entry behind
-   `--blind-start-parity-directory`; capture failures/mismatches must remain
-   diagnostic-only and must never block or relabel a successful production
-   action;
-3. add focused deterministic regressions for payload round-trip, contiguous
-   sequence resume, decision/dispatch snapshot coherence, post-checkpoint drift,
-   mismatch diagnostics, and observational-only failure behavior;
-4. push and require the authoritative GitHub Actions deterministic gate;
-5. only after that green gate, use existing evidence if it contains the private
-   sidecar; otherwise request exactly one ordinary tag-free Small-Blind
-   `SELECT_BLIND` transition with the opt-in directory enabled;
-6. freeze and replay that unchanged fixture through `select_blind_exact`,
+1. thread `--blind-start-parity-directory` through the normal toggle/start/
+   restart path used by `BalatroAgentToggle.bat --attempt N`; the attempt-count
+   convention must remain singular and canonical;
+2. add one focused deterministic regression proving the detached supervisor
+   command receives the exact directory without altering ordinary launches;
+3. push and require the authoritative GitHub Actions deterministic gate;
+4. after that green gate, request exactly one ordinary tag-free Small-Blind
+   `SELECT_BLIND` transition using `--attempt 1` with the opt-in directory;
+5. freeze and replay that unchanged fixture through `select_blind_exact`,
    requiring public parity plus private post-action RNG parity;
-7. then inspect the same run's ordinary clear/`END_ROUND` boundary and add only
+6. then inspect the same run's ordinary clear/`END_ROUND` boundary and add only
    the private zone authority genuinely required by canonical
    `cash_out_baseline_ordinary_blind`.
 
