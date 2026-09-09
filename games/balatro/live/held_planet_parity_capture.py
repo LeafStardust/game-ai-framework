@@ -32,6 +32,7 @@ from games.balatro.live.translator import DefaultBalatroStateTranslator
 
 
 _TOTAL_KEYS = ("tarot", "planet", "spectral", "tarot_planet", "all")
+_HELD_PLANET_PHASES = frozenset({"SHOP", "SELECTING_HAND"})
 _SPECTRAL_CENTER_KEYS = frozenset(
     {
         "c_familiar",
@@ -207,15 +208,33 @@ def _private_usage_state(decoder, root) -> LiveConsumableUsageState:
     return LiveConsumableUsageState(counts=counts, sets=sets, totals=totals)
 
 
-def _capture_stable_live_usage(observer) -> tuple[LiveBalatroSnapshot, LiveConsumableUsageState]:
+def _require_supported_phase(phase: str, *, field: str) -> str:
+    if phase not in _HELD_PLANET_PHASES:
+        allowed = ", ".join(sorted(_HELD_PLANET_PHASES))
+        raise LiveHeldPlanetParityCaptureError(
+            f"{field} must be one of the exact held-Planet phases: {allowed}"
+        )
+    return phase
+
+
+def _capture_stable_live_usage(
+    observer,
+    *,
+    expected_phase: str = "SHOP",
+) -> tuple[LiveBalatroSnapshot, LiveConsumableUsageState]:
+    expected_phase = _require_supported_phase(expected_phase, field="expected phase")
     before = observer.observe()
     if not isinstance(before, LiveBalatroSnapshot):
         raise LiveHeldPlanetParityCaptureError(
             "observer did not return LiveBalatroSnapshot"
         )
-    if before.phase != "SHOP" or before.state_complete is not True:
+    if before.phase != expected_phase or before.state_complete is not True:
+        if expected_phase == "SHOP":
+            raise LiveHeldPlanetParityCaptureError(
+                "held-Planet parity checkpoint requires complete SHOP"
+            )
         raise LiveHeldPlanetParityCaptureError(
-            "held-Planet parity checkpoint requires complete SHOP"
+            f"held-Planet parity checkpoint requires complete {expected_phase}"
         )
     try:
         decoder, _, root = observer._root()
@@ -238,8 +257,13 @@ def _capture_stable_live_usage(observer) -> tuple[LiveBalatroSnapshot, LiveConsu
 
 def capture_live_held_planet_parity_checkpoint(
     observer,
+    *,
+    expected_phase: str = "SHOP",
 ) -> LiveHeldPlanetParityCheckpoint:
-    snapshot, usage = _capture_stable_live_usage(observer)
+    snapshot, usage = _capture_stable_live_usage(
+        observer,
+        expected_phase=expected_phase,
+    )
     checkpoint = LiveHeldPlanetParityCheckpoint(snapshot, usage)
     headless_held_planet_run_from_checkpoint(checkpoint)
     return checkpoint
@@ -252,9 +276,13 @@ def headless_held_planet_run_from_checkpoint(
 ) -> HeadlessRunState:
     if not isinstance(checkpoint, LiveHeldPlanetParityCheckpoint):
         raise TypeError("checkpoint must be LiveHeldPlanetParityCheckpoint")
-    if checkpoint.public_snapshot.phase != "SHOP" or checkpoint.public_snapshot.state_complete is not True:
+    _require_supported_phase(
+        checkpoint.public_snapshot.phase,
+        field="held-Planet checkpoint phase",
+    )
+    if checkpoint.public_snapshot.state_complete is not True:
         raise LiveHeldPlanetParityCaptureError(
-            "headless held-Planet restoration requires complete SHOP"
+            "headless held-Planet restoration requires a complete supported snapshot"
         )
     usage = checkpoint.usage
     if not isinstance(usage, LiveConsumableUsageState):
@@ -313,9 +341,13 @@ def compare_captured_live_held_planet(
 ) -> LiveHeldPlanetReplayComparison:
     run = headless_held_planet_run_from_checkpoint(before)
     canonical_action = _action_for_checkpoint(before, action)
-    if after_snapshot.phase != "SHOP" or after_snapshot.state_complete is not True:
+    before_phase = _require_supported_phase(
+        before.public_snapshot.phase,
+        field="held-Planet before phase",
+    )
+    if after_snapshot.phase != before_phase or after_snapshot.state_complete is not True:
         raise LiveHeldPlanetParityCaptureError(
-            "held-Planet action did not settle at complete SHOP"
+            "held-Planet action did not settle in the same complete supported phase"
         )
     live_after = DefaultBalatroStateTranslator().translate(after_snapshot)
     live_evidence = build_public_strategic_transition_evidence(
@@ -336,7 +368,12 @@ def compare_captured_live_held_planet(
     differences = [f"public.{item}" for item in public.differences]
     if after_usage.counts != result.consumable_usage_counts:
         differences.append("private.usage_counts")
-    if after_usage.sets != before.usage.sets:
+    expected_sets = {
+        key: _EXPECTED_SET_BY_CENTER[key]
+        for key in result.consumable_usage_counts
+        if key in _EXPECTED_SET_BY_CENTER
+    }
+    if after_usage.sets != expected_sets:
         differences.append("private.usage_sets")
     if after_usage.totals != result.consumable_usage_totals:
         differences.append("private.usage_totals")
@@ -479,7 +516,14 @@ class LiveHeldPlanetParityRecorder:
         return sequence
 
     def capture_before(self, decision) -> LiveHeldPlanetParityCheckpoint:
-        checkpoint = capture_live_held_planet_parity_checkpoint(self.observer)
+        phase = _require_supported_phase(
+            str(getattr(decision.snapshot, "phase", "")),
+            field="planned held-Planet phase",
+        )
+        checkpoint = capture_live_held_planet_parity_checkpoint(
+            self.observer,
+            expected_phase=phase,
+        )
         if not _same_snapshot(decision.snapshot, checkpoint.public_snapshot):
             raise LiveHeldPlanetParityCaptureError(
                 "planned held-Planet snapshot does not match private checkpoint"
@@ -498,7 +542,10 @@ class LiveHeldPlanetParityRecorder:
             raise LiveHeldPlanetParityCaptureError(
                 "settled held-Planet action does not match the planned action"
             )
-        observed_after, after_usage = _capture_stable_live_usage(self.observer)
+        observed_after, after_usage = _capture_stable_live_usage(
+            self.observer,
+            expected_phase=before.public_snapshot.phase,
+        )
         if not _same_snapshot(dispatch_result.after, observed_after):
             raise LiveHeldPlanetParityCaptureError(
                 "settled held-Planet result does not match current public state"
