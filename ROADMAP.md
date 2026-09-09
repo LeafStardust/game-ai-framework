@@ -262,6 +262,13 @@ cedd0f114ff01899d13a9f9df641f3a37da8b3f0
 GitHub Actions run 34305345713
 GitHub Actions job 102320769712
 2470 passed, 1595 deselected
+
+R5 first complete private blind-start capture and pending-requirement repair:
+9d45292f072c248c00271f2e4e88df185ea9db63
+  fix(balatro): observe pending blind requirement
+GitHub Actions run 34332070925
+GitHub Actions job 102402745553
+2471 passed, 1595 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -272,11 +279,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES, EXACT OFFLINE BLIND-START RESTORATION/REPLAY, OPT-IN PRODUCTION CAPTURE, THE CANONICAL `--attempt N` LAUNCHER HANDOFF, AND THE FIRST LIVE-EXPOSED ID REPAIR ARE GREEN; THE NEXT SLICE IS ONE REPLACEMENT REAL START FIXTURE AND ITS CLEAR/CASH-OUT BOUNDARY**.
+- R5 live/simulator parity harness: **IN PROGRESS — PRIOR STRATEGIC FIXTURES, EXACT OFFLINE BLIND-START RESTORATION/REPLAY, OPT-IN PRODUCTION CAPTURE, THE CANONICAL `--attempt N` LAUNCHER HANDOFF, AND BOTH LIVE-EXPOSED ACQUISITION REPAIRS ARE GREEN; THE NEXT SLICE IS ONE POST-REPAIR RECAPTURE, THEN ITS CLEAR/CASH-OUT BOUNDARY**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **REQUIRED NOW — EXACTLY ONE REPLACEMENT ORDINARY TAG-FREE SMALL-BLIND `SELECT_BLIND` TRANSITION USING `--attempt 1` WITH THE OPT-IN PRIVATE DIRECTORY. THE 2026-09-09 ATTEMPT EXPOSED AND VALIDATED THE ID DEFECT BUT COULD NOT WRITE A SIDECAR BEFORE THE REPAIR.**
+- Live Balatro validation: **REQUIRED NOW — EXACTLY ONE POST-REPAIR ORDINARY TAG-FREE SMALL-BLIND `SELECT_BLIND` TRANSITION USING `--attempt 1` WITH THE OPT-IN PRIVATE DIRECTORY. THE FIRST COMPLETE SIDECAR PROVED PRIVATE RNG PARITY AND EXPOSED THE PENDING-REQUIREMENT ACQUISITION DEFECT; ITS IMMUTABLE PRE-ACTION SNAPSHOT CANNOT BE REWRITTEN INTO A PASS.**
 
 ## Current strategic action contract
 
@@ -1072,6 +1079,21 @@ at `cedd0f11`. The failed capture did not serialize its private RNG checkpoints,
 so the public run and diagnostics cannot be converted into a real replay fixture;
 one replacement live transition remains required.
 
+The first complete private sidecar,
+`balatro-20260909T030757Z-a8d1a02d-attempt-001.blind-start-parity.jsonl`,
+captured one coherent first Small-Blind transition with zero active Tags. Its
+private post-action RNG matched exactly. Public comparison differed only in
+`blind.requirement` / `blind_score`: the live pre-selection observer published
+the inactive `G.GAME.blind.chips == 0`, while vanilla's visible blind-select UI
+computes 300 from `round_resets.blind_ante`, the Small-Blind multiplier, and
+ante scaling. Pinned vanilla source confirms that ownership boundary. The live
+observer now installs only exact Red/White pending Small/Big requirements from
+`blind_ante`; Bosses, other stakes/decks, missing authority, and unowned endless
+Antes are not synthesized by this owner and remain behind their existing
+capability gates. CI is green at `9d45292f`. Because the recorded
+pre-action snapshot is immutable, one post-repair recapture is required before
+freezing the passing fixture.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1095,14 +1117,14 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-The opt-in production blind-start recorder, canonical launcher handoff, and the
-first live-exposed exact-ID repair are green. Continue R5 with **one replacement
-real ordinary Small-Blind fixture**:
+The opt-in production blind-start recorder, canonical launcher handoff, and both
+live-exposed acquisition repairs are green. Continue R5 with **one post-repair
+recapture of the real ordinary Small-Blind fixture**:
 
-1. pull the latest branch state, which contains the green repair at
-   `cedd0f114ff01899d13a9f9df641f3a37da8b3f0`, and request exactly one ordinary
-   tag-free Small-Blind `SELECT_BLIND` transition using the PowerShell command
-   below;
+1. pull the latest branch state, which contains the green pending-requirement
+   repair at `9d45292f072c248c00271f2e4e88df185ea9db63`, and request exactly one
+   ordinary tag-free Small-Blind `SELECT_BLIND` transition using the PowerShell
+   command below;
 
    ```bat
    .\BalatroAgentToggle.bat --attempt 1 --blind-start-parity-directory logs/balatro/r5-blind-start-parity
