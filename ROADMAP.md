@@ -1307,6 +1307,19 @@ private replay authority is exactly Balatro's per-center
 `G.GAME.consumeable_usage` counts plus `G.GAME.consumeable_usage_total`; these
 are not policy observations and must stay in the opt-in sidecar.
 
+The exact private held-Planet capture/replay seam is green at `452222e7`. It
+captures stable complete SHOP public state together with per-center usage
+count/set/order records and all five aggregate counters, restores
+`consumable_usage_observed=True`, and replays through the canonical
+`use_planet_exact` owner. Vanilla's exact pre-first-use state leaves both usage
+tables nil; the capture normalizes only that paired-nil state to the five zero
+counters that `set_consumeable_usage` creates before its first increment.
+Partial, malformed, unknown, inconsistent, drifting, non-SHOP, targeted,
+Tarot, and Spectral cases fail closed. The recorder is opt-in through
+`--held-planet-parity-directory` and does not change normal decisions. GitHub
+Actions run `34398260070`, job `102623415051`, passed with **2541 passed, 1596
+deselected**.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1330,26 +1343,25 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-Build the opt-in held-Planet private capture/replay seam before requesting any
-new live run:
+Capture one natural held-Planet use with the now-green opt-in recorder:
 
-1. capture one stable complete active-SHOP public snapshot plus exact private
-   `G.GAME.consumeable_usage` per-center counts and the complete
-   `G.GAME.consumeable_usage_total` table; read twice and reject drift;
-2. admit only an untargeted held `PlanetCard` action already accepted by the
-   green public mapper, and reconstruct `HeadlessRunState` with
-   `consumable_usage_observed=True` from the private checkpoint;
-3. replay through `use_planet_with_public_evidence` / `use_planet_exact`, compare
-   the settled public transition, and separately prove that only the chosen
-   center count plus `planet`, `tarot_planet`, and `all` totals increment once;
-4. fail closed on malformed/missing counts, unknown usage keys or sets,
-   incomplete totals, state drift, non-SHOP timing, Constellation/public mismatch,
-   or any Tarot/Spectral/targeted-card action;
-5. wire an opt-in diagnostic recorder and one canonical `--attempt N` launcher
-   option without changing normal production decisions; add focused capture,
-   serialization, replay, supervisor-observational, and launcher regressions;
-6. push and use GitHub Actions as the gate. Only after green may a natural live
-   held-Planet fixture be requested.
+```powershell
+git pull
+.\BalatroAgentToggle.bat --attempt 5 --held-planet-parity-directory .\logs\balatro\parity
+```
+
+The user may stop the agent as soon as a
+`*.held-planet-parity.jsonl` sidecar is created; no additional gameplay from
+that session is required. Preserve both that sidecar and its corresponding
+public `attempt-NNN.jsonl`. Then:
+
+1. freeze both files unchanged as the representative held-Planet fixture;
+2. verify the sidecar's original comparison result and replay it against the
+   current canonical owner;
+3. if it mismatches, patch only the first wrong canonical owner and add one
+   focused regression; if it matches, close held-Planet parity;
+4. push and use GitHub Actions as the gate;
+5. update this roadmap before selecting the next remaining R5 fixture.
 
 Do not broaden this slice to shop buy-and-use, Tarot/Spectral mechanics, booster
 Planet choices, policy valuation/tuning, playing-card shop purchases, Boss skip
