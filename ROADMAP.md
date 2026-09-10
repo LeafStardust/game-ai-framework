@@ -1514,12 +1514,14 @@ Voucher evidence now covers the canonical `Clearance Sale` transition and its
 `Liquidation` upgrade through the shared `ShopTransitionEngine`: each purchase
 debits exactly `$25 -> $15`, while observed shop discount changes `0 -> 25`
 and `25 -> 50`, with the exact ordered Voucher ownership in each after-state.
-The focused R5 Voucher plus affected R2 owner suites pass at **19 passed**;
+The focused R5 Voucher plus affected R2 owner suites pass at **20 passed**;
 the earlier affected economy checkpoint remains **27 passed**. This adds no
 live authority and does not promote the missing natural Seed Money/Money Tree
 fixture; that fixture remains deferred until a real `BUY_VOUCHER` boundary is
 captured. The next economy task must continue from the remaining uncovered
-supported mutation after re-fetching this branch.
+supported mutation after re-fetching this branch. Reroll-cost authority remains
+private to the simulator transition and is intentionally not leaked into the
+public evidence signature.
 
 Keep the held-Planet, audited-Joker-sale, representative-Boss, and strengthened
 blind-start natural fixtures deferred without marking any gate complete.

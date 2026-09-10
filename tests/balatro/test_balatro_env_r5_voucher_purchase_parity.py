@@ -207,6 +207,19 @@ def test_env_r5_live_liquidation_purchase_preserves_upgrade_order():
     assert transition.after.vouchers == ["v_clearance_sale", "v_liquidation"]
 
 
+def test_env_r5_live_reroll_surplus_purchase_preserves_public_economy_order():
+    voucher = _voucher(center="v_reroll_surplus", label="Reroll Surplus")
+    rows = _rows(voucher=voucher)
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.vouchers == []
+    assert transition.after.vouchers == ["v_reroll_surplus"]
+
+
 def test_env_r5_live_voucher_purchase_rejects_wrong_identity_and_unsupported_center():
     with pytest.raises(ValueError, match="target center does not match"):
         successful_voucher_purchase_evidence_from_run_rows(
