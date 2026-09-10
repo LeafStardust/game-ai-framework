@@ -97,6 +97,27 @@ def buy_joker_with_public_evidence(
     return result, evidence
 
 
+def buy_consumable_with_public_evidence(
+    run: HeadlessRunState,
+    *,
+    slot: int,
+) -> tuple[HeadlessRunState, PublicStrategicTransitionEvidence]:
+    """Execute the canonical exact held-consumable purchase owner and capture R5 evidence."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    if isinstance(slot, bool) or not isinstance(slot, int):
+        raise TypeError("slot must be an integer")
+    action = EnvAction.from_alias("BUY_CONSUMABLE", {"slot": slot})
+    before = run.public
+    result = ShopTransitionEngine().step(run, action)
+    evidence = build_public_strategic_transition_evidence(
+        before,
+        action,
+        result.public,
+    )
+    return result, evidence
+
+
 def buy_voucher_with_public_evidence(
     run: HeadlessRunState,
     *,
