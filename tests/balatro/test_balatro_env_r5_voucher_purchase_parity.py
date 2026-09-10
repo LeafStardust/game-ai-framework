@@ -235,6 +235,47 @@ def test_env_r5_live_liquidation_purchase_preserves_upgrade_order():
     assert transition.after.vouchers == ["v_clearance_sale", "v_liquidation"]
 
 
+def test_env_r5_live_hone_purchase_preserves_edition_rate_order():
+    voucher = _voucher(center="v_hone", label="Hone")
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(joker_generation_edition_rate=1.0)
+    rows[3]["data"]["state"]["payload"].update(
+        joker_generation_edition_rate=2.0,
+        vouchers=["v_hone"],
+    )
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.joker_generation_edition_rate == 1.0
+    assert transition.after.joker_generation_edition_rate == 2.0
+    assert transition.after.vouchers == ["v_hone"]
+
+
+def test_env_r5_live_glow_up_purchase_preserves_upgrade_order():
+    voucher = _voucher(center="v_glow_up", label="Glow Up")
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(
+        vouchers=["v_hone"],
+        joker_generation_edition_rate=2.0,
+    )
+    rows[3]["data"]["state"]["payload"].update(
+        vouchers=["v_hone", "v_glow_up"],
+        joker_generation_edition_rate=4.0,
+    )
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.joker_generation_edition_rate == 2.0
+    assert transition.after.joker_generation_edition_rate == 4.0
+    assert transition.after.vouchers == ["v_hone", "v_glow_up"]
+
+
 def test_env_r5_live_reroll_surplus_purchase_preserves_public_economy_order():
     voucher = _voucher(center="v_reroll_surplus", label="Reroll Surplus")
     rows = _rows(voucher=voucher)

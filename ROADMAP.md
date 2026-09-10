@@ -1167,6 +1167,7 @@ GitHub Actions job 102099701468
 GitHub Actions run 34250416208
 GitHub Actions job 102143121535
 2452 passed, 1595 deselected
+```
 
 The first real paid-reroll fixture,
 `balatro-20260908T091943Z-e7a1ad15-attempt-001`, contains two settled
@@ -1522,6 +1523,17 @@ captured. The next economy task must continue from the remaining uncovered
 supported mutation after re-fetching this branch. Reroll-cost authority remains
 private to the simulator transition and is intentionally not leaked into the
 public evidence signature.
+
+### Deterministic R5 edition-rate Voucher evidence checkpoint
+
+The next uncovered public economy mutation is now covered in the R5 Voucher
+parity boundary: `Hone` changes the observed Joker edition-generation rate
+from `1.0 -> 2.0`, and its ordered `Glow Up` upgrade changes it from
+`2.0 -> 4.0`, with the exact `$25 -> $15` purchase debit and Voucher ownership
+order preserved. The canonical transition owner was unchanged. Focused R2
+owner plus R5 parity validation passes at **29 passed, 0 failed, 0 skipped**.
+This is deterministic repository evidence only; no natural live fixture is
+promoted by this checkpoint.
 
 ### Independent R5 tactical evidence checkpoint
 
