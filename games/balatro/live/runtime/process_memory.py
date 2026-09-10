@@ -1,10 +1,114 @@
 from __future__ import annotations
 
 import ctypes
+import multiprocessing as mp
 import platform
+import time
 from dataclasses import dataclass
 from ctypes import wintypes
 from typing import Iterator
+
+
+DEFAULT_WINDOWS_READ_TIMEOUT_SECONDS = 5.0
+
+
+def _sleep_for_test(seconds: float) -> None:
+    time.sleep(seconds)
+
+
+def _read_process_memory_bytes(pid: int, address: int, size: int) -> bytes:
+    """Open a fresh read-only handle and execute the Win32 read in a child process."""
+    if pid <= 0 or address < 0 or size < 0:
+        raise ValueError("pid/address/size must be valid")
+    if size == 0:
+        return b""
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    read_process_memory = kernel32.ReadProcessMemory
+    read_process_memory.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+        ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_size_t),
+    ]
+    read_process_memory.restype = wintypes.BOOL
+
+    access = 0x0010 | 0x0400
+    kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    process = kernel32.OpenProcess(access, False, pid)
+    if not process:
+        error = ctypes.get_last_error()
+        raise BalatroProcessMemoryError(
+            f"unable to open process {pid} for read-only access (WinError {error})"
+        )
+    try:
+        buffer = ctypes.create_string_buffer(size)
+        read = ctypes.c_size_t()
+        ok = read_process_memory(
+            wintypes.HANDLE(process),
+            ctypes.c_void_p(address),
+            buffer,
+            size,
+            ctypes.byref(read),
+        )
+        if not ok:
+            error = ctypes.get_last_error()
+            raise BalatroProcessMemoryError(
+                f"ReadProcessMemory failed at 0x{address:x} for {size} bytes "
+                f"(WinError {error})"
+            )
+        return bytes(buffer.raw[: read.value])
+    finally:
+        kernel32.CloseHandle(wintypes.HANDLE(process))
+
+
+def _run_process_timeout_worker(queue, func, args) -> None:
+    try:
+        queue.put(("ok", func(*args)))
+    except BaseException as exc:  # pragma: no cover - exercised by timeout test
+        queue.put(("error", repr(exc)))
+
+
+def _run_with_process_timeout(func, *, timeout_seconds: float, args=None) -> object:
+    """Execute a blocking callable in a worker process with a bounded lifetime.
+
+    This avoids the unsafe pattern of trying to kill a Python thread that has
+    entered a blocking native Win32 call. If the worker exceeds the timeout it is
+    terminated, and the caller sees a fail-closed BalatroProcessMemoryError.
+    """
+    if timeout_seconds <= 0:
+        raise ValueError("timeout_seconds must be positive")
+
+    args = () if args is None else tuple(args)
+    context = mp.get_context("spawn")
+    queue = context.Queue()
+    worker = context.Process(
+        target=_run_process_timeout_worker,
+        args=(queue, func, args),
+        daemon=True,
+    )
+    worker.start()
+    worker.join(timeout_seconds)
+    if worker.is_alive():
+        worker.terminate()
+        worker.join(1)
+        if worker.is_alive():
+            worker.kill()
+        raise BalatroProcessMemoryError(
+            f"blocking Win32 process call timed out after {timeout_seconds} seconds"
+        )
+
+    if queue.empty():
+        raise BalatroProcessMemoryError(
+            f"blocking Win32 process call did not return before {timeout_seconds} seconds"
+        )
+
+    status, payload = queue.get_nowait()
+    if status == "error":
+        raise BalatroProcessMemoryError(str(payload))
+    return payload
 
 from .process_locator import BalatroWindowLocator
 
@@ -132,7 +236,13 @@ class WindowsProcessMemoryReader:
         self._close_handle(wintypes.HANDLE(self.handle))
         self.handle = 0
 
-    def read(self, address: int, size: int) -> bytes:
+    def read(
+        self,
+        address: int,
+        size: int,
+        *,
+        timeout_seconds: float | None = DEFAULT_WINDOWS_READ_TIMEOUT_SECONDS,
+    ) -> bytes:
         if not self.handle:
             raise BalatroProcessMemoryError("Balatro process handle is closed")
         if address < 0 or size < 0:
@@ -140,6 +250,15 @@ class WindowsProcessMemoryReader:
         if size == 0:
             return b""
 
+        if timeout_seconds is None:
+            return self._read_once(address, size)
+        return _run_with_process_timeout(
+            _read_process_memory_bytes,
+            timeout_seconds=timeout_seconds,
+            args=(self.pid, address, size),
+        )
+
+    def _read_once(self, address: int, size: int) -> bytes:
         buffer = ctypes.create_string_buffer(size)
         read = ctypes.c_size_t()
         ok = self._read_process_memory(
