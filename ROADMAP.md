@@ -1514,7 +1514,7 @@ Voucher evidence now covers the canonical `Clearance Sale` transition and its
 `Liquidation` upgrade through the shared `ShopTransitionEngine`: each purchase
 debits exactly `$25 -> $15`, while observed shop discount changes `0 -> 25`
 and `25 -> 50`, with the exact ordered Voucher ownership in each after-state.
-The focused R5 Voucher plus affected R2 owner suites pass at **21 passed**;
+The focused R5 Voucher plus affected R2 owner suites pass at **22 passed**;
 the earlier affected economy checkpoint remains **27 passed**. This adds no
 live authority and does not promote the missing natural Seed Money/Money Tree
 fixture; that fixture remains deferred until a real `BUY_VOUCHER` boundary is

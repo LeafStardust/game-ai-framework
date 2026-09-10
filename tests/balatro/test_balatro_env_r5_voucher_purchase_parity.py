@@ -243,6 +243,25 @@ def test_env_r5_live_planet_merchant_purchase_preserves_rate_order():
     assert transition.after.vouchers == ["v_planet_merchant"]
 
 
+def test_env_r5_live_tarot_merchant_purchase_preserves_rate_order():
+    voucher = _voucher(center="v_tarot_merchant", label="Tarot Merchant")
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(tarot_rate=4.0)
+    rows[3]["data"]["state"]["payload"].update(
+        tarot_rate=9.6,
+        vouchers=["v_tarot_merchant"],
+    )
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.tarot_rate == 4.0
+    assert transition.after.tarot_rate == 9.6
+    assert transition.after.vouchers == ["v_tarot_merchant"]
+
+
 def test_env_r5_live_voucher_purchase_rejects_wrong_identity_and_unsupported_center():
     with pytest.raises(ValueError, match="target center does not match"):
         successful_voucher_purchase_evidence_from_run_rows(
