@@ -51,17 +51,20 @@ def _log_state(*, sequence, score):
     }
 
 
-def _rows():
-    action = {"name": PLAY_CARDS, "indices": [0]}
+def _rows(*, action_name=PLAY_CARDS, before_score=0, after_score=11):
+    action = {"name": action_name, "indices": [0]}
     return [
-        {"event": "observation", "data": {"state": _log_state(sequence=1, score=0)}},
+        {
+            "event": "observation",
+            "data": {"state": _log_state(sequence=1, score=before_score)},
+        },
         {"event": "decision", "data": {"action": action}},
         {
             "event": "action_result",
             "data": {
                 "action": action,
                 "success": True,
-                "state": _log_state(sequence=2, score=11),
+                "state": _log_state(sequence=2, score=after_score),
             },
         },
     ]
@@ -113,6 +116,17 @@ def test_env_r5_run_log_entry_point_compares_against_simulator_evidence():
     assert comparison.differences == ()
     assert comparison.live_length == 1
     assert comparison.simulator_length == 1
+
+
+def test_env_r5_run_log_entry_point_compares_discard_against_simulator_evidence():
+    rows = _rows(action_name=DISCARD_CARDS, before_score=11, after_score=11)
+    simulator = successful_tactical_evidence_from_run_rows(rows)
+
+    assert simulator[0].action.name == DISCARD_CARDS
+    comparison = compare_run_rows_to_simulator_tactical_evidence(rows, simulator)
+
+    assert comparison.matches is True
+    assert comparison.differences == ()
 
 
 def test_env_r5_run_log_entry_point_reports_simulator_post_state_difference():

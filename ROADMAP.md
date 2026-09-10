@@ -1523,6 +1523,17 @@ supported mutation after re-fetching this branch. Reroll-cost authority remains
 private to the simulator transition and is intentionally not leaked into the
 public evidence signature.
 
+### Independent R5 tactical evidence checkpoint
+
+The durable live-log tactical adapter now has deterministic R5 coverage for
+both frozen tactical action families: `PLAY_CARDS` and `DISCARD_CARDS`. The new
+discard regression converts an unchanged successful observation/decision/action
+result boundary through `successful_tactical_evidence_from_run_rows` and
+compares it through the shared public trajectory comparator. The focused
+tactical suite passes at **5 passed**. This does not change canonical tactical
+ownership or promote a live fixture; the active roadmap task remains economy
+transitions.
+
 Keep the held-Planet, audited-Joker-sale, representative-Boss, and strengthened
 blind-start natural fixtures deferred without marking any gate complete.
 Continue with the next independent R5 fixture: economy transitions.
