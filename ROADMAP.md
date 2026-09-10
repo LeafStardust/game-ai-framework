@@ -449,6 +449,17 @@ R5 live-memory `G` cache process-identity repair:
   repository-only repair.
   Focused validation: 19 discovery/decoder tests passed; 36 observer/supervisor
   tests passed; roadmap selector passed with 2599 passed and 1601 deselected.
+
+R5 live-agent bridge timeout diagnostics:
+  The first concrete current no-movement failure remains a live-only
+  `InjectedBridgeTimeoutError` while waiting for `STATUS`; the pending command
+  was cancelled before Balatro consumed it. The canonical bridge timeout now
+  records the command id, bridge/command/response paths, response presence, and
+  timeout budget in the exception captured by the supervisor diagnostic log.
+  No stale supervisor or monitor process was present during read-only
+  inspection, and no control/process command was launched. Focused validation:
+  2 passed, 0 failed, 0 skipped, 0 deselected in
+  `tests/balatro/test_balatro_bridge_timeout_cleanup.py`.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.

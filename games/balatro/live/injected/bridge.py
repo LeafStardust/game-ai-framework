@@ -349,18 +349,29 @@ class FirstPartyBalatroBridge:
                         return message
 
             if time.monotonic() >= deadline:
+                response_present = self.response_path.exists()
                 cancelled = self._cancel_own_pending_command(command_id)
                 if cancelled:
                     raise InjectedBridgeTimeoutError(
                         "timed out waiting for the first-party Balatro bridge; "
                         "the still-pending command was cancelled before Balatro "
-                        "consumed it"
+                        "consumed it; "
+                        f"command_id={command_id}; bridge_dir={self.bridge_dir}; "
+                        f"command_path={self.command_path}; "
+                        f"response_path={self.response_path}; "
+                        f"response_present={response_present}; "
+                        f"timeout_seconds={self.timeout}"
                     )
                 raise InjectedBridgeTimeoutError(
                     "timed out waiting for the first-party Balatro bridge after "
                     "the command slot was already consumed; command outcome is "
                     "indeterminate, so re-observe authoritative live state before "
-                    "retrying"
+                    "retrying; "
+                    f"command_id={command_id}; bridge_dir={self.bridge_dir}; "
+                    f"command_path={self.command_path}; "
+                    f"response_path={self.response_path}; "
+                    f"response_present={response_present}; "
+                    f"timeout_seconds={self.timeout}"
                 )
             if self.poll_interval:
                 time.sleep(self.poll_interval)

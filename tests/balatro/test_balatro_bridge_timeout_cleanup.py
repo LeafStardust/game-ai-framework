@@ -16,12 +16,15 @@ def test_timeout_cancels_exact_still_pending_command(tmp_path):
         poll_interval=0.0,
     )
 
-    with pytest.raises(
-        InjectedBridgeTimeoutError,
-        match="still-pending command was cancelled",
-    ):
+    with pytest.raises(InjectedBridgeTimeoutError) as raised:
         bridge.status()
 
+    message = str(raised.value)
+    assert "still-pending command was cancelled" in message
+    assert f"bridge_dir={tmp_path}" in message
+    assert "command_id=" in message
+    assert "response_present=False" in message
+    assert "timeout_seconds=0.0" in message
     assert bridge.command_path.exists() is False
     assert bridge.response_path.exists() is False
 
@@ -47,13 +50,16 @@ def test_timeout_reports_indeterminate_if_balatro_already_consumed_slot(tmp_path
     worker = threading.Thread(target=consume_without_response)
     worker.start()
     try:
-        with pytest.raises(
-            InjectedBridgeTimeoutError,
-            match="outcome is indeterminate",
-        ):
+        with pytest.raises(InjectedBridgeTimeoutError) as raised:
             bridge.status()
     finally:
         worker.join(timeout=1.0)
 
+    message = str(raised.value)
+    assert "outcome is indeterminate" in message
+    assert f"bridge_dir={tmp_path}" in message
+    assert "command_id=" in message
+    assert "response_present=False" in message
+    assert "timeout_seconds=0.05" in message
     assert consumed.is_set()
     assert bridge.command_path.exists() is False
