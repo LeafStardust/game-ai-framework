@@ -1547,6 +1547,21 @@ evidence. Focused R5 Voucher parity validation passes at **16 passed, 0
 failed, 0 skipped**. This is deterministic repository evidence only; no
 natural live fixture is promoted by this checkpoint.
 
+### Deterministic R5 main-shop-size Voucher evidence checkpoint
+
+The next uncovered supported economy mutation is now covered in the R5 Voucher
+parity boundary: `Overstock` and its ordered `Overstock Plus` upgrade preserve
+the exact `$25 -> $15` purchase debit and Voucher ownership order. The canonical
+shop-size redemption owner in
+`games/balatro/env/shop_size_voucher_redemption.py` is unchanged; its private
+main-shop replenishment remains separate from public parity evidence. Focused R5
+Voucher parity validation passes at **18 passed, 0 failed, 0 skipped**. This is
+synthetic deterministic repository evidence only and does not promote a live
+fixture. The next uncovered supported deterministic economy transition is the
+Hieroglyph/Petroglyph ante-and-round-allowance pair; the natural Money Tree,
+held-Planet, Joker-sale, Boss, and strengthened blind-start fixtures remain
+live-only or deferred.
+
 ### Independent R5 tactical evidence checkpoint
 
 The durable live-log tactical adapter now has deterministic R5 coverage for

@@ -308,6 +308,38 @@ def test_env_r5_live_reroll_glut_purchase_preserves_upgrade_order():
     assert transition.after.vouchers == ["v_reroll_surplus", "v_reroll_glut"]
 
 
+def test_env_r5_live_overstock_purchase_preserves_main_shop_size_order():
+    voucher = _voucher(center="v_overstock_norm", label="Overstock")
+    rows = _rows(voucher=voucher)
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.vouchers == []
+    assert transition.after.vouchers == ["v_overstock_norm"]
+
+
+def test_env_r5_live_overstock_plus_purchase_preserves_upgrade_order():
+    voucher = _voucher(center="v_overstock_plus", label="Overstock Plus")
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(
+        vouchers=["v_overstock_norm"],
+    )
+    rows[3]["data"]["state"]["payload"].update(
+        vouchers=["v_overstock_norm", "v_overstock_plus"],
+    )
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.vouchers == ["v_overstock_norm"]
+    assert transition.after.vouchers == ["v_overstock_norm", "v_overstock_plus"]
+
+
 def test_env_r5_live_planet_merchant_purchase_preserves_rate_order():
     voucher = _voucher(center="v_planet_merchant", label="Planet Merchant")
     rows = _rows(voucher=voucher)
