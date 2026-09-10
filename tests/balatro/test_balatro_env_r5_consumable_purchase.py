@@ -135,7 +135,7 @@ def test_env_r5_headless_consumable_purchase_wraps_canonical_owner():
     state.shop_consumables = [planet]
     state.consumable_slots = 2
 
-    run = HeadlessRunState(public=state)
+    run = HeadlessRunState(public=state, seed="r5-consumable-purchase")
     result, evidence = buy_consumable_with_public_evidence(run, slot=0)
 
     assert run.public.money == 10
