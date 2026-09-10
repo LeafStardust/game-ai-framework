@@ -1534,6 +1534,14 @@ tactical suite passes at **5 passed**. This does not change canonical tactical
 ownership or promote a live fixture; the active roadmap task remains economy
 transitions.
 
+### Deterministic R5 gate checkpoint
+
+The current clean branch passes the GitHub Actions-equivalent deterministic
+Balatro selector at **2586 passed, 0 failed, 0 skipped, 1596 deselected**.
+R6 and every later phase remain hard-blocked until the R5 natural-fixture exit
+gates and all R5 exit criteria are complete; this green deterministic gate does
+not authorize a phase transition.
+
 Keep the held-Planet, audited-Joker-sale, representative-Boss, and strengthened
 blind-start natural fixtures deferred without marking any gate complete.
 Continue with the next independent R5 fixture: economy transitions.
