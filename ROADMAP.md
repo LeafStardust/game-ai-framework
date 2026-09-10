@@ -1351,7 +1351,8 @@ current HEAD is still required to close held-Planet parity.
 
 ## Remaining priority parity fixtures
 
-- held Planet use;
+- held Planet use — recorder/replay code is green, but the natural live fixture
+  is temporarily deferred at the user's request and remains incomplete;
 - audited Joker sale;
 - representative Bosses;
 - RNG/shuffle/draw;
@@ -1363,29 +1364,36 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-Capture one natural held-Planet use with the now-green opt-in recorder:
+Hold the natural held-Planet run request without marking that gate complete.
+Continue with the next independent R5 fixture: one audited inventory-only
+Joker sale in an active main SHOP.
 
-```powershell
-git pull
-.\BalatroAgentToggle.bat --attempt 5 --held-planet-parity-directory .\logs\balatro\parity
-```
+1. inspect the existing frozen R3 `SELL_JOKER` contract, canonical
+   `sell_joker_exact` owner, public translator, live run-log boundary, and
+   pinned vanilla sale lifecycle;
+2. add `SELL_JOKER` to the shared public strategic evidence adapter only for an
+   exact visible owned-Joker index/identity that belongs to the already-audited
+   inventory-only subset;
+3. add an evidence wrapper that delegates directly to `sell_joker_exact`; sale
+   consumes no RNG, so do not create private replay authority unless inspection
+   proves an actually missing private fact;
+4. add focused deterministic regressions for the admitted row and every
+   ambiguous, unsupported, Eternal, editioned, malformed, or non-SHOP boundary;
+5. inspect existing natural public run logs for one coherent supported sale. If
+   one is sufficient, preserve and replay it unchanged; request a new live run
+   only if no existing boundary supplies the exact required evidence;
+6. patch only the first wrong canonical owner exposed by unchanged evidence,
+   push, use GitHub Actions as the gate, and synchronize this roadmap before
+   selecting the next fixture.
 
-The user may stop the agent as soon as a
-`*.held-planet-parity.jsonl` sidecar is created; no additional gameplay from
-that session is required. Preserve both that sidecar and its corresponding
-public `attempt-NNN.jsonl`. Then:
+Do not broaden this slice to resource-sensitive inverse lifecycles, pack-time
+sales, pre-blind sales, Verdant Leaf, shop buy-and-use, Tarot/Spectral mechanics,
+booster Planet choices, policy valuation/tuning, playing-card shop purchases,
+Boss skip paths, or Boss reroll. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
-1. freeze both files unchanged as the representative held-Planet fixture;
-2. verify the sidecar's original comparison result and replay it against the
-   current canonical owner;
-3. if it mismatches, patch only the first wrong canonical owner and add one
-   focused regression; if it matches, close held-Planet parity;
-4. push and use GitHub Actions as the gate;
-5. update this roadmap before selecting the next remaining R5 fixture.
-
-Do not broaden this slice to shop buy-and-use, Tarot/Spectral mechanics, booster
-Planet choices, policy valuation/tuning, playing-card shop purchases, Boss skip
-paths, or Boss reroll. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
+After later independent R5 fixtures have progressed, return to the deferred
+held-Planet task at its existing current-HEAD capture command. It remains a
+required R5 exit gate.
 
 ## R5 exit criteria
 
