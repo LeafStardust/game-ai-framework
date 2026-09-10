@@ -171,6 +171,30 @@ def test_env_r5_live_seed_money_purchase_preserves_money_and_interest_cap_order(
     assert transition.after.interest_cap == 50
 
 
+def test_env_r5_live_money_tree_purchase_preserves_upgrade_order():
+    voucher = _voucher(center="v_money_tree", label="Money Tree")
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(
+        vouchers=["v_seed_money"],
+        interest_cap_observed=True,
+        interest_cap=50,
+    )
+    rows[3]["data"]["state"]["payload"].update(
+        vouchers=["v_seed_money", "v_money_tree"],
+        interest_cap_observed=True,
+        interest_cap=100,
+    )
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.interest_cap == 50
+    assert transition.after.interest_cap == 100
+    assert transition.after.vouchers == ["v_seed_money", "v_money_tree"]
+
+
 def test_env_r5_live_clearance_sale_purchase_preserves_money_and_discount_order():
     voucher = _voucher(center="v_clearance_sale", label="Clearance Sale")
     rows = _rows(voucher=voucher)

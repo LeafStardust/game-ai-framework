@@ -1542,6 +1542,15 @@ R6 and every later phase remain hard-blocked until the R5 natural-fixture exit
 gates and all R5 exit criteria are complete; this green deterministic gate does
 not authorize a phase transition.
 
+### Deterministic Money Tree evidence checkpoint
+
+R5 public Voucher evidence now covers the dependent `Money Tree` upgrade using
+the existing canonical interest-cap owner: money debits exactly `$25 -> $15`,
+interest cap changes `50 -> 100`, and ordered ownership changes from
+`[v_seed_money]` to `[v_seed_money, v_money_tree]`. The focused Voucher suite
+passes at **13 passed**. This is synthetic deterministic evidence only; the
+natural live Money Tree fixture remains deferred and is not marked complete.
+
 Keep the held-Planet, audited-Joker-sale, representative-Boss, and strengthened
 blind-start natural fixtures deferred without marking any gate complete.
 Continue with the next independent R5 fixture: economy transitions.
