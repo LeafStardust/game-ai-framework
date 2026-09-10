@@ -338,6 +338,34 @@ R5 canonical held-Planet public evidence seam:
 GitHub Actions run 34396027499
 GitHub Actions job 102615838664
 2520 passed, 1596 deselected
+
+R5 exact held-Planet private replay seam:
+452222e7
+  feat(balatro): capture held Planet parity state
+GitHub Actions run 34398260070
+GitHub Actions job 102623415051
+2541 passed, 1596 deselected
+
+R5 in-round held-Planet replay readiness:
+b2c3750a
+  test(balatro): assert canonical Planet hand key
+GitHub Actions run 34413383953
+GitHub Actions job 102672681684
+2546 passed, 1596 deselected
+
+R5 audited Joker-sale evidence/replay seam:
+5a27e22b9894a34a222ef2a47634f3396afa5e57
+  test(balatro): identify unsupported Joker sale
+GitHub Actions run 34421799213
+GitHub Actions job 102698626846
+2557 passed, 1596 deselected
+
+R5 pending-Boss public identity and exact start replay seam:
+e185397aa44dd26762b296b710c5abd6237ad0cc
+  feat(balatro): expose pending Boss parity state
+GitHub Actions run 34423267134
+GitHub Actions job 102703054698
+2560 passed, 1596 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -348,11 +376,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — HELD-PLANET PUBLIC EVIDENCE IS GREEN; PRIVATE USAGE-HISTORY CAPTURE IS NEXT**.
+- R5 live/simulator parity harness: **IN PROGRESS — BOSS START REPLAY CODE IS GREEN; RNG/SHUFFLE/DRAW COVERAGE AUDIT IS NEXT**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **NOT REQUIRED NOW — BUILD THE HELD-PLANET PRIVATE CAPTURE/REPLAY SEAM FIRST**.
+- Live Balatro validation: **DEFERRED — CONTINUE INDEPENDENT R5 WORK BEFORE RETURNING TO THE OUTSTANDING NATURAL FIXTURES**.
 
 ## Current strategic action contract
 
@@ -1358,6 +1386,28 @@ infer the planned action target. No historical sale row is therefore promotable
 unchanged. A natural current-HEAD sale fixture remains required, but its live
 request is deferred while independent R5 work continues.
 
+The representative Boss-start code seam is green at `e185397a`. Pinned vanilla
+shows that the public Boss pane reads
+`round_resets.blind_choices.Boss`, indexes the matching `G.P_BLINDS` center,
+and displays `get_blind_amount(blind_ante) * center.mult` together with that
+center's reward. The process-memory observer previously published only
+`type=BOSS` with null identity and a zero target before selection, so the
+existing exact blind-start checkpoint could not restore any Boss even though
+R2 already owns every Boss start route. The canonical observer now publishes
+the exact pending center key, name, requirement, and reward for Red/White and
+leaves missing or inconsistent choice/center state incomplete. The existing
+checkpoint then replays the smallest start-inert representative, The Tooth,
+through `select_blind_exact` without a new action or replay schema. GitHub
+Actions run `34423267134`, job `102703054698`, passed with **2560 passed, 1596
+deselected**.
+
+All available historical Boss starts predate this observer repair: their
+pre-action public rows contain null Boss identity/zero requirement and they do
+not carry the private keyed-RNG checkpoint needed to verify the start shuffle
+and deal. They remain diagnostic evidence only and cannot be normalized into a
+passing fixture. A natural current-HEAD Boss-start fixture remains required but
+is deferred while independent R5 work continues.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1374,7 +1424,10 @@ request is deferred while independent R5 work continues.
 - audited Joker sale — public evidence/replay is green; a natural current-HEAD
   fixture is deferred because every historical row predates exact target
   logging;
-- representative Bosses;
+- representative Bosses — pending public identity and exact Tooth-start replay
+  are green; a natural current-HEAD private fixture is deferred because every
+  historical Boss start predates the identity repair and lacks its RNG
+  checkpoint;
 - RNG/shuffle/draw;
 - owned-deck composition;
 - economy transitions;
@@ -1384,19 +1437,20 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-Keep the held-Planet and audited-Joker-sale natural fixtures deferred without
-marking either gate complete. Continue with the next independent R5 fixture:
-representative Boss parity.
+Keep the held-Planet, audited-Joker-sale, and representative-Boss natural
+fixtures deferred without marking any gate complete. Continue with the next
+independent R5 fixture: RNG/shuffle/draw parity.
 
-1. inspect the frozen R2/R4 Boss lifecycle and tactical owners, existing
-   representative Boss regressions, public translator, durable live evidence
-   boundary, and pinned vanilla source;
-2. select the smallest representative Boss transition already exact on both
-   sides; do not broaden the environment action vocabulary;
-3. identify whether ordinary public evidence is sufficient or whether exact
-   private lifecycle/RNG authority is genuinely required;
-4. add only the missing shared evidence/replay seam with focused fail-closed
-   regressions, then inspect existing logs before requesting live gameplay;
+1. inventory the already-green exact RNG checks in paid reroll, blind start,
+   blind cash-out, blind skip, and Buffoon/Planet paths before adding anything;
+2. inspect canonical `BalatroRNG`, shuffle, deal/draw, physical-zone, public
+   observation, private checkpoint, and pinned vanilla owners for the smallest
+   still-uncovered representative RNG transition;
+3. reuse the existing keyed-RNG snapshot and public evidence contracts; do not
+   add a second RNG implementation or expose private draw order to policy;
+4. if an existing captured boundary is sufficient, preserve and replay it
+   unchanged; otherwise add only the missing opt-in private authority with
+   focused fail-closed regressions and defer the natural fixture;
 5. patch only the first wrong canonical owner exposed by unchanged evidence,
    push, use GitHub Actions as the gate, and synchronize this roadmap.
 
@@ -1406,8 +1460,8 @@ buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy
 valuation/tuning, or playing-card shop purchases. `BUY_CARD` and `REROLL_BOSS`
 remain unavailable.
 
-After later independent R5 fixtures have progressed, return to both deferred
-natural fixtures. They remain required R5 exit gates.
+After later independent R5 fixtures have progressed, return to all three
+deferred natural fixtures. They remain required R5 exit gates.
 
 ## R5 exit criteria
 
