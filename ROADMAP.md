@@ -1578,28 +1578,21 @@ natural Seed Money fixture only; Money Tree still needs a current-HEAD natural
 fixture, and the remaining held-Planet, Joker-sale, Boss, and strengthened
 blind-start natural gates remain deferred. R6 remains hard-blocked.
 
-Keep the held-Planet, audited-Joker-sale, representative-Boss, and strengthened
-blind-start natural fixtures deferred without marking any gate complete.
-Continue with the next independent R5 fixture: economy transitions.
+### Current R5 status
 
-1. inventory the already-owned cash-out, reward, cost, income, interest, Voucher,
-   and resource-reset owners plus existing real economy evidence;
-2. inspect the smallest supported economy mutation not already covered by
-   cash-out/reroll/purchase fixtures and compare it through the shared public
-   strategic evidence path;
-3. preserve exact money/resource ordering and any private RNG authority required
-   by the canonical owner; never infer economy state from a later balance alone;
-4. patch only the first wrong canonical owner exposed by unchanged evidence,
-   push, use GitHub Actions as the gate, and synchronize this roadmap.
+- Deterministic R5 selector: **2590 passed, 0 failed, 0 skipped, 1596 deselected**.
+- Natural Seed Money fixture: **complete** at current HEAD.
+- Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
+- Held Planet, audited Joker sale, representative Boss, and strengthened blind-start fixtures: **still required or deferred**.
+- Live supervisor reliability: **blocked by an unbounded native `ReadProcessMemory` call** observed after `END_ROUND -> SHOP`; do not launch another unattended batch until this boundary is addressed.
+- R6 and every later phase: **blocked** until all R5 exit criteria and natural fixtures are complete.
 
-Do not broaden this slice to unsupported Bosses, Boss skip paths, Boss reroll,
-resource-sensitive Joker inverse lifecycles, pack/pre-blind/Verdant sales, shop
-buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy
-valuation/tuning, or playing-card shop purchases. `BUY_CARD` and `REROLL_BOSS`
-remain unavailable.
+### Next actions
 
-After later independent R5 fixtures have progressed, return to all four
-deferred natural fixtures. They remain required R5 exit gates.
+1. Resolve the live observer/process-memory stall without leaking hidden state or adding a thread-based rescue layer.
+2. Re-run the full deterministic R5 selector after that repair.
+3. Capture and promote the natural Money Tree, Held Planet, Joker-sale, Boss-start, and strengthened blind-start fixtures in that order as evidence becomes available.
+4. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
 ## R5 exit criteria
 
