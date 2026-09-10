@@ -1550,9 +1550,10 @@ continue after a loss.
 
 The current clean branch passes the GitHub Actions-equivalent deterministic
 Balatro selector at **2591 passed, 0 failed, 0 skipped, 1596 deselected**.
-R6 and every later phase remain hard-blocked until the R5 natural-fixture exit
-gates and all R5 exit criteria are complete; this green deterministic gate does
-not authorize a phase transition.
+A fresh current-HEAD verification completed in **115.00s** with the same green
+result. R6 and every later phase remain hard-blocked until the R5 natural-fixture
+exit gates and all R5 exit criteria are complete; this green deterministic gate
+does not authorize a phase transition.
 
 ### Deterministic Money Tree evidence checkpoint
 
