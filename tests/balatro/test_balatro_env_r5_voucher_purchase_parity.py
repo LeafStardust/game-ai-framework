@@ -35,6 +35,8 @@ def _shop_state(
     money,
     shop_vouchers,
     vouchers=(),
+    ante=2,
+    round_hands=4,
     discards=4,
     shop_discount_percent=0,
     tarot_rate=4.0,
@@ -48,13 +50,16 @@ def _shop_state(
             "deck": "RED",
             "stake": "WHITE",
             "money": money,
+            "ante": ante,
             "round": {
-                "hands_left": 4,
+                "hands_left": round_hands,
                 "discards_left": discards,
                 "discards_total": discards,
                 "discards_used": 0,
                 "chips": 0,
             },
+            "round_reset_hands": round_hands,
+            "round_reset_hands_observed": True,
             "round_reset_discards": discards,
             "round_reset_discards_observed": True,
             "hand": {"limit": 8, "cards": []},
@@ -193,6 +198,67 @@ def test_env_r5_live_money_tree_purchase_preserves_upgrade_order():
     assert transition.before.interest_cap == 50
     assert transition.after.interest_cap == 100
     assert transition.after.vouchers == ["v_seed_money", "v_money_tree"]
+
+
+def test_env_r5_live_hieroglyph_purchase_preserves_ante_and_hand_allowance_order():
+    voucher = _voucher(center="v_hieroglyph", label="Hieroglyph")
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(ante=2)
+    rows[0]["data"]["state"]["payload"]["round"]["hands_left"] = 4
+    rows[0]["data"]["state"]["payload"]["round_reset_hands"] = 4
+    rows[3]["data"]["state"]["payload"].update(
+        ante=1,
+        vouchers=["v_hieroglyph"],
+    )
+    rows[3]["data"]["state"]["payload"]["round"]["hands_left"] = 3
+    rows[3]["data"]["state"]["payload"]["round_reset_hands"] = 3
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.ante == 2
+    assert transition.after.ante == 1
+    assert transition.before.round_reset_hands == 4
+    assert transition.after.round_reset_hands == 3
+    assert transition.before.hands_remaining == 4
+    assert transition.after.hands_remaining == 3
+    assert transition.after.vouchers == ["v_hieroglyph"]
+
+
+def test_env_r5_live_petroglyph_purchase_preserves_upgrade_and_discard_order():
+    voucher = _voucher(center="v_petroglyph", label="Petroglyph")
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(
+        ante=1,
+        vouchers=["v_hieroglyph"],
+    )
+    rows[0]["data"]["state"]["payload"]["round"]["hands_left"] = 3
+    rows[0]["data"]["state"]["payload"]["round_reset_hands"] = 3
+    rows[0]["data"]["state"]["payload"]["round_reset_discards"] = 4
+    rows[0]["data"]["state"]["payload"]["round"]["discards_left"] = 4
+    rows[3]["data"]["state"]["payload"].update(
+        ante=0,
+        vouchers=["v_hieroglyph", "v_petroglyph"],
+    )
+    rows[3]["data"]["state"]["payload"]["round"]["hands_left"] = 3
+    rows[3]["data"]["state"]["payload"]["round_reset_hands"] = 3
+    rows[3]["data"]["state"]["payload"]["round_reset_discards"] = 3
+    rows[3]["data"]["state"]["payload"]["round"]["discards_left"] = 3
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.ante == 1
+    assert transition.after.ante == 0
+    assert transition.before.round_reset_discards == 4
+    assert transition.after.round_reset_discards == 3
+    assert transition.before.discards_remaining == 4
+    assert transition.after.discards_remaining == 3
+    assert transition.after.vouchers == ["v_hieroglyph", "v_petroglyph"]
 
 
 def test_env_r5_live_clearance_sale_purchase_preserves_money_and_discount_order():

@@ -1619,6 +1619,20 @@ interest cap changes `50 -> 100`, and ordered ownership changes from
 passes at **13 passed**. This is synthetic deterministic evidence only; the
 natural live Money Tree fixture remains deferred and is not marked complete.
 
+### Deterministic R5 Hieroglyph/Petroglyph evidence checkpoint
+
+The next uncovered supported economy transition is now covered in the R5
+Voucher parity boundary: `Hieroglyph` preserves the exact `$25 -> $15`
+purchase debit, ordered ownership, Ante `2 -> 1`, next-round hands `4 -> 3`,
+and current hands `4 -> 3`; its dependent `Petroglyph` purchase preserves the
+same debit, ordered `[v_hieroglyph, v_petroglyph]` ownership, Ante `1 -> 0`,
+next-round discards `4 -> 3`, and current discards `4 -> 3`. The canonical
+owner in `games/balatro/env/ante_voucher_redemption.py` is unchanged; the
+existing private `blind_ante` mutation and R2 fail-closed legality coverage
+remain authoritative. Focused R5 Voucher parity plus both affected R2 owner
+suites pass at **35 passed, 0 failed, 0 skipped**. This is synthetic
+deterministic public evidence only and does not promote a natural live fixture.
+
 ### Natural Seed Money fixture checkpoint
 
 The current-HEAD live fixture
