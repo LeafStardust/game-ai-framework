@@ -289,6 +289,25 @@ def test_env_r5_live_reroll_surplus_purchase_preserves_public_economy_order():
     assert transition.after.vouchers == ["v_reroll_surplus"]
 
 
+def test_env_r5_live_reroll_glut_purchase_preserves_upgrade_order():
+    voucher = _voucher(center="v_reroll_glut", label="Reroll Glut")
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(
+        vouchers=["v_reroll_surplus"],
+    )
+    rows[3]["data"]["state"]["payload"].update(
+        vouchers=["v_reroll_surplus", "v_reroll_glut"],
+    )
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.vouchers == ["v_reroll_surplus"]
+    assert transition.after.vouchers == ["v_reroll_surplus", "v_reroll_glut"]
+
+
 def test_env_r5_live_planet_merchant_purchase_preserves_rate_order():
     voucher = _voucher(center="v_planet_merchant", label="Planet Merchant")
     rows = _rows(voucher=voucher)

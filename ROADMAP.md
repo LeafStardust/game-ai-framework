@@ -1535,6 +1535,18 @@ owner plus R5 parity validation passes at **29 passed, 0 failed, 0 skipped**.
 This is deterministic repository evidence only; no natural live fixture is
 promoted by this checkpoint.
 
+### Deterministic R5 reroll-cost Voucher evidence checkpoint
+
+The next uncovered public economy mutation is now covered in the R5 Voucher
+parity boundary: `Reroll Glut` preserves the exact `$25 -> $15` purchase debit
+and ordered `Reroll Surplus -> Reroll Glut` ownership after the upgrade
+purchase. The canonical reroll-cost transition owner was unchanged; its
+persistent/current reroll-cost mutation remains simulator-private and is
+covered by the existing R2 owner suite rather than being leaked into public
+evidence. Focused R5 Voucher parity validation passes at **16 passed, 0
+failed, 0 skipped**. This is deterministic repository evidence only; no
+natural live fixture is promoted by this checkpoint.
+
 ### Independent R5 tactical evidence checkpoint
 
 The durable live-log tactical adapter now has deterministic R5 coverage for
