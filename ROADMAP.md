@@ -1650,11 +1650,12 @@ blind-start natural gates remain deferred. R6 remains hard-blocked.
 
 ### Current R5 status
 
-- Deterministic R5 selector: **2591 passed, 0 failed, 0 skipped, 1596 deselected**.
+- Deterministic R5 selector: **2598 passed, 0 failed, 0 skipped, 1598 deselected** locally at `c9e790319216bfd036f2683795d3030b70599b14`.
 - Natural Seed Money fixture: **complete** at current HEAD.
 - Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
 - Held Planet, audited Joker sale, representative Boss, and strengthened blind-start fixtures: **still required or deferred**.
 - Live supervisor reliability: **bounded read guard repaired; natural fixture capture remains pending**. The guard fails closed when a native read exceeds its timeout, and the successful result path is deterministic-tested. Do not treat the guard repair as a completed natural Money Tree fixture.
+- GitHub Actions run `34501743361` tested the same commit and failed in the deterministic test step; public metadata exposes no assertion or log text. Local exact-selector verification remains green with the count above. Do not infer a code defect or bypass the CI failure without authenticated logs or a reproduced local failure.
 - R6 and every later phase: **blocked** until all R5 exit criteria and natural fixtures are complete.
 
 ### Next actions
