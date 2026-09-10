@@ -130,6 +130,18 @@ class _TransientStartupObserver:
         )
 
 
+class _StartupStatusObserver(_FakeAttemptObserver):
+    def __init__(self, control):
+        super().__init__(won=True)
+        self.control = control
+        self.first_state = None
+
+    def observe(self):
+        if self.first_state is None:
+            self.first_state = self.control.read_status().get("state")
+        return super().observe()
+
+
 def test_stable_startup_snapshot_ignores_transient_first_attachment_frame():
     observer = _TransientStartupObserver()
 
@@ -230,6 +242,26 @@ def test_supervisor_retries_fresh_attempts_until_win_and_auto_off(tmp_path):
         attempt_summary = tmp_path / "runs" / f"{attempt.run_id}.summary.json"
         assert path.exists()
         assert attempt_summary.exists()
+
+
+def test_supervisor_stays_starting_until_first_checkpoint_is_ready(tmp_path):
+    control = BalatroAgentControl(tmp_path / "control")
+    observer = _StartupStatusObserver(control)
+
+    supervisor = BalatroAgentSupervisor(
+        control=control,
+        observer_factory=lambda: observer,
+        runner_factory=_FakeAttemptRunner,
+        run_log_directory=tmp_path / "runs",
+        session_directory=tmp_path / "sessions",
+        session_id="startup-status",
+        startup_stability_interval_seconds=0.0,
+    )
+
+    result = supervisor.run()
+
+    assert observer.first_state == "STARTING"
+    assert result.won is True
 
 
 def test_supervisor_defaults_to_validated_native_loss_restart(tmp_path):

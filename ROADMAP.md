@@ -427,6 +427,15 @@ R5 bounded launcher monitor-forwarding boundary repair:
   `base_toggle.main` and `toggle_agent` boundary without launching a process.
   Focused validation: 14 passed, 0 failed, 0 skipped, 0 deselected across the
   launcher and bounded-supervisor regression files.
+
+R5 startup status handoff repair:
+  The canonical supervisor now publishes `STARTING` until the first settled
+  public checkpoint has selected the run identity; `ON` remains reserved for
+  the existing ready boundary immediately before autonomous decisions begin.
+  This prevents an ON status from claiming action readiness while observer
+  attachment, bridge validation, or startup stabilization is still pending.
+  Focused validation: 27 passed, 0 failed, 0 skipped, 0 deselected across the
+  supervisor, bridge pump/timeout, and canonical attempt launcher regressions.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.

@@ -371,7 +371,7 @@ class BalatroAgentSupervisor:
         pid = self.control.claim_current_process()
         self.control.clear_telemetry()
         self.control.write_status(
-            "ON",
+            "STARTING",
             pid=pid,
             session_id=self.session_id,
             attempt=0,
