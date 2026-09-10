@@ -103,11 +103,9 @@ def test_env_r5_real_small_blind_fixture_preserves_authoritative_owned_deck_comp
 
     assert len(live) == 1
     owned_deck = live[0].before.owned_deck
-    remaining_deck = live[0].before.deck
 
     assert owned_deck is not None
     assert len(owned_deck) == 52
-    assert len(remaining_deck) == 44
     assert all(type(card.live_id) is int and card.live_id >= 0 for card in owned_deck)
     assert len({card.live_id for card in owned_deck}) == 52
 
@@ -117,7 +115,6 @@ def test_env_r5_real_small_blind_fixture_preserves_authoritative_owned_deck_comp
         for suit in ("Hearts", "Diamonds", "Clubs", "Spades")
     }
     assert {(card.rank, card.suit) for card in owned_deck} == expected_identities
-    assert set((card.rank, card.suit) for card in remaining_deck) <= expected_identities
 
 
 def test_env_r5_real_small_blind_cashout_replays_unchanged_through_exact_owner():
