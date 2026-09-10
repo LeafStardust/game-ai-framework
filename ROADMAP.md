@@ -389,6 +389,10 @@ Commit c710cddd
 GitHub Actions run 34508553737
 GitHub Actions job 102976661662
   The job completed with failure in `Run deterministic Balatro suites`; setup and dependency steps passed. Exact pytest counts and the traceback are unavailable because the public logs return HTTP 403. The local deterministic selector remains the available evidence for this result. No root cause is claimed.
+
+R5 newer GitHub Actions verification for the bounded Money Tree probe:
+GitHub Actions run 34509660687
+  The job completed with failure in `Run deterministic Balatro suites`, in the same deterministic step as run 34508553737. Public logs and the traceback are unavailable because the public logs return HTTP 403. The local deterministic selector remains the available evidence for this result. No root cause is claimed.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
