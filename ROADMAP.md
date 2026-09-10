@@ -419,6 +419,14 @@ R5 bounded launcher startup grace repair:
   Local validation: 15 passed, 0 failed, 0 deselected in
   `tests/balatro/test_balatro_env_r5_attempt_count_launcher.py` with
   `PYTHONPATH=.`.
+
+R5 bounded launcher monitor-forwarding boundary repair:
+  `toggle_agent` now accepts and forwards the existing `launch_live_monitor`
+  keyword to `start_agent`, preserving ordinary toggle defaults. The canonical
+  `--attempt 1` regression exercises `attempts_toggle.main` through the real
+  `base_toggle.main` and `toggle_agent` boundary without launching a process.
+  Focused validation: 14 passed, 0 failed, 0 skipped, 0 deselected across the
+  launcher and bounded-supervisor regression files.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.

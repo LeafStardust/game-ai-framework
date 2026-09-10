@@ -26,25 +26,31 @@ def test_env_r5_attempt_launcher_rejects_retired_plural_selector():
 
 
 def test_env_r5_attempt_launcher_forwards_bounded_supervisor_without_monitor(
-    monkeypatch,
+    tmp_path, monkeypatch,
 ):
     captured = {}
 
-    def fake_toggle_agent(control, **kwargs):
+    def fake_start_agent(control, **kwargs):
         captured["control"] = control
         captured.update(kwargs)
-        return "STARTING", 4242
+        return 4242
 
-    monkeypatch.setattr(base_toggle, "toggle_agent", fake_toggle_agent)
+    monkeypatch.setattr(base_toggle, "start_agent", fake_start_agent)
     monkeypatch.setattr(
         base_toggle.sys,
         "argv",
-        ["balatro_agent_attempts_toggle", "--attempt", "1"],
+        [
+            "balatro_agent_attempts_toggle",
+            "--attempt",
+            "1",
+            "--control-dir",
+            str(tmp_path / "control"),
+        ],
     )
 
     assert toggle.main() == 0
     assert base_toggle.SUPERVISOR_MODULE.endswith("balatro_agent_supervisor_entry")
-    assert captured["control"].directory == BalatroAgentControl(None).directory
+    assert captured["control"].directory == tmp_path / "control"
     assert captured["launch_live_monitor"] is False
 
 

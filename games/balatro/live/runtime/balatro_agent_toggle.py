@@ -367,6 +367,7 @@ def toggle_agent(
     blind_skip_parity_directory: str | None = None,
     buffoon_pack_parity_directory: str | None = None,
     held_planet_parity_directory: str | None = None,
+    launch_live_monitor: bool = LAUNCH_LIVE_MONITOR,
 ) -> tuple[str, int | None]:
     running = control.running_pid()
     if running is not None:
@@ -381,6 +382,7 @@ def toggle_agent(
         blind_skip_parity_directory=blind_skip_parity_directory,
         buffoon_pack_parity_directory=buffoon_pack_parity_directory,
         held_planet_parity_directory=held_planet_parity_directory,
+        launch_live_monitor=launch_live_monitor,
     )
 
 
