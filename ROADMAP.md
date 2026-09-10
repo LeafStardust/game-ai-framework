@@ -1492,6 +1492,21 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
+### Economy transition checkpoint: live interest-cap authority
+
+The first economy transition slice is complete at `d3e053de`. The canonical
+live observer now publishes exact nonnegative `G.GAME.interest_cap` authority,
+and `BalatroStateTranslator` preserves it fail-closed. R5 Voucher evidence now
+asserts the exact Seed Money ordering of money debit (`25 -> 15`) and interest
+cap mutation (`25 -> 50`), while missing or malformed live authority remains
+unobserved rather than inferred. The affected local suites pass at **39
+passed**. GitHub Actions run `34464065200`, job `102828384415`, passed for the
+published commit; the unauthenticated public API exposed job success but
+returned **403** for raw logs, so the CI pytest passed/deselected summary could
+not be independently read and is not claimed here. The next economy task must
+start by re-fetching this branch and roadmap, then continue only with the next
+uncovered supported economy transition.
+
 Keep the held-Planet, audited-Joker-sale, representative-Boss, and strengthened
 blind-start natural fixtures deferred without marking any gate complete.
 Continue with the next independent R5 fixture: economy transitions.
