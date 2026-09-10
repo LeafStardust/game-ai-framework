@@ -1580,11 +1580,11 @@ blind-start natural gates remain deferred. R6 remains hard-blocked.
 
 ### Current R5 status
 
-- Deterministic R5 selector: **2590 passed, 0 failed, 0 skipped, 1596 deselected**.
+- Deterministic R5 selector: **2591 passed, 0 failed, 0 skipped, 1596 deselected**.
 - Natural Seed Money fixture: **complete** at current HEAD.
 - Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
 - Held Planet, audited Joker sale, representative Boss, and strengthened blind-start fixtures: **still required or deferred**.
-- Live supervisor reliability: **blocked by an unbounded native `ReadProcessMemory` call** observed after `END_ROUND -> SHOP`; do not launch another unattended batch until this boundary is addressed.
+- Live supervisor reliability: **blocked by an unbounded native `ReadProcessMemory` call** observed after `END_ROUND -> SHOP`; the corrected batch was hard-stopped after its status stopped advancing. Do not launch another unattended batch until this boundary is addressed.
 - R6 and every later phase: **blocked** until all R5 exit criteria and natural fixtures are complete.
 
 ### Next actions
