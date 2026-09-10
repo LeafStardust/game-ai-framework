@@ -422,7 +422,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
                     and base_cost >= 0
                     and type(price) is int
                     and price >= 0
-                    and (area_index is None or type(area_index) is int)
+                    and type(area_index) is int
                 ):
                     result.append(
                         GeneratedShopVoucherItem(
