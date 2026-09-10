@@ -1551,6 +1551,21 @@ interest cap changes `50 -> 100`, and ordered ownership changes from
 passes at **13 passed**. This is synthetic deterministic evidence only; the
 natural live Money Tree fixture remains deferred and is not marked complete.
 
+### Natural Seed Money fixture checkpoint
+
+The current-HEAD live fixture
+`balatro-r5-current-head-seed-money.buy-seed-money.jsonl` is now promoted and
+replays through the canonical owner. It proves a real successful `BUY_VOUCHER`
+for Seed Money with money `27 -> 17`, observed interest cap `25 -> 50`, and
+ordered public ownership `[] -> [v_seed_money]`. Replay initially exposed two
+canonical owner defects: live Voucher metadata dropped `area_index`, and exact
+interest-cap redemption left the dependent `v_money_tree` generation-pool
+eligibility stale. Both are repaired with focused coverage. The real fixture
+suite plus affected R2/R5 tests pass at **25 passed**. This completes the
+natural Seed Money fixture only; Money Tree still needs a current-HEAD natural
+fixture, and the remaining held-Planet, Joker-sale, Boss, and strengthened
+blind-start natural gates remain deferred. R6 remains hard-blocked.
+
 Keep the held-Planet, audited-Joker-sale, representative-Boss, and strengthened
 blind-start natural fixtures deferred without marking any gate complete.
 Continue with the next independent R5 fixture: economy transitions.

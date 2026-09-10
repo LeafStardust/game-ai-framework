@@ -4,6 +4,7 @@ from games.balatro.env.blind_requirement import (
     red_white_base_blind_amount,
     red_white_nonboss_blind_reward,
 )
+from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
 from games.balatro.card import BalatroCard
 from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.consumable_generation_pool_translation import (
@@ -406,6 +407,32 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
     def _shop_items(self, values: list[dict], *, kind: str) -> list:
         result = []
         for value in values:
+            if kind == "VOUCHER":
+                center = value.get("center") or value.get("key")
+                base_cost = value.get("base_cost", value.get("cost", value.get("price")))
+                price = value.get("cost", value.get("price"))
+                area_index = value.get("area_index")
+                if isinstance(base_cost, float) and base_cost.is_integer():
+                    base_cost = int(base_cost)
+                if isinstance(price, float) and price.is_integer():
+                    price = int(price)
+                if (
+                    isinstance(center, str)
+                    and type(base_cost) is int
+                    and base_cost >= 0
+                    and type(price) is int
+                    and price >= 0
+                    and (area_index is None or type(area_index) is int)
+                ):
+                    result.append(
+                        GeneratedShopVoucherItem(
+                            center_key=center,
+                            base_cost=base_cost,
+                            price=price,
+                            area_index=area_index,
+                        )
+                    )
+                    continue
             item = self.shop_item_factory.create(value, kind=kind)
             if item is not None: result.append(item)
         return result

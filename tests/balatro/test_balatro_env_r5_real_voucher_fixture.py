@@ -18,6 +18,15 @@ FIXTURE = (
     / "balatro-20260908T135908Z-3f93a77a-attempt-001.buy-paint-brush.jsonl.xz"
 )
 _FIXTURE_SHA256 = "36d25e575079e279c33d42e9df6cbd00467209fdc146ce0bd67395f2b3f0b7d3"
+SEED_MONEY_FIXTURE = (
+    Path(__file__).parent
+    / "fixtures"
+    / "r5"
+    / "balatro-r5-current-head-seed-money.buy-seed-money.jsonl"
+)
+_SEED_MONEY_FIXTURE_SHA256 = (
+    "3fb42028b705699953bb30d636a3777b3732982d234db2cc4327b03b8ca83f10"
+)
 
 
 def _fixture_bytes() -> bytes:
@@ -76,5 +85,53 @@ def test_env_r5_real_paint_brush_voucher_fixture_replays_unchanged_through_headl
     assert result.public.hand_size == 9
     assert result.public.vouchers == ["v_paint_brush"]
     assert result.public.shop_vouchers == []
+    assert comparison.matches is True
+    assert comparison.differences == ()
+
+
+def test_env_r5_real_seed_money_fixture_preserves_live_cap_transition():
+    raw = SEED_MONEY_FIXTURE.read_bytes()
+    rows = [json.loads(line) for line in raw.decode("utf-8").splitlines()]
+
+    assert hashlib.sha256(raw).hexdigest() == _SEED_MONEY_FIXTURE_SHA256
+    assert [row["event"] for row in rows] == [
+        "observation",
+        "decision",
+        "action_result",
+    ]
+    assert rows[1]["data"]["action"]["target"]["center"] == "v_seed_money"
+    assert rows[2]["data"]["success"] is True
+
+    live = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = live[0]
+
+    assert transition.before.money == 27
+    assert transition.after.money == 17
+    assert transition.before.interest_cap_observed is True
+    assert transition.before.interest_cap == 25
+    assert transition.after.interest_cap_observed is True
+    assert transition.after.interest_cap == 50
+    assert transition.after.vouchers == ["v_seed_money"]
+
+
+def test_env_r5_real_seed_money_fixture_replays_unchanged_through_headless_owner():
+    rows = [
+        json.loads(line)
+        for line in SEED_MONEY_FIXTURE.read_text(encoding="utf-8").splitlines()
+    ]
+    live = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = live[0]
+    run = HeadlessRunState(public=transition.before, seed="r5-real-seed-money")
+
+    result, simulator = buy_voucher_with_public_evidence(run, slot=0)
+    comparison = compare_run_rows_to_simulator_voucher_purchase_evidence(
+        rows,
+        (simulator,),
+    )
+
+    assert result.public.money == 17
+    assert result.public.interest_cap_observed is True
+    assert result.public.interest_cap == 50
+    assert result.public.vouchers == ["v_seed_money"]
     assert comparison.matches is True
     assert comparison.differences == ()

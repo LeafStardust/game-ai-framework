@@ -23,6 +23,19 @@ _TARGET_CAPS = {
 }
 
 
+def _refresh_interest_cap_voucher_pool(state) -> None:
+    if not state.voucher_generation_pool_observed:
+        return
+    owned = set(state.vouchers)
+    for record in state.voucher_generation_pool:
+        key = record.get("key")
+        requirements = record.get("requires") or []
+        if isinstance(key, str) and isinstance(requirements, list):
+            record["eligible"] = key not in owned and all(
+                requirement in owned for requirement in requirements
+            )
+
+
 def _exact_price(item: Any) -> int:
     value = getattr(item, "price", None)
     if type(value) is not int or value < 0:
@@ -96,6 +109,7 @@ def redeem_exact_interest_cap_voucher(
     state.vouchers_observed = True
     state.interest_cap = target
     state.interest_cap_observed = True
+    _refresh_interest_cap_voucher_pool(state)
 
     if not interest_cap_vouchers_are_exact(state):
         raise HeadlessTransitionError(

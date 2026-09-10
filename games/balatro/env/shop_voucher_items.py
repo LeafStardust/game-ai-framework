@@ -35,6 +35,7 @@ class GeneratedShopVoucherItem:
     center_key: str
     base_cost: int
     price: int
+    area_index: int | None = None
 
     @property
     def kind(self) -> str:

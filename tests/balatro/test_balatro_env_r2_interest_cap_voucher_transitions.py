@@ -66,6 +66,21 @@ def test_env_r2_seed_money_action_debits_and_updates_cap_without_rng():
     assert run.rng_snapshot() == before_rng
 
 
+def test_env_r2_seed_money_refreshes_dependent_voucher_pool_eligibility():
+    run = _shop_run(money=30)
+    run.public.voucher_generation_pool_observed = True
+    run.public.voucher_generation_pool = [
+        {"key": "v_seed_money", "eligible": False, "requires": []},
+        {"key": "v_money_tree", "eligible": False, "requires": ["v_seed_money"]},
+    ]
+    run.public.shop_vouchers = [_voucher("v_seed_money", price=10)]
+
+    result = ShopTransitionEngine().step(run, _buy_voucher())
+
+    assert result.public.voucher_generation_pool[0]["eligible"] is False
+    assert result.public.voucher_generation_pool[1]["eligible"] is True
+
+
 def test_env_r2_interest_voucher_action_disappears_when_unaffordable():
     run = _shop_run(money=9)
     run.public.shop_vouchers = [_voucher("v_seed_money", price=10)]
