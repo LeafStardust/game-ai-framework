@@ -10,6 +10,7 @@ from games.balatro.joker_policy import (
     HOLD,
     JokerAcquisitionDecision,
     JokerAcquisitionThresholds,
+    JokerTransactionEconomics,
 )
 from games.balatro.live.runtime.bond_autonomous_runner import (
     BondAwareLiveMemoryInjectedSingleStepRunner,
@@ -63,6 +64,24 @@ def test_playbook_d2_policy_resolves_thresholds_from_current_state():
     )
 
     assert decision.thresholds == expected
+
+
+def test_playbook_d2_policy_exposes_arbiter_economics_contract():
+    policy, _ = _policy()
+    state = _red_white_state()
+    candidate = PlusMultJoker()
+    candidate.cost = 4
+
+    economics = policy._economics(
+        state,
+        candidate,
+        incumbent=None,
+        replacement=False,
+    )
+
+    assert isinstance(economics, JokerTransactionEconomics)
+    assert economics.price == 4
+    assert economics.money_after == 16
 
 
 def test_production_runner_shares_one_b3_evaluator_with_d2_and_shop_value():

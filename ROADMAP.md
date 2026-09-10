@@ -1534,6 +1534,18 @@ tactical suite passes at **5 passed**. This does not change canonical tactical
 ownership or promote a live fixture; the active roadmap task remains economy
 transitions.
 
+### Live supervisor crash repair checkpoint
+
+The interrupted Money Tree batch exposed a production-only replan crash after
+loss: `BuildAwareShopArbiter._best_visible_bond_pair()` called `_economics()` on
+`PlaybookJokerAcquisitionPolicy`, whose wrapper lacked that canonical contract.
+The playbook wrapper now delegates `_economics()` through the existing
+`JokerAcquisitionPolicy` with the same Red/White D2 thresholds. The focused
+playbook policy suite passes at **8 passed** and the adjacent shop-arbiter and
+strategy-authority suites pass at **27 passed**. This repair changes no R5
+phase gate and does not start R6; it makes future bounded live attempts safe to
+continue after a loss.
+
 ### Deterministic R5 gate checkpoint
 
 The current clean branch passes the GitHub Actions-equivalent deterministic

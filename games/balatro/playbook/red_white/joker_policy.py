@@ -11,6 +11,7 @@ from games.balatro.joker_policy import (
     JokerAcquisitionDecision,
     JokerAcquisitionPolicy,
     JokerAcquisitionThresholds,
+    JokerTransactionEconomics,
 )
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
 from games.balatro.state import BalatroState
@@ -159,19 +160,41 @@ class PlaybookJokerAcquisitionPolicy:
     def __init__(self, transition_planner: JokerBuildTransitionPlanner) -> None:
         self.transition_planner = transition_planner
 
+    @staticmethod
+    def _thresholds(state: BalatroState) -> JokerAcquisitionThresholds:
+        try:
+            playbook = default_balatro_playbooks().for_state(state)
+        except BalatroPlaybookNotFound:
+            return JokerAcquisitionThresholds()
+        return JokerAcquisitionThresholds.from_mapping(
+            playbook.thresholds_for("D2")
+        )
+
+    def _economics(
+        self,
+        state: BalatroState,
+        candidate: object,
+        *,
+        incumbent: object | None,
+        replacement: bool,
+    ) -> JokerTransactionEconomics:
+        policy = JokerAcquisitionPolicy(
+            self._thresholds(state),
+            transition_planner=self.transition_planner,
+        )
+        return policy._economics(
+            state,
+            candidate,
+            incumbent=incumbent,
+            replacement=replacement,
+        )
+
     def decide(
         self,
         state: BalatroState,
         candidate: object,
     ) -> JokerAcquisitionDecision:
-        try:
-            playbook = default_balatro_playbooks().for_state(state)
-        except BalatroPlaybookNotFound:
-            thresholds = JokerAcquisitionThresholds()
-        else:
-            thresholds = JokerAcquisitionThresholds.from_mapping(
-                playbook.thresholds_for("D2")
-            )
+        thresholds = self._thresholds(state)
 
         decision = JokerAcquisitionPolicy(
             thresholds,
