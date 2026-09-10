@@ -85,6 +85,33 @@ def test_wait_for_startup_outcome_accepts_first_attempt_status(tmp_path):
     assert status["attempt"] == 1
 
 
+def test_wait_for_startup_outcome_allows_delayed_first_attempt_after_grace(
+    monkeypatch,
+):
+    clock = {"now": 0.0}
+
+    class _Control:
+        def read_status(self):
+            attempt = 1 if clock["now"] >= 2.5 else 0
+            return {"state": "ON", "attempt": attempt}
+
+    monkeypatch.setattr(
+        base_toggle.time,
+        "monotonic",
+        lambda: clock["now"],
+    )
+    monkeypatch.setattr(
+        base_toggle.time,
+        "sleep",
+        lambda interval: clock.__setitem__("now", clock["now"] + interval),
+    )
+
+    status = base_toggle.wait_for_startup_outcome(_Control(), poll_interval=0.5)
+
+    assert status["attempt"] == 1
+    assert clock["now"] == 2.5
+
+
 def test_wait_for_startup_outcome_preserves_supervisor_failure_reason(tmp_path):
     control = BalatroAgentControl(tmp_path / "control")
     control.write_status(

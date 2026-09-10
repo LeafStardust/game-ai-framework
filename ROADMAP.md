@@ -409,6 +409,16 @@ R5 bounded launcher startup-failure handling:
   modules; `git diff --check` passed. GitHub Actions run 34520890482, job
   103017830178, was pushed and remained in progress when this checkpoint was
   synchronized; no remote pytest count is claimed yet.
+
+R5 bounded launcher startup grace repair:
+  The canonical bounded launcher now uses the existing supervisor startup
+  stability timeout rather than a shorter 2-second readiness budget. The wait
+  still fails immediately on authoritative OFF/failure and still requires
+  `ON` with `attempt >= 1`; focused coverage proves an `ON`/`attempt=0` state
+  can remain visible past 2 seconds and return once the first attempt is ready.
+  Local validation: 15 passed, 0 failed, 0 deselected in
+  `tests/balatro/test_balatro_env_r5_attempt_count_launcher.py` with
+  `PYTHONPATH=.`.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.

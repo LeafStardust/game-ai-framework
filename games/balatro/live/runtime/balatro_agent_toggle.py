@@ -10,6 +10,7 @@ from pathlib import Path
 
 from . import agent_control as agent_control_module
 from .agent_control import BalatroAgentControl
+from .balatro_agent_supervisor import DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS
 
 
 SUPERVISOR_MODULE = "games.balatro.live.runtime.balatro_agent_supervisor_entry"
@@ -18,7 +19,7 @@ COOPERATIVE_STOP_GRACE_SECONDS = 1.5
 COOPERATIVE_STOP_POLL_INTERVAL_SECONDS = 0.02
 HARD_STOP_EXIT_TIMEOUT_SECONDS = 3.0
 HARD_STOP_POLL_INTERVAL_SECONDS = 0.02
-BOUNDED_STARTUP_TIMEOUT_SECONDS = 2.0
+BOUNDED_STARTUP_TIMEOUT_SECONDS = DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS
 BOUNDED_STARTUP_POLL_INTERVAL_SECONDS = 0.02
 
 
