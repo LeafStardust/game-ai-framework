@@ -1537,7 +1537,7 @@ transitions.
 ### Deterministic R5 gate checkpoint
 
 The current clean branch passes the GitHub Actions-equivalent deterministic
-Balatro selector at **2586 passed, 0 failed, 0 skipped, 1596 deselected**.
+Balatro selector at **2587 passed, 0 failed, 0 skipped, 1596 deselected**.
 R6 and every later phase remain hard-blocked until the R5 natural-fixture exit
 gates and all R5 exit criteria are complete; this green deterministic gate does
 not authorize a phase transition.
