@@ -31,6 +31,7 @@ def _checkpoint(sequence, phase="BLIND_SELECT"):
         public_snapshot=_snapshot(sequence, phase),
         rng_snapshot={"seed": "R5-BLIND", "nodes": {"nr1": "0x1.0p-1"}},
         active_tag_count=0,
+        draw_pile_live_ids=(1, 4, 2),
     )
 
 
@@ -51,6 +52,30 @@ def test_env_r5_blind_start_checkpoint_payload_roundtrip_preserves_private_autho
     assert restored == checkpoint
     assert restored.rng_snapshot is not checkpoint.rng_snapshot
     assert restored.public_snapshot.payload is not checkpoint.public_snapshot.payload
+
+
+def test_env_r5_blind_start_checkpoint_payload_keeps_legacy_missing_draw_order_readable():
+    payload = blind_start_parity_checkpoint_to_payload(_checkpoint(8))
+    payload.pop("draw_pile_live_ids")
+
+    restored = blind_start_parity_checkpoint_from_payload(payload)
+
+    assert restored.draw_pile_live_ids is None
+
+
+@pytest.mark.parametrize(
+    "draw_ids",
+    [[1, 1], [1, -1], [1, 2.0], "1,2"],
+)
+def test_env_r5_blind_start_checkpoint_rejects_inexact_private_draw_order(draw_ids):
+    payload = blind_start_parity_checkpoint_to_payload(_checkpoint(9))
+    payload["draw_pile_live_ids"] = draw_ids
+
+    with pytest.raises(
+        LiveBlindStartParityCaptureError,
+        match="distinct nonnegative integers",
+    ):
+        blind_start_parity_checkpoint_from_payload(payload)
 
 
 @pytest.mark.parametrize(

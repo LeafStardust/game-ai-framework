@@ -18,6 +18,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.live.private_run_state import (
     LivePrivateRunStateError,
     active_tag_count_from_live_memory,
+    physical_draw_pile_live_ids_from_live_memory,
 )
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.rng_replay_capture import (
@@ -36,6 +37,7 @@ class LiveBlindStartParityCheckpoint:
     public_snapshot: LiveBalatroSnapshot
     rng_snapshot: dict[str, Any]
     active_tag_count: int
+    draw_pile_live_ids: tuple[int, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,10 @@ def capture_live_blind_start_parity_checkpoint(
         decoder, _, root = observer._root()
         rng_snapshot = rng_replay_snapshot_from_live_memory(decoder, root)
         active_tag_count = active_tag_count_from_live_memory(decoder, root)
+        draw_pile_live_ids = physical_draw_pile_live_ids_from_live_memory(
+            decoder,
+            root,
+        )
     except (LiveRNGReplayCaptureError, LivePrivateRunStateError, OSError, RuntimeError) as exc:
         raise LiveBlindStartParityCheckpointError(
             "unable to capture exact live blind-start replay authority"
@@ -79,6 +85,7 @@ def capture_live_blind_start_parity_checkpoint(
         public_snapshot=deepcopy(before),
         rng_snapshot=deepcopy(rng_snapshot),
         active_tag_count=active_tag_count,
+        draw_pile_live_ids=draw_pile_live_ids,
     )
 
 
@@ -138,6 +145,16 @@ def headless_blind_start_run_from_live_checkpoint(
             "translated blind-start checkpoint is not BLIND_SELECT"
         )
     _restore_complete_deck_identity(public)
+    if checkpoint.draw_pile_live_ids is not None:
+        public_ids = tuple(card.live_id for card in public.deck)
+        if (
+            any(type(live_id) is not int for live_id in public_ids)
+            or len(checkpoint.draw_pile_live_ids) != len(public_ids)
+            or set(checkpoint.draw_pile_live_ids) != set(public_ids)
+        ):
+            raise LiveBlindStartParityCheckpointError(
+                "blind-start private draw pile does not match the complete public deck"
+            )
     try:
         rng = BalatroRNG.from_snapshot(checkpoint.rng_snapshot)
         return HeadlessRunState(
@@ -205,6 +222,13 @@ def compare_live_blind_start_replay(
     ]
     if result.rng_snapshot() != after.rng_snapshot:
         differences.append("rng.after")
+    if after.draw_pile_live_ids is not None:
+        simulator_draw_ids = tuple(card.live_id for card in result.draw_pile)
+        if (
+            any(type(live_id) is not int for live_id in simulator_draw_ids)
+            or simulator_draw_ids != after.draw_pile_live_ids
+        ):
+            differences.append("draw_pile.after")
     return LiveBlindStartReplayComparison(
         matches=not differences,
         differences=tuple(differences),

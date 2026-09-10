@@ -40,7 +40,7 @@ def blind_start_parity_checkpoint_to_payload(
     if not isinstance(checkpoint, LiveBlindStartParityCheckpoint):
         raise TypeError("checkpoint must be LiveBlindStartParityCheckpoint")
     snapshot = checkpoint.public_snapshot
-    return {
+    payload = {
         "public_snapshot": {
             "sequence": int(snapshot.sequence),
             "phase": str(snapshot.phase),
@@ -50,6 +50,9 @@ def blind_start_parity_checkpoint_to_payload(
         "rng_snapshot": deepcopy(checkpoint.rng_snapshot),
         "active_tag_count": int(checkpoint.active_tag_count),
     }
+    if checkpoint.draw_pile_live_ids is not None:
+        payload["draw_pile_live_ids"] = list(checkpoint.draw_pile_live_ids)
+    return payload
 
 
 def blind_start_parity_checkpoint_from_payload(
@@ -80,6 +83,21 @@ def blind_start_parity_checkpoint_from_payload(
         raise LiveBlindStartParityCaptureError(
             "public_snapshot.payload must be a mapping"
         )
+    raw_draw_ids = payload.get("draw_pile_live_ids")
+    draw_ids: tuple[int, ...] | None = None
+    if raw_draw_ids is not None:
+        if (
+            not isinstance(raw_draw_ids, list)
+            or any(
+                isinstance(value, bool) or not isinstance(value, int) or value < 0
+                for value in raw_draw_ids
+            )
+            or len(set(raw_draw_ids)) != len(raw_draw_ids)
+        ):
+            raise LiveBlindStartParityCaptureError(
+                "draw_pile_live_ids must be distinct nonnegative integers"
+            )
+        draw_ids = tuple(raw_draw_ids)
     return LiveBlindStartParityCheckpoint(
         public_snapshot=LiveBalatroSnapshot(
             sequence=_exact_nonnegative_int(
@@ -95,6 +113,7 @@ def blind_start_parity_checkpoint_from_payload(
             payload.get("active_tag_count"),
             field="active_tag_count",
         ),
+        draw_pile_live_ids=draw_ids,
     )
 
 

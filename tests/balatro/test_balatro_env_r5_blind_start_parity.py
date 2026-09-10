@@ -96,8 +96,11 @@ def _lua(kind, value):
 
 
 class _Decoder:
-    def __init__(self, tags=0):
+    def __init__(self, tags=0, draw_ids=range(1, 53)):
         seed = "R5-BLIND-START"
+        deck = 500
+        deck_cards = 501
+        draw_ids = tuple(draw_ids)
         self.tables = {
             100: {
                 "pseudorandom": _lua("table", 200),
@@ -107,18 +110,32 @@ class _Decoder:
                 "seed": _lua("string", seed),
                 "hashed_seed": _lua("number", pseudohash(seed)),
             },
+            deck: {"cards": _lua("table", deck_cards)},
         }
+        self.tables.update(
+            {
+                600 + index: {"playing_card": _lua("number", live_id)}
+                for index, live_id in enumerate(draw_ids)
+            }
+        )
         self.arrays = {
             300: [
                 (index + 1, _lua("table", 400 + index))
                 for index in range(tags)
-            ]
+            ],
+            deck_cards: [
+                (index, _lua("table", 600 + index))
+                for index in range(len(draw_ids))
+            ],
         }
 
     def string_fields(self, address):
         return dict(self.tables[address])
 
     def array_items(self, address):
+        return list(self.arrays.get(address, ()))
+
+    def array_items_strict(self, address):
         return list(self.arrays.get(address, ()))
 
 
@@ -134,7 +151,10 @@ class _Observer:
         return deepcopy(self.snapshots[index])
 
     def _root(self):
-        return self.decoder, 0, {"GAME": _lua("table", 100)}
+        return self.decoder, 0, {
+            "GAME": _lua("table", 100),
+            "deck": _lua("table", 500),
+        }
 
 
 def _checkpoint(snapshot, *, tags=0):
@@ -160,6 +180,7 @@ def test_env_r5_blind_start_capture_is_stable_and_private():
     assert checkpoint.public_snapshot.phase == "BLIND_SELECT"
     assert checkpoint.rng_snapshot["seed"] == "R5-BLIND-START"
     assert checkpoint.active_tag_count == 0
+    assert checkpoint.draw_pile_live_ids == tuple(range(1, 53))
 
 
 def test_env_r5_blind_start_capture_rejects_public_drift():
@@ -215,6 +236,22 @@ def test_env_r5_blind_start_restore_rejects_mismatched_permanent_ids():
         headless_blind_start_run_from_live_checkpoint(checkpoint)
 
 
+def test_env_r5_blind_start_restore_rejects_private_draw_composition_drift():
+    checkpoint = _checkpoint(_snapshot())
+    drifted = LiveBlindStartParityCheckpoint(
+        public_snapshot=checkpoint.public_snapshot,
+        rng_snapshot=checkpoint.rng_snapshot,
+        active_tag_count=checkpoint.active_tag_count,
+        draw_pile_live_ids=tuple(range(2, 54)),
+    )
+
+    with pytest.raises(
+        LiveBlindStartParityCheckpointError,
+        match="private draw pile does not match",
+    ):
+        headless_blind_start_run_from_live_checkpoint(drifted)
+
+
 def test_env_r5_select_blind_log_mapping_is_parameterless_and_fail_closed():
     before = _snapshot(sequence=10)
     after = _snapshot(sequence=11, phase="SELECTING_HAND", cards=[])
@@ -251,6 +288,7 @@ def test_env_r5_live_id_base_deck_replays_exact_shuffle_and_private_rng():
         public_snapshot=after_snapshot,
         rng_snapshot=result.rng_snapshot(),
         active_tag_count=0,
+        draw_pile_live_ids=tuple(card.live_id for card in result.draw_pile),
     )
 
     class _Translator:
@@ -274,6 +312,27 @@ def test_env_r5_live_id_base_deck_replays_exact_shuffle_and_private_rng():
     assert len(result.public.hand) == 8
     assert comparison.matches is True
     assert comparison.differences == ()
+
+    drifted = LiveBlindStartParityCheckpoint(
+        public_snapshot=after_snapshot,
+        rng_snapshot=result.rng_snapshot(),
+        active_tag_count=0,
+        draw_pile_live_ids=tuple(
+            reversed(tuple(card.live_id for card in result.draw_pile))
+        ),
+    )
+    mismatch = compare_live_blind_start_replay(
+        before_checkpoint,
+        drifted,
+        build_public_strategic_transition_evidence(
+            before_run.public,
+            live_evidence.action,
+            result.public,
+        ),
+        translator=_Translator(),
+    )
+    assert mismatch.matches is False
+    assert mismatch.differences == ("draw_pile.after",)
 
 
 def test_env_r5_blind_start_checkpoint_replays_exact_start_inert_tooth_boss():
