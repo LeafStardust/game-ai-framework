@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.consumable_use import use_planet_exact
+from games.balatro.env.joker_sale import sell_joker_exact
 from games.balatro.env.pack import choose_pack_option_exact, skip_pack_exact
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.select_blind import select_blind_exact
@@ -109,6 +110,30 @@ def buy_voucher_with_public_evidence(
     action = EnvAction.from_alias("BUY_VOUCHER", {"slot": slot})
     before = run.public
     result = ShopTransitionEngine().step(run, action)
+    evidence = build_public_strategic_transition_evidence(
+        before,
+        action,
+        result.public,
+    )
+    return result, evidence
+
+
+def sell_joker_with_public_evidence(
+    run: HeadlessRunState,
+    *,
+    joker_index: int,
+) -> tuple[HeadlessRunState, PublicStrategicTransitionEvidence]:
+    """Execute canonical exact Joker sale and capture public R5 evidence."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    if isinstance(joker_index, bool) or not isinstance(joker_index, int):
+        raise TypeError("joker_index must be an integer")
+    action = EnvAction.from_alias(
+        "SELL_JOKER",
+        {"joker_index": joker_index},
+    )
+    before = run.public
+    result = sell_joker_exact(run, joker_index)
     evidence = build_public_strategic_transition_evidence(
         before,
         action,

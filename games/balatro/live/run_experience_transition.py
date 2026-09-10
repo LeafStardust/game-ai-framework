@@ -72,9 +72,13 @@ def _hand_indices(state: object, cards) -> tuple[int, ...]:
     )
 
 
-def _target_payload(target: object) -> dict[str, Any]:
+def _target_payload(target: object, *, action_name: str = "") -> dict[str, Any]:
     if target is None:
         return {}
+    if action_name == "SELL_JOKER" and type(target) is int:
+        if target < 0:
+            raise ValueError("SELL_JOKER target index cannot be negative")
+        return {"joker_index": target}
     if isinstance(target, dict):
         source = target
         read = source.get
@@ -91,11 +95,15 @@ def _target_payload(target: object) -> dict[str, Any]:
 
 def action_log_payload(decision) -> dict[str, Any]:
     action = decision.action
-    payload: dict[str, Any] = {"name": str(action.name)}
+    action_name = str(action.name)
+    payload: dict[str, Any] = {"name": action_name}
     indices = _hand_indices(decision.state, getattr(action, "cards", ()))
     if indices:
         payload["indices"] = list(indices)
-    target = _target_payload(getattr(action, "target", None))
+    target = _target_payload(
+        getattr(action, "target", None),
+        action_name=action_name,
+    )
     if target:
         payload["target"] = target
     return payload

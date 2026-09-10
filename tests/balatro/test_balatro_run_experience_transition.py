@@ -12,6 +12,7 @@ from games.balatro.live.run_experience import (
     BalatroRunIdentity,
 )
 from games.balatro.live.run_experience_transition import (
+    action_log_payload,
     log_successful_live_transition,
 )
 
@@ -57,6 +58,18 @@ def _contains_key(value, key: str) -> bool:
     if isinstance(value, list):
         return any(_contains_key(item, key) for item in value)
     return False
+
+
+def test_joker_sale_logs_exact_owned_inventory_index():
+    decision = SimpleNamespace(
+        state=SimpleNamespace(hand=[]),
+        action=BalatroAction("SELL_JOKER", target=2),
+    )
+
+    assert action_log_payload(decision) == {
+        "name": "SELL_JOKER",
+        "target": {"joker_index": 2},
+    }
 
 
 class _PreparedBondBuild:
