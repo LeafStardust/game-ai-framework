@@ -37,6 +37,8 @@ def _shop_state(
     vouchers=(),
     discards=4,
     shop_discount_percent=0,
+    tarot_rate=4.0,
+    planet_rate=4.0,
 ):
     return {
         "sequence": sequence,
@@ -64,6 +66,8 @@ def _shop_state(
             "vouchers_observed": True,
             "shop_discount_percent": shop_discount_percent,
             "shop_discount_percent_observed": True,
+            "tarot_rate": tarot_rate,
+            "planet_rate": planet_rate,
         },
     }
 
@@ -218,6 +222,25 @@ def test_env_r5_live_reroll_surplus_purchase_preserves_public_economy_order():
     assert transition.after.money == 15
     assert transition.before.vouchers == []
     assert transition.after.vouchers == ["v_reroll_surplus"]
+
+
+def test_env_r5_live_planet_merchant_purchase_preserves_rate_order():
+    voucher = _voucher(center="v_planet_merchant", label="Planet Merchant")
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(planet_rate=4.0)
+    rows[3]["data"]["state"]["payload"].update(
+        planet_rate=9.6,
+        vouchers=["v_planet_merchant"],
+    )
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.planet_rate == 4.0
+    assert transition.after.planet_rate == 9.6
+    assert transition.after.vouchers == ["v_planet_merchant"]
 
 
 def test_env_r5_live_voucher_purchase_rejects_wrong_identity_and_unsupported_center():
