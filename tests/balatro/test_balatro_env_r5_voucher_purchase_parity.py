@@ -185,6 +185,28 @@ def test_env_r5_live_clearance_sale_purchase_preserves_money_and_discount_order(
     assert transition.after.vouchers == ["v_clearance_sale"]
 
 
+def test_env_r5_live_liquidation_purchase_preserves_upgrade_order():
+    voucher = _voucher(center="v_liquidation", label="Liquidation")
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(
+        vouchers=["v_clearance_sale"],
+        shop_discount_percent=25,
+    )
+    rows[3]["data"]["state"]["payload"].update(
+        vouchers=["v_clearance_sale", "v_liquidation"],
+        shop_discount_percent=50,
+    )
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.shop_discount_percent == 25
+    assert transition.after.shop_discount_percent == 50
+    assert transition.after.vouchers == ["v_clearance_sale", "v_liquidation"]
+
+
 def test_env_r5_live_voucher_purchase_rejects_wrong_identity_and_unsupported_center():
     with pytest.raises(ValueError, match="target center does not match"):
         successful_voucher_purchase_evidence_from_run_rows(
