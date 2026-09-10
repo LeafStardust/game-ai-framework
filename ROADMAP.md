@@ -366,6 +366,13 @@ e185397aa44dd26762b296b710c5abd6237ad0cc
 GitHub Actions run 34423267134
 GitHub Actions job 102703054698
 2560 passed, 1596 deselected
+
+R5 private post-deal draw-order replay authority:
+73db93f5e095953520a197ccee85882ba3b1ab97
+  feat(balatro): retain private blind draw order
+GitHub Actions run 34424062376
+GitHub Actions job 102705412026
+2570 passed, 1596 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -376,7 +383,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — BOSS START REPLAY CODE IS GREEN; RNG/SHUFFLE/DRAW COVERAGE AUDIT IS NEXT**.
+- R5 live/simulator parity harness: **IN PROGRESS — PRIVATE DRAW-ORDER REPLAY CODE IS GREEN; OWNED-DECK COMPOSITION PARITY IS NEXT**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
@@ -1408,6 +1415,20 @@ and deal. They remain diagnostic evidence only and cannot be normalized into a
 passing fixture. A natural current-HEAD Boss-start fixture remains required but
 is deferred while independent R5 work continues.
 
+The RNG/shuffle/draw coverage audit localized one missing private fact in the
+otherwise-green real Small-Blind start replay. The fixture already compares the
+public dealt hand and exact post-action keyed RNG, but its sidecar did not retain
+the remaining physical `G.deck.cards` order, so it could not prove the next
+draw sequence. The existing blind-start checkpoint now captures that order only
+as private permanent-card live IDs, verifies the complete pre-start composition,
+and compares the exact headless post-deal draw pile. Sparse, duplicate,
+non-integral, unreadable, or composition-drifting IDs fail closed; public
+evidence remains unchanged and cannot see the order. Older sidecars remain
+readable with the field absent but do not satisfy this stronger gate. GitHub
+Actions run `34424062376`, job `102705412026`, passed with **2570 passed, 1596
+deselected**. A natural current-HEAD blind-start sidecar with the new private
+field remains required and is deferred while independent R5 work continues.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1428,7 +1449,9 @@ is deferred while independent R5 work continues.
   are green; a natural current-HEAD private fixture is deferred because every
   historical Boss start predates the identity repair and lacks its RNG
   checkpoint;
-- RNG/shuffle/draw;
+- RNG/shuffle/draw — exact private post-deal order capture/comparison is green;
+  a natural current-HEAD sidecar is deferred because historical sidecars lack
+  this private field;
 - owned-deck composition;
 - economy transitions;
 - tactical PLAY_CARDS/DISCARD_CARDS decisions and resulting state.
@@ -1437,20 +1460,22 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-Keep the held-Planet, audited-Joker-sale, and representative-Boss natural
-fixtures deferred without marking any gate complete. Continue with the next
-independent R5 fixture: RNG/shuffle/draw parity.
+Keep the held-Planet, audited-Joker-sale, representative-Boss, and strengthened
+blind-start natural fixtures deferred without marking any gate complete.
+Continue with the next independent R5 fixture: owned-deck composition parity.
 
-1. inventory the already-green exact RNG checks in paid reroll, blind start,
-   blind cash-out, blind skip, and Buffoon/Planet paths before adding anything;
-2. inspect canonical `BalatroRNG`, shuffle, deal/draw, physical-zone, public
-   observation, private checkpoint, and pinned vanilla owners for the smallest
-   still-uncovered representative RNG transition;
-3. reuse the existing keyed-RNG snapshot and public evidence contracts; do not
-   add a second RNG implementation or expose private draw order to policy;
-4. if an existing captured boundary is sufficient, preserve and replay it
-   unchanged; otherwise add only the missing opt-in private authority with
-   focused fail-closed regressions and defer the natural fixture;
+1. inventory existing permanent-deck translation, exact live-ID restoration,
+   modified-card fields, generation/acquisition owners, and real fixture
+   coverage before adding anything;
+2. inspect canonical `G.playing_cards` observation, `owned_deck`, card creation
+   order, shop/pack acquisition, destruction/conversion boundaries, and pinned
+   vanilla source for the smallest representative owned-deck mutation already
+   exact on both sides;
+3. keep `G.playing_cards` as permanent truth and keep physical `G.deck.cards`
+   order private; never infer permanent composition from a partial draw pile;
+4. reuse the shared public strategic evidence and exact live IDs; add only
+   genuinely missing private creation-order authority, if any, with focused
+   fail-closed regressions;
 5. patch only the first wrong canonical owner exposed by unchanged evidence,
    push, use GitHub Actions as the gate, and synchronize this roadmap.
 
@@ -1460,7 +1485,7 @@ buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy
 valuation/tuning, or playing-card shop purchases. `BUY_CARD` and `REROLL_BOSS`
 remain unavailable.
 
-After later independent R5 fixtures have progressed, return to all three
+After later independent R5 fixtures have progressed, return to all four
 deferred natural fixtures. They remain required R5 exit gates.
 
 ## R5 exit criteria
