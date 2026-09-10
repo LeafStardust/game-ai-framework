@@ -397,6 +397,18 @@ GitHub Actions run 34509660687
 R5 latest GitHub Actions verification for the bounded Money Tree probe:
 GitHub Actions run 34510243161
   The same `balatro-deterministic-tests` job failed in `Run deterministic Balatro suites` with generic exit code 1. Public logs and failure details are unavailable because the public logs return HTTP 403. No root cause is claimed.
+
+R5 bounded launcher startup-failure handling:
+19d81b5cc1997459d3e7e844bb048aa8817ca4cf
+  fix(balatro): fail bounded launcher on startup failure
+  The canonical `--attempt N` launcher now observes detached supervisor status
+  until the first attempt is published, returns nonzero on authoritative OFF /
+  bridge-readiness failure, preserves the supervisor reason, and leaves ordinary
+  toggle behavior unchanged. Focused local validation: 24 passed across the
+  launcher and bounded-supervisor tests; compileall passed for the three edited
+  modules; `git diff --check` passed. GitHub Actions run 34520890482, job
+  103017830178, was pushed and remained in progress when this checkpoint was
+  synchronized; no remote pytest count is claimed yet.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
