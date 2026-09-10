@@ -14,7 +14,6 @@ from .agent_control import BalatroAgentControl
 
 SUPERVISOR_MODULE = "games.balatro.live.runtime.balatro_agent_supervisor_entry"
 MONITOR_MODULE = "games.balatro.live.runtime.balatro_agent_monitor_targets"
-LAUNCH_LIVE_MONITOR = True
 COOPERATIVE_STOP_GRACE_SECONDS = 1.5
 COOPERATIVE_STOP_POLL_INTERVAL_SECONDS = 0.02
 HARD_STOP_EXIT_TIMEOUT_SECONDS = 3.0
@@ -181,7 +180,6 @@ def start_agent(
     blind_skip_parity_directory: str | None = None,
     buffoon_pack_parity_directory: str | None = None,
     held_planet_parity_directory: str | None = None,
-    launch_live_monitor: bool = True,
 ) -> int:
     running = control.running_pid()
     if running is not None:
@@ -243,11 +241,6 @@ def start_agent(
         finally:
             log_handle.close()
         control.claim_current_process(process.pid)
-        if launch_live_monitor:
-            try:
-                launch_monitor(control)
-            except (OSError, subprocess.SubprocessError):
-                pass
         return int(process.pid)
     except Exception:
         control.release_start_lock()
@@ -352,7 +345,6 @@ def restart_agent(
         blind_skip_parity_directory=blind_skip_parity_directory,
         buffoon_pack_parity_directory=buffoon_pack_parity_directory,
         held_planet_parity_directory=held_planet_parity_directory,
-        launch_live_monitor=False,
     )
     return previous_pid, new_pid
 
@@ -388,7 +380,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Toggle or restart the Balatro autonomous supervisor. ON launches one "
-            "detached supervisor process plus a read-only live monitor window. "
+            "detached supervisor process. The read-only live monitor remains "
+            "available as an explicit separate module. "
             "Normal OFF/restart requests a cooperative stop and automatically "
             "escalates to a validated supervisor-only hard stop if the grace window "
             "expires. --hard-stop forces that emergency path immediately."
@@ -528,7 +521,6 @@ def main() -> int:
             blind_skip_parity_directory=args.blind_skip_parity_directory,
             buffoon_pack_parity_directory=args.buffoon_pack_parity_directory,
             held_planet_parity_directory=args.held_planet_parity_directory,
-            launch_live_monitor=LAUNCH_LIVE_MONITOR,
         )
     except Exception as error:
         print("Balatro Agent toggle -> FAIL")
@@ -539,7 +531,7 @@ def main() -> int:
         print("Balatro Agent is OFF.")
         print("Turning ON...")
         print(f"Supervisor PID -> {pid}")
-        print("Live monitor -> opening in a separate terminal window")
+        print("Live monitor -> unchanged; launch explicitly when needed")
         print("Playbook selection -> automatic from live deck/stake")
         if args.unlock_joker:
             print("Unlock campaign -> " + ", ".join(args.unlock_joker))

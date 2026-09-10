@@ -33,16 +33,13 @@ def _consume_attempt(argv: list[str]) -> int:
 def main() -> int:
     attempts = _consume_attempt(sys.argv)
     previous_module = base_toggle.SUPERVISOR_MODULE
-    previous_launch_live_monitor = base_toggle.LAUNCH_LIVE_MONITOR
     previous_attempts = os.environ.get(ATTEMPTS_ENV)
     base_toggle.SUPERVISOR_MODULE = ATTEMPT_SUPERVISOR_MODULE
-    base_toggle.LAUNCH_LIVE_MONITOR = False
     os.environ[ATTEMPTS_ENV] = str(attempts)
     try:
         return base_toggle.main()
     finally:
         base_toggle.SUPERVISOR_MODULE = previous_module
-        base_toggle.LAUNCH_LIVE_MONITOR = previous_launch_live_monitor
         if previous_attempts is None:
             os.environ.pop(ATTEMPTS_ENV, None)
         else:

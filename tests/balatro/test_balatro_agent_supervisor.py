@@ -296,6 +296,7 @@ def test_toggle_launches_once_then_completes_cooperative_stop(tmp_path, monkeypa
 
     assert state == "STARTING"
     assert pid == 4242
+    assert len(launched) == 1
     assert control.read_pid() == 4242
     assert control.stop_requested() is False
     assert control.read_status()["state"] == "STARTING"
