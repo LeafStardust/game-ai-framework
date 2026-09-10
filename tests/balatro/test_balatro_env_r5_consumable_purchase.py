@@ -141,6 +141,14 @@ def test_env_r5_headless_consumable_purchase_wraps_canonical_owner():
     assert run.public.money == 10
     assert result.public.money == 7
     assert result.public.shop_consumables == []
-    assert result.public.consumables == [planet]
+    assert len(result.public.consumables) == 1
+    bought = result.public.consumables[0]
+    assert bought.name == planet.name
+    assert bought.category == planet.category
+    assert bought.hand_type == planet.hand_type
+    assert bought.chips == planet.chips
+    assert bought.mult == planet.mult
+    assert bought.price == planet.price
+    assert bought.area_index == planet.area_index
     assert evidence.action.alias == "BUY_CONSUMABLE"
     assert evidence.action.payload() == {"slot": 0}
