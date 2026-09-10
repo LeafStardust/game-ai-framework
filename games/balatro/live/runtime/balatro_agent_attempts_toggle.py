@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 from . import balatro_agent_toggle as base_toggle
+from .agent_control import BalatroAgentControl
 from .balatro_agent_attempts_entry import ATTEMPTS_ENV
 
 
@@ -30,14 +32,32 @@ def _consume_attempt(argv: list[str]) -> int:
     raise ValueError("--attempt is required")
 
 
+def _control_from_argv(argv: list[str]) -> BalatroAgentControl:
+    for index, arg in enumerate(argv):
+        if arg == "--control-dir" and index + 1 < len(argv):
+            return BalatroAgentControl(Path(argv[index + 1]))
+    return BalatroAgentControl(None)
+
+
 def main() -> int:
     attempts = _consume_attempt(sys.argv)
+    control = _control_from_argv(sys.argv)
+    was_running = control.running_pid() is not None
     previous_module = base_toggle.SUPERVISOR_MODULE
     previous_attempts = os.environ.get(ATTEMPTS_ENV)
     base_toggle.SUPERVISOR_MODULE = ATTEMPT_SUPERVISOR_MODULE
     os.environ[ATTEMPTS_ENV] = str(attempts)
     try:
-        return base_toggle.main()
+        result = base_toggle.main()
+        if result != 0:
+            return result
+        if not was_running:
+            base_toggle.wait_for_startup_outcome(control)
+        return 0
+    except RuntimeError as error:
+        print("Balatro Agent bounded attempt -> FAIL")
+        print(f"Reason -> {error}")
+        return 2
     finally:
         base_toggle.SUPERVISOR_MODULE = previous_module
         if previous_attempts is None:

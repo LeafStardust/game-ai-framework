@@ -18,6 +18,8 @@ COOPERATIVE_STOP_GRACE_SECONDS = 1.5
 COOPERATIVE_STOP_POLL_INTERVAL_SECONDS = 0.02
 HARD_STOP_EXIT_TIMEOUT_SECONDS = 3.0
 HARD_STOP_POLL_INTERVAL_SECONDS = 0.02
+BOUNDED_STARTUP_TIMEOUT_SECONDS = 2.0
+BOUNDED_STARTUP_POLL_INTERVAL_SECONDS = 0.02
 
 
 def _repo_root() -> Path:
@@ -247,6 +249,44 @@ def start_agent(
         control.clear_pid()
         control.write_status("OFF", reason="supervisor launch failed")
         raise
+
+
+def wait_for_startup_outcome(
+    control: BalatroAgentControl,
+    *,
+    timeout_seconds: float = BOUNDED_STARTUP_TIMEOUT_SECONDS,
+    poll_interval: float = BOUNDED_STARTUP_POLL_INTERVAL_SECONDS,
+) -> dict:
+    """Wait for a bounded supervisor to reach its first attempt or fail."""
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    last_status: dict = {}
+    while True:
+        status = control.read_status()
+        if status:
+            last_status = status
+            state = str(status.get("state") or "").upper()
+            if state == "OFF":
+                reason = str(status.get("reason") or "supervisor stopped")
+                raise RuntimeError(
+                    "bounded supervisor failed before starting an attempt: "
+                    f"{reason}"
+                )
+            if state == "ON":
+                try:
+                    attempt = int(status.get("attempt", 0))
+                except (TypeError, ValueError):
+                    attempt = 0
+                if attempt >= 1:
+                    return status
+
+        if time.monotonic() >= deadline:
+            detail = f"; last status: {last_status}" if last_status else ""
+            raise RuntimeError(
+                "bounded supervisor did not reach startup readiness before timeout"
+                f" ({timeout_seconds:.2f}s){detail}"
+            )
+        if poll_interval:
+            time.sleep(max(0.0, float(poll_interval)))
 
 
 def hard_stop_agent(control: BalatroAgentControl) -> int | None:
