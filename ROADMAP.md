@@ -1320,6 +1320,26 @@ Tarot, and Spectral cases fail closed. The recorder is opt-in through
 Actions run `34398260070`, job `102623415051`, passed with **2541 passed, 1596
 deselected**.
 
+The first natural held-Planet attempt on runner revision `39c69f82` bought
+Uranus in SHOP, deliberately retained it through `END_SHOP`, selected the next
+blind, and ended immediately after the transition into `SELECTING_HAND`. This
+does **not** establish a D7 refusal or a general consumable-hoarding defect: the
+canonical runtime evaluates held consumables before ordinary hand play, while
+Planet timing intentionally waits for `SELECTING_HAND` so it can use the dealt
+hand and blind pace. Hermit, Temperance, and Wheel are the only validated
+no-hand-target SHOP-use families, under their existing mechanical conditions.
+The attempt ended one decision before D7 could emit `USE_CONSUMABLE`, so no
+sidecar was expected from that file.
+
+That attempt did expose that the private capture/replay seam itself admitted
+only SHOP checkpoints. Exact Planet use and capture were extended fail-closed
+to stable `SELECTING_HAND` checkpoints at `f5a9230a` and `6adabf3a`; focused
+natural in-round coverage landed at `40daa507` and the canonical normalized
+Planet hand-key assertion at `b2c3750a`. GitHub Actions run `34413383953`, job
+`102672681684`, passed with **2546 passed, 1596 deselected**. No production
+consumable timing or shop acquisition policy changed. A natural sidecar on the
+current HEAD is still required to close held-Planet parity.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
