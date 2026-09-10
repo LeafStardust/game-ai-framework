@@ -10,17 +10,15 @@ from pathlib import Path
 
 from . import agent_control as agent_control_module
 from .agent_control import BalatroAgentControl
-from .balatro_agent_supervisor import DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS
 
 
 SUPERVISOR_MODULE = "games.balatro.live.runtime.balatro_agent_supervisor_entry"
 MONITOR_MODULE = "games.balatro.live.runtime.balatro_agent_monitor_targets"
+LAUNCH_LIVE_MONITOR = True
 COOPERATIVE_STOP_GRACE_SECONDS = 1.5
 COOPERATIVE_STOP_POLL_INTERVAL_SECONDS = 0.02
 HARD_STOP_EXIT_TIMEOUT_SECONDS = 3.0
 HARD_STOP_POLL_INTERVAL_SECONDS = 0.02
-BOUNDED_STARTUP_TIMEOUT_SECONDS = DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS
-BOUNDED_STARTUP_POLL_INTERVAL_SECONDS = 0.02
 
 
 def _repo_root() -> Path:
@@ -183,6 +181,7 @@ def start_agent(
     blind_skip_parity_directory: str | None = None,
     buffoon_pack_parity_directory: str | None = None,
     held_planet_parity_directory: str | None = None,
+    launch_live_monitor: bool = True,
 ) -> int:
     running = control.running_pid()
     if running is not None:
@@ -244,50 +243,17 @@ def start_agent(
         finally:
             log_handle.close()
         control.claim_current_process(process.pid)
+        if launch_live_monitor:
+            try:
+                launch_monitor(control)
+            except (OSError, subprocess.SubprocessError):
+                pass
         return int(process.pid)
     except Exception:
         control.release_start_lock()
         control.clear_pid()
         control.write_status("OFF", reason="supervisor launch failed")
         raise
-
-
-def wait_for_startup_outcome(
-    control: BalatroAgentControl,
-    *,
-    timeout_seconds: float = BOUNDED_STARTUP_TIMEOUT_SECONDS,
-    poll_interval: float = BOUNDED_STARTUP_POLL_INTERVAL_SECONDS,
-) -> dict:
-    """Wait for a bounded supervisor to reach its first attempt or fail."""
-    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
-    last_status: dict = {}
-    while True:
-        status = control.read_status()
-        if status:
-            last_status = status
-            state = str(status.get("state") or "").upper()
-            if state == "OFF":
-                reason = str(status.get("reason") or "supervisor stopped")
-                raise RuntimeError(
-                    "bounded supervisor failed before starting an attempt: "
-                    f"{reason}"
-                )
-            if state == "ON":
-                try:
-                    attempt = int(status.get("attempt", 0))
-                except (TypeError, ValueError):
-                    attempt = 0
-                if attempt >= 1:
-                    return status
-
-        if time.monotonic() >= deadline:
-            detail = f"; last status: {last_status}" if last_status else ""
-            raise RuntimeError(
-                "bounded supervisor did not reach startup readiness before timeout"
-                f" ({timeout_seconds:.2f}s){detail}"
-            )
-        if poll_interval:
-            time.sleep(max(0.0, float(poll_interval)))
 
 
 def hard_stop_agent(control: BalatroAgentControl) -> int | None:
@@ -386,6 +352,7 @@ def restart_agent(
         blind_skip_parity_directory=blind_skip_parity_directory,
         buffoon_pack_parity_directory=buffoon_pack_parity_directory,
         held_planet_parity_directory=held_planet_parity_directory,
+        launch_live_monitor=False,
     )
     return previous_pid, new_pid
 
@@ -421,8 +388,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Toggle or restart the Balatro autonomous supervisor. ON launches one "
-            "detached supervisor process. The read-only live monitor remains "
-            "available as an explicit separate module. "
+            "detached supervisor process plus a read-only live monitor window. "
             "Normal OFF/restart requests a cooperative stop and automatically "
             "escalates to a validated supervisor-only hard stop if the grace window "
             "expires. --hard-stop forces that emergency path immediately."
@@ -562,6 +528,7 @@ def main() -> int:
             blind_skip_parity_directory=args.blind_skip_parity_directory,
             buffoon_pack_parity_directory=args.buffoon_pack_parity_directory,
             held_planet_parity_directory=args.held_planet_parity_directory,
+            launch_live_monitor=LAUNCH_LIVE_MONITOR,
         )
     except Exception as error:
         print("Balatro Agent toggle -> FAIL")
@@ -572,7 +539,7 @@ def main() -> int:
         print("Balatro Agent is OFF.")
         print("Turning ON...")
         print(f"Supervisor PID -> {pid}")
-        print("Live monitor -> unchanged; launch explicitly when needed")
+        print("Live monitor -> opening in a separate terminal window")
         print("Playbook selection -> automatic from live deck/stake")
         if args.unlock_joker:
             print("Unlock campaign -> " + ", ".join(args.unlock_joker))

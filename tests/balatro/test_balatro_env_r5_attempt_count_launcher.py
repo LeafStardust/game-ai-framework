@@ -25,7 +25,7 @@ def test_env_r5_attempt_launcher_rejects_retired_plural_selector():
         toggle._consume_attempt(["toggle", "--attempts", "3"])
 
 
-def test_env_r5_attempt_launcher_forwards_bounded_supervisor(
+def test_env_r5_attempt_launcher_forwards_bounded_supervisor_without_monitor(
     monkeypatch,
 ):
     captured = {}
@@ -36,7 +36,6 @@ def test_env_r5_attempt_launcher_forwards_bounded_supervisor(
         return "STARTING", 4242
 
     monkeypatch.setattr(base_toggle, "toggle_agent", fake_toggle_agent)
-    monkeypatch.setattr(base_toggle, "wait_for_startup_outcome", lambda _control: {})
     monkeypatch.setattr(
         base_toggle.sys,
         "argv",
@@ -46,84 +45,7 @@ def test_env_r5_attempt_launcher_forwards_bounded_supervisor(
     assert toggle.main() == 0
     assert base_toggle.SUPERVISOR_MODULE.endswith("balatro_agent_supervisor_entry")
     assert captured["control"].directory == BalatroAgentControl(None).directory
-
-
-def test_env_r5_attempt_launcher_returns_failure_when_supervisor_reaches_off(
-    monkeypatch, tmp_path, capsys
-):
-    monkeypatch.setattr(
-        base_toggle,
-        "toggle_agent",
-        lambda _control, **_kwargs: ("STARTING", 4242),
-    )
-    monkeypatch.setattr(
-        base_toggle,
-        "wait_for_startup_outcome",
-        lambda _control: (_ for _ in ()).throw(
-            RuntimeError(
-                "bounded supervisor failed before starting an attempt: "
-                "supervisor failure: bridge readiness unavailable"
-            )
-        ),
-    )
-    monkeypatch.setattr(
-        base_toggle.sys,
-        "argv",
-        ["balatro_agent_attempts_toggle", "--attempt", "1"],
-    )
-
-    assert toggle.main() == 2
-    assert "bridge readiness unavailable" in capsys.readouterr().out
-
-
-def test_wait_for_startup_outcome_accepts_first_attempt_status(tmp_path):
-    control = BalatroAgentControl(tmp_path / "control")
-    control.write_status("ON", attempt=1, run_id="session-attempt-001")
-
-    status = base_toggle.wait_for_startup_outcome(control, timeout_seconds=0.0)
-
-    assert status["attempt"] == 1
-
-
-def test_wait_for_startup_outcome_allows_delayed_first_attempt_after_grace(
-    monkeypatch,
-):
-    clock = {"now": 0.0}
-
-    class _Control:
-        def read_status(self):
-            attempt = 1 if clock["now"] >= 2.5 else 0
-            return {"state": "ON", "attempt": attempt}
-
-    monkeypatch.setattr(
-        base_toggle.time,
-        "monotonic",
-        lambda: clock["now"],
-    )
-    monkeypatch.setattr(
-        base_toggle.time,
-        "sleep",
-        lambda interval: clock.__setitem__("now", clock["now"] + interval),
-    )
-
-    status = base_toggle.wait_for_startup_outcome(_Control(), poll_interval=0.5)
-
-    assert status["attempt"] == 1
-    assert clock["now"] == 2.5
-
-
-def test_wait_for_startup_outcome_preserves_supervisor_failure_reason(tmp_path):
-    control = BalatroAgentControl(tmp_path / "control")
-    control.write_status(
-        "OFF",
-        reason="supervisor failure: bridge readiness unavailable",
-    )
-
-    with pytest.raises(
-        RuntimeError,
-        match="bridge readiness unavailable",
-    ):
-        base_toggle.wait_for_startup_outcome(control, timeout_seconds=0.0)
+    assert captured["launch_live_monitor"] is False
 
 
 def test_env_r5_windows_launcher_routes_only_canonical_attempt_selector():
@@ -158,6 +80,7 @@ def test_env_r5_attempt_launcher_forwards_blind_start_parity_directory(
     pid = base_toggle.start_agent(
         control,
         blind_start_parity_directory=parity_directory,
+        launch_live_monitor=False,
     )
 
     assert pid == 4242
@@ -194,6 +117,7 @@ def test_env_r5_attempt_launcher_forwards_blind_skip_parity_directory(
     pid = base_toggle.start_agent(
         control,
         blind_skip_parity_directory=parity_directory,
+        launch_live_monitor=False,
     )
 
     assert pid == 4242
@@ -220,6 +144,7 @@ def test_env_r5_attempt_launcher_forwards_buffoon_pack_parity_directory(
     pid = base_toggle.start_agent(
         control,
         buffoon_pack_parity_directory=parity_directory,
+        launch_live_monitor=False,
     )
 
     assert pid == 4242
@@ -246,6 +171,7 @@ def test_env_r5_attempt_launcher_forwards_held_planet_parity_directory(
     pid = base_toggle.start_agent(
         control,
         held_planet_parity_directory=parity_directory,
+        launch_live_monitor=False,
     )
 
     assert pid == 4242
