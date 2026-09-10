@@ -14,6 +14,7 @@ from .agent_control import BalatroAgentControl
 
 SUPERVISOR_MODULE = "games.balatro.live.runtime.balatro_agent_supervisor_entry"
 MONITOR_MODULE = "games.balatro.live.runtime.balatro_agent_monitor_targets"
+LAUNCH_LIVE_MONITOR = True
 COOPERATIVE_STOP_GRACE_SECONDS = 1.5
 COOPERATIVE_STOP_POLL_INTERVAL_SECONDS = 0.02
 HARD_STOP_EXIT_TIMEOUT_SECONDS = 3.0
@@ -527,6 +528,7 @@ def main() -> int:
             blind_skip_parity_directory=args.blind_skip_parity_directory,
             buffoon_pack_parity_directory=args.buffoon_pack_parity_directory,
             held_planet_parity_directory=args.held_planet_parity_directory,
+            launch_live_monitor=LAUNCH_LIVE_MONITOR,
         )
     except Exception as error:
         print("Balatro Agent toggle -> FAIL")

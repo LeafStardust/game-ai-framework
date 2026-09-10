@@ -25,6 +25,29 @@ def test_env_r5_attempt_launcher_rejects_retired_plural_selector():
         toggle._consume_attempt(["toggle", "--attempts", "3"])
 
 
+def test_env_r5_attempt_launcher_forwards_bounded_supervisor_without_monitor(
+    monkeypatch,
+):
+    captured = {}
+
+    def fake_toggle_agent(control, **kwargs):
+        captured["control"] = control
+        captured.update(kwargs)
+        return "STARTING", 4242
+
+    monkeypatch.setattr(base_toggle, "toggle_agent", fake_toggle_agent)
+    monkeypatch.setattr(
+        base_toggle.sys,
+        "argv",
+        ["balatro_agent_attempts_toggle", "--attempt", "1"],
+    )
+
+    assert toggle.main() == 0
+    assert base_toggle.SUPERVISOR_MODULE.endswith("balatro_agent_supervisor_entry")
+    assert captured["control"].directory == BalatroAgentControl(None).directory
+    assert captured["launch_live_monitor"] is False
+
+
 def test_env_r5_windows_launcher_routes_only_canonical_attempt_selector():
     launcher = (Path(__file__).parents[2] / "BalatroAgentToggle.bat").read_text(
         encoding="utf-8"
