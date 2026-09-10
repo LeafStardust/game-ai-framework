@@ -1,4 +1,5 @@
 from games.balatro.live.external.live_memory_observer import (
+    _install_pending_red_white_boss,
     _install_pending_red_white_nonboss_requirement,
     _normalize_joker_unlocks,
     _normalize_hand_levels,
@@ -91,6 +92,82 @@ def test_live_memory_installs_exact_pending_red_white_nonboss_requirement():
         round_resets=resets,
     )
     assert unsupported["score"] == 0
+
+
+def test_live_memory_installs_exact_pending_red_white_boss_identity_and_requirement():
+    CHOICES = 40
+    CENTERS = 41
+    TOOTH = 42
+    decoder = _FakeDecoder(
+        {
+            CHOICES: {"Boss": _string("bl_tooth")},
+            CENTERS: {"bl_tooth": _table(TOOTH)},
+            TOOTH: {
+                "key": _string("bl_tooth"),
+                "name": _string("The Tooth"),
+                "mult": _number(2),
+                "dollars": _number(5),
+            },
+        },
+        {},
+    )
+    blind = {"type": "BOSS", "key": None, "name": None, "score": 0}
+
+    _install_pending_red_white_boss(
+        blind,
+        decoder=decoder,
+        phase="BLIND_SELECT",
+        deck_name="RED",
+        stake_name="WHITE",
+        round_resets={
+            "blind_ante": _number(1),
+            "blind_choices": _table(CHOICES),
+        },
+        blind_centers=_table(CENTERS),
+    )
+
+    assert blind == {
+        "type": "BOSS",
+        "key": "bl_tooth",
+        "name": "The Tooth",
+        "score": 600,
+        "reward": 5,
+    }
+
+
+def test_live_memory_pending_boss_identity_fails_closed_on_center_mismatch():
+    CHOICES = 50
+    CENTERS = 51
+    TOOTH = 52
+    decoder = _FakeDecoder(
+        {
+            CHOICES: {"Boss": _string("bl_tooth")},
+            CENTERS: {"bl_tooth": _table(TOOTH)},
+            TOOTH: {
+                "key": _string("bl_hook"),
+                "name": _string("The Tooth"),
+                "mult": _number(2),
+                "dollars": _number(5),
+            },
+        },
+        {},
+    )
+    blind = {"type": "BOSS", "key": None, "name": None, "score": 0}
+
+    _install_pending_red_white_boss(
+        blind,
+        decoder=decoder,
+        phase="BLIND_SELECT",
+        deck_name="RED",
+        stake_name="WHITE",
+        round_resets={
+            "blind_ante": _number(1),
+            "blind_choices": _table(CHOICES),
+        },
+        blind_centers=_table(CENTERS),
+    )
+
+    assert blind == {"type": "BOSS", "key": None, "name": None, "score": 0}
 
 
 def _card_tables(base_address, *, rank, suit, live_id):

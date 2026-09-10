@@ -183,6 +183,15 @@ def snapshot_payload_from_live_memory(
         stake_name=stake_name,
         round_resets=round_resets,
     )
+    _install_pending_red_white_boss(
+        normalized_blind,
+        decoder=decoder,
+        phase=phase,
+        deck_name=deck_name,
+        stake_name=stake_name,
+        round_resets=round_resets,
+        blind_centers=root.get("P_BLINDS"),
+    )
 
     hand = _normalize_area(decoder, root.get("hand"), preserve_order=True)
     jokers = _normalize_item_area(
@@ -763,6 +772,7 @@ def _normalize_blind(
         "status": "CURRENT" if _boolean(game.get("facing_blind"), False) else "SELECT",
         "name": _first_string(blind.get("name"), blind_config.get("name")),
         "score": _integer(blind.get("chips"), 0),
+        "reward": _integer(blind_config.get("dollars"), 0),
         "key": key,
     }
 
@@ -816,6 +826,62 @@ def _install_pending_red_white_nonboss_requirement(
     except BlindRequirementError:
         return
     blind["score"] = base if blind_type == "SMALL" else base * 3 // 2
+
+
+def _install_pending_red_white_boss(
+    blind: dict[str, Any],
+    *,
+    decoder: LuaJITNonGC64Decoder,
+    phase: str,
+    deck_name: str,
+    stake_name: str,
+    round_resets: dict[str, LuaValue],
+    blind_centers: LuaValue | None,
+) -> None:
+    """Expose the exact pending Boss already shown by the blind-select UI.
+
+    Before selection, ``G.GAME.blind`` is still the inactive Blind shell. The
+    Boss pane instead reads its public identity from
+    ``round_resets.blind_choices.Boss`` and its displayed target from the
+    matching ``G.P_BLINDS`` center. Preserve that canonical ownership rather
+    than inferring a Boss from the following selected-hand state.
+
+    Only Red Deck / White Stake is admitted here. Missing, malformed, or
+    disagreeing choice/center records leave the raw incomplete observation in
+    place so exact replay continues to fail closed.
+    """
+    if phase != "BLIND_SELECT" or deck_name != "RED" or stake_name != "WHITE":
+        return
+    if str(blind.get("type") or "").upper() != "BOSS":
+        return
+
+    choices = _table_fields(decoder, round_resets.get("blind_choices"))
+    key = _string(choices.get("Boss"))
+    centers = _table_fields(decoder, blind_centers)
+    center = _table_fields(decoder, centers.get(str(key or "")))
+    center_key = _string(center.get("key"))
+    name = _string(center.get("name"))
+    multiplier = _exact_integral_number(center.get("mult"), minimum=1)
+    reward = _exact_integral_number(center.get("dollars"), minimum=0)
+    blind_ante = _exact_integral_number(round_resets.get("blind_ante"), minimum=1)
+    if (
+        not key
+        or center_key != key
+        or not name
+        or multiplier is None
+        or reward is None
+        or blind_ante is None
+    ):
+        return
+    try:
+        base = red_white_base_blind_amount(blind_ante)
+    except BlindRequirementError:
+        return
+
+    blind["key"] = key
+    blind["name"] = name
+    blind["score"] = base * multiplier
+    blind["reward"] = reward
 
 
 def _deck_name(

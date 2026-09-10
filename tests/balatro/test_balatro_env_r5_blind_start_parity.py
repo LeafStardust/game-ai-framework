@@ -3,6 +3,7 @@ from copy import deepcopy
 import pytest
 
 from games.balatro.actions import SELECT_BLIND
+from games.balatro.env.actions import EnvAction
 from games.balatro.env.rng import pseudohash
 from games.balatro.env.strategic_evidence import (
     build_public_strategic_transition_evidence,
@@ -45,7 +46,14 @@ def _base_cards():
     ]
 
 
-def _snapshot(*, sequence=1, phase="BLIND_SELECT", cards=None):
+def _snapshot(
+    *,
+    sequence=1,
+    phase="BLIND_SELECT",
+    cards=None,
+    boss_name=None,
+    requirement=300,
+):
     cards = deepcopy(_base_cards() if cards is None else cards)
     payload = {
         "deck": "RED",
@@ -54,7 +62,7 @@ def _snapshot(*, sequence=1, phase="BLIND_SELECT", cards=None):
         "round_num": 0 if phase == "BLIND_SELECT" else 1,
         "money": 4,
         "score": 0,
-        "round": {"hands_left": 4, "discards_left": 3, "chips": 300},
+        "round": {"hands_left": 4, "discards_left": 3, "chips": requirement},
         "round_reset_hands_observed": True,
         "round_reset_hands": 4,
         "round_reset_discards_observed": True,
@@ -67,11 +75,16 @@ def _snapshot(*, sequence=1, phase="BLIND_SELECT", cards=None):
         "vouchers_observed": True,
         "vouchers": [],
         "blinds": {
-            "small": {
-                "type": "SMALL",
+            "boss" if boss_name else "small": {
+                "type": "BOSS" if boss_name else "SMALL",
                 "status": "SELECT" if phase == "BLIND_SELECT" else "CURRENT",
-                "score": 300,
-                "reward": 3,
+                "score": requirement,
+                "reward": 5 if boss_name else 3,
+                **(
+                    {"name": boss_name, "key": "bl_tooth"}
+                    if boss_name
+                    else {}
+                ),
             }
         },
     }
@@ -261,3 +274,25 @@ def test_env_r5_live_id_base_deck_replays_exact_shuffle_and_private_rng():
     assert len(result.public.hand) == 8
     assert comparison.matches is True
     assert comparison.differences == ()
+
+
+def test_env_r5_blind_start_checkpoint_replays_exact_start_inert_tooth_boss():
+    before = _checkpoint(
+        _snapshot(
+            sequence=30,
+            boss_name="The Tooth",
+            requirement=600,
+        )
+    )
+
+    run = headless_blind_start_run_from_live_checkpoint(before)
+    result, evidence = select_blind_with_public_evidence(run)
+
+    assert run.public.boss_name == "The Tooth"
+    assert run.public.blind.requirement == 600
+    assert result.public.phase == "SELECTING_HAND"
+    assert result.public.boss_name == "The Tooth"
+    assert result.public.blind.requirement == 600
+    assert result.public.blind_score == 600
+    assert len(result.public.hand) == 8
+    assert evidence.action == EnvAction.from_alias("SELECT_BLIND")
