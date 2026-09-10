@@ -383,6 +383,12 @@ GitHub Actions job 102810415392
 R5 bounded Money Tree natural-fixture probe:
 2026-09-10
   The bounded one-attempt probe exited before gameplay because the first-party bridge did not consume STATUS (`InjectedBridgeTimeoutError` while waiting for STATUS); no phase/checkpoint/run log was produced. Focused bridge tests remained green, and no natural Money Tree fixture was produced.
+
+R5 GitHub Actions verification for the bounded Money Tree probe:
+Commit c710cddd
+GitHub Actions run 34508553737
+GitHub Actions job 102976661662
+  The job completed with failure in `Run deterministic Balatro suites`; setup and dependency steps passed. Exact pytest counts and the traceback are unavailable because the public logs return HTTP 403. The local deterministic selector remains the available evidence for this result. No root cause is claimed.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
