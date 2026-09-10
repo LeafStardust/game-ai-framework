@@ -60,7 +60,7 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 
 ---
 
-# Current checkpoint — 2026-09-09
+# Current checkpoint — 2026-09-10
 
 ```text
 Branch: feat/v1.0-red-white-competence
@@ -158,7 +158,7 @@ GitHub Actions job 102020161503
 R5 first real paid-reroll fixture repair:
 606c7b4535176e92f9bc87192cc9a049670a0d6e
   fix(balatro): align paid reroll with live parity
-9fbfe70386e3141c565cd07c655decd5194dd1cb
+9fbfe70386e3141c565cd07c655decd5194dd1cb3
   test(balatro): align exact reroll regressions
 GitHub Actions run 34217561085
 GitHub Actions job 102032815831
@@ -177,7 +177,7 @@ R5 supported Joker purchase evidence and true headless replay:
 adfa8458fbee9f6b51db0f7b8b25e8ab36d0c56c
   test(balatro): seed R5 joker purchase replay
 0183d09d729dad15f72948be0326a10432ecea07
-  test(balatro): complete R5 joker purchase fixture metadata
+  test(balatro): complete R5 Joker purchase fixture metadata
 30b8ca49678f1826b92d8939d9337997d5275dbc
   test(balatro): replay R5 Joker purchase without normalization
 8d6b64adc3ab2884d59e5d59a9d2a8f448f83ed5
@@ -186,7 +186,6 @@ GitHub Actions run 34222351675
 GitHub Actions job 102048209359
 2431 passed, 1595 deselected
 
-R5 first real ordinary Joker-purchase fixture:
 e2e4c23ea669283fc3991cc5bf6ad10920a22f9b
   test(balatro): replay real R5 Joker purchase fixture
 6b93714d3ca496d6440be75f3b169e5b48b04cd3
@@ -373,6 +372,13 @@ R5 private post-deal draw-order replay authority:
 GitHub Actions run 34424062376
 GitHub Actions job 102705412026
 2570 passed, 1596 deselected
+
+R5 owned-deck composition parity:
+e1aa7866b6bc6c538e041f41ba6db155f8dfbf41
+  test(balatro): correct owned-deck composition fixture
+GitHub Actions run 34458486597
+GitHub Actions job 102810415392
+2571 passed, 1596 deselected
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -380,10 +386,10 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 ## Immediate development position
 
 - R1 deterministic state/acquisition: **SUBSTANTIALLY COMPLETE**.
-- R2 RNG/lifecycle/shop/pack generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
+- R2 RNG/lifecycle/shop generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — PRIVATE DRAW-ORDER REPLAY CODE IS GREEN; OWNED-DECK COMPOSITION PARITY IS NEXT**.
+- R5 live/simulator parity harness: **IN PROGRESS — OWNED-DECK COMPOSITION GATE IS GREEN; NEXT INDEPENDENT GATE IS ECONOMY TRANSITIONS**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
@@ -1052,6 +1058,19 @@ Required before treating the simulator as authoritative training truth.
   Jokers, malformed/ambiguous indices, failed results, and non-SHOP boundaries
   fail closed. Joker sale consumes no RNG, so this slice adds no private replay
   schema.
+- the first passing real Small-Blind fixture now also serves as the owned-deck
+  composition parity gate: the translated `owned_deck` contains exactly 52
+  authoritative integral live IDs and exactly one copy of every Red Deck base
+  rank/suit identity. The public fixture keeps permanent composition separate
+  from any hidden physical draw order; no simulator-side reconstruction of
+  permanent truth from `G.deck.cards` was added.
+- the frozen R3 action surface currently has no supported playing-card acquisition
+  or deterministic conversion action that mutates permanent composition end to
+  end. `BUY_CARD` remains unavailable, Tarot/Spectral conversion remains outside
+  the admitted `USE_CONSUMABLE` Planet slice, and R4 tactical Play intentionally
+  fails closed before unsupported destruction callbacks. The existing canonical
+  destruction owner is retained for future exact expansion rather than being
+  promoted through a synthetic parity action.
 
 Green checkpoints:
 
@@ -1091,7 +1110,7 @@ GitHub Actions job 102020161503
 
 606c7b4535176e92f9bc87192cc9a049670a0d6e
   fix(balatro): align paid reroll with live parity
-9fbfe70386e3141c565cd07c655decd5194dd1cb
+9fbfe70386e3141c565cd07c655decd5194dd1cb3
   test(balatro): align exact reroll regressions
 GitHub Actions run 34217561085
 GitHub Actions job 102032815831
@@ -1148,7 +1167,6 @@ GitHub Actions job 102099701468
 GitHub Actions run 34250416208
 GitHub Actions job 102143121535
 2452 passed, 1595 deselected
-```
 
 The first real paid-reroll fixture,
 `balatro-20260908T091943Z-e7a1ad15-attempt-001`, contains two settled
@@ -1294,7 +1312,7 @@ the timing repair, not a promotable parity fixture.
 The post-settlement batch,
 `balatro-20260909T150330Z-186b22a6`, supplies the first complete real supported
 Small-Blind/Economy-Tag skip fixture in attempt 005. The unchanged public rows
-243--245 and unchanged private sidecar row are preserved in XZ transport. Their
+243–245 and unchanged private sidecar row are preserved in XZ transport. Their
 decompressed SHA-256 guards are respectively
 `20898032d15279b00397eef9bbc530989931fd0a90df2fdc998e4d98d336cf29`
 and
@@ -1375,7 +1393,7 @@ sidecar was expected from that file.
 
 That attempt did expose that the private capture/replay seam itself admitted
 only SHOP checkpoints. Exact Planet use and capture were extended fail-closed
-to stable `SELECTING_HAND` checkpoints at `f5a9230a` and `6adabf3a`; focused
+to stable `SELECTING_HAND` checkpoints at `f5a9230a` and `6adab3f`; focused
 natural in-round coverage landed at `40daa507` and the canonical normalized
 Planet hand-key assertion at `b2c3750a`. GitHub Actions run `34413383953`, job
 `102672681684`, passed with **2546 passed, 1596 deselected**. No production
@@ -1401,7 +1419,7 @@ center's reward. The process-memory observer previously published only
 `type=BOSS` with null identity and a zero target before selection, so the
 existing exact blind-start checkpoint could not restore any Boss even though
 R2 already owns every Boss start route. The canonical observer now publishes
-the exact pending center key, name, requirement, and reward for Red/White and
+exact pending center key, name, requirement, and reward for Red/White and
 leaves missing or inconsistent choice/center state incomplete. The existing
 checkpoint then replays the smallest start-inert representative, The Tooth,
 through `select_blind_exact` without a new action or replay schema. GitHub
@@ -1429,14 +1447,29 @@ Actions run `34424062376`, job `102705412026`, passed with **2570 passed, 1596
 deselected**. A natural current-HEAD blind-start sidecar with the new private
 field remains required and is deferred while independent R5 work continues.
 
+The owned-deck composition gate is now green from the existing real Small-Blind
+fixture. The live-before state contains exactly 52 permanent playing cards with
+52 unique authoritative integral live IDs and exactly one copy of every Red Deck
+base rank/suit identity. This validates the permanent `G.playing_cards`-derived
+composition without promoting physical `G.deck.cards` order into public truth.
+No supported frozen action currently performs a deterministic playing-card
+acquisition or conversion end to end: `BUY_CARD` is unavailable, Tarot/Spectral
+conversion is outside the admitted Planet-only `USE_CONSUMABLE` slice, and R4
+Play still fails closed before unsupported destruction callbacks. The existing
+canonical destruction helper therefore remains future exact-expansion material;
+no synthetic mutation action or inference from post-state was added.
+GitHub Actions run `34458486597`, job `102810415392`, passed with **2571 passed,
+1596 deselected**.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
 - representative ordinary Joker purchase;
-- representative supported Voucher redemption.
-- ordinary Small-Blind start and clear/cash-out.
-- supported Small-Blind/Economy-Tag skip flow.
-- representative Buffoon pack choice.
+- representative supported Voucher redemption;
+- ordinary Small-Blind start and clear/cash-out;
+- supported Small-Blind/Economy-Tag skip flow;
+- representative Buffoon pack choice;
+- owned-deck composition.
 
 ## Remaining priority parity fixtures
 
@@ -1452,7 +1485,6 @@ field remains required and is deferred while independent R5 work continues.
 - RNG/shuffle/draw — exact private post-deal order capture/comparison is green;
   a natural current-HEAD sidecar is deferred because historical sidecars lack
   this private field;
-- owned-deck composition;
 - economy transitions;
 - tactical PLAY_CARDS/DISCARD_CARDS decisions and resulting state.
 
@@ -1462,21 +1494,16 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 Keep the held-Planet, audited-Joker-sale, representative-Boss, and strengthened
 blind-start natural fixtures deferred without marking any gate complete.
-Continue with the next independent R5 fixture: owned-deck composition parity.
+Continue with the next independent R5 fixture: economy transitions.
 
-1. inventory existing permanent-deck translation, exact live-ID restoration,
-   modified-card fields, generation/acquisition owners, and real fixture
-   coverage before adding anything;
-2. inspect canonical `G.playing_cards` observation, `owned_deck`, card creation
-   order, shop/pack acquisition, destruction/conversion boundaries, and pinned
-   vanilla source for the smallest representative owned-deck mutation already
-   exact on both sides;
-3. keep `G.playing_cards` as permanent truth and keep physical `G.deck.cards`
-   order private; never infer permanent composition from a partial draw pile;
-4. reuse the shared public strategic evidence and exact live IDs; add only
-   genuinely missing private creation-order authority, if any, with focused
-   fail-closed regressions;
-5. patch only the first wrong canonical owner exposed by unchanged evidence,
+1. inventory the already-owned cash-out, reward, cost, income, interest, Voucher,
+   and resource-reset owners plus existing real economy evidence;
+2. inspect the smallest supported economy mutation not already covered by
+   cash-out/reroll/purchase fixtures and compare it through the shared public
+   strategic evidence path;
+3. preserve exact money/resource ordering and any private RNG authority required
+   by the canonical owner; never infer economy state from a later balance alone;
+4. patch only the first wrong canonical owner exposed by unchanged evidence,
    push, use GitHub Actions as the gate, and synchronize this roadmap.
 
 Do not broaden this slice to unsupported Bosses, Boss skip paths, Boss reroll,
@@ -1512,8 +1539,6 @@ Measure only after semantics and representative parity are correct:
 - deterministic replay overhead.
 
 Do not trade exactness for throughput before this phase.
-
----
 
 # Later phases
 
