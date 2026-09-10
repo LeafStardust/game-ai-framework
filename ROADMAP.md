@@ -1010,6 +1010,13 @@ Required before treating the simulator as authoritative training truth.
   `use_planet_exact`; targeted-card consumables, Tarot/Spectral use, non-SHOP
   transitions, ambiguous identity, failed results, and missing private usage
   history remain fail-closed.
+- successful active-main-shop `SELL_JOKER` rows now retain the exact owned
+  `joker_index`, map through the frozen R3 action vocabulary, and compare on the
+  shared public strategic evidence path. Replay delegates directly to
+  `sell_joker_exact`; unsupported inverse lifecycles, Eternal or editioned
+  Jokers, malformed/ambiguous indices, failed results, and non-SHOP boundaries
+  fail closed. Joker sale consumes no RNG, so this slice adds no private replay
+  schema.
 
 Green checkpoints:
 
@@ -1340,6 +1347,17 @@ Planet hand-key assertion at `b2c3750a`. GitHub Actions run `34413383953`, job
 consumable timing or shop acquisition policy changed. A natural sidecar on the
 current HEAD is still required to close held-Planet parity.
 
+The audited Joker-sale public evidence seam is green at `5a27e22b`. The first
+CI attempt correctly rejected a mislabeled unsupported-Juggler regression; the
+fixture identity was corrected without changing production behavior. GitHub
+Actions run `34421799213`, job `102698626846`, passed with **2557 passed, 1596
+deselected**. Every available historical live `SELL_JOKER` decision and
+action-result row predates this repair and omits the owned `joker_index`. The
+sold Joker is visible only by comparing post-state, which R5 must not use to
+infer the planned action target. No historical sale row is therefore promotable
+unchanged. A natural current-HEAD sale fixture remains required, but its live
+request is deferred while independent R5 work continues.
+
 ## Completed priority parity gates
 
 - ordinary shop paid reroll;
@@ -1353,7 +1371,9 @@ current HEAD is still required to close held-Planet parity.
 
 - held Planet use — recorder/replay code is green, but the natural live fixture
   is temporarily deferred at the user's request and remains incomplete;
-- audited Joker sale;
+- audited Joker sale — public evidence/replay is green; a natural current-HEAD
+  fixture is deferred because every historical row predates exact target
+  logging;
 - representative Bosses;
 - RNG/shuffle/draw;
 - owned-deck composition;
@@ -1364,36 +1384,30 @@ R5 compares canonical state/action/transition evidence, not screenshots or ad-ho
 
 ## Exact next task
 
-Hold the natural held-Planet run request without marking that gate complete.
-Continue with the next independent R5 fixture: one audited inventory-only
-Joker sale in an active main SHOP.
+Keep the held-Planet and audited-Joker-sale natural fixtures deferred without
+marking either gate complete. Continue with the next independent R5 fixture:
+representative Boss parity.
 
-1. inspect the existing frozen R3 `SELL_JOKER` contract, canonical
-   `sell_joker_exact` owner, public translator, live run-log boundary, and
-   pinned vanilla sale lifecycle;
-2. add `SELL_JOKER` to the shared public strategic evidence adapter only for an
-   exact visible owned-Joker index/identity that belongs to the already-audited
-   inventory-only subset;
-3. add an evidence wrapper that delegates directly to `sell_joker_exact`; sale
-   consumes no RNG, so do not create private replay authority unless inspection
-   proves an actually missing private fact;
-4. add focused deterministic regressions for the admitted row and every
-   ambiguous, unsupported, Eternal, editioned, malformed, or non-SHOP boundary;
-5. inspect existing natural public run logs for one coherent supported sale. If
-   one is sufficient, preserve and replay it unchanged; request a new live run
-   only if no existing boundary supplies the exact required evidence;
-6. patch only the first wrong canonical owner exposed by unchanged evidence,
-   push, use GitHub Actions as the gate, and synchronize this roadmap before
-   selecting the next fixture.
+1. inspect the frozen R2/R4 Boss lifecycle and tactical owners, existing
+   representative Boss regressions, public translator, durable live evidence
+   boundary, and pinned vanilla source;
+2. select the smallest representative Boss transition already exact on both
+   sides; do not broaden the environment action vocabulary;
+3. identify whether ordinary public evidence is sufficient or whether exact
+   private lifecycle/RNG authority is genuinely required;
+4. add only the missing shared evidence/replay seam with focused fail-closed
+   regressions, then inspect existing logs before requesting live gameplay;
+5. patch only the first wrong canonical owner exposed by unchanged evidence,
+   push, use GitHub Actions as the gate, and synchronize this roadmap.
 
-Do not broaden this slice to resource-sensitive inverse lifecycles, pack-time
-sales, pre-blind sales, Verdant Leaf, shop buy-and-use, Tarot/Spectral mechanics,
-booster Planet choices, policy valuation/tuning, playing-card shop purchases,
-Boss skip paths, or Boss reroll. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
+Do not broaden this slice to unsupported Bosses, Boss skip paths, Boss reroll,
+resource-sensitive Joker inverse lifecycles, pack/pre-blind/Verdant sales, shop
+buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy
+valuation/tuning, or playing-card shop purchases. `BUY_CARD` and `REROLL_BOSS`
+remain unavailable.
 
-After later independent R5 fixtures have progressed, return to the deferred
-held-Planet task at its existing current-HEAD capture command. It remains a
-required R5 exit gate.
+After later independent R5 fixtures have progressed, return to both deferred
+natural fixtures. They remain required R5 exit gates.
 
 ## R5 exit criteria
 
