@@ -97,6 +97,29 @@ def test_env_r5_real_small_blind_fixture_replays_unchanged_through_exact_owner()
     assert comparison.public.differences == ()
 
 
+def test_env_r5_real_small_blind_fixture_preserves_authoritative_owned_deck_composition():
+    public_rows = _fixture_rows(PUBLIC_FIXTURE)
+    live = successful_select_blind_evidence_from_run_rows(public_rows)
+
+    assert len(live) == 1
+    owned_deck = live[0].before.owned_deck
+    remaining_deck = live[0].before.deck
+
+    assert owned_deck is not None
+    assert len(owned_deck) == 52
+    assert len(remaining_deck) == 44
+    assert all(type(card.live_id) is int and card.live_id >= 0 for card in owned_deck)
+    assert len({card.live_id for card in owned_deck}) == 52
+
+    expected_identities = {
+        (rank, suit)
+        for rank in ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
+        for suit in ("Hearts", "Diamonds", "Clubs", "Spades")
+    }
+    assert {(card.rank, card.suit) for card in owned_deck} == expected_identities
+    assert set((card.rank, card.suit) for card in remaining_deck) <= expected_identities
+
+
 def test_env_r5_real_small_blind_cashout_replays_unchanged_through_exact_owner():
     cash_out_raw = _fixture_bytes(CASH_OUT_FIXTURE)
     rows = _fixture_rows(CASH_OUT_FIXTURE)
