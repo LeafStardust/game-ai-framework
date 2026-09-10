@@ -8,13 +8,20 @@ from games.balatro.live.parity_capture import (
 )
 
 
-def _joker(*, center="j_joker", live_id="joker-1", eternal=False, edition=None):
+def _joker(
+    *,
+    center="j_joker",
+    label="Joker",
+    live_id="joker-1",
+    eternal=False,
+    edition=None,
+):
     value = {
         "ability_set": "JOKER",
         "area_index": 0,
         "live_id": live_id,
         "center": center,
-        "label": "Joker",
+        "label": label,
         "rarity": "COMMON",
         "cost": 2,
         "base_cost": 2,
@@ -107,7 +114,7 @@ def test_env_r5_live_joker_sale_rejects_malformed_or_ambiguous_target(action, me
 @pytest.mark.parametrize(
     "joker",
     [
-        _joker(center="j_juggler"),
+        _joker(center="j_juggler", label="Juggler"),
         _joker(eternal=True),
         _joker(edition="FOIL"),
     ],
