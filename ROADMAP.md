@@ -7,7 +7,6 @@ Authoritative roadmap for Balatro Red Deck / White Stake competence on `LeafStar
 **Maximize P(clear Ante 8 | Red Deck, White Stake, normal mode).**
 
 The project has pivoted from manually tuned Bond-value strategy to reinforcement learning in a fast deterministic Balatro environment. Existing deterministic mechanics, legality, public-state observation, tactical hand play, candidate projection, telemetry, and useful Bond-derived features remain assets. Manual Bond coefficient tuning is retired as the primary competence path.
-
 ## Non-negotiable contract
 
 - Preserve exact Balatro mechanics, legality, Boss rules, economy, public-information boundaries, and seeded RNG.
@@ -460,6 +459,21 @@ R5 live-agent bridge timeout diagnostics:
   inspection, and no control/process command was launched. Focused validation:
   2 passed, 0 failed, 0 skipped, 0 deselected in
   `tests/balatro/test_balatro_bridge_timeout_cleanup.py`.
+
+R5 repository-only continuation verification:
+  The pushed timeout-diagnostics commit remains synchronized at
+  `2da940199e3a20cfb1ff9247b8f2cfcb76b27d23`. Focused bridge, supervisor,
+  startup-handoff, crash-report, and failure-artifact regressions passed:
+  17 passed, 0 failed, 0 skipped, 0 deselected. The authoritative R5 selector
+  also passed: 2599 passed, 0 failed, 0 skipped, 1601 deselected. No newer
+  repository artifact identifies a deterministic post-timeout defect, and no
+  live Balatro process was launched or controlled during this verification.
+  The next concrete failure remains live-only: the first-party bridge does not
+  consume the STATUS command before the timeout budget; the still-pending
+  command is cancelled and the diagnostic preserves command/path/response
+  evidence. No natural Money Tree fixture, phase, checkpoint, or run log exists
+  from that probe, so no gameplay conclusion is inferred. Continue with the
+  independent R5 Economy-Transitions gate before requesting new live evidence.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
