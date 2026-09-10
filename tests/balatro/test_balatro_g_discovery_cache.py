@@ -54,8 +54,10 @@ def _valid_tables(g_table: int = 100) -> dict[int, dict[str, LuaValue]]:
 class FakeDecoder:
     POINTER_MASK = 0xFFFFFFFF
 
-    def __init__(self, *, pid: int, tables=None):
+    def __init__(self, *, pid: int, creation_time: int | None = None, tables=None):
         self.reader = SimpleNamespace(pid=pid)
+        if creation_time is not None:
+            self.reader.process_creation_time = lambda: creation_time
         self.tables = tables or _valid_tables()
 
     def string_fields(self, address: int):
@@ -69,7 +71,7 @@ def test_discovery_cache_reuses_valid_address_for_same_pid(tmp_path, monkeypatch
     cache_path = tmp_path / "balatro-g.json"
     monkeypatch.setattr(discovery, "_g_cache_path", lambda pid: cache_path)
 
-    first = FakeDecoder(pid=1234)
+    first = FakeDecoder(pid=1234, creation_time=10)
     calls = []
     monkeypatch.setattr(
         discovery,
@@ -87,7 +89,7 @@ def test_discovery_cache_reuses_valid_address_for_same_pid(tmp_path, monkeypatch
     assert calls == ["discover"]
     assert cache_path.exists()
 
-    second = FakeDecoder(pid=1234)
+    second = FakeDecoder(pid=1234, creation_time=10)
     monkeypatch.setattr(
         discovery,
         "_discover_from_global_binding",
@@ -129,6 +131,65 @@ def test_discovery_cache_rejects_invalid_cached_address(tmp_path, monkeypatch):
     monkeypatch.setattr(discovery, "_g_cache_path", lambda pid: cache_path)
 
     decoder = FakeDecoder(pid=333)
+    calls = []
+    monkeypatch.setattr(
+        discovery,
+        "_discover_from_global_binding",
+        lambda current: calls.append("discover") or 100,
+    )
+    monkeypatch.setattr(discovery, "_discover_from_game_owner", lambda current: None)
+
+    assert discovery.discover_balatro_g_table(decoder) == 100
+    assert decoder.g_table_cache_hit is False
+    assert calls == ["discover"]
+
+
+def test_discovery_cache_rejects_same_pid_from_different_process(tmp_path, monkeypatch):
+    cache_path = tmp_path / "balatro-g.json"
+    cache_path.write_text(
+        json.dumps(
+            {
+                "version": 2,
+                "pid": 333,
+                "process_creation_time": 10,
+                "g_table": 100,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(discovery, "_g_cache_path", lambda pid: cache_path)
+
+    decoder = FakeDecoder(pid=333, creation_time=11)
+    calls = []
+    monkeypatch.setattr(
+        discovery,
+        "_discover_from_global_binding",
+        lambda current: calls.append("discover") or 100,
+    )
+    monkeypatch.setattr(discovery, "_discover_from_game_owner", lambda current: None)
+
+    assert discovery.discover_balatro_g_table(decoder) == 100
+    assert decoder.g_table_cache_hit is False
+    assert calls == ["discover"]
+
+
+def test_production_reader_identity_failure_disables_cache(tmp_path, monkeypatch):
+    cache_path = tmp_path / "balatro-g.json"
+    cache_path.write_text(
+        json.dumps(
+            {
+                "version": 2,
+                "pid": 333,
+                "process_creation_time": 10,
+                "g_table": 100,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(discovery, "_g_cache_path", lambda pid: cache_path)
+
+    decoder = FakeDecoder(pid=333, creation_time=None)
+    decoder.reader.process_creation_time = lambda: None
     calls = []
     monkeypatch.setattr(
         discovery,

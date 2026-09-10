@@ -30,7 +30,7 @@ _AREA_FIELDS = (
     "deck",
 )
 
-_G_CACHE_VERSION = 1
+_G_CACHE_VERSION = 2
 
 
 def _kind_matches(value: LuaValue | None, expected) -> bool:
@@ -123,6 +123,20 @@ def _reader_pid(decoder: LuaJITNonGC64Decoder) -> int | None:
     return int(value)
 
 
+def _reader_process_creation_time(decoder: LuaJITNonGC64Decoder) -> int | None:
+    reader = getattr(decoder, "reader", None)
+    getter = getattr(reader, "process_creation_time", None)
+    if not callable(getter):
+        return None
+    try:
+        value = getter()
+    except (BalatroProcessMemoryError, OSError, RuntimeError):
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        return None
+    return int(value)
+
+
 def _g_cache_path(pid: int) -> Path:
     return (
         Path(tempfile.gettempdir())
@@ -135,6 +149,12 @@ def _load_cached_g_table(decoder: LuaJITNonGC64Decoder) -> int | None:
     pid = _reader_pid(decoder)
     if pid is None:
         return None
+    creation_time = _reader_process_creation_time(decoder)
+    has_process_identity = callable(
+        getattr(getattr(decoder, "reader", None), "process_creation_time", None)
+    )
+    if has_process_identity and creation_time is None:
+        return None
 
     path = _g_cache_path(pid)
     try:
@@ -146,10 +166,15 @@ def _load_cached_g_table(decoder: LuaJITNonGC64Decoder) -> int | None:
         version = int(data.get("version"))
         cached_pid = int(data.get("pid"))
         table = int(data.get("g_table"))
+        cached_creation_time = int(data.get("process_creation_time"))
     except (AttributeError, TypeError, ValueError):
         return None
 
-    if version != _G_CACHE_VERSION or cached_pid != pid:
+    if (
+        version != _G_CACHE_VERSION
+        or cached_pid != pid
+        or cached_creation_time != creation_time
+    ):
         return None
     if table <= 0 or table > LuaJITNonGC64Decoder.POINTER_MASK:
         return None
@@ -167,12 +192,16 @@ def _store_cached_g_table(
     pid = _reader_pid(decoder)
     if pid is None:
         return
+    creation_time = _reader_process_creation_time(decoder)
+    if creation_time is None:
+        return
 
     path = _g_cache_path(pid)
     temporary = path.with_suffix(path.suffix + f".{os.getpid()}.tmp")
     payload = {
         "version": _G_CACHE_VERSION,
         "pid": pid,
+        "process_creation_time": creation_time,
         "g_table": int(table),
     }
 

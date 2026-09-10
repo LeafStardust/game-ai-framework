@@ -436,6 +436,19 @@ R5 startup status handoff repair:
   attachment, bridge validation, or startup stabilization is still pending.
   Focused validation: 27 passed, 0 failed, 0 skipped, 0 deselected across the
   supervisor, bridge pump/timeout, and canonical attempt launcher regressions.
+
+R5 live-memory `G` cache process-identity repair:
+  The canonical `WindowsProcessMemoryReader` now exposes the Win32 process
+  creation timestamp, and `balatro_g_discovery` binds cached `G` addresses to
+  both PID and that timestamp. Legacy/PID-only entries and entries whose live
+  process identity cannot be read are rejected before reuse, so PID reuse cannot
+  turn a stale Lua address into a misleading `LuaJITMemoryError` during observer
+  startup. The repository's observed Windows runtime remains the non-GC64
+  LuaJIT layout; no executable/archive revision mismatch was proven by available
+  repository or runtime artifacts, and no live process was launched for this
+  repository-only repair.
+  Focused validation: 19 discovery/decoder tests passed; 36 observer/supervisor
+  tests passed; roadmap selector passed with 2599 passed and 1601 deselected.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.

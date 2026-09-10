@@ -237,6 +237,38 @@ class WindowsProcessMemoryReader:
         self._close_handle(wintypes.HANDLE(self.handle))
         self.handle = 0
 
+    def process_creation_time(self) -> int:
+        """Return the Win32 creation timestamp for the process behind the handle."""
+        if not self.handle:
+            raise BalatroProcessMemoryError("Balatro process handle is closed")
+
+        get_process_times = self._kernel32.GetProcessTimes
+        get_process_times.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(wintypes.FILETIME),
+            ctypes.POINTER(wintypes.FILETIME),
+            ctypes.POINTER(wintypes.FILETIME),
+            ctypes.POINTER(wintypes.FILETIME),
+        ]
+        get_process_times.restype = wintypes.BOOL
+        creation = wintypes.FILETIME()
+        exit_time = wintypes.FILETIME()
+        kernel_time = wintypes.FILETIME()
+        user_time = wintypes.FILETIME()
+        if not get_process_times(
+            wintypes.HANDLE(self.handle),
+            ctypes.byref(creation),
+            ctypes.byref(exit_time),
+            ctypes.byref(kernel_time),
+            ctypes.byref(user_time),
+        ):
+            error = ctypes.get_last_error()
+            raise BalatroProcessMemoryError(
+                f"unable to read Balatro process creation time "
+                f"(WinError {error})"
+            )
+        return (int(creation.dwHighDateTime) << 32) | int(creation.dwLowDateTime)
+
     def read(
         self,
         address: int,
