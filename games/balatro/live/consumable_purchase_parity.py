@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
+from games.balatro.env.actions import EnvAction
 from games.balatro.env.parity import (
     PublicStrategicTrajectoryParityComparison,
     compare_public_strategic_trajectory,
@@ -11,9 +12,7 @@ from games.balatro.env.parity import (
 from games.balatro.env.strategic_evidence import (
     PublicStrategicTransitionEvidence,
     build_public_strategic_transition_evidence,
-    buy_consumable_with_public_evidence,
 )
-from games.balatro.env.transition import HeadlessRunState
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 
@@ -44,7 +43,7 @@ def _snapshot_from_log_state(value: Any) -> LiveBalatroSnapshot:
     )
 
 
-def _canonical_consumable_purchase_action(value: Any, state) -> object:
+def _canonical_consumable_purchase_action(value: Any, state) -> EnvAction:
     if not isinstance(value, dict):
         raise ValueError("run-log action must be an object")
     if str(value.get("name") or "") != BUY_CONSUMABLE:
@@ -55,10 +54,19 @@ def _canonical_consumable_purchase_action(value: Any, state) -> object:
     area_index = target.get("area_index")
     if isinstance(area_index, bool) or not isinstance(area_index, int):
         raise ValueError("BUY_CONSUMABLE target requires an integer area_index")
-    if area_index < 0 or area_index >= len(state.shop_consumables):
-        raise ValueError("BUY_CONSUMABLE target is outside translated shop consumables")
 
-    item = state.shop_consumables[area_index]
+    slots = [
+        slot
+        for slot, item in enumerate(state.shop_consumables)
+        if getattr(item, "area_index", None) == area_index
+    ]
+    if len(slots) != 1:
+        raise ValueError(
+            "BUY_CONSUMABLE target does not identify exactly one translated shop consumable"
+        )
+    slot = slots[0]
+    item = state.shop_consumables[slot]
+
     label = target.get("label")
     if label is not None:
         if not isinstance(label, str) or label != getattr(item, "name", None):
@@ -71,10 +79,7 @@ def _canonical_consumable_purchase_action(value: Any, state) -> object:
         if cost != getattr(item, "price", None):
             raise ValueError("BUY_CONSUMABLE target cost does not match translated item")
 
-    return __import__("games.balatro.env.actions", fromlist=["EnvAction"]).EnvAction.from_alias(
-        BUY_CONSUMABLE,
-        {"slot": area_index},
-    )
+    return EnvAction.from_alias(BUY_CONSUMABLE, {"slot": slot})
 
 
 def successful_consumable_purchase_evidence_from_run_rows(
@@ -152,12 +157,3 @@ def compare_run_rows_to_simulator_consumable_purchase_evidence(
         translator=translator,
     )
     return compare_public_strategic_trajectory(live_evidence, simulator_evidence)
-
-
-def buy_consumable_with_public_evidence_from_slot(
-    run: HeadlessRunState,
-    *,
-    slot: int,
-) -> tuple[HeadlessRunState, PublicStrategicTransitionEvidence]:
-    """Convenience wrapper that keeps the exact mechanics owner centralized."""
-    return buy_consumable_with_public_evidence(run, slot=slot)
