@@ -6,6 +6,7 @@ import platform
 import time
 from dataclasses import dataclass
 from ctypes import wintypes
+from queue import Empty
 from typing import Iterator
 
 
@@ -100,12 +101,12 @@ def _run_with_process_timeout(func, *, timeout_seconds: float, args=None) -> obj
             f"blocking Win32 process call timed out after {timeout_seconds} seconds"
         )
 
-    if queue.empty():
+    try:
+        status, payload = queue.get(timeout=1)
+    except Empty as exc:
         raise BalatroProcessMemoryError(
             f"blocking Win32 process call did not return before {timeout_seconds} seconds"
-        )
-
-    status, payload = queue.get_nowait()
+        ) from exc
     if status == "error":
         raise BalatroProcessMemoryError(str(payload))
     return payload

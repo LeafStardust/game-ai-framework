@@ -1559,6 +1559,18 @@ captured successfully. R6 and every later phase remain hard-blocked until the R5
 natural-fixture exit gates and all R5 exit criteria are complete; this green
 deterministic gate does not authorize a phase transition.
 
+### Bounded process-memory result transport repair
+
+The bounded Win32 read guard now retrieves a completed worker result with a
+bounded `Queue.get()` instead of the racy `multiprocessing.Queue.empty()` check.
+This preserves the fail-closed timeout behavior while preventing a successful
+fast native read from being misclassified as missing output. The focused guard
+suite passes at **2 passed**; the affected R5/economy/live selector passes at
+**31 passed, 0 failed, 0 skipped, 4158 deselected**. The Balatro process is
+currently present and responsive, but no current-HEAD natural Money Tree
+purchase boundary has been captured or promoted. The next active R5 task remains
+that live fixture; no synthetic or incomplete batch output is promoted.
+
 ### Deterministic Money Tree evidence checkpoint
 
 R5 public Voucher evidence now covers the dependent `Money Tree` upgrade using
@@ -1589,15 +1601,14 @@ blind-start natural gates remain deferred. R6 remains hard-blocked.
 - Natural Seed Money fixture: **complete** at current HEAD.
 - Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
 - Held Planet, audited Joker sale, representative Boss, and strengthened blind-start fixtures: **still required or deferred**.
-- Live supervisor reliability: **blocked by an unbounded native `ReadProcessMemory` call** observed after `END_ROUND -> SHOP`; the corrected batch was hard-stopped after its status stopped advancing. Do not launch another unattended batch until this boundary is addressed.
+- Live supervisor reliability: **bounded read guard repaired; natural fixture capture remains pending**. The guard fails closed when a native read exceeds its timeout, and the successful result path is deterministic-tested. Do not treat the guard repair as a completed natural Money Tree fixture.
 - R6 and every later phase: **blocked** until all R5 exit criteria and natural fixtures are complete.
 
 ### Next actions
 
-1. Resolve the live observer/process-memory stall without leaking hidden state or adding a thread-based rescue layer.
-2. Re-run the full deterministic R5 selector after that repair.
-3. Capture and promote the natural Money Tree, Held Planet, Joker-sale, Boss-start, and strengthened blind-start fixtures in that order as evidence becomes available.
-4. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
+1. Capture and promote the natural Money Tree, Held Planet, Joker-sale, Boss-start, and strengthened blind-start fixtures in that order as evidence becomes available.
+2. Re-run the full deterministic R5 selector after the next live capture repair or promotion.
+3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
 ## R5 exit criteria
 
