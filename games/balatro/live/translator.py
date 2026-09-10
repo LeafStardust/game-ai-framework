@@ -121,6 +121,18 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             state.shop_discount_percent_observed = False
             state.shop_discount_percent = 0
 
+        raw_interest_cap = payload.get("interest_cap")
+        state.interest_cap_observed = payload.get("interest_cap_observed") is True
+        if (
+            state.interest_cap_observed
+            and type(raw_interest_cap) is int
+            and raw_interest_cap >= 0
+        ):
+            state.interest_cap = raw_interest_cap
+        else:
+            state.interest_cap_observed = False
+            state.interest_cap = 25
+
         pools = payload.get("joker_generation_pools")
         state.joker_generation_pool_observed = bool(
             payload.get("joker_generation_pool_observed", False)

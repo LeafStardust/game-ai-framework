@@ -142,6 +142,28 @@ def test_env_r5_live_voucher_purchase_maps_voucher_area_index_to_slot():
     assert transition.after.shop_vouchers == []
 
 
+def test_env_r5_live_seed_money_purchase_preserves_money_and_interest_cap_order():
+    rows = _rows(voucher=_voucher(center="v_seed_money", label="Seed Money"))
+    rows[0]["data"]["state"]["payload"].update(
+        interest_cap_observed=True,
+        interest_cap=25,
+    )
+    rows[3]["data"]["state"]["payload"].update(
+        interest_cap_observed=True,
+        interest_cap=50,
+    )
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert transition.before.interest_cap_observed is True
+    assert transition.before.interest_cap == 25
+    assert transition.after.interest_cap_observed is True
+    assert transition.after.interest_cap == 50
+
+
 def test_env_r5_live_voucher_purchase_rejects_wrong_identity_and_unsupported_center():
     with pytest.raises(ValueError, match="target center does not match"):
         successful_voucher_purchase_evidence_from_run_rows(

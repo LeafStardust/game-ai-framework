@@ -28,9 +28,11 @@ def _integer(value):
     return LuaValue("integer", int(value), 0)
 
 
-def _snapshot_payload(used_vouchers_marker=...):
+def _snapshot_payload(used_vouchers_marker=..., interest_cap=...):
     game_address = 100
     tables = {game_address: {}}
+    if interest_cap is not ...:
+        tables[game_address]["interest_cap"] = _integer(interest_cap)
     if used_vouchers_marker is not ...:
         used_vouchers_address = 101
         tables[game_address]["used_vouchers"] = _table(used_vouchers_address)
@@ -80,6 +82,28 @@ def test_env_r2_live_observer_exposes_only_true_redeemed_voucher_keys_canonicall
     state = _translate(payload)
     assert state.vouchers_observed is True
     assert state.vouchers == ["v_crystal_ball", "v_wasteful"]
+
+
+def test_env_r2_live_observer_preserves_authoritative_interest_cap():
+    payload = _snapshot_payload({}, interest_cap=50)
+
+    assert payload["interest_cap_observed"] is True
+    assert payload["interest_cap"] == 50
+
+    state = _translate(payload)
+    assert state.interest_cap_observed is True
+    assert state.interest_cap == 50
+
+
+def test_env_r2_live_observer_fails_closed_when_interest_cap_is_missing():
+    payload = _snapshot_payload({})
+
+    assert payload["interest_cap_observed"] is False
+    assert "interest_cap" not in payload
+
+    state = _translate(payload)
+    assert state.interest_cap_observed is False
+    assert state.interest_cap == 25
 
 
 def test_env_r2_live_observer_fails_closed_when_used_vouchers_is_missing():

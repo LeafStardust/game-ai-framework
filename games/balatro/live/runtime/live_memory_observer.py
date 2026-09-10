@@ -238,9 +238,12 @@ def snapshot_payload_from_live_memory(
         root.get("shop_vouchers"),
         preserve_index=True,
     )
+    interest_cap = _exact_integral_number(game.get("interest_cap"), minimum=0)
 
     payload: dict[str, Any] = {
         "money": _integer(game.get("dollars"), 0),
+        "interest_cap_observed": interest_cap is not None,
+        **({"interest_cap": interest_cap} if interest_cap is not None else {}),
         "ante_num": _integer(round_resets.get("ante"), 1),
         "round_num": _integer(game.get("round"), 1),
         "deck": deck_name,
