@@ -488,6 +488,25 @@ R5 latest live production artifact audit:
   `v_money_tree`, so no Money Tree fixture is promoted from this run. At the
   synchronized checkpoint Balatro and the bounded supervisor are both OFF.
 
+R5 five-attempt natural-fixture batch and Joker-sale promotion:
+  User-run session `balatro-20260911T113953Z-d9e2aa91` completed all five
+  bounded attempts through the operational live path. None purchased
+  `v_money_tree`, and none emitted `USE_CONSUMABLE`, so the Money Tree and held
+  Planet gates remain open. Attempt 4 did emit a current-HEAD exact-target
+  `SELL_JOKER` boundary. The preserved fixture sells Jolly Joker at owned index
+  1, credits money `$38 -> $39`, and removes only that Joker from the ordered
+  inventory. Exact replay exposed that the headless sale owner did not mirror
+  vanilla `Card:remove` clearing the sold center from `G.GAME.used_jokers`, so
+  the observed generation pool re-admitted `j_jolly` while the simulator did
+  not. The canonical sale owner now reuses the existing ordered generation-pool
+  restoration owner after inventory removal; duplicate ownership and Showman
+  behavior remain owned by that fail-closed path. Focused affected validation
+  passed with **31 passed**. Commit
+  `538ddd8501644e3e8c8581adc4828222118466fe` passed GitHub Actions run
+  `34597576815`; the actual job log reports **2609 passed, 1603 deselected in
+  94.37s**. This completes the audited natural Joker-sale gate without
+  promoting any absent Money Tree or held-Planet evidence.
+
 R5 current-HEAD GitHub Actions verification:
   Commit `d3cc63201e967e83124cd13dd0ba953c454e057c` passed GitHub Actions run
   `34556158163`. The actual `balatro-deterministic-tests` job log reports
@@ -1647,15 +1666,13 @@ GitHub Actions run `34458486597`, job `102810415392`, passed with **2571 passed,
 - ordinary Small-Blind start and clear/cash-out;
 - supported Small-Blind/Economy-Tag skip flow;
 - representative Buffoon pack choice;
+- audited natural Joker sale;
 - owned-deck composition.
 
 ## Remaining priority parity fixtures
 
 - held Planet use — recorder/replay code is green, but the natural live fixture
   is temporarily deferred at the user's request and remains incomplete;
-- audited Joker sale — public evidence/replay is green; a natural current-HEAD
-  fixture is deferred because every historical row predates exact target
-  logging;
 - representative Bosses — pending public identity and exact Tooth-start replay
   are green; a natural current-HEAD private fixture is deferred because every
   historical Boss start predates the identity repair and lacks its RNG
@@ -1822,22 +1839,24 @@ interest-cap redemption left the dependent `v_money_tree` generation-pool
 eligibility stale. Both are repaired with focused coverage. The real fixture
 suite plus affected R2/R5 tests pass at **25 passed**. This completes the
 natural Seed Money fixture only; Money Tree still needs a current-HEAD natural
-fixture, and the remaining held-Planet, Joker-sale, Boss, and strengthened
-blind-start natural gates remain deferred. R6 remains hard-blocked.
+fixture, and the remaining held-Planet, Boss, and strengthened blind-start
+natural gates remain deferred. The later natural Joker-sale checkpoint is now
+complete. R6 remains hard-blocked.
 
 ### Current R5 status
 
-- Deterministic R5 selector: **2607 passed, 0 failed, 0 skipped, 1603 deselected** in the actual GitHub Actions job log for roadmap checkpoint `b5c30e48d998b86695e8a0473f9fd9d52e40024d` (run `34594378030`).
+- Deterministic R5 selector: **2609 passed, 0 failed, 0 skipped, 1603 deselected** in the actual GitHub Actions job log for `538ddd8501644e3e8c8581adc4828222118466fe` (run `34597576815`).
 - Natural Seed Money fixture: **complete** at current HEAD.
 - Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
-- Held Planet, audited Joker sale, representative Boss, and strengthened blind-start fixtures: **still required or deferred**.
+- Natural audited Joker sale: **complete** from the current-HEAD Jolly Joker fixture.
+- Held Planet, representative Boss, and strengthened blind-start fixtures: **still required or deferred**.
 - Live supervisor reliability: **bounded read guard repaired; natural fixture capture remains pending**. The guard fails closed when a native read exceeds its timeout, and the successful result path is deterministic-tested. Do not treat the guard repair as a completed natural Money Tree fixture.
 - The earlier failing run `34501743361` is superseded by the successful current-HEAD run `34556158163`; its actual log is available and supplies the count above.
 - R6 and every later phase: **blocked** until all R5 exit criteria and natural fixtures are complete.
 
 ### Next actions
 
-1. Capture and promote the natural Money Tree, Held Planet, Joker-sale, Boss-start, and strengthened blind-start fixtures in that order as evidence becomes available.
+1. Capture and promote the remaining natural Money Tree, Held Planet, Boss-start, and strengthened blind-start fixtures in that order as evidence becomes available.
 2. Re-run the full deterministic R5 selector after the next live capture repair or promotion.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
