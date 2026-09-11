@@ -470,6 +470,16 @@ R5 live-memory startup regression repair:
   path are running successfully from the first Ante 0 blind-select screen;
   no bridge rebuild or reinstall was required.
 
+R5 live production run after startup repair:
+  User-run artifact `balatro-20260911T023150Z-b5c096e6-attempt-001` completed
+  through the operational live path with 294 events, 77 decisions, 37 blind
+  outcomes, and 10 purchases. The run reached Ante 5 and ended with the
+  terminal reason `game_over` at the Ante 5 Big Blind (`won=false`); this is
+  confirmed live production execution, not a bridge/startup failure. Its
+  purchases did not include `v_money_tree`, so it is not promoted as the
+  natural Money Tree transition fixture. The next live gate remains a run
+  that actually purchases Money Tree and captures its exact transition.
+
 R5 repository-only continuation verification:
   The pushed timeout-diagnostics commit remains synchronized at
   `2da940199e3a20cfb1ff9247b8f2cfcb76b27d23`. Focused bridge, supervisor,
