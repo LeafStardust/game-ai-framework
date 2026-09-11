@@ -968,8 +968,10 @@ def successful_held_planet_use_evidence_from_run_rows(
 
         before = translator.translate(_snapshot_from_log_state(last_observation))
         after = translator.translate(_snapshot_from_log_state(data.get("state")))
-        if before.phase != "SHOP" or after.phase != "SHOP":
-            raise ValueError("held Planet parity requires SHOP before and after")
+        if before.phase not in {"SHOP", "SELECTING_HAND"} or after.phase != before.phase:
+            raise ValueError(
+                "held Planet parity requires the same supported phase before and after"
+            )
         canonical = _canonical_held_planet_action(action, before)
         if canonical is None:
             raise AssertionError("held Planet classification changed unexpectedly")

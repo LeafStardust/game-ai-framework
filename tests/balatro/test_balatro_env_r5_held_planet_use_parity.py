@@ -124,6 +124,19 @@ def test_env_r5_held_planet_use_replays_through_exact_owner_and_compares():
     assert comparison.differences == ()
 
 
+def test_env_r5_held_planet_public_evidence_admits_selecting_hand_boundary():
+    rows = _rows(
+        before=_state(sequence=10, phase="SELECTING_HAND"),
+        after=_state(sequence=11, phase="SELECTING_HAND", planet=False, level=2),
+    )
+
+    evidence = successful_held_planet_use_evidence_from_run_rows(rows)
+
+    assert len(evidence) == 1
+    assert evidence[0].before.phase == "SELECTING_HAND"
+    assert evidence[0].after.phase == "SELECTING_HAND"
+
+
 def test_env_r5_held_planet_use_reports_public_post_state_difference():
     rows = _rows(after=_state(sequence=11, planet=False, level=3))
     live = successful_held_planet_use_evidence_from_run_rows(rows)[0]
@@ -164,7 +177,10 @@ def test_env_r5_held_planet_use_reports_public_post_state_difference():
             ),
             "not an exact held Planet",
         ),
-        (_rows(before=_state(sequence=10, phase="SELECTING_HAND")), "requires SHOP"),
+        (
+            _rows(before=_state(sequence=10, phase="SELECTING_HAND")),
+            "same supported phase",
+        ),
         (_rows(success=False), "requires a successful"),
     ],
 )
