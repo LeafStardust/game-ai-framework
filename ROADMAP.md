@@ -565,6 +565,26 @@ R5 private natural-capture boundary repair:
   1603 deselected in 118.95s**. A new capture-enabled live batch is required to
   produce promotable held-Planet and post-deal draw-order evidence.
 
+R5 post-action private-capture settlement repair:
+  User-run session `balatro-20260911T150727Z-0b05509d` completed all five
+  bounded production attempts and stopped normally at the attempt limit. No
+  attempt purchased `v_money_tree`. Attempt 3 naturally bought and used Jupiter
+  at public action sequence 81, but the enabled held-Planet recorder failed
+  closed after the action because its public/private snapshot was still settling;
+  the incomplete boundary is not reconstructed or promoted. All 28 enabled
+  blind-start post-action captures failed closed because LuaJIT exposes the exact
+  live physical draw pile as a one-based dense sequence while the private reader
+  incorrectly required zero-based array indices. The canonical private draw-pile
+  owner now validates exact contiguous keys `1..N`. The held-Planet recorder now
+  uses a bounded two-consecutive-sample semantic stability window across both the
+  public snapshot and private usage state; a settling state is admitted while
+  continuous drift remains fail-closed. Focused affected validation passed with
+  **55 passed**. Repair commit
+  `613b4eacee4ca8c85b57b99a42d7948b7fe53048` passed GitHub Actions run
+  `34616407289`, job `103319336941`; the actual job log reports **2613 passed,
+  1603 deselected in 74.12s**. A new capture-enabled live batch is required for
+  promotable held-Planet and strengthened blind-start evidence.
+
 R5 current-HEAD GitHub Actions verification:
   Commit `d3cc63201e967e83124cd13dd0ba953c454e057c` passed GitHub Actions run
   `34556158163`. The actual `balatro-deterministic-tests` job log reports
@@ -1903,7 +1923,7 @@ complete. R6 remains hard-blocked.
 
 ### Current R5 status
 
-- Deterministic R5 selector: **2612 passed, 0 failed, 0 skipped, 1603 deselected** in the actual GitHub Actions job log for `c8c24ed71103a115e022f5c8c1b2277de3dd3804` (run `34612919619`).
+- Deterministic R5 selector: **2613 passed, 0 failed, 0 skipped, 1603 deselected** in the actual GitHub Actions job log for `613b4eacee4ca8c85b57b99a42d7948b7fe53048` (run `34616407289`, job `103319336941`).
 - Natural Seed Money fixture: **complete** at current HEAD.
 - Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
 - Natural audited Joker sale: **complete** from the current-HEAD Jolly Joker fixture.
