@@ -542,6 +542,29 @@ R5 capture-enabled follow-up audit:
   `34607815020`, job `103290494264`; the actual job log reports **2609 passed,
   1603 deselected in 118.23s**.
 
+R5 private natural-capture boundary repair:
+  User-run session `balatro-20260911T141029Z-68155427` completed all five
+  bounded production attempts and stopped normally at the attempt limit. No
+  attempt purchased `v_money_tree`. Attempts 2 and 3 emitted natural held
+  Mercury and Uranus uses, respectively, while the enabled recorder failed
+  closed before both actions because vanilla had initialized an exact empty
+  `G.GAME.consumeable_usage` table but had not yet lazily created
+  `consumeable_usage_total`. Vanilla creates that totals table on the first
+  consumable use, so the canonical private-state decoder now admits only the
+  empty-table/nil-totals combination as exact zero history; nonempty or other
+  partial combinations still fail closed. The enabled blind-start recorder also
+  failed before every action because the strengthened checkpoint tried to read
+  the physical round draw pile at `BLIND_SELECT`. The canonical checkpoint now
+  captures the public complete deck plus keyed RNG before the start and reads
+  exact private physical order only at the post-deal `SELECTING_HAND` boundary;
+  its failure diagnostic also retains the underlying private-reader reason.
+  The incomplete Mercury/Uranus boundaries are not reconstructed or promoted.
+  Focused capture validation passed with **50 passed**. Repair commit
+  `c8c24ed71103a115e022f5c8c1b2277de3dd3804` passed GitHub Actions run
+  `34612919619`, job `103307623061`; the actual job log reports **2612 passed,
+  1603 deselected in 118.95s**. A new capture-enabled live batch is required to
+  produce promotable held-Planet and post-deal draw-order evidence.
+
 R5 current-HEAD GitHub Actions verification:
   Commit `d3cc63201e967e83124cd13dd0ba953c454e057c` passed GitHub Actions run
   `34556158163`. The actual `balatro-deterministic-tests` job log reports
@@ -1880,7 +1903,7 @@ complete. R6 remains hard-blocked.
 
 ### Current R5 status
 
-- Deterministic R5 selector: **2609 passed, 0 failed, 0 skipped, 1603 deselected** in the actual GitHub Actions job log for `538ddd8501644e3e8c8581adc4828222118466fe` (run `34597576815`).
+- Deterministic R5 selector: **2612 passed, 0 failed, 0 skipped, 1603 deselected** in the actual GitHub Actions job log for `c8c24ed71103a115e022f5c8c1b2277de3dd3804` (run `34612919619`).
 - Natural Seed Money fixture: **complete** at current HEAD.
 - Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
 - Natural audited Joker sale: **complete** from the current-HEAD Jolly Joker fixture.
