@@ -501,6 +501,21 @@ R5 deterministic Economy-Transitions resource Voucher parity:
   The supported deterministic economy-transition mutations are now covered;
   the next blocker is live-only natural-fixture evidence, with the existing
   first-party bridge STATUS timeout still preventing a new Money Tree fixture.
+
+R5 deterministic Economy-Transitions continuation verification from `0fa1390f`:
+  Repository inspection found no additional supported deterministic Voucher
+  purchase mutation after the resource, tycoon, Ante, pricing, reroll, shop
+  size, edition-rate, and interest-cap families above. Omen Globe and Telescope
+  remain explicitly admitted only for downstream pack-generation capability;
+  they have no ordinary shop-purchase mutation and the public Voucher evidence
+  owner correctly rejects them rather than inferring one. Focused Voucher and
+  economy validation passed: 92 passed, 0 failed, 0 skipped; the requested
+  shop-size redemption filename is absent because that coverage is owned by
+  the existing shop-size transition tests. The exact R5 selector passed with
+  2607 passed, 0 failed, 0 skipped, and 1601 deselected. No production owner
+  changed. The next blocker remains live-only natural-fixture evidence: the
+  first-party bridge STATUS timeout prevents a new Money Tree fixture, so no
+  gameplay state is inferred from it.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
