@@ -521,6 +521,24 @@ R5 second five-attempt natural-fixture batch:
   must enable both held-Planet and blind-start private capture while continuing
   to seek the public Money Tree purchase boundary.
 
+R5 capture-enabled follow-up audit:
+  User-run session `balatro-20260911T133440Z-db0b3f61` produced two complete
+  ordinary production attempts before the bounded supervisor stopped. Attempt
+  1 reached Ante 5 and attempt 2 reached the Ante 8 Violet Vessel; both ended
+  with authoritative `GAME_OVER` loss checkpoints. Neither attempt purchased
+  `v_money_tree`. Attempt 2 did buy Mercury, retain it into the next blind, and
+  emit `USE_CONSUMABLE` at public run-log sequence 91, but neither the requested
+  held-Planet directory nor the requested blind-start directory contains a
+  private sidecar. The Mercury boundary and all blind starts therefore remain
+  non-promotable; private usage/RNG authority must not be reconstructed from
+  public post-state. After attempt 2, restart recovery failed closed because
+  `G` could not be discovered; the generated crash report records that
+  `Balatro.exe` was no longer running at failure-report time. That terminal
+  condition supplies no evidence of a deterministic observer defect and is not
+  repaired speculatively. The next live command must again pass both private
+  capture directories, and their creation must be verified before treating a
+  resulting public action as fixture evidence.
+
 R5 current-HEAD GitHub Actions verification:
   Commit `d3cc63201e967e83124cd13dd0ba953c454e057c` passed GitHub Actions run
   `34556158163`. The actual `balatro-deterministic-tests` job log reports
