@@ -76,7 +76,7 @@ def test_env_r5_real_small_blind_fixture_preserves_exact_live_boundary():
     }
 
 
-def test_env_r5_real_small_blind_fixture_replays_unchanged_through_exact_owner():
+def test_env_r5_real_small_blind_fixture_fails_closed_without_facing_authority():
     public_rows = _fixture_rows(PUBLIC_FIXTURE)
     private_row = _fixture_rows(PRIVATE_FIXTURE)[0]
     live = successful_select_blind_evidence_from_run_rows(public_rows)
@@ -91,10 +91,12 @@ def test_env_r5_real_small_blind_fixture_replays_unchanged_through_exact_owner()
 
     comparison = compare_live_blind_start_replay(before, after, live[0])
 
-    assert comparison.matches is True
-    assert comparison.differences == ()
-    assert comparison.public.matches is True
-    assert comparison.public.differences == ()
+    assert all(not card.facing_observed for card in live[0].after.hand)
+    assert all(card.facing_observed for card in comparison.simulator_evidence.after.hand)
+    assert comparison.matches is False
+    assert comparison.differences == ("public.after",)
+    assert comparison.public.matches is False
+    assert comparison.public.differences == ("after",)
 
 
 def test_env_r5_real_small_blind_fixture_preserves_authoritative_owned_deck_composition():

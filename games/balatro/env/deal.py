@@ -164,6 +164,18 @@ def _require_empty_round_start_zones(run: HeadlessRunState) -> None:
         )
 
 
+def _mark_drawn_card_face_up(card: BalatroCard) -> None:
+    """Mirror ordinary deck-to-hand ``CardArea:emplace`` facing.
+
+    Vanilla keeps cards back-facing while they are in the deck, then flips each
+    card front as it enters the hand unless the active Blind explicitly asks it
+    to stay flipped. Boss-specific facing owners apply that exception after the
+    common physical draw.
+    """
+    card.face_down = False
+    card.facing_observed = True
+
+
 def _modified_complete_owned_order(run: HeadlessRunState) -> list[BalatroCard]:
     state = run.public
     if state.owned_deck is None:
@@ -215,6 +227,8 @@ def deal_supported_round_start(run: HeadlessRunState) -> HeadlessRunState:
     # Vanilla draw_from_deck_to_hand uses min(#G.deck.cards, hand space).
     deal_count = min(len(draw_pile), next_state.hand_size)
     dealt = [draw_pile.pop() for _ in range(deal_count)]
+    for card in dealt:
+        _mark_drawn_card_face_up(card)
 
     creation_index = {id(card): index for index, card in enumerate(next_order)}
     next_run.draw_pile = draw_pile
@@ -273,6 +287,7 @@ def draw_one_supported_card_to_hand(run: HeadlessRunState) -> HeadlessRunState:
     creation_index = {id(card): index for index, card in enumerate(next_order)}
 
     card = next_run.draw_pile.pop()
+    _mark_drawn_card_face_up(card)
     next_state.hand.append(card)
     next_state.hand.sort(
         key=lambda value: _hand_sort_key(

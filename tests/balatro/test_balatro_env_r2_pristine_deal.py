@@ -1,7 +1,10 @@
 import pytest
 
 from games.balatro.card import BalatroCard
-from games.balatro.env.deal import deal_pristine_round_start
+from games.balatro.env.deal import (
+    deal_pristine_round_start,
+    draw_one_supported_card_to_hand,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
 
@@ -95,6 +98,39 @@ def test_env_r2_pristine_round_start_transitions_to_selecting_hand():
 
     assert result.public.phase == "SELECTING_HAND"
     assert len(result.public.hand) == 8
+    assert all(not card.face_down for card in result.public.hand)
+    assert all(card.facing_observed for card in result.public.hand)
+
+
+def test_env_r2_pristine_round_start_flips_back_facing_deck_cards_front():
+    run = _run()
+    for card in run.public.deck:
+        card.face_down = True
+        card.facing_observed = True
+
+    result = deal_pristine_round_start(run)
+
+    assert all(not card.face_down for card in result.public.hand)
+    assert all(card.facing_observed for card in result.public.hand)
+    assert all(card.face_down for card in run.public.deck)
+
+
+def test_env_r2_single_card_draw_flips_back_facing_card_front():
+    run = _run()
+    run.public.hand_size = 3
+    for card in run.public.deck:
+        card.face_down = True
+        card.facing_observed = True
+    dealt = deal_pristine_round_start(run)
+    dealt.public.hand_size = 4
+    drawn_identity = _identity(dealt.draw_pile[-1])
+
+    result = draw_one_supported_card_to_hand(dealt)
+
+    drawn = next(card for card in result.public.hand if _identity(card) == drawn_identity)
+    assert drawn.face_down is False
+    assert drawn.facing_observed is True
+    assert all(card.face_down for card in dealt.draw_pile)
 
 
 def test_env_r2_pristine_round_start_respects_smaller_hand_size():
