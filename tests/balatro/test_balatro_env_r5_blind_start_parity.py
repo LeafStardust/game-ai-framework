@@ -124,7 +124,7 @@ class _Decoder:
                 for index in range(tags)
             ],
             deck_cards: [
-                (index, _lua("table", 600 + index))
+                (index + 1, _lua("table", 600 + index))
                 for index in range(len(draw_ids))
             ],
         }

@@ -55,7 +55,9 @@ def physical_draw_pile_live_ids_from_live_memory(decoder, root) -> tuple[int, ..
         items = list(decoder.array_items_strict(int(cards_value.value)))
     except (BalatroProcessMemoryError, LuaJITMemoryError, TypeError, ValueError) as exc:
         raise LivePrivateRunStateError("unable to read live Balatro physical draw pile") from exc
-    if [index for index, _ in items] != list(range(len(items))):
+    # Lua's sequence keys are one-based. The decoder reports the physical array
+    # slot/key unchanged, so an exact dense CardArea is 1..N (slot 0 is nil).
+    if [index for index, _ in items] != list(range(1, len(items) + 1)):
         raise LivePrivateRunStateError(
             "live Balatro physical draw-pile array is not contiguous"
         )

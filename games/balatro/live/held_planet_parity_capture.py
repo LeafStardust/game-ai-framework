@@ -6,6 +6,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 import json
 from pathlib import Path
+from time import sleep
 from typing import Any
 
 from games.balatro.actions import USE_CONSUMABLE
@@ -231,48 +232,67 @@ def _capture_stable_live_usage(
     observer,
     *,
     expected_phase: str = "SHOP",
+    stability_attempts: int = 20,
+    stability_interval_seconds: float = 0.1,
 ) -> tuple[LiveBalatroSnapshot, LiveConsumableUsageState]:
     expected_phase = _require_supported_phase(expected_phase, field="expected phase")
-    before = observer.observe()
-    if not isinstance(before, LiveBalatroSnapshot):
-        raise LiveHeldPlanetParityCaptureError(
-            "observer did not return LiveBalatroSnapshot"
-        )
-    if before.phase != expected_phase or before.state_complete is not True:
-        if expected_phase == "SHOP":
+    if stability_attempts < 2:
+        raise ValueError("held-Planet stability attempts must be at least two")
+    if stability_interval_seconds < 0:
+        raise ValueError("held-Planet stability interval cannot be negative")
+
+    previous: tuple[LiveBalatroSnapshot, LiveConsumableUsageState] | None = None
+    for attempt in range(stability_attempts):
+        if attempt and stability_interval_seconds:
+            sleep(stability_interval_seconds)
+        snapshot = observer.observe()
+        if not isinstance(snapshot, LiveBalatroSnapshot):
             raise LiveHeldPlanetParityCaptureError(
-                "held-Planet parity checkpoint requires complete SHOP"
+                "observer did not return LiveBalatroSnapshot"
             )
-        raise LiveHeldPlanetParityCaptureError(
-            f"held-Planet parity checkpoint requires complete {expected_phase}"
-        )
-    try:
-        decoder, _, root = observer._root()
-        first_usage = _private_usage_state(decoder, root)
-        after = observer.observe()
-        decoder, _, root = observer._root()
-        second_usage = _private_usage_state(decoder, root)
-    except (OSError, RuntimeError) as exc:
-        if isinstance(exc, LiveHeldPlanetParityCaptureError):
-            raise
-        raise LiveHeldPlanetParityCaptureError(
-            "unable to capture exact live held-Planet replay authority"
-        ) from exc
-    if before != after or first_usage != second_usage:
-        raise LiveHeldPlanetParityCaptureError(
-            "live held-Planet state changed while capturing replay authority"
-        )
-    return deepcopy(before), deepcopy(first_usage)
+        if snapshot.phase != expected_phase or snapshot.state_complete is not True:
+            if expected_phase == "SHOP":
+                raise LiveHeldPlanetParityCaptureError(
+                    "held-Planet parity checkpoint requires complete SHOP"
+                )
+            raise LiveHeldPlanetParityCaptureError(
+                f"held-Planet parity checkpoint requires complete {expected_phase}"
+            )
+        try:
+            decoder, _, root = observer._root()
+            usage = _private_usage_state(decoder, root)
+        except (OSError, RuntimeError) as exc:
+            if isinstance(exc, LiveHeldPlanetParityCaptureError):
+                raise
+            raise LiveHeldPlanetParityCaptureError(
+                "unable to capture exact live held-Planet replay authority"
+            ) from exc
+        current = (snapshot, usage)
+        if (
+            previous is not None
+            and _same_snapshot(previous[0], snapshot)
+            and previous[1] == usage
+        ):
+            return deepcopy(snapshot), deepcopy(usage)
+        previous = current
+
+    raise LiveHeldPlanetParityCaptureError(
+        "live held-Planet state changed throughout the bounded replay-authority window"
+    )
 
 
 def capture_live_held_planet_parity_checkpoint(
     observer,
     *,
     expected_phase: str = "SHOP",
+    stability_attempts: int = 20,
+    stability_interval_seconds: float = 0.1,
 ) -> LiveHeldPlanetParityCheckpoint:
     snapshot, usage = _capture_stable_live_usage(
         observer,
         expected_phase=expected_phase,
+        stability_attempts=stability_attempts,
+        stability_interval_seconds=stability_interval_seconds,
     )
     checkpoint = LiveHeldPlanetParityCheckpoint(snapshot, usage)
     headless_held_planet_run_from_checkpoint(checkpoint)

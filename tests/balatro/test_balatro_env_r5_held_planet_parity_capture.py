@@ -228,7 +228,7 @@ class _Observer:
         return self.decoder, 0, {"GAME": _lua("table", 100)}
 
 
-class _DriftingObserver(_Observer):
+class _SettlingObserver(_Observer):
     def __init__(self):
         super().__init__(pluto=1)
         self.root_reads = 0
@@ -237,6 +237,17 @@ class _DriftingObserver(_Observer):
         self.root_reads += 1
         if self.root_reads == 2:
             self.decoder = _Decoder(pluto=2)
+        return super()._root()
+
+
+class _DriftingObserver(_Observer):
+    def __init__(self):
+        super().__init__(pluto=1)
+        self.root_reads = 0
+
+    def _root(self):
+        self.root_reads += 1
+        self.decoder = _Decoder(pluto=1 if self.root_reads % 2 else 2)
         return super()._root()
 
 
@@ -279,9 +290,22 @@ def test_env_r5_held_planet_capture_rejects_nonempty_usage_without_totals():
         capture_live_held_planet_parity_checkpoint(observer)
 
 
-def test_env_r5_held_planet_capture_rejects_private_usage_drift():
-    with pytest.raises(LiveHeldPlanetParityCaptureError, match="changed while capturing"):
-        capture_live_held_planet_parity_checkpoint(_DriftingObserver())
+def test_env_r5_held_planet_capture_waits_for_private_usage_to_settle():
+    checkpoint = capture_live_held_planet_parity_checkpoint(
+        _SettlingObserver(),
+        stability_interval_seconds=0,
+    )
+
+    assert checkpoint.usage == _usage(pluto=2)
+
+
+def test_env_r5_held_planet_capture_rejects_continuous_private_usage_drift():
+    with pytest.raises(LiveHeldPlanetParityCaptureError, match="bounded"):
+        capture_live_held_planet_parity_checkpoint(
+            _DriftingObserver(),
+            stability_attempts=4,
+            stability_interval_seconds=0,
+        )
 
 
 def test_env_r5_held_planet_capture_requires_complete_shop():

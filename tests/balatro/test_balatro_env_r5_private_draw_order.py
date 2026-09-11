@@ -12,7 +12,7 @@ def _lua(kind, value):
 
 
 class _Decoder:
-    def __init__(self, *, indices=(0, 1, 2), live_ids=(8.0, 3, 11.0)):
+    def __init__(self, *, indices=(1, 2, 3), live_ids=(8.0, 3, 11.0)):
         self.tables = {
             10: {"cards": _lua("table", 20)},
             **{
@@ -47,7 +47,7 @@ def test_env_r5_private_draw_order_rejects_sparse_array_before_replay():
 
     with pytest.raises(LivePrivateRunStateError, match="not contiguous"):
         physical_draw_pile_live_ids_from_live_memory(
-            _Decoder(indices=(0, 2, 3)),
+            _Decoder(indices=(1, 3, 4)),
             root,
         )
 
