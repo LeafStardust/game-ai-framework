@@ -59,7 +59,7 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 
 ---
 
-# Current checkpoint — 2026-09-10
+# Current checkpoint — 2026-09-11
 
 ```text
 Branch: feat/v1.0-red-white-competence
@@ -460,6 +460,16 @@ R5 live-agent bridge timeout diagnostics:
   2 passed, 0 failed, 0 skipped, 0 deselected in
   `tests/balatro/test_balatro_bridge_timeout_cleanup.py`.
 
+R5 live-memory startup regression repair:
+  `e47c5d539ef2478017d81b0ed1d071d6d73e6a3a` restored direct in-process
+  `ReadProcessMemory` for normal `WindowsProcessMemoryReader.read()` calls.
+  The bounded multiprocessing timeout helper remains available only when a
+  caller explicitly supplies a timeout. Focused live-memory, G-discovery,
+  phase-readiness, and supervisor validation passed with 28 tests green.
+  The user subsequently confirmed that the existing bridge and agent attach
+  path are running successfully from the first Ante 0 blind-select screen;
+  no bridge rebuild or reinstall was required.
+
 R5 repository-only continuation verification:
   The pushed timeout-diagnostics commit remains synchronized at
   `2da940199e3a20cfb1ff9247b8f2cfcb76b27d23`. Focused bridge, supervisor,
@@ -499,8 +509,9 @@ R5 deterministic Economy-Transitions resource Voucher parity:
   0 deselected.
   Exact R5 selector: 2607 passed, 0 failed, 0 skipped, 1601 deselected.
   The supported deterministic economy-transition mutations are now covered;
-  the next blocker is live-only natural-fixture evidence, with the existing
-  first-party bridge STATUS timeout still preventing a new Money Tree fixture.
+  the next gate is live-only natural-fixture evidence: capture and replay a
+  real Money Tree economy-transition fixture now that the bridge and agent
+  attach path are operational again.
 
 R5 deterministic Economy-Transitions continuation verification from `0fa1390f`:
   Repository inspection found no additional supported deterministic Voucher
@@ -513,9 +524,9 @@ R5 deterministic Economy-Transitions continuation verification from `0fa1390f`:
   shop-size redemption filename is absent because that coverage is owned by
   the existing shop-size transition tests. The exact R5 selector passed with
   2607 passed, 0 failed, 0 skipped, and 1601 deselected. No production owner
-  changed. The next blocker remains live-only natural-fixture evidence: the
-  first-party bridge STATUS timeout prevents a new Money Tree fixture, so no
-  gameplay state is inferred from it.
+  changed. The next gate remains live-only natural-fixture evidence: capture
+  and replay a new Money Tree fixture; no gameplay state is inferred until
+  that evidence is recorded.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
@@ -526,7 +537,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — OWNED-DECK COMPOSITION GATE IS GREEN; NEXT INDEPENDENT GATE IS ECONOMY TRANSITIONS**.
+- R5 live/simulator parity harness: **IN PROGRESS — OWNED-DECK COMPOSITION AND DETERMINISTIC ECONOMY GATES ARE GREEN; NEXT GATE IS LIVE NATURAL-FIXTURE CAPTURE**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
