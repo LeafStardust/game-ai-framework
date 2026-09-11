@@ -507,6 +507,20 @@ R5 five-attempt natural-fixture batch and Joker-sale promotion:
   94.37s**. This completes the audited natural Joker-sale gate without
   promoting any absent Money Tree or held-Planet evidence.
 
+R5 second five-attempt natural-fixture batch:
+  User-run session `balatro-20260911T124644Z-0ae208f7` completed all five
+  bounded attempts through the production path. The attempts ended at Antes
+  7, 4, 5, 2, and 4 respectively, all with `game_over`. No attempt purchased
+  `v_money_tree`, so the natural Money Tree gate remains open. Attempt 3 used
+  a held Saturn, but this batch was launched without the opt-in
+  `--held-planet-parity-directory`; only the public run rows exist, not the
+  private consumable-usage checkpoint required by the canonical replay seam.
+  That Saturn boundary is therefore not promoted or reconstructed. No
+  blind-start private sidecars were requested either, so Boss-start and
+  strengthened draw-order gates also remain open. The next bounded command
+  must enable both held-Planet and blind-start private capture while continuing
+  to seek the public Money Tree purchase boundary.
+
 R5 current-HEAD GitHub Actions verification:
   Commit `d3cc63201e967e83124cd13dd0ba953c454e057c` passed GitHub Actions run
   `34556158163`. The actual `balatro-deterministic-tests` job log reports
