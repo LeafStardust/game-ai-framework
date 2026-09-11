@@ -495,6 +495,9 @@ R5 current-HEAD GitHub Actions verification:
   current-status note about unavailable or failing CI evidence. The next task
   remains the genuinely live-only natural Money Tree capture; deterministic
   or post-state-inferred evidence is not a substitute.
+  The roadmap synchronization commit `b5c30e48d998b86695e8a0473f9fd9d52e40024d`
+  then passed GitHub Actions run `34594378030`; its actual job log reports the
+  same **2607 passed, 1603 deselected**, in 122.00s.
 
 R5 repository-only continuation verification:
   The pushed timeout-diagnostics commit remains synchronized at
@@ -1824,7 +1827,7 @@ blind-start natural gates remain deferred. R6 remains hard-blocked.
 
 ### Current R5 status
 
-- Deterministic R5 selector: **2607 passed, 0 failed, 0 skipped, 1603 deselected** in the actual GitHub Actions job log for current HEAD `d3cc63201e967e83124cd13dd0ba953c454e057c` (run `34556158163`).
+- Deterministic R5 selector: **2607 passed, 0 failed, 0 skipped, 1603 deselected** in the actual GitHub Actions job log for roadmap checkpoint `b5c30e48d998b86695e8a0473f9fd9d52e40024d` (run `34594378030`).
 - Natural Seed Money fixture: **complete** at current HEAD.
 - Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
 - Held Planet, audited Joker sale, representative Boss, and strengthened blind-start fixtures: **still required or deferred**.
