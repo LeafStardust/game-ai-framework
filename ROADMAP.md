@@ -585,6 +585,40 @@ R5 post-action private-capture settlement repair:
   1603 deselected in 74.12s**. A new capture-enabled live batch is required for
   promotable held-Planet and strengthened blind-start evidence.
 
+R5 natural held-Planet and strengthened blind-start fixture promotion:
+  User-run session `balatro-20260911T153744Z-7b05a35c` completed all five
+  bounded production attempts, stopped normally at the attempt limit, and lost
+  at Antes 1, 3, 4, 4, and 5. No attempt purchased `v_money_tree`. Attempt 4
+  naturally bought and used Uranus in `SELECTING_HAND`; the complete public rows
+  and private usage sidecar are preserved with decompressed SHA-256 guards. Its
+  first replay isolated one canonical mismatch: live re-admitted the consumed
+  Uranus to the observed Planet generation pool while `use_planet_exact` left it
+  suppressed. The exact owner now delegates re-admission to the existing ordered
+  consumable-pool restoration owner when pool authority is observed, and the
+  public evidence adapter admits only `SHOP` or `SELECTING_HAND` with the same
+  phase on both sides. The unchanged natural fixture now passes public and
+  private replay. The same batch produced ten complete blind-start sidecars;
+  nine ordinary starts passed immediately. Attempt 1's first Small-Blind start
+  is promoted as the strengthened natural fixture and proves the exact 44-card
+  private post-deal draw order together with public and keyed-RNG parity.
+
+  Attempt 5 also captured a natural `The Fish` start, but its replay exposed that
+  the live-memory card normalizer omitted vanilla's exact `Card.facing` value.
+  The canonical observer now publishes only exact `front`/`back` strings and
+  leaves missing or malformed values unobserved. Because the captured Fish
+  sidecar predates that repair, its missing facing authority is not reconstructed
+  or promoted; a new natural Boss sidecar remains required. The remaining 31
+  unsupported-Joker, four static-suit-Boss, and three active-Tag capture
+  rejections remain intentionally fail-closed. Focused repair validation passed
+  with **52 passed** and focused fixture validation passed with **35 passed**.
+  Repair commit `e3054325d1b24abe74c9e0900de3f0d865488849` passed GitHub
+  Actions run `34628704895`, job `103359991272`, with **2615 passed, 1602
+  deselected in 120.21s**. Natural held-Planet commit `976e107a` and
+  strengthened blind-start commit
+  `1df499fc97b74610ab172f6f71745d512c5c2c4d` passed GitHub Actions run
+  `34629346601`, job `103362092475`; the actual job log reports **2620 passed,
+  1602 deselected in 121.40s**.
+
 R5 current-HEAD GitHub Actions verification:
   Commit `d3cc63201e967e83124cd13dd0ba953c454e057c` passed GitHub Actions run
   `34556158163`. The actual `balatro-deterministic-tests` job log reports
@@ -1923,18 +1957,20 @@ complete. R6 remains hard-blocked.
 
 ### Current R5 status
 
-- Deterministic R5 selector: **2613 passed, 0 failed, 0 skipped, 1603 deselected** in the actual GitHub Actions job log for `613b4eacee4ca8c85b57b99a42d7948b7fe53048` (run `34616407289`, job `103319336941`).
+- Deterministic R5 selector: **2620 passed, 0 failed, 0 skipped, 1602 deselected** in the actual GitHub Actions job log for `1df499fc97b74610ab172f6f71745d512c5c2c4d` (run `34629346601`, job `103362092475`).
 - Natural Seed Money fixture: **complete** at current HEAD.
 - Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
 - Natural audited Joker sale: **complete** from the current-HEAD Jolly Joker fixture.
-- Held Planet, representative Boss, and strengthened blind-start fixtures: **still required or deferred**.
+- Natural held Planet fixture: **complete** from the current-HEAD Uranus fixture.
+- Strengthened blind-start fixture: **complete** with exact private post-deal draw order.
+- Representative natural Boss-start fixture: **still required**; the pre-repair Fish sidecar is not promotable.
 - Live supervisor reliability: **bounded read guard repaired; natural fixture capture remains pending**. The guard fails closed when a native read exceeds its timeout, and the successful result path is deterministic-tested. Do not treat the guard repair as a completed natural Money Tree fixture.
 - The earlier failing run `34501743361` is superseded by the successful current-HEAD run `34556158163`; its actual log is available and supplies the count above.
 - R6 and every later phase: **blocked** until all R5 exit criteria and natural fixtures are complete.
 
 ### Next actions
 
-1. Capture and promote the remaining natural Money Tree, Held Planet, Boss-start, and strengthened blind-start fixtures in that order as evidence becomes available.
+1. Capture and promote the remaining natural Money Tree and representative Boss-start fixtures in that order as evidence becomes available.
 2. Re-run the full deterministic R5 selector after the next live capture repair or promotion.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
