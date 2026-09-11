@@ -68,13 +68,20 @@ def capture_live_blind_start_parity_checkpoint(
         decoder, _, root = observer._root()
         rng_snapshot = rng_replay_snapshot_from_live_memory(decoder, root)
         active_tag_count = active_tag_count_from_live_memory(decoder, root)
-        draw_pile_live_ids = physical_draw_pile_live_ids_from_live_memory(
-            decoder,
-            root,
+        # BLIND_SELECT has not created the physical round draw pile yet. Its
+        # exact starting deck is already public and the keyed RNG snapshot is
+        # sufficient to replay the shuffle. The strengthened private authority
+        # is the remaining physical order after the deal, which exists only at
+        # SELECTING_HAND.
+        draw_pile_live_ids = (
+            physical_draw_pile_live_ids_from_live_memory(decoder, root)
+            if expected_phase == "SELECTING_HAND"
+            else None
         )
     except (LiveRNGReplayCaptureError, LivePrivateRunStateError, OSError, RuntimeError) as exc:
         raise LiveBlindStartParityCheckpointError(
-            "unable to capture exact live blind-start replay authority"
+            "unable to capture exact live blind-start replay authority: "
+            f"{exc}"
         ) from exc
     after = observer.observe()
     if before != after:

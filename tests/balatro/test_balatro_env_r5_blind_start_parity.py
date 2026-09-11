@@ -174,12 +174,18 @@ def _log_state(snapshot):
     }
 
 
-def test_env_r5_blind_start_capture_is_stable_and_private():
+def test_env_r5_blind_start_capture_uses_rng_before_physical_draw_pile_exists():
     checkpoint = _checkpoint(_snapshot())
 
     assert checkpoint.public_snapshot.phase == "BLIND_SELECT"
     assert checkpoint.rng_snapshot["seed"] == "R5-BLIND-START"
     assert checkpoint.active_tag_count == 0
+    assert checkpoint.draw_pile_live_ids is None
+
+
+def test_env_r5_blind_start_capture_reads_exact_post_deal_draw_order():
+    checkpoint = _checkpoint(_snapshot(phase="SELECTING_HAND"))
+
     assert checkpoint.draw_pile_live_ids == tuple(range(1, 53))
 
 

@@ -121,14 +121,24 @@ def _private_usage_state(decoder, root) -> LiveConsumableUsageState:
     raw_usage = game.get("consumeable_usage")
     raw_totals = game.get("consumeable_usage_total")
 
-    # Vanilla leaves both fields nil before the first consumable use. That state is
-    # exactly equivalent to the zero table created by set_consumeable_usage.
+    # A new vanilla run initializes consumeable_usage to an empty table, while
+    # set_consumeable_usage creates consumeable_usage_total lazily on the first
+    # use. Older/checkpoint variants may leave both fields nil. Both states are
+    # exact zero history; a nonempty usage table without totals is not.
     if raw_usage is None and raw_totals is None:
         return LiveConsumableUsageState(
             counts={},
             sets={},
             totals={key: 0 for key in _TOTAL_KEYS},
         )
+    if raw_usage is not None and raw_totals is None:
+        usage = _table(decoder, raw_usage, field="G.GAME.consumeable_usage")
+        if not usage:
+            return LiveConsumableUsageState(
+                counts={},
+                sets={},
+                totals={key: 0 for key in _TOTAL_KEYS},
+            )
     if raw_usage is None or raw_totals is None:
         raise LiveHeldPlanetParityCaptureError(
             "consumable usage history is only partially available"

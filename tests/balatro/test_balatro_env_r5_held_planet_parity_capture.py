@@ -259,6 +259,26 @@ def test_env_r5_held_planet_capture_normalizes_vanilla_nil_history_to_exact_zero
     assert checkpoint.usage == _usage()
 
 
+def test_env_r5_held_planet_capture_normalizes_vanilla_empty_usage_before_lazy_totals():
+    observer = _Observer()
+    del observer.decoder.tables[100]["consumeable_usage_total"]
+
+    checkpoint = capture_live_held_planet_parity_checkpoint(observer)
+
+    assert checkpoint.usage == _usage()
+
+
+def test_env_r5_held_planet_capture_rejects_nonempty_usage_without_totals():
+    observer = _Observer(pluto=1)
+    del observer.decoder.tables[100]["consumeable_usage_total"]
+
+    with pytest.raises(
+        LiveHeldPlanetParityCaptureError,
+        match="only partially available",
+    ):
+        capture_live_held_planet_parity_checkpoint(observer)
+
+
 def test_env_r5_held_planet_capture_rejects_private_usage_drift():
     with pytest.raises(LiveHeldPlanetParityCaptureError, match="changed while capturing"):
         capture_live_held_planet_parity_checkpoint(_DriftingObserver())
