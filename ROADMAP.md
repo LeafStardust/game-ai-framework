@@ -697,11 +697,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — OWNED-DECK COMPOSITION AND DETERMINISTIC ECONOMY GATES ARE GREEN; NEXT GATE IS LIVE NATURAL-FIXTURE CAPTURE**.
+- R5 live/simulator parity harness: **IN PROGRESS — REPRESENTATIVE NATURAL BOSS START AND DETERMINISTIC ECONOMY GATES ARE GREEN; ONLY THE NATURAL MONEY TREE FIXTURE REMAINS**.
 - R6 environment performance gate: **NOT STARTED**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **DEFERRED — CONTINUE INDEPENDENT R5 WORK BEFORE RETURNING TO THE OUTSTANDING NATURAL FIXTURES**.
+- Live Balatro validation: **REQUIRED NEXT — CAPTURE A NATURAL MONEY TREE PURCHASE; NO OTHER LIVE VALIDATION IS CURRENTLY NEEDED**.
 
 ## Current strategic action contract
 
@@ -1955,23 +1955,46 @@ fixture, and the remaining held-Planet, Boss, and strengthened blind-start
 natural gates remain deferred. The later natural Joker-sale checkpoint is now
 complete. R6 remains hard-blocked.
 
+### Natural face-up deal and representative Boss-start checkpoint
+
+User-run session `balatro-20260911T180643Z-11e1fb92` completed all five
+bounded production attempts and produced eleven complete blind-start sidecars.
+No attempt purchased `v_money_tree`, so the natural Money Tree gate remains
+open. The repaired live observer exposed one canonical simulator defect across
+the otherwise-supported starts: ordinary deck-to-hand movement left simulator
+cards face down while live Balatro reported exact front-facing hand cards.
+The shared round-start and one-card draw owner now mirrors vanilla
+`CardArea:emplace`: every ordinary draw is authoritatively face up before the
+existing House, Mark, Wheel, or Fish owner applies any supported exception.
+
+The unchanged attempt-1 Small-Blind and `The Hook` sidecars now replay with
+zero public, keyed-RNG, or 44-card private draw-order differences. Both exact
+public triplets and private sidecars are promoted with decompressed SHA-256
+guards. The strengthened Small-Blind fixture is refreshed to the current
+facing-aware observer evidence; the older pre-facing fixture remains a
+fail-closed regression and is not treated as authoritative for facing. Focused
+owner, Boss, parity, and fixture validation passed at **77 passed**. Repair and
+fixture commit `deb34992451a8b67851b1929e0e8b5242c1c2d31` passed GitHub
+Actions run `34634258937`, job `103378212096`; the actual job log reports
+**2624 passed, 1602 deselected in 121.41s**.
+
 ### Current R5 status
 
-- Deterministic R5 selector: **2620 passed, 0 failed, 0 skipped, 1602 deselected** in the actual GitHub Actions job log for `1df499fc97b74610ab172f6f71745d512c5c2c4d` (run `34629346601`, job `103362092475`).
+- Deterministic R5 selector: **2624 passed, 0 failed, 0 skipped, 1602 deselected** in the actual GitHub Actions job log for `deb34992451a8b67851b1929e0e8b5242c1c2d31` (run `34634258937`, job `103378212096`).
 - Natural Seed Money fixture: **complete** at current HEAD.
 - Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
 - Natural audited Joker sale: **complete** from the current-HEAD Jolly Joker fixture.
 - Natural held Planet fixture: **complete** from the current-HEAD Uranus fixture.
-- Strengthened blind-start fixture: **complete** with exact private post-deal draw order.
-- Representative natural Boss-start fixture: **still required**; the pre-repair Fish sidecar is not promotable.
+- Strengthened blind-start fixture: **complete** with current-observer facing authority and exact private post-deal draw order.
+- Representative natural Boss-start fixture: **complete** from the current-observer `The Hook` fixture, with exact public, keyed-RNG, and private draw-order replay.
 - Live supervisor reliability: **bounded read guard repaired; natural fixture capture remains pending**. The guard fails closed when a native read exceeds its timeout, and the successful result path is deterministic-tested. Do not treat the guard repair as a completed natural Money Tree fixture.
 - The earlier failing run `34501743361` is superseded by the successful current-HEAD run `34556158163`; its actual log is available and supplies the count above.
 - R6 and every later phase: **blocked** until all R5 exit criteria and natural fixtures are complete.
 
 ### Next actions
 
-1. Capture and promote the remaining natural Money Tree and representative Boss-start fixtures in that order as evidence becomes available.
-2. Re-run the full deterministic R5 selector after the next live capture repair or promotion.
+1. Capture and promote the remaining natural Money Tree purchase fixture.
+2. Re-run the full deterministic R5 selector after that live fixture is promoted or after any repair it exposes.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
 ## R5 exit criteria
