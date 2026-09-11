@@ -1978,6 +1978,19 @@ fixture commit `deb34992451a8b67851b1929e0e8b5242c1c2d31` passed GitHub
 Actions run `34634258937`, job `103378212096`; the actual job log reports
 **2624 passed, 1602 deselected in 121.41s**.
 
+### Natural Money Tree follow-up batch
+
+User-run session `balatro-20260911T184407Z-f8230dbb` completed all five
+bounded production attempts, stopped normally at the attempt limit, and lost
+at Antes 7, 5, 4, 5, and 2 after 155, 126, 72, 106, and 49 actions. Every
+recorded action succeeded and the session produced no diagnostic failure
+artifact. Attempt 1 naturally bought Seed Money, reached Ante 7 with its
+dependency active, and subsequently bought Crystal Ball, Paint Brush, Reroll
+Surplus, and Overstock; Money Tree was never offered or purchased. The other
+attempts also produced no `v_money_tree` offer or purchase. No fixture is
+promoted from this batch, and the exact next task remains another bounded
+natural Money Tree capture.
+
 ### Current R5 status
 
 - Deterministic R5 selector: **2624 passed, 0 failed, 0 skipped, 1602 deselected** in the actual GitHub Actions job log for `deb34992451a8b67851b1929e0e8b5242c1c2d31` (run `34634258937`, job `103378212096`).
