@@ -10,7 +10,7 @@ from queue import Empty
 from typing import Iterator
 
 
-DEFAULT_WINDOWS_READ_TIMEOUT_SECONDS = 5.0
+DEFAULT_WINDOWS_READ_TIMEOUT_SECONDS: float | None = None
 
 
 def _sleep_for_test(seconds: float) -> None:
