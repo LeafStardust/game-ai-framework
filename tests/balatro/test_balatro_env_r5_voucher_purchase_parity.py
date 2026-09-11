@@ -444,6 +444,56 @@ def test_env_r5_live_tarot_merchant_purchase_preserves_rate_order():
     assert transition.after.vouchers == ["v_tarot_merchant"]
 
 
+@pytest.mark.parametrize(
+    ("center", "label", "owned", "before_rate", "after_rate", "field"),
+    [
+        (
+            "v_planet_tycoon",
+            "Planet Tycoon",
+            ["v_planet_merchant"],
+            9.6,
+            32.0,
+            "planet_rate",
+        ),
+        (
+            "v_tarot_tycoon",
+            "Tarot Tycoon",
+            ["v_tarot_merchant"],
+            9.6,
+            32.0,
+            "tarot_rate",
+        ),
+    ],
+)
+def test_env_r5_live_type_rate_tycoon_purchase_preserves_upgrade_order(
+    center,
+    label,
+    owned,
+    before_rate,
+    after_rate,
+    field,
+):
+    voucher = _voucher(center=center, label=label)
+    rows = _rows(voucher=voucher)
+    rows[0]["data"]["state"]["payload"].update(
+        vouchers=owned,
+        **{field: before_rate},
+    )
+    rows[3]["data"]["state"]["payload"].update(
+        vouchers=[*owned, center],
+        **{field: after_rate},
+    )
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert getattr(transition.before, field) == before_rate
+    assert getattr(transition.after, field) == after_rate
+    assert transition.after.vouchers == [*owned, center]
+
+
 def test_env_r5_live_voucher_purchase_rejects_wrong_identity_and_unsupported_center():
     with pytest.raises(ValueError, match="target center does not match"):
         successful_voucher_purchase_evidence_from_run_rows(

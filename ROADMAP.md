@@ -474,6 +474,16 @@ R5 repository-only continuation verification:
   evidence. No natural Money Tree fixture, phase, checkpoint, or run log exists
   from that probe, so no gameplay conclusion is inferred. Continue with the
   independent R5 Economy-Transitions gate before requesting new live evidence.
+
+R5 deterministic Economy-Transitions Tycoon parity:
+  The existing canonical Voucher capability owner already supports the exact
+  Tarot Tycoon and Planet Tycoon upgrades after their corresponding Merchant
+  Voucher. The R5 public voucher-purchase parity suite now covers both
+  transitions, preserving the observed money debit, prerequisite Voucher
+  order, and exact 9.6 -> 32.0 rate upgrade. No production owner changed, and
+  unsupported or malformed Voucher evidence remains fail-closed.
+  Focused economy validation: 65 passed, 0 failed, 0 skipped, 0 deselected.
+  Exact R5 selector: 2601 passed, 0 failed, 0 skipped, 1601 deselected.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
