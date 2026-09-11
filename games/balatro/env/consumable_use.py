@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from games.balatro.consumable import ConsumableContext, PlanetCard
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.shop_consumable_generation_state import (
+    restore_removed_shop_consumables_to_generation_pool,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.constellation import ConstellationJoker
 from games.balatro.planets import PLANET_CARDS
@@ -75,6 +78,11 @@ def use_planet_exact(run: HeadlessRunState, consumable_index: int) -> HeadlessRu
     for joker in state.jokers:
         if type(joker) is ConstellationJoker:
             joker.x_mult += 0.1
+    if state.consumable_generation_pool_observed:
+        next_run = restore_removed_shop_consumables_to_generation_pool(
+            next_run,
+            (planet,),
+        )
     return next_run
 
 

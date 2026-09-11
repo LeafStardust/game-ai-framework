@@ -31,28 +31,57 @@ def _planet():
     }
 
 
-def _snapshot(sequence, *, planet=True, level=1, phase="SELECTING_HAND"):
+def _snapshot(
+    sequence,
+    *,
+    planet=True,
+    level=1,
+    phase="SELECTING_HAND",
+    observed_pool=False,
+):
     consumables = [_planet()] if planet else []
+    payload = {
+        "deck": "RED",
+        "stake": "WHITE",
+        "money": 10,
+        "round": {"hands_left": 4, "discards_left": 3, "chips": 0},
+        "hand": {"limit": 8, "cards": []},
+        "cards": {"cards": []},
+        "jokers": {"limit": 5, "count": 0, "cards": []},
+        "consumables": {
+            "limit": 2,
+            "count": len(consumables),
+            "cards": consumables,
+        },
+        "hands": {"High Card": {"level": level}},
+        "last_tarot_planet": "c_pluto" if level > 1 else None,
+    }
+    if observed_pool:
+        payload["consumable_generation_pool_observed"] = True
+        payload["consumable_generation_pools"] = {
+            "Tarot": [],
+            "Planet": (
+                []
+                if planet
+                else [
+                    {
+                        "type": "Planet",
+                        "key": "c_pluto",
+                        "cost": 3,
+                        "unlocked": None,
+                        "no_pool_flag": None,
+                        "yes_pool_flag": None,
+                        "softlock": False,
+                        "hand_type": None,
+                    }
+                ]
+            ),
+        }
     return LiveBalatroSnapshot(
         sequence,
         phase,
         True,
-        {
-            "deck": "RED",
-            "stake": "WHITE",
-            "money": 10,
-            "round": {"hands_left": 4, "discards_left": 3, "chips": 0},
-            "hand": {"limit": 8, "cards": []},
-            "cards": {"cards": []},
-            "jokers": {"limit": 5, "count": 0, "cards": []},
-            "consumables": {
-                "limit": 2,
-                "count": len(consumables),
-                "cards": consumables,
-            },
-            "hands": {"High Card": {"level": level}},
-            "last_tarot_planet": "c_pluto" if level > 1 else None,
-        },
+        payload,
     )
 
 
@@ -145,6 +174,21 @@ def test_env_r5_held_planet_selecting_hand_comparison_accepts_first_use_set_crea
         LiveHeldPlanetParityCheckpoint(_snapshot(1), _usage()),
         _action(),
         _snapshot(2, planet=False, level=2),
+        _usage(1),
+    )
+
+    assert comparison.matches is True
+    assert comparison.differences == ()
+
+
+def test_env_r5_held_planet_use_re_admits_consumed_planet_to_observed_pool():
+    comparison = compare_captured_live_held_planet(
+        LiveHeldPlanetParityCheckpoint(
+            _snapshot(1, observed_pool=True),
+            _usage(),
+        ),
+        _action(),
+        _snapshot(2, planet=False, level=2, observed_pool=True),
         _usage(1),
     )
 

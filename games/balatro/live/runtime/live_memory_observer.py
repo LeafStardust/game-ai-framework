@@ -552,6 +552,9 @@ def _normalize_card(
         "forced_selection": _boolean(ability.get("forced_selection"), False),
         "label": _first_string(card.get("label"), center.get("name")),
     }
+    facing = _string(card.get("facing"))
+    if facing in {"front", "back"}:
+        result["facing"] = facing
     if ability_observed:
         result["played_this_ante_observed"] = True
         result["played_this_ante"] = _boolean(

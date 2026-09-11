@@ -59,7 +59,7 @@ def _snapshot(facing_marker=...):
     )
 
 
-def test_r2_live_memory_card_exposes_only_exact_front_back_facing():
+def test_env_r5_live_memory_card_exposes_only_exact_front_back_facing():
     back = _normalize_card(_card_decoder(_v("string", "back")), 1)
     front = _normalize_card(_card_decoder(_v("string", "front")), 1)
     missing = _normalize_card(_card_decoder(), 1)
