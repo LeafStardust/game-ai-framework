@@ -480,6 +480,22 @@ R5 live production run after startup repair:
   natural Money Tree transition fixture. The next live gate remains a run
   that actually purchases Money Tree and captures its exact transition.
 
+R5 latest live production artifact audit:
+  `balatro-20260911T024403Z-4ce210a4-attempt-001` completed through the same
+  operational live path with 213 events, 55 decisions, 20 blind outcomes, and
+  4 purchases. It reached Ante 3 and ended with `game_over` at the Small Blind
+  (`won=false`). Its only Voucher purchase was `v_wasteful`; it did not buy
+  `v_money_tree`, so no Money Tree fixture is promoted from this run. At the
+  synchronized checkpoint Balatro and the bounded supervisor are both OFF.
+
+R5 current-HEAD GitHub Actions verification:
+  Commit `d3cc63201e967e83124cd13dd0ba953c454e057c` passed GitHub Actions run
+  `34556158163`. The actual `balatro-deterministic-tests` job log reports
+  **2607 passed, 1603 deselected in 72.02s**. This supersedes the earlier
+  current-status note about unavailable or failing CI evidence. The next task
+  remains the genuinely live-only natural Money Tree capture; deterministic
+  or post-state-inferred evidence is not a substitute.
+
 R5 repository-only continuation verification:
   The pushed timeout-diagnostics commit remains synchronized at
   `2da940199e3a20cfb1ff9247b8f2cfcb76b27d23`. Focused bridge, supervisor,
@@ -1808,12 +1824,12 @@ blind-start natural gates remain deferred. R6 remains hard-blocked.
 
 ### Current R5 status
 
-- Deterministic R5 selector: **2598 passed, 0 failed, 0 skipped, 1598 deselected** locally at `c9e790319216bfd036f2683795d3030b70599b14`.
+- Deterministic R5 selector: **2607 passed, 0 failed, 0 skipped, 1603 deselected** in the actual GitHub Actions job log for current HEAD `d3cc63201e967e83124cd13dd0ba953c454e057c` (run `34556158163`).
 - Natural Seed Money fixture: **complete** at current HEAD.
 - Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
 - Held Planet, audited Joker sale, representative Boss, and strengthened blind-start fixtures: **still required or deferred**.
 - Live supervisor reliability: **bounded read guard repaired; natural fixture capture remains pending**. The guard fails closed when a native read exceeds its timeout, and the successful result path is deterministic-tested. Do not treat the guard repair as a completed natural Money Tree fixture.
-- GitHub Actions run `34501743361` tested the same commit and failed in the deterministic test step; public metadata exposes no assertion or log text. Local exact-selector verification remains green with the count above. Do not infer a code defect or bypass the CI failure without authenticated logs or a reproduced local failure.
+- The earlier failing run `34501743361` is superseded by the successful current-HEAD run `34556158163`; its actual log is available and supplies the count above.
 - R6 and every later phase: **blocked** until all R5 exit criteria and natural fixtures are complete.
 
 ### Next actions
