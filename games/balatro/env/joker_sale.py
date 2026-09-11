@@ -81,6 +81,18 @@ def _sell_static_joker(
             ) from exc
     next_state.money += sell_cost
     next_state.jokers.pop(joker_index)
+    if next_state.joker_generation_pool_observed:
+        # Card:remove clears the sold center from G.GAME.used_jokers once no
+        # copy remains in G.jokers. Reuse the canonical ordered-pool owner so
+        # exact shop generation sees that center again after the sale.
+        from games.balatro.env.shop_generation_state import (
+            restore_removed_shop_jokers_to_generation_pool,
+        )
+
+        next_run = restore_removed_shop_jokers_to_generation_pool(
+            next_run,
+            (sold,),
+        )
     return next_run
 
 
