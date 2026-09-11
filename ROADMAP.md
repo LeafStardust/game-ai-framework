@@ -537,7 +537,10 @@ R5 capture-enabled follow-up audit:
   condition supplies no evidence of a deterministic observer defect and is not
   repaired speculatively. The next live command must again pass both private
   capture directories, and their creation must be verified before treating a
-  resulting public action as fixture evidence.
+  resulting public action as fixture evidence. Roadmap checkpoint commit
+  `9701730dc9ffac19804f4f7b1cf68f5488ca5bfd` passed GitHub Actions run
+  `34607815020`, job `103290494264`; the actual job log reports **2609 passed,
+  1603 deselected in 118.23s**.
 
 R5 current-HEAD GitHub Actions verification:
   Commit `d3cc63201e967e83124cd13dd0ba953c454e057c` passed GitHub Actions run
