@@ -154,6 +154,75 @@ def test_env_r5_live_voucher_purchase_maps_voucher_area_index_to_slot():
     assert transition.after.shop_vouchers == []
 
 
+@pytest.mark.parametrize(
+    ("center", "label", "field", "before_value", "after_value"),
+    [
+        ("v_crystal_ball", "Crystal Ball", "consumable_slots", 2, 3),
+        ("v_grabber", "Grabber", "round_reset_hands", 4, 5),
+        ("v_nacho_tong", "Nacho Tong", "round_reset_hands", 4, 5),
+        ("v_recyclomancy", "Recyclomancy", "round_reset_discards", 4, 5),
+        ("v_antimatter", "Antimatter", "joker_slots", 5, 6),
+        ("v_palette", "Palette", "hand_size", 8, 9),
+    ],
+)
+def test_env_r5_live_resource_voucher_purchase_preserves_exact_public_mutation(
+    center,
+    label,
+    field,
+    before_value,
+    after_value,
+):
+    voucher = _voucher(center=center, label=label)
+    rows = _rows(voucher=voucher)
+    before_payload = rows[0]["data"]["state"]["payload"]
+    after_payload = rows[3]["data"]["state"]["payload"]
+
+    if field == "consumable_slots":
+        before_payload["consumables"] = {"limit": before_value, "cards": []}
+        after_payload["consumables"] = {"limit": after_value, "cards": []}
+    elif field == "joker_slots":
+        before_payload["jokers"] = {"limit": before_value, "cards": []}
+        after_payload["jokers"] = {"limit": after_value, "cards": []}
+    elif field == "hand_size":
+        before_payload["hand"] = {"limit": before_value, "cards": []}
+        after_payload["hand"] = {"limit": after_value, "cards": []}
+    elif field == "round_reset_hands":
+        before_payload["round_reset_hands"] = before_value
+        after_payload["round_reset_hands"] = after_value
+        before_payload["round"]["hands_left"] = before_value
+        after_payload["round"]["hands_left"] = after_value
+    else:
+        before_payload["round_reset_discards"] = before_value
+        after_payload["round_reset_discards"] = after_value
+        before_payload["round"]["discards_left"] = before_value
+        after_payload["round"]["discards_left"] = after_value
+
+    if field != "round_reset_discards":
+        after_payload["round_reset_discards"] = 4
+        after_payload["round"]["discards_left"] = 4
+
+    evidence = successful_voucher_purchase_evidence_from_run_rows(rows)
+    transition = evidence[0]
+
+    assert transition.before.money == 25
+    assert transition.after.money == 15
+    assert getattr(transition.before, field) == before_value
+    assert getattr(transition.after, field) == after_value
+    assert transition.before.vouchers == []
+    assert transition.after.vouchers == [center]
+
+    run = HeadlessRunState(public=transition.before, seed="r5-resource-voucher")
+    result, simulator = buy_voucher_with_public_evidence(run, slot=0)
+
+    assert getattr(result.public, field) == after_value
+    comparison = compare_run_rows_to_simulator_voucher_purchase_evidence(
+        rows,
+        (simulator,),
+    )
+    assert comparison.matches is True
+    assert comparison.differences == ()
+
+
 def test_env_r5_live_seed_money_purchase_preserves_money_and_interest_cap_order():
     rows = _rows(voucher=_voucher(center="v_seed_money", label="Seed Money"))
     rows[0]["data"]["state"]["payload"].update(

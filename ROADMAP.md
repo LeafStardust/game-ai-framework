@@ -484,6 +484,23 @@ R5 deterministic Economy-Transitions Tycoon parity:
   unsupported or malformed Voucher evidence remains fail-closed.
   Focused economy validation: 65 passed, 0 failed, 0 skipped, 0 deselected.
   Exact R5 selector: 2601 passed, 0 failed, 0 skipped, 1601 deselected.
+
+R5 deterministic Economy-Transitions resource Voucher parity:
+  The canonical `ShopTransitionEngine._apply_voucher_redemption_effects`
+  resource owner was already exact; the uncovered R5 public parity slice was
+  Crystal Ball, Grabber, Nacho Tong, Recyclomancy, Antimatter, and Palette.
+  The focused regression now translates each public before/after mutation and
+  replays it through `buy_voucher_with_public_evidence`, preserving the exact
+  $10 debit, Voucher ownership order, and resource mutation. Wasteful and Paint
+  Brush remain covered by the existing synthetic and real fixture regressions.
+  No production owner changed, and private or unsupported Voucher evidence
+  remains fail-closed.
+  Focused voucher-purchase validation: 28 passed, 0 failed, 0 skipped,
+  0 deselected.
+  Exact R5 selector: 2607 passed, 0 failed, 0 skipped, 1601 deselected.
+  The supported deterministic economy-transition mutations are now covered;
+  the next blocker is live-only natural-fixture evidence, with the existing
+  first-party bridge STATUS timeout still preventing a new Money Tree fixture.
 ```
 
 All counts above were read from the actual `balatro-deterministic-tests` job logs, not inferred from workflow status. The frozen strategic contract in `games/balatro/env_contract.py` contains no `PLANNED` entry; `BUY_CARD` and `REROLL_BOSS` remain explicitly unavailable and are excluded from `training_action_contracts()`.
