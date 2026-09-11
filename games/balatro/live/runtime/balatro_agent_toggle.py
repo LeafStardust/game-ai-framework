@@ -37,10 +37,7 @@ def _creation_flags() -> int:
 def _monitor_creation_flags() -> int:
     if os.name != "nt":
         return 0
-    return (
-        getattr(subprocess, "CREATE_NEW_CONSOLE", 0x00000010)
-        | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-    )
+    return getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
 
 
 def _force_terminate_process(pid: int) -> None:
@@ -541,7 +538,7 @@ def main() -> int:
         print("Balatro Agent is OFF.")
         print("Turning ON...")
         print(f"Supervisor PID -> {pid}")
-        print("Live monitor -> opening in a separate terminal window")
+        print("Live monitor -> running in the current console session")
         print("Playbook selection -> automatic from live deck/stake")
         if args.unlock_joker:
             print("Unlock campaign -> " + ", ".join(args.unlock_joker))

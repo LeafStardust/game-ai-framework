@@ -45,3 +45,22 @@ def test_stale_monitor_pid_is_cleared_before_relaunch(tmp_path, monkeypatch):
 
     assert len(spawned) == 1
     assert control.read_monitor_pid() is None
+
+
+def test_monitor_launch_does_not_create_new_console_window(tmp_path, monkeypatch):
+    control = BalatroAgentControl(tmp_path / "control")
+    monkeypatch.setattr(control_module, "_process_is_running", lambda pid: False)
+    spawned = []
+
+    def fake_popen(*args, **kwargs):
+        spawned.append(kwargs)
+        return object()
+
+    monkeypatch.setattr(toggle.subprocess, "Popen", fake_popen)
+
+    toggle.launch_monitor(control)
+
+    assert len(spawned) == 1
+    creationflags = spawned[0].get("creationflags", 0)
+    assert (creationflags & getattr(toggle.subprocess, "CREATE_NEW_CONSOLE", 0)) == 0
+    assert creationflags == getattr(toggle.subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
