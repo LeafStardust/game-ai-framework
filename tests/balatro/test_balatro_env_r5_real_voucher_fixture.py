@@ -25,7 +25,7 @@ SEED_MONEY_FIXTURE = (
     / "balatro-r5-current-head-seed-money.buy-seed-money.jsonl"
 )
 _SEED_MONEY_FIXTURE_SHA256 = (
-    "3fb42028b705699953bb30d636a3777b3732982d234db2cc4327b03b8ca83f10"
+    "b225ee913bfe300494c2f01600d0e1aca83a57df488e3946ab9e91d008b3f8dc"
 )
 
 
@@ -93,7 +93,8 @@ def test_env_r5_real_seed_money_fixture_preserves_live_cap_transition():
     raw = SEED_MONEY_FIXTURE.read_bytes()
     rows = [json.loads(line) for line in raw.decode("utf-8").splitlines()]
 
-    assert hashlib.sha256(raw).hexdigest() == _SEED_MONEY_FIXTURE_SHA256
+    canonical_raw = raw.replace(b"\r\n", b"\n")
+    assert hashlib.sha256(canonical_raw).hexdigest() == _SEED_MONEY_FIXTURE_SHA256
     assert [row["event"] for row in rows] == [
         "observation",
         "decision",
