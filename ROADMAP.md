@@ -699,7 +699,8 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
 - R6 environment performance gate: **COMPLETE / GREEN**.
-- Observation/action encoding: **IN PROGRESS — PUBLIC OBSERVATION SCHEMA GREEN; NEXT TASK IS THE VERSIONED ACTION SCHEMA/MASK**.
+- Observation/action encoding: **COMPLETE / GREEN**.
+- B0 RL baseline infrastructure: **IN PROGRESS — NEXT TASK IS THE RANDOM LEGAL STRATEGIC BASELINE**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
@@ -2017,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Continue O with the versioned action schema/mask for the promoted Red/White surface.
+1. Begin B0 with the random legal strategic baseline on the versioned observation/action interface.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2182,21 +2183,18 @@ reference measurements, not portable thresholds. GitHub Actions run
 
 # Active next phase
 
-## O — observation/action encoding — IN PROGRESS
+## O — observation/action encoding — COMPLETE / GREEN
 
 ### Exact next task
 
-Define the versioned action schema/mask from the frozen strategic action
-contract and the canonical exact legality owners. Preserve stable field/action
-order and fixed shape, expose only training-supported actions, and make every
-illegal or currently inexact action probability exactly zero after masking.
-Add focused deterministic tests for schema/version identity, parameterized slot
-ordering, phase/resource legality, unsupported actions, and zero-probability
-mask application. Do not begin B0 baselines until this action schema/mask is
-green and recorded.
+O is closed. Begin B0 with the random legal strategic baseline. It must consume
+the versioned observation/action interface and canonical backend legality, use
+explicit reproducible sampling authority, and never synthesize a rescue action
+for an empty mask. Do not begin the deterministic symbolic/headless baseline
+until the random baseline is green and recorded.
 
 - versioned public observation schema — **COMPLETE / GREEN**;
-- versioned action schema/mask;
+- versioned action schema/mask — **COMPLETE / GREEN**;
 - no hidden-information leakage;
 - illegal action probability exactly zero after masking;
 - Bond-derived signals may be observations/features but not hard-coded strategic authority.
@@ -2226,7 +2224,35 @@ actual job log reports **2684 passed, 1602 deselected in 120.81s**. The public
 observation task is complete and green. The exact next task is the versioned
 action schema/mask above.
 
-## B0 — RL baseline infrastructure — NOT STARTED
+### Versioned action schema/mask checkpoint
+
+Commit `766c830ce7515b479fea307730bcf76427de14f9` adds the immutable
+`balatro-red-white-public-action-v1` schema. Its 27 stable slots are derived in
+the frozen training-action contract order and expand only the bounded public
+parameters for main-shop inventory, booster inventory, owned Joker sales,
+Buffoon choices, and held consumables. Encoding and decoding round-trip through
+the existing `EnvAction`; unsupported aliases, extra parameters, out-of-range
+slots, and duplicate legal actions fail closed.
+
+The legality mask consumes actions returned by canonical transition owners; it
+does not duplicate phase, resource, or mechanics rules. Probability application
+sets every illegal slot to exact `0.0`, renormalizes remaining legal mass, and
+returns an all-zero terminal mask without inventing a fallback action. Invalid
+shape, schema version, non-finite/negative probability, and zero mass over a
+nonempty legal set fail closed. Focused local schema, observation, frozen
+contract, and canonical shop-legality validation passed **82 tests**. GitHub
+Actions run `34687961713`, job `103538171035`, passed; the actual log reports
+**2695 passed, 1602 deselected in 119.18s**. O is complete and green.
+
+## B0 — RL baseline infrastructure — IN PROGRESS
+
+### Exact next task
+
+Implement the random legal strategic baseline using the versioned observation
+and action schema plus canonical backend legality. Sampling must be reproducible
+under an explicit baseline seed, must never sample a masked action, and must
+fail closed on an empty nonterminal legal mask. Add focused deterministic tests
+before recording the checkpoint.
 
 Before PPO:
 
