@@ -31,6 +31,8 @@ TACTICAL_BRIDGE_WORKLOAD = "red-white-first-small-blind-first-card-play-v1"
 TACTICAL_BRIDGE_COST_SCHEMA = "balatro-r6-tactical-bridge-cost-v1"
 SERIALIZATION_WORKLOAD = "red-white-post-first-card-play-state-v1"
 SERIALIZATION_COST_SCHEMA = "balatro-r6-serialization-cost-v1"
+REPLAY_WORKLOAD = "red-white-first-small-blind-four-play-loss-v1"
+REPLAY_COST_SCHEMA = "balatro-r6-deterministic-replay-cost-v1"
 
 
 @dataclass(frozen=True)
@@ -124,6 +126,28 @@ class SerializationCostReport:
     restores_per_second: float
     round_trip_seconds_per_state: float
     round_trips_per_second: float
+
+    def as_dict(self) -> dict[str, str | int | float]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
+
+
+@dataclass(frozen=True)
+class ReplayCostReport:
+    schema: str
+    workload: str
+    trajectory_steps: int
+    verified_boundaries: int
+    warmup_trajectories: int
+    measured_trajectories: int
+    baseline_elapsed_seconds: float
+    verified_replay_elapsed_seconds: float
+    baseline_trajectories_per_second: float
+    verified_replays_per_second: float
+    overhead_seconds_per_trajectory: float
+    overhead_ratio: float
 
     def as_dict(self) -> dict[str, str | int | float]:
         return asdict(self)
@@ -542,11 +566,95 @@ def measure_serialization_restore_cost(
     )
 
 
+def _capture_replay_boundaries() -> tuple[dict[str, Any], ...]:
+    run = _tactical_play_template()
+    boundaries = [run.serialize()]
+    for _ in range(4):
+        run = apply_supported_ordinary_play(run, (0,))
+        boundaries.append(run.serialize())
+    _require_fixed_episode_terminal(run)
+    return tuple(boundaries)
+
+
+def _execute_replay_trajectory(
+    expected_boundaries: Sequence[dict[str, Any]] | None = None,
+) -> HeadlessRunState:
+    if expected_boundaries is not None and len(expected_boundaries) != 5:
+        raise RuntimeError("deterministic replay requires exactly five boundaries")
+    run = _tactical_play_template()
+    if expected_boundaries is not None and run.serialize() != expected_boundaries[0]:
+        raise RuntimeError("deterministic replay mismatch at boundary 0")
+    for boundary in range(1, 5):
+        run = apply_supported_ordinary_play(run, (0,))
+        if expected_boundaries is not None and run.serialize() != expected_boundaries[boundary]:
+            raise RuntimeError(f"deterministic replay mismatch at boundary {boundary}")
+    _require_fixed_episode_terminal(run)
+    return run
+
+
+def measure_deterministic_replay_cost(
+    *,
+    warmup_trajectories: int = 100,
+    measured_trajectories: int = 1000,
+    clock: Callable[[], float] = perf_counter,
+) -> ReplayCostReport:
+    """Measure exact boundary verification overhead for one fixed trajectory."""
+    warmup_trajectories = _step_count(
+        warmup_trajectories,
+        name="warmup_trajectories",
+        allow_zero=True,
+    )
+    measured_trajectories = _step_count(
+        measured_trajectories,
+        name="measured_trajectories",
+        allow_zero=False,
+    )
+    if not callable(clock):
+        raise TypeError("clock must be callable")
+
+    expected = _capture_replay_boundaries()
+    for _ in range(warmup_trajectories):
+        _execute_replay_trajectory()
+        _execute_replay_trajectory(expected)
+
+    started = float(clock())
+    for _ in range(measured_trajectories):
+        baseline = _execute_replay_trajectory()
+    baseline_elapsed = float(clock()) - started
+
+    started = float(clock())
+    for _ in range(measured_trajectories):
+        replay = _execute_replay_trajectory(expected)
+    replay_elapsed = float(clock()) - started
+
+    _require_fixed_episode_terminal(baseline)
+    _require_fixed_episode_terminal(replay)
+    if not math.isfinite(baseline_elapsed) or baseline_elapsed <= 0.0:
+        raise RuntimeError("baseline replay clock must report positive finite elapsed time")
+    if not math.isfinite(replay_elapsed) or replay_elapsed <= 0.0:
+        raise RuntimeError("verified replay clock must report positive finite elapsed time")
+
+    return ReplayCostReport(
+        schema=REPLAY_COST_SCHEMA,
+        workload=REPLAY_WORKLOAD,
+        trajectory_steps=4,
+        verified_boundaries=5,
+        warmup_trajectories=warmup_trajectories,
+        measured_trajectories=measured_trajectories,
+        baseline_elapsed_seconds=baseline_elapsed,
+        verified_replay_elapsed_seconds=replay_elapsed,
+        baseline_trajectories_per_second=measured_trajectories / baseline_elapsed,
+        verified_replays_per_second=measured_trajectories / replay_elapsed,
+        overhead_seconds_per_trajectory=(replay_elapsed - baseline_elapsed) / measured_trajectories,
+        overhead_ratio=replay_elapsed / baseline_elapsed - 1.0,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--metric",
-        choices=("steps", "runs", "parallel", "tactical", "serialization"),
+        choices=("steps", "runs", "parallel", "tactical", "serialization", "replay"),
         default="steps",
     )
     parser.add_argument("--warmup-steps", type=int, default=100)
@@ -558,8 +666,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--parallel-measured-runs", type=int, default=1000)
     parser.add_argument("--warmup-round-trips", type=int, default=100)
     parser.add_argument("--measured-round-trips", type=int, default=1000)
+    parser.add_argument("--warmup-trajectories", type=int, default=100)
+    parser.add_argument("--measured-trajectories", type=int, default=1000)
     args = parser.parse_args(argv)
-    if args.metric == "serialization":
+    if args.metric == "replay":
+        report = measure_deterministic_replay_cost(
+            warmup_trajectories=args.warmup_trajectories,
+            measured_trajectories=args.measured_trajectories,
+        )
+    elif args.metric == "serialization":
         report = measure_serialization_restore_cost(
             warmup_round_trips=args.warmup_round_trips,
             measured_round_trips=args.measured_round_trips,

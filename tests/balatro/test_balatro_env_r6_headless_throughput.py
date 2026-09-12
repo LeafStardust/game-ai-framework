@@ -578,3 +578,111 @@ def test_env_r6_serialization_cli_emits_machine_readable_report(monkeypatch, cap
     ) == 0
     assert received == {"warmup_round_trips": 3, "measured_round_trips": 7}
     assert json.loads(capsys.readouterr().out) == expected.as_dict()
+
+
+def test_env_r6_replay_boundaries_cover_every_exact_trajectory_state():
+    boundaries = performance._capture_replay_boundaries()
+
+    assert len(boundaries) == 5
+    assert [payload["public"]["phase"] for payload in boundaries] == [
+        "SELECTING_HAND",
+        "SELECTING_HAND",
+        "SELECTING_HAND",
+        "SELECTING_HAND",
+        "GAME_OVER",
+    ]
+    assert [payload["public"]["hands_remaining"] for payload in boundaries] == [4, 3, 2, 1, 0]
+    assert performance._execute_replay_trajectory(boundaries).serialize() == boundaries[-1]
+
+
+def test_env_r6_replay_fails_closed_at_first_mismatched_boundary():
+    boundaries = list(performance._capture_replay_boundaries())
+    boundaries[2] = json.loads(json.dumps(boundaries[2]))
+    boundaries[2]["public"]["score"] += 1
+
+    with pytest.raises(RuntimeError, match="boundary 2"):
+        performance._execute_replay_trajectory(boundaries)
+
+
+def test_env_r6_replay_cost_pins_workload_calls_and_report(monkeypatch):
+    calls = []
+    canonical_execute = performance._execute_replay_trajectory
+
+    def counted_execute(expected_boundaries=None):
+        calls.append(expected_boundaries)
+        return canonical_execute(expected_boundaries)
+
+    monkeypatch.setattr(performance, "_execute_replay_trajectory", counted_execute)
+    clock_values = iter((0.0, 2.0, 10.0, 14.0))
+
+    report = performance.measure_deterministic_replay_cost(
+        warmup_trajectories=2,
+        measured_trajectories=5,
+        clock=lambda: next(clock_values),
+    )
+
+    assert len(calls) == 14
+    assert sum(value is None for value in calls) == 7
+    assert report.as_dict() == {
+        "schema": "balatro-r6-deterministic-replay-cost-v1",
+        "workload": "red-white-first-small-blind-four-play-loss-v1",
+        "trajectory_steps": 4,
+        "verified_boundaries": 5,
+        "warmup_trajectories": 2,
+        "measured_trajectories": 5,
+        "baseline_elapsed_seconds": 2.0,
+        "verified_replay_elapsed_seconds": 4.0,
+        "baseline_trajectories_per_second": 2.5,
+        "verified_replays_per_second": 1.25,
+        "overhead_seconds_per_trajectory": 0.4,
+        "overhead_ratio": 1.0,
+    }
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"warmup_trajectories": -1}, "warmup_trajectories"),
+        ({"measured_trajectories": 0}, "measured_trajectories"),
+    ],
+)
+def test_env_r6_replay_cost_rejects_invalid_counts(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        performance.measure_deterministic_replay_cost(**kwargs)
+
+
+def test_env_r6_replay_cli_emits_machine_readable_report(monkeypatch, capsys):
+    received = {}
+    expected = performance.ReplayCostReport(
+        schema=performance.REPLAY_COST_SCHEMA,
+        workload=performance.REPLAY_WORKLOAD,
+        trajectory_steps=4,
+        verified_boundaries=5,
+        warmup_trajectories=3,
+        measured_trajectories=7,
+        baseline_elapsed_seconds=1.0,
+        verified_replay_elapsed_seconds=2.0,
+        baseline_trajectories_per_second=7.0,
+        verified_replays_per_second=3.5,
+        overhead_seconds_per_trajectory=1.0 / 7.0,
+        overhead_ratio=1.0,
+    )
+
+    def fake_measurement(**kwargs):
+        received.update(kwargs)
+        return expected
+
+    monkeypatch.setattr(performance, "measure_deterministic_replay_cost", fake_measurement)
+
+    assert performance.main(
+        [
+            "--metric",
+            "replay",
+            "--warmup-trajectories",
+            "3",
+            "--measured-trajectories",
+            "7",
+        ]
+    ) == 0
+    assert received == {"warmup_trajectories": 3, "measured_trajectories": 7}
+    assert json.loads(capsys.readouterr().out) == expected.as_dict()
