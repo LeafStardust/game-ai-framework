@@ -697,11 +697,11 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R2 RNG/lifecycle/shop generation: **BROADLY GREEN; REMAINING GAPS ARE SPECIFIC**.
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
-- R5 live/simulator parity harness: **IN PROGRESS — REPRESENTATIVE NATURAL BOSS START AND DETERMINISTIC ECONOMY GATES ARE GREEN; ONLY THE NATURAL MONEY TREE FIXTURE REMAINS**.
-- R6 environment performance gate: **NOT STARTED**.
+- R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
+- R6 environment performance gate: **IN PROGRESS — NEXT TASK IS THE HEADLESS STEPS/SECOND BASELINE**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
-- Live Balatro validation: **REQUIRED NEXT — CAPTURE A NATURAL MONEY TREE PURCHASE; NO OTHER LIVE VALIDATION IS CURRENTLY NEEDED**.
+- Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
 ## Current strategic action contract
 
@@ -748,14 +748,16 @@ R1 deterministic state/acquisition   SUBSTANTIALLY COMPLETE
 R2 RNG/lifecycle/shop generation     BROADLY GREEN / SPECIFIC GAPS REMAIN
 R3 typed action vocabulary           COMPLETE / GREEN
 R4 deterministic tactical bridge     COMPLETE / GREEN
-R5 live/simulator parity harness      IN PROGRESS
-R6 environment performance gate      NOT STARTED
+R5 live/simulator parity harness      CONDITIONAL CLOSE / MONEY TREE ON HOLD
+R6 environment performance gate      IN PROGRESS
 O observation/action encoding        NOT STARTED
 B0 RL baseline infrastructure        NOT STARTED
 PPO strategic learner                NOT STARTED
 ```
 
-The simulator is **not authoritative game truth** until representative R5 live/simulator parity passes.
+The simulator is authoritative only for the promoted representative R5 surface.
+The natural Money Tree transition remains unpromoted and must not be treated as
+live-validated while its capture gate is on hold.
 
 ---
 
@@ -2004,19 +2006,19 @@ capture.
 
 - Deterministic R5 selector: **2624 passed, 0 failed, 0 skipped, 1602 deselected** in the actual GitHub Actions job log for `deb34992451a8b67851b1929e0e8b5242c1c2d31` (run `34634258937`, job `103378212096`).
 - Natural Seed Money fixture: **complete** at current HEAD.
-- Natural Money Tree fixture: **still required**; synthetic replay is not a substitute.
+- Natural Money Tree fixture: **ON HOLD BY USER DIRECTION**; it remains required and synthetic replay is not a substitute.
 - Natural audited Joker sale: **complete** from the current-HEAD Jolly Joker fixture.
 - Natural held Planet fixture: **complete** from the current-HEAD Uranus fixture.
 - Strengthened blind-start fixture: **complete** with current-observer facing authority and exact private post-deal draw order.
 - Representative natural Boss-start fixture: **complete** from the current-observer `The Hook` fixture, with exact public, keyed-RNG, and private draw-order replay.
-- Live supervisor reliability: **bounded read guard repaired; natural fixture capture remains pending**. The guard fails closed when a native read exceeds its timeout, and the successful result path is deterministic-tested. Do not treat the guard repair as a completed natural Money Tree fixture.
+- Live supervisor reliability: **bounded read guard repaired; natural fixture capture is on hold**. The guard fails closed when a native read exceeds its timeout, and the successful result path is deterministic-tested. Do not treat the guard repair as a completed natural Money Tree fixture.
 - The earlier failing run `34501743361` is superseded by the successful current-HEAD run `34556158163`; its actual log is available and supplies the count above.
-- R6 and every later phase: **blocked** until all R5 exit criteria and natural fixtures are complete.
+- R6: **UNBLOCKED BY EXPLICIT USER DIRECTION** with the missing natural Money Tree fixture retained as an R5 exception; later phases remain blocked on their own roadmap gates.
 
 ### Next actions
 
-1. Capture and promote the remaining natural Money Tree purchase fixture.
-2. Re-run the full deterministic R5 selector after that live fixture is promoted or after any repair it exposes.
+1. Begin R6 with a reproducible headless steps/second baseline through canonical production transitions.
+2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
 ## R5 exit criteria
@@ -2031,9 +2033,11 @@ capture.
 
 ---
 
-# R6 — environment performance gate — NOT STARTED
+# R6 — environment performance gate — IN PROGRESS
 
-Measure only after semantics and representative parity are correct:
+Representative semantics and parity are green for the promoted surface; the
+natural Money Tree exception is retained explicitly above. Measure in this
+order:
 
 - headless steps/sec;
 - complete Red/White runs/minute;
@@ -2043,6 +2047,16 @@ Measure only after semantics and representative parity are correct:
 - deterministic replay overhead.
 
 Do not trade exactness for throughput before this phase.
+
+## Exact next task
+
+Establish the headless steps/second baseline with a reproducible fixed workload
+that executes canonical production transitions. The measurement owner must
+report workload identity, warmup/measurement counts, elapsed time, and computed
+throughput in machine-readable form. Deterministic tests must pin workload and
+report semantics with an injected clock; CI must not enforce a wall-clock speed
+threshold. Do not begin complete-runs/minute or parallel-scaling work until this
+baseline is green and recorded.
 
 # Later phases
 
