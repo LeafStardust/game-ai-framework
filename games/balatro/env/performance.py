@@ -11,12 +11,15 @@ from time import perf_counter
 
 from games.balatro.blinds.blind import create_small_blind
 from games.balatro.env.blind_start import start_pristine_first_small_blind
+from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.transition import HeadlessRunState
 from games.balatro.state import BalatroState
 
 
 HEADLESS_STEPS_WORKLOAD = "red-white-pristine-small-blind-start-v1"
 HEADLESS_THROUGHPUT_SCHEMA = "balatro-r6-headless-throughput-v1"
+COMPLETE_RUNS_WORKLOAD = "red-white-first-small-blind-single-card-loss-v1"
+COMPLETE_RUNS_THROUGHPUT_SCHEMA = "balatro-r6-complete-runs-throughput-v1"
 
 
 @dataclass(frozen=True)
@@ -27,6 +30,23 @@ class HeadlessThroughputReport:
     measured_steps: int
     elapsed_seconds: float
     steps_per_second: float
+
+    def as_dict(self) -> dict[str, str | int | float]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
+
+
+@dataclass(frozen=True)
+class CompleteRunsThroughputReport:
+    schema: str
+    workload: str
+    warmup_runs: int
+    measured_runs: int
+    completed_runs: int
+    elapsed_seconds: float
+    runs_per_minute: float
 
     def as_dict(self) -> dict[str, str | int | float]:
         return asdict(self)
@@ -110,15 +130,101 @@ def measure_headless_steps_per_second(
     )
 
 
+def run_fixed_red_white_episode() -> HeadlessRunState:
+    """Run one exact fixed Red/White episode to an authoritative loss.
+
+    The workload starts at the fresh first-Small-Blind choice boundary and uses
+    the canonical production transition owners throughout. It deliberately
+    plays one visible card per hand so the fixed seed cannot clear the 300-chip
+    blind before all four Red/White hands are consumed. This is an honest
+    complete losing episode, not a substitute backend or a projected terminal.
+    """
+    run = start_pristine_first_small_blind(_pristine_small_blind_template())
+    actions = 0
+    while run.public.phase == "SELECTING_HAND":
+        run = apply_supported_ordinary_play(run, (0,))
+        actions += 1
+
+    _require_fixed_episode_terminal(run)
+    if actions != 4:
+        raise RuntimeError("complete-runs workload did not reach its exact terminal loss")
+    return run
+
+
+def _require_fixed_episode_terminal(run: HeadlessRunState) -> None:
+    if (
+        not isinstance(run, HeadlessRunState)
+        or run.public.phase != "GAME_OVER"
+        or run.public.hands_remaining != 0
+        or run.public.blind is None
+        or run.public.score >= run.public.blind.requirement
+    ):
+        raise RuntimeError("complete-runs workload did not reach its exact terminal loss")
+
+
+def measure_complete_red_white_runs_per_minute(
+    *,
+    warmup_runs: int = 100,
+    measured_runs: int = 1000,
+    clock: Callable[[], float] = perf_counter,
+) -> CompleteRunsThroughputReport:
+    """Measure the fixed complete canonical Red/White episode workload."""
+    warmup_runs = _step_count(warmup_runs, name="warmup_runs", allow_zero=True)
+    measured_runs = _step_count(
+        measured_runs,
+        name="measured_runs",
+        allow_zero=False,
+    )
+    if not callable(clock):
+        raise TypeError("clock must be callable")
+
+    for _ in range(warmup_runs):
+        run_fixed_red_white_episode()
+
+    started = float(clock())
+    completed_runs = 0
+    for _ in range(measured_runs):
+        result = run_fixed_red_white_episode()
+        _require_fixed_episode_terminal(result)
+        completed_runs += 1
+    elapsed = float(clock()) - started
+
+    if not math.isfinite(elapsed) or elapsed <= 0.0:
+        raise RuntimeError(
+            "complete-runs throughput clock must report positive finite elapsed time"
+        )
+    if completed_runs != measured_runs:
+        raise RuntimeError("complete-runs workload did not complete every measured episode")
+
+    return CompleteRunsThroughputReport(
+        schema=COMPLETE_RUNS_THROUGHPUT_SCHEMA,
+        workload=COMPLETE_RUNS_WORKLOAD,
+        warmup_runs=warmup_runs,
+        measured_runs=measured_runs,
+        completed_runs=completed_runs,
+        elapsed_seconds=elapsed,
+        runs_per_minute=completed_runs * 60.0 / elapsed,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--metric", choices=("steps", "runs"), default="steps")
     parser.add_argument("--warmup-steps", type=int, default=100)
     parser.add_argument("--measured-steps", type=int, default=1000)
+    parser.add_argument("--warmup-runs", type=int, default=100)
+    parser.add_argument("--measured-runs", type=int, default=1000)
     args = parser.parse_args(argv)
-    report = measure_headless_steps_per_second(
-        warmup_steps=args.warmup_steps,
-        measured_steps=args.measured_steps,
-    )
+    if args.metric == "runs":
+        report = measure_complete_red_white_runs_per_minute(
+            warmup_runs=args.warmup_runs,
+            measured_runs=args.measured_runs,
+        )
+    else:
+        report = measure_headless_steps_per_second(
+            warmup_steps=args.warmup_steps,
+            measured_steps=args.measured_steps,
+        )
     print(report.to_json())
     return 0
 
