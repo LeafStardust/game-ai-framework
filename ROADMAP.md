@@ -700,7 +700,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
-- B0 RL baseline infrastructure: **IN PROGRESS — RANDOM LEGAL AND DETERMINISTIC SYMBOLIC/HEADLESS BASELINES GREEN; NEXT TASK IS THE FIXED SEEDED EVALUATION SET**.
+- B0 RL baseline infrastructure: **IN PROGRESS — BASELINES AND FIXED SEEDED EVALUATION SET GREEN; NEXT TASK IS THE UNSEEDED EVALUATION SET**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Continue B0 with the fixed seeded evaluation set for the two frozen baseline policies.
+1. Continue B0 with the unseeded evaluation set for the two frozen baseline policies.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2248,16 +2248,16 @@ Actions run `34687961713`, job `103538171035`, passed; the actual log reports
 
 ### Exact next task
 
-Implement the fixed seeded evaluation set for both frozen baseline policies.
-Define the deterministic episode-seed corpus and exact evaluation result
-contract before implementing unseeded evaluation or any learned policy.
+Implement the unseeded evaluation set for both frozen baseline policies. Keep
+its evidence separate from the fixed seeded corpus and define exact seed
+provenance before implementing diagnostics or any learned policy.
 
 Before PPO:
 
 1. random legal strategic baseline — **COMPLETE / GREEN**;
 2. deterministic symbolic/headless baseline — **COMPLETE / GREEN**;
-3. fixed seeded evaluation set — **NEXT**;
-4. unseeded evaluation set;
+3. fixed seeded evaluation set — **COMPLETE / GREEN**;
+4. unseeded evaluation set — **NEXT**;
 5. Ante reached / Ante 8 clear / survival/economy diagnostics;
 6. promotion and regression thresholds defined before training results are observed.
 
@@ -2301,7 +2301,30 @@ while empty nonterminal, non-agent, and terminal-with-actions calls fail closed.
 Focused baseline/encoding/contract/frame validation passed **52 tests** locally.
 GitHub Actions run `34688914765`, job `103540643014`, passed; the actual log
 reports **2713 passed, 1602 deselected in 120.51s**. The exact next task is the
-fixed seeded evaluation set above.
+fixed seeded evaluation set.
+
+### Fixed seeded evaluation-set checkpoint
+
+Commit `22a914352147703c2d654904a9a17446d7d77961` adds the versioned
+`balatro-red-white-fixed-seeds-v1` corpus and
+`balatro-b0-fixed-seeded-evaluation-v1` result contract. The corpus contains 64
+unique eight-character game seeds, pinned in full by SHA-256 digest
+`ac4efb0beac9e9d14e09cdea7246cbc5c27150479f3ee2a3d93893d314a14ef7`.
+Both frozen baseline arms receive the same game seeds in canonical order; the
+random-legal arm alone receives a separately derived, pinned policy seed for
+each episode.
+
+The orchestration owner requires exactly 128 terminal results: every fixed seed
+once for each frozen baseline, in canonical baseline/corpus order. Each result
+records and validates the corpus version and digest, baseline version,
+observation/action schema versions, Red Deck / White Stake / normal-mode
+identity, exact game/policy seed provenance, terminal status, and nonnegative
+action count. Missing, reordered, malformed, nonterminal, unsupported-policy,
+or provenance-drifted evidence fails closed; no episode outcome is synthesized.
+Focused baseline/evaluation/encoding/contract validation passed **70 tests**
+locally. GitHub Actions run `34689471242`, job `103542081741`, passed; the
+actual log reports **2731 passed, 1602 deselected in 84.56s**. The exact next
+task is the unseeded evaluation set above.
 
 ## PPO — NOT STARTED
 
