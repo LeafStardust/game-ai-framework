@@ -699,7 +699,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
 - R6 environment performance gate: **COMPLETE / GREEN**.
-- Observation/action encoding: **IN PROGRESS — NEXT TASK IS THE VERSIONED PUBLIC OBSERVATION SCHEMA**.
+- Observation/action encoding: **IN PROGRESS — PUBLIC OBSERVATION SCHEMA GREEN; NEXT TASK IS THE VERSIONED ACTION SCHEMA/MASK**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
@@ -2017,7 +2017,7 @@ capture.
 
 ### Next actions
 
-1. Begin O with the versioned public observation schema for the promoted Red/White surface.
+1. Continue O with the versioned action schema/mask for the promoted Red/White surface.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2186,22 +2186,45 @@ reference measurements, not portable thresholds. GitHub Actions run
 
 ### Exact next task
 
-Define the versioned policy-safe public observation schema for the promoted
-Red/White surface. Read the canonical public-observation boundary,
-`BalatroState`, environment frame, and frozen action contract before choosing
-field order and representation. The encoding must be deterministic and fixed
-shape, must not leak simulator-private draw order, RNG, live ids, or face-down
-card identity, and must fail closed when required authority cannot be encoded
-exactly. Add focused tests for version/schema identity, field ordering and
-values, immutable output, hidden-information masking, and unsupported inputs.
-Do not begin the action schema/mask until this observation schema is green and
-recorded.
+Define the versioned action schema/mask from the frozen strategic action
+contract and the canonical exact legality owners. Preserve stable field/action
+order and fixed shape, expose only training-supported actions, and make every
+illegal or currently inexact action probability exactly zero after masking.
+Add focused deterministic tests for schema/version identity, parameterized slot
+ordering, phase/resource legality, unsupported actions, and zero-probability
+mask application. Do not begin B0 baselines until this action schema/mask is
+green and recorded.
 
-- versioned public observation schema;
+- versioned public observation schema — **COMPLETE / GREEN**;
 - versioned action schema/mask;
 - no hidden-information leakage;
 - illegal action probability exactly zero after masking;
 - Bond-derived signals may be observations/features but not hard-coded strategic authority.
+
+### Versioned public observation schema checkpoint
+
+Commit `438ed6c194f786240f82a589b7d23da975217ae5` adds the immutable
+`balatro-red-white-public-observation-v1` schema at the canonical environment
+frame boundary. It emits one deterministic 2,444-value vector with stable field
+names and fixed-capacity visible zones for the promoted Red Deck / White Stake
+surface. Permanent deck and discard composition are canonically ordered while
+the policy receives only the public remaining-deck count; simulator-private draw
+order, RNG/seed state, and live IDs are never inputs. Face-down hand identity is
+masked through the existing canonical public-observation owner before encoding,
+including rank, suit, modifiers, history, and permanent metadata. Joker,
+consumable, shop, Voucher, Boss, hand-history, and observed generation-pool
+features use pinned catalogues. Unknown catalog entries, malformed authority,
+unrepresented Joker state, non-finite values, and zone overflow fail closed
+instead of truncating or approximating.
+
+Focused local validation passed **23 tests** across the new schema, environment
+frame, face-down-card, and Amber Acorn public-observation suites. A direct smoke
+test encoded the canonical exact first-Small-Blind headless state at shape
+`(2444,)`. The deterministic workflow selector now explicitly includes
+`env_o`. GitHub Actions run `34687591983`, job `103537194284`, passed; the
+actual job log reports **2684 passed, 1602 deselected in 120.81s**. The public
+observation task is complete and green. The exact next task is the versioned
+action schema/mask above.
 
 ## B0 — RL baseline infrastructure — NOT STARTED
 
