@@ -700,7 +700,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
-- B0 RL baseline infrastructure: **IN PROGRESS — RANDOM LEGAL BASELINE GREEN; NEXT TASK IS THE DETERMINISTIC SYMBOLIC/HEADLESS BASELINE**.
+- B0 RL baseline infrastructure: **IN PROGRESS — RANDOM LEGAL AND DETERMINISTIC SYMBOLIC/HEADLESS BASELINES GREEN; NEXT TASK IS THE FIXED SEEDED EVALUATION SET**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Continue B0 with the deterministic symbolic/headless baseline on the versioned observation/action interface.
+1. Continue B0 with the fixed seeded evaluation set for the two frozen baseline policies.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2248,17 +2248,15 @@ Actions run `34687961713`, job `103538171035`, passed; the actual log reports
 
 ### Exact next task
 
-Implement the deterministic symbolic/headless baseline using the versioned
-observation/action interface and canonical backend legality. Reuse the existing
-symbolic decision authority only where its action maps exactly into the frozen
-schema; unsupported or ambiguous decisions must fail closed. Do not begin the
-fixed seeded evaluation set until this baseline is green and recorded.
+Implement the fixed seeded evaluation set for both frozen baseline policies.
+Define the deterministic episode-seed corpus and exact evaluation result
+contract before implementing unseeded evaluation or any learned policy.
 
 Before PPO:
 
 1. random legal strategic baseline — **COMPLETE / GREEN**;
-2. deterministic symbolic/headless baseline;
-3. fixed seeded evaluation set;
+2. deterministic symbolic/headless baseline — **COMPLETE / GREEN**;
+3. fixed seeded evaluation set — **NEXT**;
 4. unseeded evaluation set;
 5. Ante reached / Ante 8 clear / survival/economy diagnostics;
 6. promotion and regression thresholds defined before training results are observed.
@@ -2281,8 +2279,29 @@ Commit `97dcea2d01d68c2838d23e27ae981534d646d03c` explicitly adds `env_b0`
 to the deterministic CI selector. Focused baseline/encoding/contract/frame
 validation passed **50 tests** locally. GitHub Actions run `34688505099`, job
 `103539589471`, passed; the actual log reports **2705 passed, 1602 deselected
-in 121.18s**. The exact next task is the deterministic symbolic/headless
-baseline above.
+in 121.18s**. At that checkpoint, the exact next task was the deterministic
+symbolic/headless baseline.
+
+### Deterministic symbolic/headless baseline checkpoint
+
+Commit `ef747ff18c03ed7406707f6c27006a2a3ed41732` adds the versioned
+`balatro-symbolic-headless-baseline-v1` adapter. It validates the 2,444-value
+public observation and canonical 27-slot action mask, projects only exact legal
+environment actions into the existing symbolic decision authority, and maps a
+unique exact symbolic choice back to its frozen environment action. The policy
+receives a deep-copied public state with remaining-deck count preserved while
+hidden deck identities/order and live-only identifiers/area indices are
+removed.
+
+Unsupported or ambiguous symbolic outputs fail closed. Pack-option choice also
+remains fail-closed because the current public environment frame does not own
+the pack-choice objects required for an exact identity mapping; no rescue or
+approximation is synthesized. Empty true-terminal frames return no decision,
+while empty nonterminal, non-agent, and terminal-with-actions calls fail closed.
+Focused baseline/encoding/contract/frame validation passed **52 tests** locally.
+GitHub Actions run `34688914765`, job `103540643014`, passed; the actual log
+reports **2713 passed, 1602 deselected in 120.51s**. The exact next task is the
+fixed seeded evaluation set above.
 
 ## PPO — NOT STARTED
 
