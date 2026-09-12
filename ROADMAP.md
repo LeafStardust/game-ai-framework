@@ -698,7 +698,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
-- R6 environment performance gate: **IN PROGRESS — HEADLESS STEPS/SECOND BASELINE GREEN; NEXT TASK IS COMPLETE RED/WHITE RUNS/MINUTE**.
+- R6 environment performance gate: **IN PROGRESS — STEP AND COMPLETE-RUN BASELINES GREEN; NEXT TASK IS PARALLEL SCALING**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
@@ -2017,7 +2017,7 @@ capture.
 
 ### Next actions
 
-1. Establish the complete Red/White runs/minute baseline through canonical production transitions.
+1. Establish the parallel-scaling baseline for the fixed complete Red/White run workload.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2040,7 +2040,7 @@ natural Money Tree exception is retained explicitly above. Measure in this
 order:
 
 - headless steps/sec — **COMPLETE / GREEN**;
-- complete Red/White runs/minute;
+- complete Red/White runs/minute — **COMPLETE / GREEN**;
 - parallel scaling;
 - tactical-bridge cost;
 - serialization/restore overhead;
@@ -2050,15 +2050,13 @@ Do not trade exactness for throughput before this phase.
 
 ## Exact next task
 
-Establish the complete Red/White runs/minute baseline with a reproducible fixed
-workload that executes complete canonical production episodes. Read the concrete
-environment/backend and terminal-transition owners before choosing the workload;
-do not approximate a complete run from blind-start throughput or promote a stub
-backend. Report workload identity, warmup/measurement counts, completed runs,
-elapsed time, and computed throughput in machine-readable form. Deterministic
-tests must pin episode and report semantics with an injected clock; CI must not
-enforce a wall-clock speed threshold. Do not begin parallel-scaling work until
-this baseline is green and recorded.
+Establish the parallel-scaling baseline for the fixed complete-run workload.
+Use independent worker-owned episodes and declared worker/run counts; report
+per-configuration elapsed time, aggregate runs/minute, scaling relative to one
+worker, and efficiency in machine-readable form. Deterministic tests must pin
+work partitioning and report calculations through injected execution and clock
+boundaries; CI must not enforce a wall-clock speed threshold. Do not begin the
+tactical-bridge cost measurement until this baseline is green and recorded.
 
 ### Headless steps/second baseline checkpoint
 
@@ -2078,7 +2076,27 @@ Commit `9129e3099d66c2a18587457a09a2465fcc6ca909` adds the R6 tests to the
 deterministic CI selector. GitHub Actions run `34667163208`, job
 `103481298812`, passed with **2631 passed, 1602 deselected in 115.59s** in the
 actual job log. The first R6 gate is therefore complete; the exact next task is
-the complete Red/White runs/minute baseline above.
+the complete Red/White runs/minute baseline recorded below.
+
+### Complete Red/White runs/minute baseline checkpoint
+
+Commit `1cbf04fecac622bc3eeeedda5bbb257c202af26f` adds the fixed
+`red-white-first-small-blind-single-card-loss-v1` workload and the
+`balatro-r6-complete-runs-throughput-v1` machine-readable report. The repository
+does not yet contain a concrete `HeadlessBackend`, so this workload does not
+promote a test fake. It composes the canonical first-Small-Blind start owner with
+four canonical single-card Play transitions and independently validates the
+authoritative Red Deck / White Stake terminal loss: Ante 1, round 1, zero hands
+remaining, and score 56 below the 300-chip requirement. It is a complete losing
+episode throughput baseline, not an Ante-8 competence claim.
+
+The host-local reference invocation used 100 warmup runs and 1,000 measured
+runs. All 1,000 measured episodes completed in 8.109855300048366 seconds, or
+7398.405739698237 runs/minute. This is a reproducible reference measurement,
+not a portable CI threshold. GitHub Actions run `34667640114`, job
+`103482704764`, passed with **2640 passed, 1602 deselected in 61.54s** in the
+actual job log. The second R6 gate is therefore complete; the exact next task is
+the parallel-scaling baseline above.
 
 # Later phases
 
