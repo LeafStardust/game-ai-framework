@@ -700,7 +700,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
-- B0 RL baseline infrastructure: **IN PROGRESS — BASELINES AND FIXED SEEDED EVALUATION SET GREEN; NEXT TASK IS THE UNSEEDED EVALUATION SET**.
+- B0 RL baseline infrastructure: **IN PROGRESS — BASELINES AND SEEDED/UNSEEDED EVALUATION SETS GREEN; NEXT TASK IS ANTE/SURVIVAL/ECONOMY DIAGNOSTICS**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Continue B0 with the unseeded evaluation set for the two frozen baseline policies.
+1. Continue B0 with Ante reached / Ante 8 clear / survival/economy diagnostics.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2248,17 +2248,17 @@ Actions run `34687961713`, job `103538171035`, passed; the actual log reports
 
 ### Exact next task
 
-Implement the unseeded evaluation set for both frozen baseline policies. Keep
-its evidence separate from the fixed seeded corpus and define exact seed
-provenance before implementing diagnostics or any learned policy.
+Implement Ante reached / Ante 8 clear / survival/economy diagnostics over the
+frozen seeded and unseeded evaluation result contracts. Define each metric from
+authoritative episode state without approximating unavailable evidence.
 
 Before PPO:
 
 1. random legal strategic baseline — **COMPLETE / GREEN**;
 2. deterministic symbolic/headless baseline — **COMPLETE / GREEN**;
 3. fixed seeded evaluation set — **COMPLETE / GREEN**;
-4. unseeded evaluation set — **NEXT**;
-5. Ante reached / Ante 8 clear / survival/economy diagnostics;
+4. unseeded evaluation set — **COMPLETE / GREEN**;
+5. Ante reached / Ante 8 clear / survival/economy diagnostics — **NEXT**;
 6. promotion and regression thresholds defined before training results are observed.
 
 ### Random legal strategic baseline checkpoint
@@ -2324,7 +2324,30 @@ or provenance-drifted evidence fails closed; no episode outcome is synthesized.
 Focused baseline/evaluation/encoding/contract validation passed **70 tests**
 locally. GitHub Actions run `34689471242`, job `103542081741`, passed; the
 actual log reports **2731 passed, 1602 deselected in 84.56s**. The exact next
-task is the unseeded evaluation set above.
+task is the unseeded evaluation set.
+
+### Unseeded evaluation-set checkpoint
+
+Commit `8b7917d4bd9765463532a68910c7fa1fdd8888d1` adds the separate
+`balatro-red-white-unseeded-manifest-v1` and
+`balatro-b0-unseeded-evaluation-v1` contracts. Each evaluation manifest obtains
+one fresh 256-bit entropy value, records it, and deterministically derives 64
+unique game seeds plus 64 independent random-policy seeds. Both frozen baseline
+arms receive the same game seeds; only the random-legal arm receives the policy
+seeds. Manifest validation rejects malformed derivation, duplicate seeds, and
+collisions with the frozen seeded corpus.
+
+Every episode result independently binds its manifest entropy and digest to its
+derived game/policy seed, frozen baseline and observation/action versions, Red
+Deck / White Stake / normal-mode identity, terminal status, and action count.
+The report requires exactly 128 results in canonical paired order. Missing,
+reordered, nonterminal, unsupported-policy, malformed-entropy, and
+provenance-drifted evidence fails closed, while the recorded manifest permits
+exact replay without turning the fresh sample into the fixed corpus. Focused
+B0 evaluation/encoding/contract validation passed **81 tests** locally. GitHub
+Actions run `34700105192`, job `103570234323`, passed; the actual log reports
+**2742 passed, 1602 deselected in 119.46s**. The exact next task is the
+Ante reached / Ante 8 clear / survival/economy diagnostics above.
 
 ## PPO — NOT STARTED
 
