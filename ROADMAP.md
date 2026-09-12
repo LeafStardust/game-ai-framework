@@ -700,7 +700,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
-- B0 RL baseline infrastructure: **IN PROGRESS — BASELINES AND SEEDED/UNSEEDED EVALUATION SETS GREEN; NEXT TASK IS ANTE/SURVIVAL/ECONOMY DIAGNOSTICS**.
+- B0 RL baseline infrastructure: **IN PROGRESS — PER-EPISODE ANTE/SURVIVAL/ECONOMY DIAGNOSTICS GREEN; NEXT TASK IS PAIRED REPORT AGGREGATION**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Continue B0 with Ante reached / Ante 8 clear / survival/economy diagnostics.
+1. Continue B0 diagnostics with exact paired fixed/unseeded report aggregation.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2248,9 +2248,9 @@ Actions run `34687961713`, job `103538171035`, passed; the actual log reports
 
 ### Exact next task
 
-Implement Ante reached / Ante 8 clear / survival/economy diagnostics over the
-frozen seeded and unseeded evaluation result contracts. Define each metric from
-authoritative episode state without approximating unavailable evidence.
+Complete Ante reached / Ante 8 clear / survival/economy diagnostics with exact
+paired fixed/unseeded report aggregation over the green per-episode extractor.
+Do not define promotion thresholds yet or approximate unavailable evidence.
 
 Before PPO:
 
@@ -2258,7 +2258,7 @@ Before PPO:
 2. deterministic symbolic/headless baseline — **COMPLETE / GREEN**;
 3. fixed seeded evaluation set — **COMPLETE / GREEN**;
 4. unseeded evaluation set — **COMPLETE / GREEN**;
-5. Ante reached / Ante 8 clear / survival/economy diagnostics — **NEXT**;
+5. Ante reached / Ante 8 clear / survival/economy diagnostics — **IN PROGRESS; PER-EPISODE EXTRACTION GREEN, PAIRED AGGREGATION NEXT**;
 6. promotion and regression thresholds defined before training results are observed.
 
 ### Random legal strategic baseline checkpoint
@@ -2348,6 +2348,28 @@ B0 evaluation/encoding/contract validation passed **81 tests** locally. GitHub
 Actions run `34700105192`, job `103570234323`, passed; the actual log reports
 **2742 passed, 1602 deselected in 119.46s**. The exact next task is the
 Ante reached / Ante 8 clear / survival/economy diagnostics above.
+
+### Per-episode evaluation diagnostics checkpoint
+
+Commit `4a82d8be9386ec11738352e99d5cf724dde70d75` adds the versioned
+`balatro-b0-episode-diagnostics-v1` extractor for both frozen evaluation result
+types. It requires a complete authoritative trace from the Ante-1 blind-select
+reset boundary through exactly one final terminal frame and binds each record
+to the source corpus/manifest digest, baseline, episode index, game seed, and
+terminal status.
+
+The extractor reports maximum Ante reached, the status-derived Ante 8 clear
+flag, terminal blind score and requirement, exact chip margin and requirement
+progress, and starting/minimum/peak/terminal cash. It rejects incomplete or
+nonmonotone traces, action counts exceeding recorded transitions, Red/White
+identity drift, missing blind requirements, result/status mismatches, and
+terminal win/loss outcomes contradicted by the authoritative score. No
+survival probability, spending cause, or missing economy transition is
+inferred. Focused B0 diagnostics/evaluation/encoding/contract validation passed
+**91 tests** locally. GitHub Actions run `34700697952`, job `103571812285`,
+passed; the actual log reports **2752 passed, 1602 deselected in 83.96s**. B0
+diagnostics remain in progress; the exact next task is paired fixed/unseeded
+report aggregation over these episode records.
 
 ## PPO — NOT STARTED
 
