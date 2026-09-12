@@ -59,7 +59,7 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 
 ---
 
-# Current checkpoint — 2026-09-11
+# Current checkpoint — 2026-09-12
 
 ```text
 Branch: feat/v1.0-red-white-competence
@@ -700,8 +700,8 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
-- B0 RL baseline infrastructure: **IN PROGRESS — BASELINES, EVALUATION SETS, AND DIAGNOSTICS GREEN; NEXT TASK IS PROMOTION/REGRESSION THRESHOLDS**.
-- PPO/observation training: **DO NOT START**.
+- B0 RL baseline infrastructure: **COMPLETE / GREEN**.
+- PPO/observation training: **READY — NEXT TASK IS THE VERSIONED PPO TRAINING/ROLLOUT CONTRACT**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
 ## Current strategic action contract
@@ -752,8 +752,8 @@ R4 deterministic tactical bridge     COMPLETE / GREEN
 R5 live/simulator parity harness      CONDITIONAL CLOSE / MONEY TREE ON HOLD
 R6 environment performance gate      COMPLETE / GREEN
 O observation/action encoding        COMPLETE / GREEN
-B0 RL baseline infrastructure        IN PROGRESS
-PPO strategic learner                NOT STARTED
+B0 RL baseline infrastructure        COMPLETE / GREEN
+PPO strategic learner                READY / NEXT
 ```
 
 The simulator is authoritative only for the promoted representative R5 surface.
@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Complete B0 by defining sample size/power, promotion metrics, and regression/pathology thresholds before training results are observed.
+1. Begin PPO with a versioned training/rollout contract that consumes only the frozen public observation, action schema, and canonical legality mask; bind all training seeds and hyperparameters before optimization results are observed.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2244,13 +2244,13 @@ contract, and canonical shop-legality validation passed **82 tests**. GitHub
 Actions run `34687961713`, job `103538171035`, passed; the actual log reports
 **2695 passed, 1602 deselected in 119.18s**. O is complete and green.
 
-## B0 — RL baseline infrastructure — IN PROGRESS
+## B0 — RL baseline infrastructure — COMPLETE / GREEN
 
 ### Exact next task
 
-Define sample size/power, promotion metrics, and regression/pathology thresholds
-for the frozen fixed and unseeded baseline diagnostics before training results
-are observed. Do not begin PPO until this contract is green and recorded.
+B0 is closed. Begin PPO with the versioned training/rollout contract described
+below. Do not tune policy hyperparameters or inspect learned-policy promotion
+results until that contract and its deterministic regressions are green.
 
 Before PPO:
 
@@ -2259,7 +2259,7 @@ Before PPO:
 3. fixed seeded evaluation set — **COMPLETE / GREEN**;
 4. unseeded evaluation set — **COMPLETE / GREEN**;
 5. Ante reached / Ante 8 clear / survival/economy diagnostics — **COMPLETE / GREEN**;
-6. promotion and regression thresholds defined before training results are observed — **NEXT**.
+6. promotion and regression thresholds defined before training results are observed — **COMPLETE / GREEN**.
 
 ### Random legal strategic baseline checkpoint
 
@@ -2393,7 +2393,47 @@ in 84.45s**. B0 diagnostics are complete and green. The exact next task is to
 define sample size/power, promotion metrics, and regression/pathology
 thresholds before any learned-policy results are observed.
 
-## PPO — NOT STARTED
+### Frozen promotion and regression contract checkpoint
+
+Commit `60723b6ec450f16ad82a239d759e9cefbe3ae614` adds the immutable
+`balatro-red-white-promotion-contract-v1` design before any learned-policy
+results exist. The primary metric is Ante 8 clear rate against both frozen B0
+baselines. The fixed holdout uses all 64 episodes per arm and requires the
+candidate clear count to be at least each baseline clear count. The unseeded
+gate uses four complete 64-episode manifests, or 256 episodes per arm, requires
+at least a 0.20 candidate clear rate and a 0.05 absolute clear-rate advantage,
+and requires the candidate one-sided 95% Wilson lower bound to exceed each
+baseline upper bound.
+
+The pre-registered normal-approximation power design uses one-sided alpha 0.05,
+80% target power, and a 0.20 to 0.30 clear-rate effect. It requires 231 episodes
+per arm; the frozen 256-episode design has approximate power
+`0.8350843138562211`. On both fixed and unseeded evidence, against each baseline,
+the maximum permitted regressions are 0.25 mean Ante, 0.05 mean terminal blind-
+requirement progress, $2 mean minimum cash, and $2 mean terminal cash.
+
+Incomplete or nonterminal episodes, illegal actions, unsupported mechanics,
+schema mismatches, seed-provenance mismatches, and diagnostic-provenance
+mismatches have zero tolerance. Contract version, baseline order, sample sizes,
+comparison rules, metric thresholds, and pathology set all fail closed on
+drift. Focused B0 promotion/diagnostics/evaluation/encoding/contract validation
+passed **118 tests** locally. GitHub Actions run `34701922146`, job
+`103575093259`, passed; the actual log reports **2779 passed, 1602 deselected in
+122.68s**. B0 is complete and green.
+
+## PPO — READY / NEXT
+
+### Exact next task
+
+Define the versioned PPO training and rollout contract before running
+optimization. It must consume `BalatroHeadlessEnvironment` through the frozen
+2,444-value public observation and 27-slot public action schema, apply only the
+canonical legality mask, bind reproducible learner/rollout seeds and all
+hyperparameters, and preserve complete terminal episode provenance needed by
+the frozen B0 diagnostics. Empty nonterminal masks, schema drift, non-finite
+model outputs, illegal sampled actions, unsupported mechanics, and incomplete
+rollouts must fail closed. Keep the fixed 64-seed corpus evaluation-only; do not
+train on it or inspect promotion results while defining this contract.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
