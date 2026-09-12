@@ -6,18 +6,28 @@ from dataclasses import asdict, dataclass
 import json
 import math
 from numbers import Real
+from statistics import fmean
 from typing import Any, Iterable
 
 from games.balatro.env.seeded_evaluation import (
+    EVALUATED_BASELINE_VERSIONS,
     EVALUATION_DECK,
     EVALUATION_STAKE,
+    FIXED_SEEDED_EPISODE_COUNT,
+    FIXED_SEEDED_EVALUATION_SCHEMA,
     FixedSeededEpisodeResult,
+    FixedSeededEvaluationReport,
 )
 from games.balatro.env.state import EnvStateFrame, RunStatus
-from games.balatro.env.unseeded_evaluation import UnseededEpisodeResult
+from games.balatro.env.unseeded_evaluation import (
+    UnseededEpisodeResult,
+    UnseededEvaluationReport,
+    UNSEEDED_EVALUATION_SCHEMA,
+)
 
 
 EVALUATION_DIAGNOSTICS_SCHEMA = "balatro-b0-episode-diagnostics-v1"
+EVALUATION_DIAGNOSTICS_REPORT_SCHEMA = "balatro-b0-diagnostics-report-v1"
 FIXED_EVIDENCE_KIND = "FIXED_SEEDED"
 UNSEEDED_EVIDENCE_KIND = "UNSEEDED"
 
@@ -193,4 +203,176 @@ def derive_episode_diagnostics(
         minimum_money=min(monies),
         peak_money=max(monies),
         terminal_money=monies[-1],
+    )
+
+
+@dataclass(frozen=True)
+class BaselineDiagnosticsSummary:
+    baseline_version: str
+    episode_count: int
+    ante_8_clears: int
+    ante_8_clear_rate: float
+    mean_ante_reached: float
+    minimum_ante_reached: int
+    maximum_ante_reached: int
+    mean_terminal_chip_margin: float
+    mean_terminal_requirement_progress: float
+    mean_starting_money: float
+    mean_minimum_money: float
+    mean_peak_money: float
+    mean_terminal_money: float
+    minimum_observed_money: int
+    maximum_observed_money: int
+
+
+def _summary(
+    baseline_version: str,
+    episodes: tuple[EpisodeDiagnostics, ...],
+) -> BaselineDiagnosticsSummary:
+    if not episodes:
+        raise EvaluationDiagnosticsError("baseline diagnostics cannot be empty")
+    clears = sum(episode.ante_8_cleared for episode in episodes)
+    return BaselineDiagnosticsSummary(
+        baseline_version=baseline_version,
+        episode_count=len(episodes),
+        ante_8_clears=clears,
+        ante_8_clear_rate=clears / len(episodes),
+        mean_ante_reached=fmean(episode.ante_reached for episode in episodes),
+        minimum_ante_reached=min(episode.ante_reached for episode in episodes),
+        maximum_ante_reached=max(episode.ante_reached for episode in episodes),
+        mean_terminal_chip_margin=fmean(
+            episode.terminal_chip_margin for episode in episodes
+        ),
+        mean_terminal_requirement_progress=fmean(
+            episode.terminal_requirement_progress for episode in episodes
+        ),
+        mean_starting_money=fmean(episode.starting_money for episode in episodes),
+        mean_minimum_money=fmean(episode.minimum_money for episode in episodes),
+        mean_peak_money=fmean(episode.peak_money for episode in episodes),
+        mean_terminal_money=fmean(episode.terminal_money for episode in episodes),
+        minimum_observed_money=min(episode.minimum_money for episode in episodes),
+        maximum_observed_money=max(episode.peak_money for episode in episodes),
+    )
+
+
+@dataclass(frozen=True)
+class EvaluationDiagnosticsReport:
+    schema_version: str
+    source_schema_version: str
+    evidence_kind: str
+    evidence_sha256: str
+    episodes: tuple[EpisodeDiagnostics, ...]
+    baselines: tuple[BaselineDiagnosticsSummary, ...]
+
+    def __post_init__(self) -> None:
+        if self.schema_version != EVALUATION_DIAGNOSTICS_REPORT_SCHEMA:
+            raise EvaluationDiagnosticsError("diagnostics report schema version mismatch")
+        if self.evidence_kind not in (FIXED_EVIDENCE_KIND, UNSEEDED_EVIDENCE_KIND):
+            raise EvaluationDiagnosticsError("diagnostics report evidence kind is invalid")
+        expected_source_schema = (
+            FIXED_SEEDED_EVALUATION_SCHEMA
+            if self.evidence_kind == FIXED_EVIDENCE_KIND
+            else UNSEEDED_EVALUATION_SCHEMA
+        )
+        if self.source_schema_version != expected_source_schema:
+            raise EvaluationDiagnosticsError("diagnostics source schema version mismatch")
+        if (
+            not isinstance(self.episodes, tuple)
+            or len(self.episodes)
+            != FIXED_SEEDED_EPISODE_COUNT * len(EVALUATED_BASELINE_VERSIONS)
+            or any(
+                not isinstance(episode, EpisodeDiagnostics)
+                for episode in self.episodes
+            )
+        ):
+            raise EvaluationDiagnosticsError("diagnostics report episodes are invalid")
+        if not isinstance(self.baselines, tuple):
+            raise EvaluationDiagnosticsError("diagnostics report baselines must be a tuple")
+        if any(
+            episode.evidence_kind != self.evidence_kind
+            or episode.evidence_sha256 != self.evidence_sha256
+            or episode.baseline_version not in EVALUATED_BASELINE_VERSIONS
+            for episode in self.episodes
+        ):
+            raise EvaluationDiagnosticsError("diagnostics report evidence provenance drifted")
+        expected = tuple(
+            _summary(
+                baseline,
+                tuple(
+                    episode
+                    for episode in self.episodes
+                    if episode.baseline_version == baseline
+                ),
+            )
+            for baseline in EVALUATED_BASELINE_VERSIONS
+        )
+        if self.baselines != expected:
+            raise EvaluationDiagnosticsError("diagnostics baseline summaries are inconsistent")
+
+    @property
+    def episode_count(self) -> int:
+        return len(self.episodes)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "source_schema_version": self.source_schema_version,
+            "evidence_kind": self.evidence_kind,
+            "evidence_sha256": self.evidence_sha256,
+            "episodes": [episode.as_dict() for episode in self.episodes],
+            "baselines": [asdict(summary) for summary in self.baselines],
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True, separators=(",", ":"))
+
+
+def aggregate_evaluation_diagnostics(
+    source: FixedSeededEvaluationReport | UnseededEvaluationReport,
+    episodes: Iterable[EpisodeDiagnostics],
+) -> EvaluationDiagnosticsReport:
+    """Bind complete per-episode diagnostics to one frozen evaluation report."""
+    if isinstance(source, FixedSeededEvaluationReport):
+        evidence_kind = FIXED_EVIDENCE_KIND
+        evidence_sha256 = source.corpus_sha256
+    elif isinstance(source, UnseededEvaluationReport):
+        evidence_kind = UNSEEDED_EVIDENCE_KIND
+        evidence_sha256 = source.manifest.manifest_sha256
+    else:
+        raise TypeError("source must be a frozen B0 evaluation report")
+
+    values = tuple(episodes)
+    if len(values) != len(source.episodes):
+        raise EvaluationDiagnosticsError(
+            "diagnostics must contain exactly one record per source episode"
+        )
+    for result, diagnostic in zip(source.episodes, values, strict=True):
+        if not isinstance(diagnostic, EpisodeDiagnostics):
+            raise EvaluationDiagnosticsError("diagnostics contain an invalid episode record")
+        if (
+            diagnostic.evidence_kind != evidence_kind
+            or diagnostic.evidence_sha256 != evidence_sha256
+            or diagnostic.baseline_version != result.baseline_version
+            or diagnostic.episode_index != result.episode_index
+            or diagnostic.game_seed != result.game_seed
+            or diagnostic.status is not result.status
+        ):
+            raise EvaluationDiagnosticsError(
+                "diagnostic record does not match its source episode"
+            )
+
+    summaries = tuple(
+        _summary(
+            baseline,
+            tuple(item for item in values if item.baseline_version == baseline),
+        )
+        for baseline in EVALUATED_BASELINE_VERSIONS
+    )
+    return EvaluationDiagnosticsReport(
+        schema_version=EVALUATION_DIAGNOSTICS_REPORT_SCHEMA,
+        source_schema_version=source.schema_version,
+        evidence_kind=evidence_kind,
+        evidence_sha256=evidence_sha256,
+        episodes=values,
+        baselines=summaries,
     )
