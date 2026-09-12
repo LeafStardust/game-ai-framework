@@ -700,7 +700,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
-- B0 RL baseline infrastructure: **IN PROGRESS — PER-EPISODE ANTE/SURVIVAL/ECONOMY DIAGNOSTICS GREEN; NEXT TASK IS PAIRED REPORT AGGREGATION**.
+- B0 RL baseline infrastructure: **IN PROGRESS — BASELINES, EVALUATION SETS, AND DIAGNOSTICS GREEN; NEXT TASK IS PROMOTION/REGRESSION THRESHOLDS**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Continue B0 diagnostics with exact paired fixed/unseeded report aggregation.
+1. Complete B0 by defining sample size/power, promotion metrics, and regression/pathology thresholds before training results are observed.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2248,9 +2248,9 @@ Actions run `34687961713`, job `103538171035`, passed; the actual log reports
 
 ### Exact next task
 
-Complete Ante reached / Ante 8 clear / survival/economy diagnostics with exact
-paired fixed/unseeded report aggregation over the green per-episode extractor.
-Do not define promotion thresholds yet or approximate unavailable evidence.
+Define sample size/power, promotion metrics, and regression/pathology thresholds
+for the frozen fixed and unseeded baseline diagnostics before training results
+are observed. Do not begin PPO until this contract is green and recorded.
 
 Before PPO:
 
@@ -2258,8 +2258,8 @@ Before PPO:
 2. deterministic symbolic/headless baseline — **COMPLETE / GREEN**;
 3. fixed seeded evaluation set — **COMPLETE / GREEN**;
 4. unseeded evaluation set — **COMPLETE / GREEN**;
-5. Ante reached / Ante 8 clear / survival/economy diagnostics — **IN PROGRESS; PER-EPISODE EXTRACTION GREEN, PAIRED AGGREGATION NEXT**;
-6. promotion and regression thresholds defined before training results are observed.
+5. Ante reached / Ante 8 clear / survival/economy diagnostics — **COMPLETE / GREEN**;
+6. promotion and regression thresholds defined before training results are observed — **NEXT**.
 
 ### Random legal strategic baseline checkpoint
 
@@ -2370,6 +2370,28 @@ inferred. Focused B0 diagnostics/evaluation/encoding/contract validation passed
 passed; the actual log reports **2752 passed, 1602 deselected in 83.96s**. B0
 diagnostics remain in progress; the exact next task is paired fixed/unseeded
 report aggregation over these episode records.
+
+### Paired evaluation diagnostics aggregation checkpoint
+
+Commit `ba4b8b114e6f91953364ff9ac59e3180cea2d81a` completes the diagnostics
+item with versioned `balatro-b0-diagnostics-report-v1` aggregation. Each fixed
+or unseeded report requires all 128 per-episode diagnostic records to match the
+source evidence kind and digest, baseline, episode index, game seed, terminal
+status, and canonical paired order before aggregation.
+
+For each frozen baseline the report exposes episode and Ante 8 clear counts,
+Ante 8 clear rate, mean/minimum/maximum Ante reached, mean terminal chip margin
+and blind-requirement progress, mean starting/minimum/peak/terminal cash, and
+the minimum/maximum observed cash bounds. These are descriptive reductions of
+the exact episode records; no promotion threshold, survival probability,
+spending cause, or missing transition is inferred. Missing, reordered,
+cross-corpus, cross-manifest, provenance-drifted, or summary-tampered evidence
+fails closed. Focused B0 diagnostics/evaluation/encoding/contract validation
+passed **97 tests** locally. GitHub Actions run `34701235170`, job
+`103573251854`, passed; the actual log reports **2758 passed, 1602 deselected
+in 84.45s**. B0 diagnostics are complete and green. The exact next task is to
+define sample size/power, promotion metrics, and regression/pathology
+thresholds before any learned-policy results are observed.
 
 ## PPO — NOT STARTED
 
