@@ -698,7 +698,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
-- R6 environment performance gate: **IN PROGRESS — STEP AND COMPLETE-RUN BASELINES GREEN; NEXT TASK IS PARALLEL SCALING**.
+- R6 environment performance gate: **IN PROGRESS — STEP, COMPLETE-RUN, AND PARALLEL BASELINES GREEN; NEXT TASK IS TACTICAL-BRIDGE COST**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
@@ -2017,7 +2017,7 @@ capture.
 
 ### Next actions
 
-1. Establish the parallel-scaling baseline for the fixed complete Red/White run workload.
+1. Establish the tactical-bridge cost baseline over an exact fixed Red/White tactical transition.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2041,7 +2041,7 @@ order:
 
 - headless steps/sec — **COMPLETE / GREEN**;
 - complete Red/White runs/minute — **COMPLETE / GREEN**;
-- parallel scaling;
+- parallel scaling — **COMPLETE / GREEN**;
 - tactical-bridge cost;
 - serialization/restore overhead;
 - deterministic replay overhead.
@@ -2050,13 +2050,14 @@ Do not trade exactness for throughput before this phase.
 
 ## Exact next task
 
-Establish the parallel-scaling baseline for the fixed complete-run workload.
-Use independent worker-owned episodes and declared worker/run counts; report
-per-configuration elapsed time, aggregate runs/minute, scaling relative to one
-worker, and efficiency in machine-readable form. Deterministic tests must pin
-work partitioning and report calculations through injected execution and clock
-boundaries; CI must not enforce a wall-clock speed threshold. Do not begin the
-tactical-bridge cost measurement until this baseline is green and recorded.
+Establish the tactical-bridge cost baseline over one fixed exact Red/White
+tactical transition. Compare the canonical direct transition with the existing
+production-shaped decision bridge on equivalent immutable inputs; report
+workload identity, warmup/measurement counts, direct and bridged elapsed time,
+throughput, and bridge overhead in machine-readable form. Deterministic tests
+must pin decision/action and report semantics through injected clocks; CI must
+not enforce a wall-clock speed threshold. Do not begin serialization/restore
+measurement until this baseline is green and recorded.
 
 ### Headless steps/second baseline checkpoint
 
@@ -2096,7 +2097,28 @@ runs. All 1,000 measured episodes completed in 8.109855300048366 seconds, or
 not a portable CI threshold. GitHub Actions run `34667640114`, job
 `103482704764`, passed with **2640 passed, 1602 deselected in 61.54s** in the
 actual job log. The second R6 gate is therefore complete; the exact next task is
-the parallel-scaling baseline above.
+the parallel-scaling baseline recorded below.
+
+### Parallel-scaling baseline checkpoint
+
+Commit `06462a44a34916760a30c6c212f3d696f75e6abb` adds the
+`balatro-r6-parallel-scaling-v1` strong-scaling report over the same fixed exact
+terminal episode. Every configuration uses independent process-owned workers,
+per-worker warmup before timing, an exact balanced partition of the same 1,000
+measured runs, and per-batch completion validation. Executor startup and warmup
+are excluded from elapsed measurement; no wall-clock threshold is enforced.
+
+The host-local reference used worker counts 1, 2, and 4, ten warmup runs per
+worker, and 1,000 measured runs per configuration. One worker completed in
+7.683218700112775 seconds at 7809.22714058879 runs/minute. Two workers completed
+in 3.8296489000786096 seconds at 15667.232575489728 runs/minute, 2.0062462383836452x
+scaling and 1.0031231191918226 efficiency. Four workers completed in
+1.9301252999575809 seconds at 31086.06472404597 runs/minute, 3.980683896678434x
+scaling and 0.9951709741696085 efficiency. These are host-local reference
+measurements, not portable thresholds. GitHub Actions run `34668058861`, job
+`103483936025`, passed with **2649 passed, 1602 deselected in 119.36s** in the
+actual job log. The third R6 gate is complete; the exact next task is the
+tactical-bridge cost baseline above.
 
 # Later phases
 
