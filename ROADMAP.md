@@ -698,7 +698,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
-- R6 environment performance gate: **IN PROGRESS — NEXT TASK IS THE HEADLESS STEPS/SECOND BASELINE**.
+- R6 environment performance gate: **IN PROGRESS — HEADLESS STEPS/SECOND BASELINE GREEN; NEXT TASK IS COMPLETE RED/WHITE RUNS/MINUTE**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
@@ -2017,7 +2017,7 @@ capture.
 
 ### Next actions
 
-1. Begin R6 with a reproducible headless steps/second baseline through canonical production transitions.
+1. Establish the complete Red/White runs/minute baseline through canonical production transitions.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2039,7 +2039,7 @@ Representative semantics and parity are green for the promoted surface; the
 natural Money Tree exception is retained explicitly above. Measure in this
 order:
 
-- headless steps/sec;
+- headless steps/sec — **COMPLETE / GREEN**;
 - complete Red/White runs/minute;
 - parallel scaling;
 - tactical-bridge cost;
@@ -2050,13 +2050,35 @@ Do not trade exactness for throughput before this phase.
 
 ## Exact next task
 
-Establish the headless steps/second baseline with a reproducible fixed workload
-that executes canonical production transitions. The measurement owner must
-report workload identity, warmup/measurement counts, elapsed time, and computed
-throughput in machine-readable form. Deterministic tests must pin workload and
-report semantics with an injected clock; CI must not enforce a wall-clock speed
-threshold. Do not begin complete-runs/minute or parallel-scaling work until this
-baseline is green and recorded.
+Establish the complete Red/White runs/minute baseline with a reproducible fixed
+workload that executes complete canonical production episodes. Read the concrete
+environment/backend and terminal-transition owners before choosing the workload;
+do not approximate a complete run from blind-start throughput or promote a stub
+backend. Report workload identity, warmup/measurement counts, completed runs,
+elapsed time, and computed throughput in machine-readable form. Deterministic
+tests must pin episode and report semantics with an injected clock; CI must not
+enforce a wall-clock speed threshold. Do not begin parallel-scaling work until
+this baseline is green and recorded.
+
+### Headless steps/second baseline checkpoint
+
+Commit `9e07eaaef2e427b1b41c9b00ef71d7cea64401ac` adds the canonical fixed
+`red-white-pristine-small-blind-start-v1` workload and the
+`balatro-r6-headless-throughput-v1` machine-readable report. Each measured step
+executes the real pristine Red Deck / White Stake Small-Blind start transition,
+including state copy, keyed-RNG shuffle, lifecycle transition, deal, and facing.
+The deterministic regression suite pins the workload, warmup and measurement
+counts, immutable input template, report calculation, CLI JSON, and fail-closed
+invalid-clock/count behavior with an injected clock.
+
+The host-local reference invocation used 100 warmup steps and 1,000 measured
+steps. It measured 3.2191163999959826 seconds and 310.64425008093775 steps/second.
+This is a reproducible reference measurement, not a portable CI threshold.
+Commit `9129e3099d66c2a18587457a09a2465fcc6ca909` adds the R6 tests to the
+deterministic CI selector. GitHub Actions run `34667163208`, job
+`103481298812`, passed with **2631 passed, 1602 deselected in 115.59s** in the
+actual job log. The first R6 gate is therefore complete; the exact next task is
+the complete Red/White runs/minute baseline above.
 
 # Later phases
 
