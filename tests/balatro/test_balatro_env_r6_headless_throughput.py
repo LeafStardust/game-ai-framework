@@ -469,3 +469,112 @@ def test_env_r6_tactical_bridge_cli_emits_machine_readable_report(monkeypatch, c
     ) == 0
     assert received == {"warmup_steps": 3, "measured_steps": 7}
     assert json.loads(capsys.readouterr().out) == expected.as_dict()
+
+
+def test_env_r6_serialization_cost_pins_workload_calls_and_report(monkeypatch):
+    expected_bytes = len(
+        performance._canonical_payload_bytes(
+            performance._serialization_template().serialize()
+        )
+    )
+    serialize_calls = []
+    restore_calls = []
+    canonical_serialize = performance.HeadlessRunState.serialize
+    canonical_restore = performance.HeadlessRunState.restore.__func__
+
+    def counted_serialize(self):
+        serialize_calls.append(self)
+        return canonical_serialize(self)
+
+    def counted_restore(cls, payload):
+        restore_calls.append(payload)
+        return canonical_restore(cls, payload)
+
+    monkeypatch.setattr(performance.HeadlessRunState, "serialize", counted_serialize)
+    monkeypatch.setattr(
+        performance.HeadlessRunState,
+        "restore",
+        classmethod(counted_restore),
+    )
+    clock_values = iter((0.0, 2.0, 10.0, 14.0))
+
+    report = performance.measure_serialization_restore_cost(
+        warmup_round_trips=2,
+        measured_round_trips=5,
+        clock=lambda: next(clock_values),
+    )
+
+    assert len(serialize_calls) == 11
+    assert len(restore_calls) == 7
+    assert report.as_dict() == {
+        "schema": "balatro-r6-serialization-cost-v1",
+        "workload": "red-white-post-first-card-play-state-v1",
+        "warmup_round_trips": 2,
+        "measured_round_trips": 5,
+        "payload_bytes": expected_bytes,
+        "serialize_elapsed_seconds": 2.0,
+        "restore_elapsed_seconds": 4.0,
+        "serializations_per_second": 2.5,
+        "restores_per_second": 1.25,
+        "round_trip_seconds_per_state": 1.2,
+        "round_trips_per_second": 5.0 / 6.0,
+    }
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"warmup_round_trips": -1}, "warmup_round_trips"),
+        ({"measured_round_trips": 0}, "measured_round_trips"),
+    ],
+)
+def test_env_r6_serialization_cost_rejects_invalid_counts(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        performance.measure_serialization_restore_cost(**kwargs)
+
+
+def test_env_r6_serialization_cost_rejects_invalid_elapsed_time():
+    clock_values = iter((1.0, 1.0, 2.0, 3.0))
+
+    with pytest.raises(RuntimeError, match="serialization clock"):
+        performance.measure_serialization_restore_cost(
+            warmup_round_trips=0,
+            measured_round_trips=1,
+            clock=lambda: next(clock_values),
+        )
+
+
+def test_env_r6_serialization_cli_emits_machine_readable_report(monkeypatch, capsys):
+    received = {}
+    expected = performance.SerializationCostReport(
+        schema=performance.SERIALIZATION_COST_SCHEMA,
+        workload=performance.SERIALIZATION_WORKLOAD,
+        warmup_round_trips=3,
+        measured_round_trips=7,
+        payload_bytes=1234,
+        serialize_elapsed_seconds=1.0,
+        restore_elapsed_seconds=2.0,
+        serializations_per_second=7.0,
+        restores_per_second=3.5,
+        round_trip_seconds_per_state=3.0 / 7.0,
+        round_trips_per_second=7.0 / 3.0,
+    )
+
+    def fake_measurement(**kwargs):
+        received.update(kwargs)
+        return expected
+
+    monkeypatch.setattr(performance, "measure_serialization_restore_cost", fake_measurement)
+
+    assert performance.main(
+        [
+            "--metric",
+            "serialization",
+            "--warmup-round-trips",
+            "3",
+            "--measured-round-trips",
+            "7",
+        ]
+    ) == 0
+    assert received == {"warmup_round_trips": 3, "measured_round_trips": 7}
+    assert json.loads(capsys.readouterr().out) == expected.as_dict()

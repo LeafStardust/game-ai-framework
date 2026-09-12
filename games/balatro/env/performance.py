@@ -29,6 +29,8 @@ COMPLETE_RUNS_THROUGHPUT_SCHEMA = "balatro-r6-complete-runs-throughput-v1"
 PARALLEL_SCALING_SCHEMA = "balatro-r6-parallel-scaling-v1"
 TACTICAL_BRIDGE_WORKLOAD = "red-white-first-small-blind-first-card-play-v1"
 TACTICAL_BRIDGE_COST_SCHEMA = "balatro-r6-tactical-bridge-cost-v1"
+SERIALIZATION_WORKLOAD = "red-white-post-first-card-play-state-v1"
+SERIALIZATION_COST_SCHEMA = "balatro-r6-serialization-cost-v1"
 
 
 @dataclass(frozen=True)
@@ -101,6 +103,27 @@ class TacticalBridgeCostReport:
     bridged_steps_per_second: float
     overhead_seconds_per_step: float
     overhead_ratio: float
+
+    def as_dict(self) -> dict[str, str | int | float]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
+
+
+@dataclass(frozen=True)
+class SerializationCostReport:
+    schema: str
+    workload: str
+    warmup_round_trips: int
+    measured_round_trips: int
+    payload_bytes: int
+    serialize_elapsed_seconds: float
+    restore_elapsed_seconds: float
+    serializations_per_second: float
+    restores_per_second: float
+    round_trip_seconds_per_state: float
+    round_trips_per_second: float
 
     def as_dict(self) -> dict[str, str | int | float]:
         return asdict(self)
@@ -448,11 +471,82 @@ def measure_tactical_bridge_cost(
     )
 
 
+def _serialization_template() -> HeadlessRunState:
+    return apply_supported_ordinary_play(_tactical_play_template(), (0,))
+
+
+def _canonical_payload_bytes(payload: dict[str, Any]) -> bytes:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def measure_serialization_restore_cost(
+    *,
+    warmup_round_trips: int = 100,
+    measured_round_trips: int = 1000,
+    clock: Callable[[], float] = perf_counter,
+) -> SerializationCostReport:
+    """Measure canonical headless-state serialization and restore separately."""
+    warmup_round_trips = _step_count(
+        warmup_round_trips,
+        name="warmup_round_trips",
+        allow_zero=True,
+    )
+    measured_round_trips = _step_count(
+        measured_round_trips,
+        name="measured_round_trips",
+        allow_zero=False,
+    )
+    if not callable(clock):
+        raise TypeError("clock must be callable")
+
+    template = _serialization_template()
+    reference_payload = template.serialize()
+    reference_bytes = _canonical_payload_bytes(reference_payload)
+    for _ in range(warmup_round_trips):
+        restored = HeadlessRunState.restore(template.serialize())
+        if restored.serialize() != reference_payload:
+            raise RuntimeError("serialization warmup did not preserve exact state")
+
+    started = float(clock())
+    for _ in range(measured_round_trips):
+        serialized = template.serialize()
+    serialize_elapsed = float(clock()) - started
+
+    started = float(clock())
+    for _ in range(measured_round_trips):
+        restored = HeadlessRunState.restore(reference_payload)
+    restore_elapsed = float(clock()) - started
+
+    if _canonical_payload_bytes(serialized) != reference_bytes:
+        raise RuntimeError("serialization workload produced unstable payload bytes")
+    if restored.serialize() != reference_payload:
+        raise RuntimeError("restore workload did not preserve exact state")
+    if not math.isfinite(serialize_elapsed) or serialize_elapsed <= 0.0:
+        raise RuntimeError("serialization clock must report positive finite elapsed time")
+    if not math.isfinite(restore_elapsed) or restore_elapsed <= 0.0:
+        raise RuntimeError("restore clock must report positive finite elapsed time")
+
+    combined = serialize_elapsed + restore_elapsed
+    return SerializationCostReport(
+        schema=SERIALIZATION_COST_SCHEMA,
+        workload=SERIALIZATION_WORKLOAD,
+        warmup_round_trips=warmup_round_trips,
+        measured_round_trips=measured_round_trips,
+        payload_bytes=len(reference_bytes),
+        serialize_elapsed_seconds=serialize_elapsed,
+        restore_elapsed_seconds=restore_elapsed,
+        serializations_per_second=measured_round_trips / serialize_elapsed,
+        restores_per_second=measured_round_trips / restore_elapsed,
+        round_trip_seconds_per_state=combined / measured_round_trips,
+        round_trips_per_second=measured_round_trips / combined,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--metric",
-        choices=("steps", "runs", "parallel", "tactical"),
+        choices=("steps", "runs", "parallel", "tactical", "serialization"),
         default="steps",
     )
     parser.add_argument("--warmup-steps", type=int, default=100)
@@ -462,8 +556,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--worker-counts", type=int, nargs="+", default=(1, 2, 4))
     parser.add_argument("--parallel-warmup-runs-per-worker", type=int, default=10)
     parser.add_argument("--parallel-measured-runs", type=int, default=1000)
+    parser.add_argument("--warmup-round-trips", type=int, default=100)
+    parser.add_argument("--measured-round-trips", type=int, default=1000)
     args = parser.parse_args(argv)
-    if args.metric == "tactical":
+    if args.metric == "serialization":
+        report = measure_serialization_restore_cost(
+            warmup_round_trips=args.warmup_round_trips,
+            measured_round_trips=args.measured_round_trips,
+        )
+    elif args.metric == "tactical":
         report = measure_tactical_bridge_cost(
             warmup_steps=args.warmup_steps,
             measured_steps=args.measured_steps,

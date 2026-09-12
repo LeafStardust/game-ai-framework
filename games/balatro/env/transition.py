@@ -409,6 +409,19 @@ class HeadlessRunState:
     def copy(self) -> "HeadlessRunState":
         return deepcopy(self)
 
+    def serialize(self) -> dict[str, Any]:
+        """Return the versioned exact snapshot owned by the headless state."""
+        from games.balatro.env.serialization import serialize_headless_run_state
+
+        return serialize_headless_run_state(self)
+
+    @classmethod
+    def restore(cls, payload: dict[str, Any]) -> "HeadlessRunState":
+        """Restore one versioned exact snapshot through the canonical owner."""
+        from games.balatro.env.serialization import restore_headless_run_state
+
+        return restore_headless_run_state(payload)
+
 
 class ShopTransitionEngine:
     """Exact deterministic transitions for the currently modeled shop subset."""
