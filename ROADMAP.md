@@ -700,7 +700,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
-- B0 RL baseline infrastructure: **IN PROGRESS — NEXT TASK IS THE RANDOM LEGAL STRATEGIC BASELINE**.
+- B0 RL baseline infrastructure: **IN PROGRESS — RANDOM LEGAL BASELINE GREEN; NEXT TASK IS THE DETERMINISTIC SYMBOLIC/HEADLESS BASELINE**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Begin B0 with the random legal strategic baseline on the versioned observation/action interface.
+1. Continue B0 with the deterministic symbolic/headless baseline on the versioned observation/action interface.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2248,20 +2248,41 @@ Actions run `34687961713`, job `103538171035`, passed; the actual log reports
 
 ### Exact next task
 
-Implement the random legal strategic baseline using the versioned observation
-and action schema plus canonical backend legality. Sampling must be reproducible
-under an explicit baseline seed, must never sample a masked action, and must
-fail closed on an empty nonterminal legal mask. Add focused deterministic tests
-before recording the checkpoint.
+Implement the deterministic symbolic/headless baseline using the versioned
+observation/action interface and canonical backend legality. Reuse the existing
+symbolic decision authority only where its action maps exactly into the frozen
+schema; unsupported or ambiguous decisions must fail closed. Do not begin the
+fixed seeded evaluation set until this baseline is green and recorded.
 
 Before PPO:
 
-1. random legal strategic baseline;
+1. random legal strategic baseline — **COMPLETE / GREEN**;
 2. deterministic symbolic/headless baseline;
 3. fixed seeded evaluation set;
 4. unseeded evaluation set;
 5. Ante reached / Ante 8 clear / survival/economy diagnostics;
 6. promotion and regression thresholds defined before training results are observed.
+
+### Random legal strategic baseline checkpoint
+
+Commit `fa3e1c209f17d0867466ae886c7d2f1ad9464927` adds the versioned
+`balatro-random-legal-baseline-v1` policy. Each decision first validates the
+2,444-value public observation and builds the 27-slot action mask from the
+backend-provided canonical legal actions. A separate SHA-256 counter stream,
+seeded explicitly for the baseline, samples uniformly from canonical legal slot
+indices without reading or advancing Balatro RNG. Results are reproducible and
+independent of backend action enumeration order.
+
+The baseline never selects a masked action. Empty nonterminal agent masks,
+non-agent decision calls, terminal frames that expose actions, unsupported
+actions, and invalid seeds fail closed; an empty true-terminal mask returns no
+decision and does not advance the counter. No rescue action is synthesized.
+Commit `97dcea2d01d68c2838d23e27ae981534d646d03c` explicitly adds `env_b0`
+to the deterministic CI selector. Focused baseline/encoding/contract/frame
+validation passed **50 tests** locally. GitHub Actions run `34688505099`, job
+`103539589471`, passed; the actual log reports **2705 passed, 1602 deselected
+in 121.18s**. The exact next task is the deterministic symbolic/headless
+baseline above.
 
 ## PPO — NOT STARTED
 
