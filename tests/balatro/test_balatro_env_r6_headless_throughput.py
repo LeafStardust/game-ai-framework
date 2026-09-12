@@ -375,3 +375,97 @@ def test_env_r6_parallel_cli_emits_one_machine_readable_report(monkeypatch, caps
         "measured_runs": 8,
     }
     assert json.loads(capsys.readouterr().out) == json.loads(expected.to_json())
+
+
+def test_env_r6_tactical_bridge_cost_pins_equivalent_workloads_and_report(monkeypatch):
+    direct_calls = []
+    bridge_calls = []
+    canonical_direct = performance.apply_supported_ordinary_play
+    canonical_bridge = performance.apply_planned_tactical_step
+
+    def counted_direct(run, indices):
+        direct_calls.append((run, tuple(indices)))
+        return canonical_direct(run, indices)
+
+    def counted_bridge(run, engine):
+        bridge_calls.append((run, engine))
+        return canonical_bridge(run, engine)
+
+    monkeypatch.setattr(performance, "apply_supported_ordinary_play", counted_direct)
+    monkeypatch.setattr(performance, "apply_planned_tactical_step", counted_bridge)
+    clock_values = iter((0.0, 2.0, 10.0, 14.0))
+
+    report = performance.measure_tactical_bridge_cost(
+        warmup_steps=2,
+        measured_steps=5,
+        clock=lambda: next(clock_values),
+    )
+
+    assert len(direct_calls) == 7
+    assert len(bridge_calls) == 7
+    assert {id(run) for run, _ in direct_calls + bridge_calls} == {id(direct_calls[0][0])}
+    assert all(indices == (0,) for _, indices in direct_calls)
+    assert len({id(engine) for _, engine in bridge_calls}) == 1
+    assert report.as_dict() == {
+        "schema": "balatro-r6-tactical-bridge-cost-v1",
+        "workload": "red-white-first-small-blind-first-card-play-v1",
+        "warmup_steps": 2,
+        "measured_steps": 5,
+        "direct_elapsed_seconds": 2.0,
+        "bridged_elapsed_seconds": 4.0,
+        "direct_steps_per_second": 2.5,
+        "bridged_steps_per_second": 1.25,
+        "overhead_seconds_per_step": 0.4,
+        "overhead_ratio": 1.0,
+    }
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"warmup_steps": -1}, "warmup_steps"),
+        ({"measured_steps": 0}, "measured_steps"),
+    ],
+)
+def test_env_r6_tactical_bridge_cost_rejects_invalid_counts(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        performance.measure_tactical_bridge_cost(**kwargs)
+
+
+def test_env_r6_tactical_bridge_cost_rejects_invalid_elapsed_time():
+    clock_values = iter((1.0, 1.0, 2.0, 3.0))
+
+    with pytest.raises(RuntimeError, match="direct tactical clock"):
+        performance.measure_tactical_bridge_cost(
+            warmup_steps=0,
+            measured_steps=1,
+            clock=lambda: next(clock_values),
+        )
+
+
+def test_env_r6_tactical_bridge_cli_emits_machine_readable_report(monkeypatch, capsys):
+    received = {}
+    expected = performance.TacticalBridgeCostReport(
+        schema=performance.TACTICAL_BRIDGE_COST_SCHEMA,
+        workload=performance.TACTICAL_BRIDGE_WORKLOAD,
+        warmup_steps=3,
+        measured_steps=7,
+        direct_elapsed_seconds=1.0,
+        bridged_elapsed_seconds=2.0,
+        direct_steps_per_second=7.0,
+        bridged_steps_per_second=3.5,
+        overhead_seconds_per_step=1.0 / 7.0,
+        overhead_ratio=1.0,
+    )
+
+    def fake_measurement(**kwargs):
+        received.update(kwargs)
+        return expected
+
+    monkeypatch.setattr(performance, "measure_tactical_bridge_cost", fake_measurement)
+
+    assert performance.main(
+        ["--metric", "tactical", "--warmup-steps", "3", "--measured-steps", "7"]
+    ) == 0
+    assert received == {"warmup_steps": 3, "measured_steps": 7}
+    assert json.loads(capsys.readouterr().out) == expected.as_dict()

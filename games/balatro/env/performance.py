@@ -9,11 +9,15 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
 from time import perf_counter
+from types import SimpleNamespace
 from typing import Any
 
+from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.blinds.blind import create_small_blind
 from games.balatro.env.blind_start import start_pristine_first_small_blind
+from games.balatro.env.parity import canonical_public_state_signature
 from games.balatro.env.play_transition import apply_supported_ordinary_play
+from games.balatro.env.tactical_transition import apply_planned_tactical_step
 from games.balatro.env.transition import HeadlessRunState
 from games.balatro.state import BalatroState
 
@@ -23,6 +27,8 @@ HEADLESS_THROUGHPUT_SCHEMA = "balatro-r6-headless-throughput-v1"
 COMPLETE_RUNS_WORKLOAD = "red-white-first-small-blind-single-card-loss-v1"
 COMPLETE_RUNS_THROUGHPUT_SCHEMA = "balatro-r6-complete-runs-throughput-v1"
 PARALLEL_SCALING_SCHEMA = "balatro-r6-parallel-scaling-v1"
+TACTICAL_BRIDGE_WORKLOAD = "red-white-first-small-blind-first-card-play-v1"
+TACTICAL_BRIDGE_COST_SCHEMA = "balatro-r6-tactical-bridge-cost-v1"
 
 
 @dataclass(frozen=True)
@@ -77,6 +83,26 @@ class ParallelScalingReport:
     samples: tuple[ParallelScalingSample, ...]
 
     def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
+
+
+@dataclass(frozen=True)
+class TacticalBridgeCostReport:
+    schema: str
+    workload: str
+    warmup_steps: int
+    measured_steps: int
+    direct_elapsed_seconds: float
+    bridged_elapsed_seconds: float
+    direct_steps_per_second: float
+    bridged_steps_per_second: float
+    overhead_seconds_per_step: float
+    overhead_ratio: float
+
+    def as_dict(self) -> dict[str, str | int | float]:
         return asdict(self)
 
     def to_json(self) -> str:
@@ -345,11 +371,88 @@ def measure_parallel_red_white_scaling(
     )
 
 
+class _FirstCardPlayDecisionEngine:
+    def decide(self, state):
+        return SimpleNamespace(
+            action=BalatroAction(PLAY_CARDS, cards=[state.hand[0]])
+        )
+
+
+def _tactical_play_template() -> HeadlessRunState:
+    return start_pristine_first_small_blind(_pristine_small_blind_template())
+
+
+def _require_tactical_cost_result(run: HeadlessRunState) -> None:
+    if (
+        not isinstance(run, HeadlessRunState)
+        or run.public.phase != "SELECTING_HAND"
+        or run.public.hands_remaining != 3
+        or len(run.public.hand) != 8
+        or len(run.draw_pile) != 43
+    ):
+        raise RuntimeError("tactical cost workload produced an invalid result")
+
+
+def measure_tactical_bridge_cost(
+    *,
+    warmup_steps: int = 100,
+    measured_steps: int = 1000,
+    clock: Callable[[], float] = perf_counter,
+) -> TacticalBridgeCostReport:
+    """Compare direct exact Play with the production-shaped decision bridge."""
+    warmup_steps = _step_count(warmup_steps, name="warmup_steps", allow_zero=True)
+    measured_steps = _step_count(measured_steps, name="measured_steps", allow_zero=False)
+    if not callable(clock):
+        raise TypeError("clock must be callable")
+
+    template = _tactical_play_template()
+    engine = _FirstCardPlayDecisionEngine()
+    for _ in range(warmup_steps):
+        _require_tactical_cost_result(apply_supported_ordinary_play(template, (0,)))
+        _require_tactical_cost_result(apply_planned_tactical_step(template, engine))
+
+    started = float(clock())
+    for _ in range(measured_steps):
+        direct_result = apply_supported_ordinary_play(template, (0,))
+    direct_elapsed = float(clock()) - started
+
+    started = float(clock())
+    for _ in range(measured_steps):
+        bridged_result = apply_planned_tactical_step(template, engine)
+    bridged_elapsed = float(clock()) - started
+
+    _require_tactical_cost_result(direct_result)
+    _require_tactical_cost_result(bridged_result)
+    if (
+        canonical_public_state_signature(direct_result.public)
+        != canonical_public_state_signature(bridged_result.public)
+        or direct_result.rng_snapshot() != bridged_result.rng_snapshot()
+    ):
+        raise RuntimeError("direct and bridged tactical workloads diverged")
+    if not math.isfinite(direct_elapsed) or direct_elapsed <= 0.0:
+        raise RuntimeError("direct tactical clock must report positive finite elapsed time")
+    if not math.isfinite(bridged_elapsed) or bridged_elapsed <= 0.0:
+        raise RuntimeError("bridged tactical clock must report positive finite elapsed time")
+
+    return TacticalBridgeCostReport(
+        schema=TACTICAL_BRIDGE_COST_SCHEMA,
+        workload=TACTICAL_BRIDGE_WORKLOAD,
+        warmup_steps=warmup_steps,
+        measured_steps=measured_steps,
+        direct_elapsed_seconds=direct_elapsed,
+        bridged_elapsed_seconds=bridged_elapsed,
+        direct_steps_per_second=measured_steps / direct_elapsed,
+        bridged_steps_per_second=measured_steps / bridged_elapsed,
+        overhead_seconds_per_step=(bridged_elapsed - direct_elapsed) / measured_steps,
+        overhead_ratio=bridged_elapsed / direct_elapsed - 1.0,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--metric",
-        choices=("steps", "runs", "parallel"),
+        choices=("steps", "runs", "parallel", "tactical"),
         default="steps",
     )
     parser.add_argument("--warmup-steps", type=int, default=100)
@@ -360,7 +463,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--parallel-warmup-runs-per-worker", type=int, default=10)
     parser.add_argument("--parallel-measured-runs", type=int, default=1000)
     args = parser.parse_args(argv)
-    if args.metric == "parallel":
+    if args.metric == "tactical":
+        report = measure_tactical_bridge_cost(
+            warmup_steps=args.warmup_steps,
+            measured_steps=args.measured_steps,
+        )
+    elif args.metric == "parallel":
         report = measure_parallel_red_white_scaling(
             worker_counts=args.worker_counts,
             warmup_runs_per_worker=args.parallel_warmup_runs_per_worker,
