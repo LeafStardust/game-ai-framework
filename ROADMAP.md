@@ -1991,6 +1991,15 @@ attempts also produced no `v_money_tree` offer or purchase. No fixture is
 promoted from this batch, and the exact next task remains another bounded
 natural Money Tree capture.
 
+User-run follow-up session `balatro-20260912T012234Z-9a3938ad` also completed
+all five bounded attempts, stopped normally at the attempt limit, and lost at
+Antes 2, 5, 7, 4, and 5 after 39, 93, 185, 109, and 102 actions. All 528
+recorded actions succeeded and no diagnostic failure artifact was produced.
+The Ante-7 attempt bought seven vouchers, but no attempt was offered or
+purchased Seed Money, and none was offered or purchased Money Tree. No fixture
+is promoted; the exact next task remains another bounded natural Money Tree
+capture.
+
 ### Current R5 status
 
 - Deterministic R5 selector: **2624 passed, 0 failed, 0 skipped, 1602 deselected** in the actual GitHub Actions job log for `deb34992451a8b67851b1929e0e8b5242c1c2d31` (run `34634258937`, job `103378212096`).
