@@ -698,8 +698,8 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
-- R6 environment performance gate: **IN PROGRESS — ALL ORDERED BASELINES EXCEPT DETERMINISTIC REPLAY ARE GREEN**.
-- Observation/action encoding: **NOT STARTED**.
+- R6 environment performance gate: **COMPLETE / GREEN**.
+- Observation/action encoding: **IN PROGRESS — NEXT TASK IS THE VERSIONED PUBLIC OBSERVATION SCHEMA**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
@@ -749,8 +749,8 @@ R2 RNG/lifecycle/shop generation     BROADLY GREEN / SPECIFIC GAPS REMAIN
 R3 typed action vocabulary           COMPLETE / GREEN
 R4 deterministic tactical bridge     COMPLETE / GREEN
 R5 live/simulator parity harness      CONDITIONAL CLOSE / MONEY TREE ON HOLD
-R6 environment performance gate      IN PROGRESS
-O observation/action encoding        NOT STARTED
+R6 environment performance gate      COMPLETE / GREEN
+O observation/action encoding        IN PROGRESS
 B0 RL baseline infrastructure        NOT STARTED
 PPO strategic learner                NOT STARTED
 ```
@@ -2017,7 +2017,7 @@ capture.
 
 ### Next actions
 
-1. Establish the deterministic replay-overhead baseline over a fixed exact Red/White trajectory.
+1. Begin O with the versioned public observation schema for the promoted Red/White surface.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2033,7 +2033,7 @@ capture.
 
 ---
 
-# R6 — environment performance gate — IN PROGRESS
+# R6 — environment performance gate — COMPLETE / GREEN
 
 Representative semantics and parity are green for the promoted surface; the
 natural Money Tree exception is retained explicitly above. Measure in this
@@ -2044,21 +2044,15 @@ order:
 - parallel scaling — **COMPLETE / GREEN**;
 - tactical-bridge cost — **COMPLETE / GREEN**;
 - serialization/restore overhead — **COMPLETE / GREEN**;
-- deterministic replay overhead.
+- deterministic replay overhead — **COMPLETE / GREEN**.
 
 Do not trade exactness for throughput before this phase.
 
-## Exact next task
+## R6 completion condition
 
-Establish the deterministic replay-overhead baseline over one fixed exact
-Red/White trajectory. Compare ordinary canonical execution with executing the
-same seeded action trajectory again and verifying exact public, private-zone,
-and RNG equality at every replay boundary. Report workload identity,
-warmup/measurement counts, baseline and verified-replay elapsed time,
-throughput, and verification overhead in machine-readable form. Deterministic
-tests must pin trajectory, mismatch behavior, and calculations through injected
-clocks; CI must not enforce a wall-clock speed threshold. Do not close R6 until
-this final ordered measurement is green and recorded.
+All six ordered performance measurements are green and recorded below. R6 is
+closed. Its host-local measurements remain reference evidence rather than CI
+speed thresholds.
 
 ### Headless steps/second baseline checkpoint
 
@@ -2163,11 +2157,45 @@ or 1704.3419982885152 round trips/second. These are host-local reference
 measurements, not portable thresholds. GitHub Actions run `34669013814`, job
 `103486662682`, passed with **2667 passed, 1602 deselected in 120.29s** in the
 actual job log. The fifth R6 gate is complete; the exact next task is the final
-deterministic replay-overhead baseline above.
+deterministic replay-overhead baseline recorded below.
 
-# Later phases
+### Deterministic replay-overhead checkpoint
 
-## O — observation/action encoding — NOT STARTED
+Commit `51b36b64b7609e6b95f58cb04758a12926f3e8c5` adds the fixed
+`red-white-first-small-blind-four-play-loss-v1` trajectory and the
+`balatro-r6-deterministic-replay-cost-v1` machine-readable report. One reference
+capture records the initial dealt boundary and all four post-Play boundaries.
+Verified replay then executes the same seeded actions and compares the canonical
+versioned state payload at each boundary, covering public state, private zones,
+retained order, and keyed RNG. The first mismatch fails closed with its exact
+boundary index.
+
+The host-local reference used 100 warmup trajectories and 1,000 measured
+four-action trajectories. Baseline execution took 7.1561278000008315 seconds at
+139.74037747060413 trajectories/second. Five-boundary verified replay took
+9.100346499937586 seconds at 109.88592577292067 replays/second. Verification
+overhead was 0.001944218699936755 seconds/trajectory, or
+0.2716858550145693 relative to baseline elapsed time. These are host-local
+reference measurements, not portable thresholds. GitHub Actions run
+`34669417940`, job `103487802351`, passed with **2673 passed, 1602 deselected in
+119.47s** in the actual job log. All ordered R6 gates are complete and green.
+
+# Active next phase
+
+## O — observation/action encoding — IN PROGRESS
+
+### Exact next task
+
+Define the versioned policy-safe public observation schema for the promoted
+Red/White surface. Read the canonical public-observation boundary,
+`BalatroState`, environment frame, and frozen action contract before choosing
+field order and representation. The encoding must be deterministic and fixed
+shape, must not leak simulator-private draw order, RNG, live ids, or face-down
+card identity, and must fail closed when required authority cannot be encoded
+exactly. Add focused tests for version/schema identity, field ordering and
+values, immutable output, hidden-information masking, and unsupported inputs.
+Do not begin the action schema/mask until this observation schema is green and
+recorded.
 
 - versioned public observation schema;
 - versioned action schema/mask;
