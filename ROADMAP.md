@@ -698,7 +698,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
-- R6 environment performance gate: **IN PROGRESS — STEP, COMPLETE-RUN, AND PARALLEL BASELINES GREEN; NEXT TASK IS TACTICAL-BRIDGE COST**.
+- R6 environment performance gate: **IN PROGRESS — STEP, RUN, PARALLEL, AND TACTICAL BASELINES GREEN; NEXT TASK IS SERIALIZATION/RESTORE OVERHEAD**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
@@ -2017,7 +2017,7 @@ capture.
 
 ### Next actions
 
-1. Establish the tactical-bridge cost baseline over an exact fixed Red/White tactical transition.
+1. Establish the serialization/restore overhead baseline through the canonical headless state owner.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2042,7 +2042,7 @@ order:
 - headless steps/sec — **COMPLETE / GREEN**;
 - complete Red/White runs/minute — **COMPLETE / GREEN**;
 - parallel scaling — **COMPLETE / GREEN**;
-- tactical-bridge cost;
+- tactical-bridge cost — **COMPLETE / GREEN**;
 - serialization/restore overhead;
 - deterministic replay overhead.
 
@@ -2050,14 +2050,17 @@ Do not trade exactness for throughput before this phase.
 
 ## Exact next task
 
-Establish the tactical-bridge cost baseline over one fixed exact Red/White
-tactical transition. Compare the canonical direct transition with the existing
-production-shaped decision bridge on equivalent immutable inputs; report
-workload identity, warmup/measurement counts, direct and bridged elapsed time,
-throughput, and bridge overhead in machine-readable form. Deterministic tests
-must pin decision/action and report semantics through injected clocks; CI must
-not enforce a wall-clock speed threshold. Do not begin serialization/restore
-measurement until this baseline is green and recorded.
+Establish the serialization/restore overhead baseline through the canonical
+headless state owner. First read the environment protocol, `HeadlessRunState`,
+RNG, physical-zone, and retained-order owners. If canonical round-trip support is
+still absent, add it at that owner before measuring it; do not benchmark a test
+fake, `deepcopy`, or an ad hoc pickle substitute. Report workload identity,
+warmup/measurement counts, payload size, serialize and restore elapsed time,
+throughput, and round-trip overhead in machine-readable form. Deterministic tests
+must pin exact round-trip state/RNG semantics and report calculations through an
+injected clock; CI must not enforce a wall-clock speed threshold. Do not begin
+deterministic replay-overhead measurement until this baseline is green and
+recorded.
 
 ### Headless steps/second baseline checkpoint
 
@@ -2118,7 +2121,28 @@ scaling and 0.9951709741696085 efficiency. These are host-local reference
 measurements, not portable thresholds. GitHub Actions run `34668058861`, job
 `103483936025`, passed with **2649 passed, 1602 deselected in 119.36s** in the
 actual job log. The third R6 gate is complete; the exact next task is the
-tactical-bridge cost baseline above.
+tactical-bridge cost baseline recorded below.
+
+### Tactical-bridge cost baseline checkpoint
+
+Commit `a10be92db4e785538a10571b9a6707d4a312d3ae` adds the fixed
+`red-white-first-small-blind-first-card-play-v1` comparison and the
+`balatro-r6-tactical-bridge-cost-v1` machine-readable report. Both paths reuse
+the same immutable dealt Red/White input. The direct side invokes the canonical
+Play transition; the bridged side invokes the existing production-shaped
+`decide(state)` tactical seam, including its policy-safe observation copy and
+visible-card mapping, then reaches the same canonical Play owner. The benchmark
+validates equivalent public state and RNG after both paths.
+
+The host-local reference used 100 warmup steps and 1,000 measured steps per
+path. Direct execution took 1.2041587999556214 seconds at 830.4552522780671
+steps/second. Bridged execution took 1.2092440000269562 seconds at
+826.9629619644243 steps/second. Measured bridge overhead was
+0.000005085200071334839 seconds/step, or 0.004223031108124831 relative to direct
+elapsed time. These are host-local reference measurements, not portable
+thresholds. GitHub Actions run `34668446805`, job `103485044083`, passed with
+**2654 passed, 1602 deselected in 108.44s** in the actual job log. The fourth R6
+gate is complete; the exact next task is serialization/restore overhead above.
 
 # Later phases
 
