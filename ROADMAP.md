@@ -54,7 +54,7 @@ Authoritative deterministic workflow:
 Current CI selector:
 
 ```bash
-python -m pytest -q tests/balatro -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2 or env_r3 or env_r4 or env_r5"
+python -m pytest -q tests/balatro -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2 or env_r3 or env_r4 or env_r5 or env_r6 or env_o or env_b0 or env_ppo"
 ```
 
 ---
@@ -701,7 +701,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
 - B0 RL baseline infrastructure: **COMPLETE / GREEN**.
-- PPO/observation training: **READY — NEXT TASK IS THE VERSIONED PPO TRAINING/ROLLOUT CONTRACT**.
+- PPO/observation training: **IN PROGRESS — TRAINING/ROLLOUT CONTRACT GREEN; NEXT TASK IS THE CANONICAL FULL-EPISODE BACKEND/COLLECTOR**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
 ## Current strategic action contract
@@ -753,7 +753,7 @@ R5 live/simulator parity harness      CONDITIONAL CLOSE / MONEY TREE ON HOLD
 R6 environment performance gate      COMPLETE / GREEN
 O observation/action encoding        COMPLETE / GREEN
 B0 RL baseline infrastructure        COMPLETE / GREEN
-PPO strategic learner                READY / NEXT
+PPO strategic learner                IN PROGRESS
 ```
 
 The simulator is authoritative only for the promoted representative R5 surface.
@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Begin PPO with a versioned training/rollout contract that consumes only the frozen public observation, action schema, and canonical legality mask; bind all training seeds and hyperparameters before optimization results are observed.
+1. Implement the canonical concrete full-episode `HeadlessBackend` adapter and PPO rollout collector against the frozen training/rollout contract before adding optimizer code.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2421,19 +2421,57 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 `103575093259`, passed; the actual log reports **2779 passed, 1602 deselected in
 122.68s**. B0 is complete and green.
 
-## PPO — READY / NEXT
+## PPO — IN PROGRESS
 
 ### Exact next task
 
-Define the versioned PPO training and rollout contract before running
-optimization. It must consume `BalatroHeadlessEnvironment` through the frozen
-2,444-value public observation and 27-slot public action schema, apply only the
-canonical legality mask, bind reproducible learner/rollout seeds and all
-hyperparameters, and preserve complete terminal episode provenance needed by
-the frozen B0 diagnostics. Empty nonterminal masks, schema drift, non-finite
-model outputs, illegal sampled actions, unsupported mechanics, and incomplete
-rollouts must fail closed. Keep the fixed 64-seed corpus evaluation-only; do not
-train on it or inspect promotion results while defining this contract.
+Implement the canonical concrete full-episode `HeadlessBackend` adapter and PPO
+rollout collector. The adapter must compose the existing reset, strategic,
+tactical, environment-lifecycle, and terminal owners at their canonical
+boundaries; it must not duplicate mechanics in learner code. The collector must
+use only `BalatroHeadlessEnvironment`, `select_ppo_action`, canonical backend
+rewards, and `PPORolloutEpisode.completed`, and must retain every boundary from
+the Ante-1 reset through one exact terminal result. Unsupported mechanics,
+empty nonterminal masks, illegal actions, non-finite outputs/rewards, truncated
+episodes, fixed-holdout seed use, and provenance drift remain fail-closed. Do
+not add the neural model or optimizer until this backend/collector slice is
+green and recorded.
+
+### Versioned PPO training and rollout contract checkpoint
+
+Commit `0f1390e4afae58929739d2ec2497eff9084fb108` adds the immutable
+`balatro-red-white-ppo-training-v1`, `balatro-red-white-ppo-run-v1`,
+`balatro-red-white-ppo-policy-output-v1`, and
+`balatro-red-white-ppo-rollout-episode-v1` contracts before any optimization or
+learned-policy results. The frozen public input is 2,444 values and the frozen
+output is 27 canonical action slots. The v1 design pre-registers a `(512, 256)`
+tanh MLP and a schedule of eight environments with 256 steps each per 2,048-
+transition batch, 256-transition minibatches, 10 update epochs, and exactly
+2,097,152 environment steps (1,024 complete batches). Gamma is 0.99, GAE
+lambda 0.95, policy/value clip is 0.20, learning rate is 0.0003, entropy
+coefficient is 0.01, value
+coefficient is 0.50, maximum gradient norm is 0.50, and the complete-episode
+action cap is 4,096. Reward authority is canonical backend reward only.
+
+Each explicit root seed deterministically derives separate learner and rollout
+SHA-256 streams. Training game seeds are episode-index-derived and reject any
+collision with the fixed 64-seed evaluation corpus instead of resampling or
+substituting. Policy outputs bind observation/action versions, all 27
+probabilities, and the contemporaneous value estimate. Selection applies the
+canonical action mask before an isolated SHA-256 rollout-stream sample; illegal
+mass is exactly zero and no empty-mask rescue exists.
+
+Complete rollout evidence stores immutable encoded observations, masks, masked
+old-policy probabilities, value estimates, canonical selected actions, rewards,
+and Red/White boundary diagnostics from the Ante-1 blind-select reset through
+one terminal result. Schema drift, non-finite or negative model output,
+illegal/zero-probability selection, truncated or nonterminal evidence,
+nonmonotone Ante, terminal score/requirement contradiction, seed drift, and
+tampered decision provenance fail closed. The artifact serializes to canonical
+JSON. The deterministic workflow now explicitly selects `env_ppo`. Focused PPO,
+B0 diagnostics/promotion, observation/action encoding, and R0 validation passed
+**78 tests** locally. GitHub Actions run `34702892095`, job `103577661324`,
+passed; the actual log reports **2798 passed, 1602 deselected in 122.86s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
