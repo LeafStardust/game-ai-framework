@@ -6,8 +6,10 @@ import argparse
 import json
 import math
 from collections.abc import Callable, Sequence
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
 from time import perf_counter
+from typing import Any
 
 from games.balatro.blinds.blind import create_small_blind
 from games.balatro.env.blind_start import start_pristine_first_small_blind
@@ -20,6 +22,7 @@ HEADLESS_STEPS_WORKLOAD = "red-white-pristine-small-blind-start-v1"
 HEADLESS_THROUGHPUT_SCHEMA = "balatro-r6-headless-throughput-v1"
 COMPLETE_RUNS_WORKLOAD = "red-white-first-small-blind-single-card-loss-v1"
 COMPLETE_RUNS_THROUGHPUT_SCHEMA = "balatro-r6-complete-runs-throughput-v1"
+PARALLEL_SCALING_SCHEMA = "balatro-r6-parallel-scaling-v1"
 
 
 @dataclass(frozen=True)
@@ -49,6 +52,31 @@ class CompleteRunsThroughputReport:
     runs_per_minute: float
 
     def as_dict(self) -> dict[str, str | int | float]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
+
+
+@dataclass(frozen=True)
+class ParallelScalingSample:
+    workers: int
+    warmup_runs_per_worker: int
+    measured_runs: int
+    completed_runs: int
+    elapsed_seconds: float
+    runs_per_minute: float
+    scaling: float
+    efficiency: float
+
+
+@dataclass(frozen=True)
+class ParallelScalingReport:
+    schema: str
+    workload: str
+    samples: tuple[ParallelScalingSample, ...]
+
+    def as_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     def to_json(self) -> str:
@@ -207,15 +235,138 @@ def measure_complete_red_white_runs_per_minute(
     )
 
 
+def _run_fixed_episode_batch(run_count: int) -> int:
+    completed = 0
+    for _ in range(run_count):
+        result = run_fixed_red_white_episode()
+        _require_fixed_episode_terminal(result)
+        completed += 1
+    return completed
+
+
+def _partition_runs(measured_runs: int, workers: int) -> tuple[int, ...]:
+    quotient, remainder = divmod(measured_runs, workers)
+    return tuple(
+        quotient + (1 if worker_index < remainder else 0)
+        for worker_index in range(workers)
+    )
+
+
+def _completed_batch(future: Any, expected: int, *, label: str) -> int:
+    completed = future.result()
+    if type(completed) is not int or completed != expected:
+        raise RuntimeError(f"parallel {label} did not complete every episode")
+    return completed
+
+
+def measure_parallel_red_white_scaling(
+    *,
+    worker_counts: Sequence[int] = (1, 2, 4),
+    warmup_runs_per_worker: int = 10,
+    measured_runs: int = 1000,
+    clock: Callable[[], float] = perf_counter,
+    executor_factory: Callable[[int], Any] = ProcessPoolExecutor,
+) -> ParallelScalingReport:
+    """Measure strong scaling over independent process-owned exact episodes."""
+    counts = tuple(worker_counts)
+    if (
+        not counts
+        or any(isinstance(value, bool) or not isinstance(value, int) or value < 1 for value in counts)
+        or len(counts) != len(set(counts))
+        or 1 not in counts
+    ):
+        raise ValueError("worker_counts must contain distinct positive integers including 1")
+    warmup_runs_per_worker = _step_count(
+        warmup_runs_per_worker,
+        name="warmup_runs_per_worker",
+        allow_zero=True,
+    )
+    measured_runs = _step_count(measured_runs, name="measured_runs", allow_zero=False)
+    if measured_runs < max(counts):
+        raise ValueError("measured_runs must provide at least one run per worker")
+    if not callable(clock):
+        raise TypeError("clock must be callable")
+    if not callable(executor_factory):
+        raise TypeError("executor_factory must be callable")
+
+    raw_samples: list[tuple[int, float, float]] = []
+    for workers in counts:
+        partitions = _partition_runs(measured_runs, workers)
+        with executor_factory(workers) as executor:
+            if warmup_runs_per_worker:
+                warmups = [
+                    executor.submit(_run_fixed_episode_batch, warmup_runs_per_worker)
+                    for _ in range(workers)
+                ]
+                for future in warmups:
+                    _completed_batch(
+                        future,
+                        warmup_runs_per_worker,
+                        label="warmup",
+                    )
+
+            started = float(clock())
+            futures = [
+                executor.submit(_run_fixed_episode_batch, partition)
+                for partition in partitions
+            ]
+            completed_runs = sum(
+                _completed_batch(future, partition, label="workload")
+                for future, partition in zip(futures, partitions, strict=True)
+            )
+            elapsed = float(clock()) - started
+
+        if completed_runs != measured_runs:
+            raise RuntimeError("parallel workload did not complete every measured episode")
+        if not math.isfinite(elapsed) or elapsed <= 0.0:
+            raise RuntimeError(
+                "parallel throughput clock must report positive finite elapsed time"
+            )
+        raw_samples.append((workers, elapsed, completed_runs * 60.0 / elapsed))
+
+    baseline = next(throughput for workers, _, throughput in raw_samples if workers == 1)
+    samples = tuple(
+        ParallelScalingSample(
+            workers=workers,
+            warmup_runs_per_worker=warmup_runs_per_worker,
+            measured_runs=measured_runs,
+            completed_runs=measured_runs,
+            elapsed_seconds=elapsed,
+            runs_per_minute=throughput,
+            scaling=throughput / baseline,
+            efficiency=(throughput / baseline) / workers,
+        )
+        for workers, elapsed, throughput in raw_samples
+    )
+    return ParallelScalingReport(
+        schema=PARALLEL_SCALING_SCHEMA,
+        workload=COMPLETE_RUNS_WORKLOAD,
+        samples=samples,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--metric", choices=("steps", "runs"), default="steps")
+    parser.add_argument(
+        "--metric",
+        choices=("steps", "runs", "parallel"),
+        default="steps",
+    )
     parser.add_argument("--warmup-steps", type=int, default=100)
     parser.add_argument("--measured-steps", type=int, default=1000)
     parser.add_argument("--warmup-runs", type=int, default=100)
     parser.add_argument("--measured-runs", type=int, default=1000)
+    parser.add_argument("--worker-counts", type=int, nargs="+", default=(1, 2, 4))
+    parser.add_argument("--parallel-warmup-runs-per-worker", type=int, default=10)
+    parser.add_argument("--parallel-measured-runs", type=int, default=1000)
     args = parser.parse_args(argv)
-    if args.metric == "runs":
+    if args.metric == "parallel":
+        report = measure_parallel_red_white_scaling(
+            worker_counts=args.worker_counts,
+            warmup_runs_per_worker=args.parallel_warmup_runs_per_worker,
+            measured_runs=args.parallel_measured_runs,
+        )
+    elif args.metric == "runs":
         report = measure_complete_red_white_runs_per_minute(
             warmup_runs=args.warmup_runs,
             measured_runs=args.measured_runs,

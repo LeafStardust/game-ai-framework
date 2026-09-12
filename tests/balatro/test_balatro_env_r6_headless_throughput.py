@@ -221,3 +221,157 @@ def test_env_r6_complete_runs_cli_emits_one_machine_readable_report(
     ) == 0
     assert received == {"warmup_runs": 4, "measured_runs": 9}
     assert json.loads(capsys.readouterr().out) == expected.as_dict()
+
+
+class _ImmediateFuture:
+    def __init__(self, value):
+        self._value = value
+
+    def result(self):
+        return self._value
+
+
+class _RecordingExecutor:
+    def __init__(self, workers, calls, *, short=False):
+        self.workers = workers
+        self.calls = calls
+        self.short = short
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+    def submit(self, function, run_count):
+        self.calls.append((self.workers, function, run_count))
+        completed = run_count - 1 if self.short else run_count
+        return _ImmediateFuture(completed)
+
+
+def test_env_r6_parallel_baseline_pins_partitioning_and_report():
+    calls = []
+
+    def executor_factory(workers):
+        return _RecordingExecutor(workers, calls)
+
+    clock_values = iter((0.0, 2.0, 10.0, 11.0))
+    report = performance.measure_parallel_red_white_scaling(
+        worker_counts=(1, 2),
+        warmup_runs_per_worker=3,
+        measured_runs=10,
+        clock=lambda: next(clock_values),
+        executor_factory=executor_factory,
+    )
+
+    assert [(workers, count) for workers, _, count in calls] == [
+        (1, 3),
+        (1, 10),
+        (2, 3),
+        (2, 3),
+        (2, 5),
+        (2, 5),
+    ]
+    assert all(function is performance._run_fixed_episode_batch for _, function, _ in calls)
+    assert report.as_dict() == {
+        "schema": "balatro-r6-parallel-scaling-v1",
+        "workload": "red-white-first-small-blind-single-card-loss-v1",
+        "samples": (
+            {
+                "workers": 1,
+                "warmup_runs_per_worker": 3,
+                "measured_runs": 10,
+                "completed_runs": 10,
+                "elapsed_seconds": 2.0,
+                "runs_per_minute": 300.0,
+                "scaling": 1.0,
+                "efficiency": 1.0,
+            },
+            {
+                "workers": 2,
+                "warmup_runs_per_worker": 3,
+                "measured_runs": 10,
+                "completed_runs": 10,
+                "elapsed_seconds": 1.0,
+                "runs_per_minute": 600.0,
+                "scaling": 2.0,
+                "efficiency": 1.0,
+            },
+        ),
+    }
+    assert json.loads(report.to_json())["samples"] == list(report.as_dict()["samples"])
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"worker_counts": ()}, "worker_counts"),
+        ({"worker_counts": (2,)}, "worker_counts"),
+        ({"worker_counts": (1, 1)}, "worker_counts"),
+        ({"worker_counts": (1, True)}, "worker_counts"),
+        ({"worker_counts": (1, 3), "measured_runs": 2}, "measured_runs"),
+        ({"warmup_runs_per_worker": -1}, "warmup_runs_per_worker"),
+    ],
+)
+def test_env_r6_parallel_baseline_rejects_invalid_configuration(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        performance.measure_parallel_red_white_scaling(**kwargs)
+
+
+def test_env_r6_parallel_baseline_counts_only_completed_episodes():
+    def executor_factory(workers):
+        return _RecordingExecutor(workers, [], short=True)
+
+    with pytest.raises(RuntimeError, match="parallel workload"):
+        performance.measure_parallel_red_white_scaling(
+            worker_counts=(1,),
+            warmup_runs_per_worker=0,
+            measured_runs=2,
+            executor_factory=executor_factory,
+        )
+
+
+def test_env_r6_parallel_cli_emits_one_machine_readable_report(monkeypatch, capsys):
+    received = {}
+    expected = performance.ParallelScalingReport(
+        schema=performance.PARALLEL_SCALING_SCHEMA,
+        workload=performance.COMPLETE_RUNS_WORKLOAD,
+        samples=(
+            performance.ParallelScalingSample(
+                workers=1,
+                warmup_runs_per_worker=2,
+                measured_runs=8,
+                completed_runs=8,
+                elapsed_seconds=1.0,
+                runs_per_minute=480.0,
+                scaling=1.0,
+                efficiency=1.0,
+            ),
+        ),
+    )
+
+    def fake_measurement(**kwargs):
+        received.update(kwargs)
+        return expected
+
+    monkeypatch.setattr(performance, "measure_parallel_red_white_scaling", fake_measurement)
+
+    assert performance.main(
+        [
+            "--metric",
+            "parallel",
+            "--worker-counts",
+            "1",
+            "2",
+            "--parallel-warmup-runs-per-worker",
+            "2",
+            "--parallel-measured-runs",
+            "8",
+        ]
+    ) == 0
+    assert received == {
+        "worker_counts": [1, 2],
+        "warmup_runs_per_worker": 2,
+        "measured_runs": 8,
+    }
+    assert json.loads(capsys.readouterr().out) == json.loads(expected.to_json())
