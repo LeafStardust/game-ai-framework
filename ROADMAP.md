@@ -751,8 +751,8 @@ R3 typed action vocabulary           COMPLETE / GREEN
 R4 deterministic tactical bridge     COMPLETE / GREEN
 R5 live/simulator parity harness      CONDITIONAL CLOSE / MONEY TREE ON HOLD
 R6 environment performance gate      COMPLETE / GREEN
-O observation/action encoding        IN PROGRESS
-B0 RL baseline infrastructure        NOT STARTED
+O observation/action encoding        COMPLETE / GREEN
+B0 RL baseline infrastructure        IN PROGRESS
 PPO strategic learner                NOT STARTED
 ```
 
