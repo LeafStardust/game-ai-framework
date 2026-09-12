@@ -698,7 +698,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R3 typed strategic action vocabulary: **COMPLETE / GREEN**.
 - R4 deterministic tactical bridge: **COMPLETE / GREEN FOR THE REQUIRED REPRESENTATIVE GATE**.
 - R5 live/simulator parity harness: **CONDITIONALLY CLOSED FOR FORWARD DEVELOPMENT — THE NATURAL MONEY TREE FIXTURE IS EXPLICITLY ON HOLD, NOT PASSED**.
-- R6 environment performance gate: **IN PROGRESS — STEP, RUN, PARALLEL, AND TACTICAL BASELINES GREEN; NEXT TASK IS SERIALIZATION/RESTORE OVERHEAD**.
+- R6 environment performance gate: **IN PROGRESS — ALL ORDERED BASELINES EXCEPT DETERMINISTIC REPLAY ARE GREEN**.
 - Observation/action encoding: **NOT STARTED**.
 - PPO/observation training: **DO NOT START**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
@@ -2017,7 +2017,7 @@ capture.
 
 ### Next actions
 
-1. Establish the serialization/restore overhead baseline through the canonical headless state owner.
+1. Establish the deterministic replay-overhead baseline over a fixed exact Red/White trajectory.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2043,24 +2043,22 @@ order:
 - complete Red/White runs/minute — **COMPLETE / GREEN**;
 - parallel scaling — **COMPLETE / GREEN**;
 - tactical-bridge cost — **COMPLETE / GREEN**;
-- serialization/restore overhead;
+- serialization/restore overhead — **COMPLETE / GREEN**;
 - deterministic replay overhead.
 
 Do not trade exactness for throughput before this phase.
 
 ## Exact next task
 
-Establish the serialization/restore overhead baseline through the canonical
-headless state owner. First read the environment protocol, `HeadlessRunState`,
-RNG, physical-zone, and retained-order owners. If canonical round-trip support is
-still absent, add it at that owner before measuring it; do not benchmark a test
-fake, `deepcopy`, or an ad hoc pickle substitute. Report workload identity,
-warmup/measurement counts, payload size, serialize and restore elapsed time,
-throughput, and round-trip overhead in machine-readable form. Deterministic tests
-must pin exact round-trip state/RNG semantics and report calculations through an
-injected clock; CI must not enforce a wall-clock speed threshold. Do not begin
-deterministic replay-overhead measurement until this baseline is green and
-recorded.
+Establish the deterministic replay-overhead baseline over one fixed exact
+Red/White trajectory. Compare ordinary canonical execution with executing the
+same seeded action trajectory again and verifying exact public, private-zone,
+and RNG equality at every replay boundary. Report workload identity,
+warmup/measurement counts, baseline and verified-replay elapsed time,
+throughput, and verification overhead in machine-readable form. Deterministic
+tests must pin trajectory, mismatch behavior, and calculations through injected
+clocks; CI must not enforce a wall-clock speed threshold. Do not close R6 until
+this final ordered measurement is green and recorded.
 
 ### Headless steps/second baseline checkpoint
 
@@ -2142,7 +2140,30 @@ steps/second. Bridged execution took 1.2092440000269562 seconds at
 elapsed time. These are host-local reference measurements, not portable
 thresholds. GitHub Actions run `34668446805`, job `103485044083`, passed with
 **2654 passed, 1602 deselected in 108.44s** in the actual job log. The fourth R6
-gate is complete; the exact next task is serialization/restore overhead above.
+gate is complete; the serialization/restore overhead checkpoint is recorded below.
+
+### Serialization/restore overhead checkpoint
+
+Commit `69ec3a2bbf266e7451d91ab297f1e9b9ac9d2d4c` adds the versioned
+`balatro-headless-run-state-v1` canonical round trip at `HeadlessRunState` and
+the `balatro-r6-serialization-cost-v1` machine-readable benchmark. The format is
+JSON-compatible data rather than pickle or `deepcopy`. It preserves shared
+playing-card identity across the public state, simulator-private zones, and
+retained creation order; it also preserves keyed RNG and retained blind
+progression. Exact continuation after restore is regression-tested. Malformed
+snapshots and currently unsupported object inventories such as Jokers and pack
+choices fail closed.
+
+The host-local reference used a post-first-card-Play state, 100 warmup round
+trips, and 1,000 measured operations per path. Its canonical payload is 17,877
+bytes. Serialization took 0.3158465001033619 seconds at 3166.0949216557615
+states/second; restore took 0.2708902000449598 seconds at 3691.532583437974
+states/second. Combined round-trip cost was 0.0005867367001483217 seconds/state,
+or 1704.3419982885152 round trips/second. These are host-local reference
+measurements, not portable thresholds. GitHub Actions run `34669013814`, job
+`103486662682`, passed with **2667 passed, 1602 deselected in 120.29s** in the
+actual job log. The fifth R6 gate is complete; the exact next task is the final
+deterministic replay-overhead baseline above.
 
 # Later phases
 
