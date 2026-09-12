@@ -51,6 +51,12 @@ class EnvStateFrame:
 
         return public_observation_state(self.state)
 
+    def encoded_observation(self):
+        """Return the versioned fixed-shape policy representation."""
+        from games.balatro.env.observation_encoding import encode_public_observation
+
+        return encode_public_observation(self)
+
 
 @dataclass(frozen=True)
 class BackendStep:
