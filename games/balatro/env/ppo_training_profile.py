@@ -30,6 +30,10 @@ class PPOTrainingProfileContract:
     source_revision: str = "895ab3a25bc6f513fa80885eb59951bf8e76bc55"
     unlock_policy: str = "PINNED_VANILLA_NEW_PROFILE_DEFAULTS"
     discovery_policy: str = "PINNED_DEFAULTS_NOT_GENERATION_ELIGIBILITY"
+    banned_center_keys: tuple[str, ...] = ()
+    pool_flags: tuple[str, ...] = ()
+    used_center_keys: tuple[str, ...] = ()
+    played_secret_hands: tuple[str, ...] = ()
     first_shop_buffoon_variant: int = 1
 
 

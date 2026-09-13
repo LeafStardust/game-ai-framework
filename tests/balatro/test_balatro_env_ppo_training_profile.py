@@ -54,6 +54,10 @@ def test_env_ppo_training_profile_contract_is_versioned_and_exact():
     assert PPO_TRAINING_PROFILE.schema == PPO_TRAINING_PROFILE_SCHEMA
     assert (PPO_TRAINING_PROFILE.deck, PPO_TRAINING_PROFILE.stake) == ("RED", "WHITE")
     assert PPO_TRAINING_PROFILE.unlock_policy == "PINNED_VANILLA_NEW_PROFILE_DEFAULTS"
+    assert PPO_TRAINING_PROFILE.banned_center_keys == ()
+    assert PPO_TRAINING_PROFILE.pool_flags == ()
+    assert PPO_TRAINING_PROFILE.used_center_keys == ()
+    assert PPO_TRAINING_PROFILE.played_secret_hands == ()
     assert PPO_TRAINING_PROFILE.first_shop_buffoon_variant == 1
     assert pristine_profile_discovery("j_joker") is True
     assert pristine_profile_discovery("j_greedy_joker") is False
@@ -146,6 +150,7 @@ def test_env_ppo_profile_drives_complete_first_shop_in_source_order():
         run,
         first_shop=True,
         first_buffoon_variant=PPO_TRAINING_PROFILE.first_shop_buffoon_variant,
+        banned_booster_keys=PPO_TRAINING_PROFILE.banned_center_keys,
     )
 
     assert len(generated.main.items) == 2
