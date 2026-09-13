@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Freeze the pristine Red/White PPO training-profile generation contract needed by the first complete shop: authoritative eligible Joker/Tarot/Planet/Voucher catalogues, banned keys, unlock/discovery handling, and the exact owner of the first-shop unkeyed Buffoon variant. Keep the PPO backend fail-closed before `SHOP` exposure and do not add optimizer code yet.
+1. Version the PPO public observation/training contract so all 32 vanilla Voucher generation positions and visible identities are representable independently of Voucher purchase/mechanics capability. Then install the frozen profile authority at reset, carry its discovery state into generated items, and expose the exact complete first shop only after encoding and serialization are green. Unsupported Voucher purchases remain illegal.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2425,15 +2425,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Freeze the pristine Red/White PPO training-profile generation contract needed
-by the first complete shop. It must authoritatively define eligible
-Joker/Tarot/Planet/Voucher catalogues, banned keys, unlock/discovery handling,
-and the exact owner of the first-shop unkeyed Buffoon variant without deriving
-any of them from observation fallbacks. Then use that authority to initialize
-the existing exact main-shop and Voucher generators before composing the
-already-owned Booster slots in source order. Do not expose `SHOP` from the PPO
-backend or add the neural model/optimizer until complete inventory generation
-is exact.
+Version the PPO public observation and training contracts so every one of the
+32 vanilla Voucher generation positions and visible identities is representable
+without declaring its purchase or downstream mechanics supported. Then install
+the frozen pristine-profile generation authority during PPO reset, propagate
+its exact discovery state through generated shop items, and compose the first
+shop as main cards -> Voucher -> Boosters after ordinary cash-out. Keep every
+unsupported Voucher purchase illegal. Do not expose `SHOP` or add the neural
+model/optimizer until observation encoding, snapshot serialization, and legal
+action masking are exact at that complete boundary.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2557,6 +2557,42 @@ Focused Booster, shop-composition, pricing, ordinary-resolution, PPO backend,
 encoding, tactical, and R0 validation passed **177 tests** locally. GitHub
 Actions run `34728799301`, job `103647670630`, passed; the actual log reports
 **2822 passed, 1602 deselected in 130.02s**.
+
+### Frozen PPO profile and complete shop-composition checkpoint
+
+Commits `318b9987286e1482b8e3e93c42907a85fb10f96f` and
+`61b1381d26f6b446bba2cbccf12d92a41f49374b` add the versioned
+`balatro-red-white-pristine-profile-v1` authority. It pins the vanilla new-
+profile defaults rather than borrowing a live profile or assuming all content
+is unlocked: 105 Jokers are unlocked, with the pristine run's Steel,
+Cavendish, Stone, and Lucky Cat dynamic gates leaving 101 initially eligible;
+all 22 Tarot centers and the nine non-secret Planet centers are eligible; and
+the exact 32-position Voucher catalogue alternates the 16 eligible base
+Vouchers with their locked, dependency-bearing upgrades. Costs, source order,
+empty initial bans/flags/used centers, source-default discovery, and the
+controlled first-shop Buffoon variant `1` are explicit. Unknown discovery keys,
+nonpristine initialization, existing pool authority, and rate drift fail
+closed before RNG mutation.
+
+The canonical inventory composition owner now generates main-shop cards, the
+normal Voucher, and both Boosters in actual vanilla source order. For seed
+`PROFILE-SHOP`, the frozen profile deterministically produces Credit Card,
+Sixth Sense, Reroll Surplus, Buffoon Pack variant 1, and Arcana Pack variant 4.
+This proves the exact complete inventory can be generated internally without
+making any purchase mechanic legal.
+
+Integration testing exposed an independent frozen-contract boundary: the PPO
+observation vocabulary currently contains only Vouchers whose downstream shop
+mechanics are supported, so its pool encoder correctly rejects the complete
+32-center vanilla Voucher catalogue. The pristine PPO reset therefore remains
+uninitialized and the backend still fails before `SHOP` exposure. The next task
+must version identity representation separately from mechanics capability; it
+must not drop, alias, or mark unsupported Voucher positions eligible merely to
+fit the old 2,444-value schema. Focused profile, shop, PPO, encoding, action,
+and serialization validation passed **101 tests** locally. The final
+implementation state passed GitHub Actions run `34752724347`, job
+`103711858226`; the actual log reports **2830 passed, 1602 deselected in
+121.64s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
