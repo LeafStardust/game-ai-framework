@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Version the PPO public observation/training contract so all 32 vanilla Voucher generation positions and visible identities are representable independently of Voucher purchase/mechanics capability. Then install the frozen profile authority at reset, carry its discovery state into generated items, and expose the exact complete first shop only after encoding and serialization are green. Unsupported Voucher purchases remain illegal.
+1. Propagate frozen profile discovery into generated shop items, install the profile generation authority during PPO reset, add exact snapshot round-trip support for generated shop metadata, and expose the complete first `SHOP` after ordinary cash-out. Legal actions must come from the canonical shop transition owner; unsupported Voucher purchases and Booster opening remain illegal.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2425,15 +2425,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Version the PPO public observation and training contracts so every one of the
-32 vanilla Voucher generation positions and visible identities is representable
-without declaring its purchase or downstream mechanics supported. Then install
-the frozen pristine-profile generation authority during PPO reset, propagate
-its exact discovery state through generated shop items, and compose the first
-shop as main cards -> Voucher -> Boosters after ordinary cash-out. Keep every
-unsupported Voucher purchase illegal. Do not expose `SHOP` or add the neural
-model/optimizer until observation encoding, snapshot serialization, and legal
-action masking are exact at that complete boundary.
+Propagate the frozen profile's exact discovery state into generated Joker,
+Tarot/Planet, Voucher, and Booster items. Install the profile generation
+authority during PPO reset, add exact snapshot round-trip support for the
+generated shop metadata types, and compose the first shop as main cards ->
+Voucher -> Boosters after ordinary cash-out. Expose that `SHOP` only when its
+v2 observation, restore result, and canonical legal-action mask agree. Keep
+unsupported Voucher purchases and Booster opening illegal, and do not add the
+neural model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2593,6 +2592,33 @@ and serialization validation passed **101 tests** locally. The final
 implementation state passed GitHub Actions run `34752724347`, job
 `103711858226`; the actual log reports **2830 passed, 1602 deselected in
 121.64s**.
+
+### Full Voucher observation and PPO v2 contract checkpoint
+
+Commit `8256e79a6c38ea6916614c79d513b5599320724f` separates the complete
+vanilla Voucher identity catalogue from the narrower mechanics-capability sets.
+The new canonical catalogue pins all 32 centers in source order, their `$10`
+base costs, new-profile unlock defaults, and base/upgrade dependencies. The
+`balatro-red-white-public-observation-v2` vocabulary now represents every
+Voucher identity for owned state, the visible shop slot, and generation-pool
+features without making redemption exact.
+
+Voucher pool features now encode each record's authoritative `eligible` bit;
+they no longer incorrectly mark every preserved source position available just
+because its record exists. Missing or non-boolean eligibility and unknown or
+duplicate identities fail closed. An affordable visible Blank Voucher encodes
+successfully while the canonical shop transition owner offers only `END_SHOP`,
+proving that identity representation does not widen mechanics legality.
+
+The public input is now **2,456 values**. The PPO training, training-run,
+policy-output, and rollout-episode contracts are all versioned `v2` and bind
+that new observation schema; the unchanged action vocabulary remains 27 slots.
+The complete frozen profile catalogue now encodes successfully, but reset and
+shop exposure remain intentionally unchanged until profile discovery and
+generated inventory snapshot support are owned. Focused Voucher-catalogue,
+observation, action, PPO, profile, backend, and baseline validation passed **89
+tests** locally. GitHub Actions run `34753261588`, job `103713261354`, passed;
+the actual log reports **2833 passed, 1602 deselected in 110.58s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
