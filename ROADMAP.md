@@ -701,7 +701,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
 - B0 RL baseline infrastructure: **COMPLETE / GREEN**.
-- PPO/observation training: **IN PROGRESS — FIRST EXACT TERMINAL-LOSS BACKEND/COLLECTOR SLICE GREEN; NEXT TASK IS ORDINARY-BLIND CLEAR/CASH-OUT CONTINUATION**.
+- PPO/observation training: **IN PROGRESS — ORDINARY-BLIND CLEAR/CASH-OUT COMPOSITION GREEN; NEXT TASK IS EXACT NORMAL-SHOP BOOSTER GENERATION**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
 ## Current strategic action contract
@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Extend the canonical PPO backend through an ordinary Small/Big Blind clear into source-ordered progression and cash-out. Compose the existing progression and economy owners, preserve retained blind progression, and stop before exposing `SHOP` until complete normal shop inventory authority exists. Do not add optimizer code yet.
+1. Implement canonical source-ordered normal-shop Booster generation for the exact no-Tag Red/White boundary. Own the two Booster slots' pool/RNG selection, materialization, and pricing without approximating profile eligibility or discovery state. Keep the PPO backend fail-closed before `SHOP` exposure and do not add optimizer code yet.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2425,15 +2425,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the canonical backend through an ordinary Small/Big Blind clear into
-source-ordered progression and cash-out. Compose
-`finalize_won_round_progression` and
-`cash_out_baseline_ordinary_blind`, preserve retained blind progression, and
-stop before exposing `SHOP` until full normal shop inventory authority is
-available. Do not omit or approximate missing main-card, booster, or Voucher
-generation. Unsupported mechanics, empty nonterminal masks, illegal actions,
-non-finite outputs/rewards, truncated episodes, fixed-holdout seed use, and
-provenance drift remain fail-closed. Do not add the neural model or optimizer.
+Implement canonical source-ordered normal-shop Booster generation for the exact
+no-Tag Red/White boundary. Own both Booster slots' pinned pool construction,
+keyed RNG selection/resampling, concrete item materialization, and pricing
+without approximating profile eligibility, unlocks, discovery, bans, or pool
+flags. Compose only after the existing exact main-shop generator. Normal Voucher
+publication remains fail-closed until an authoritative headless Voucher
+generation catalogue exists. Do not expose `SHOP` from the PPO backend or add
+the neural model/optimizer until complete inventory generation is exact.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2502,6 +2501,29 @@ or a training-ready competence path. Focused backend, collector, PPO-contract,
 progression, tactical-transition, encoding, and R0 validation passed **103
 tests** locally. GitHub Actions run `34727355077`, job `103643740089`, passed;
 the actual log reports **2808 passed, 1602 deselected in 90.52s**.
+
+### Ordinary-Blind progression and cash-out checkpoint
+
+Commit `2ea84081aa41759bb5782b3ca7295d0cc067c380` adds the canonical
+`resolve_supported_ordinary_round` composition owner parallel to the existing
+Boss resolver. It applies `finalize_won_round_progression` before
+`cash_out_baseline_ordinary_blind`, preserves the retained private progression,
+and stops at the exact active, ungenerated `SHOP` boundary. Deterministic Small-
+and Big-Blind regressions freeze source-ordered defeated status, payout, round
+resource reset, complete deck repopulation, `cashout{ante}` RNG consumption,
+input isolation, and progression-drift rejection.
+
+The pristine PPO reset now also owns the exact no-Voucher shop prerequisites and
+the Ante-1 Small-Blind `$3` payout; these were previously omitted from the reset
+boundary and were exposed by composing the existing strict cash-out owner. On a
+clear, the PPO backend traverses the exact ordinary progression/cash-out chain,
+verifies that it reached an empty active shop, then fails atomically because
+normal Booster generation and authoritative headless Voucher-pool construction
+are still incomplete. No partial shop or synthetic terminal result is exposed.
+Focused PPO, progression, cash-out, tactical-transition, encoding, and R0
+validation passed **123 tests** locally. GitHub Actions run `34727919406`, job
+`103645284426`, passed; the actual log reports **2812 passed, 1602 deselected in
+121.81s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
