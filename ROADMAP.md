@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Implement canonical source-ordered normal-shop Booster generation for the exact no-Tag Red/White boundary. Own the two Booster slots' pool/RNG selection, materialization, and pricing without approximating profile eligibility or discovery state. Keep the PPO backend fail-closed before `SHOP` exposure and do not add optimizer code yet.
+1. Freeze the pristine Red/White PPO training-profile generation contract needed by the first complete shop: authoritative eligible Joker/Tarot/Planet/Voucher catalogues, banned keys, unlock/discovery handling, and the exact owner of the first-shop unkeyed Buffoon variant. Keep the PPO backend fail-closed before `SHOP` exposure and do not add optimizer code yet.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2425,14 +2425,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Implement canonical source-ordered normal-shop Booster generation for the exact
-no-Tag Red/White boundary. Own both Booster slots' pinned pool construction,
-keyed RNG selection/resampling, concrete item materialization, and pricing
-without approximating profile eligibility, unlocks, discovery, bans, or pool
-flags. Compose only after the existing exact main-shop generator. Normal Voucher
-publication remains fail-closed until an authoritative headless Voucher
-generation catalogue exists. Do not expose `SHOP` from the PPO backend or add
-the neural model/optimizer until complete inventory generation is exact.
+Freeze the pristine Red/White PPO training-profile generation contract needed
+by the first complete shop. It must authoritatively define eligible
+Joker/Tarot/Planet/Voucher catalogues, banned keys, unlock/discovery handling,
+and the exact owner of the first-shop unkeyed Buffoon variant without deriving
+any of them from observation fallbacks. Then use that authority to initialize
+the existing exact main-shop and Voucher generators before composing the
+already-owned Booster slots in source order. Do not expose `SHOP` from the PPO
+backend or add the neural model/optimizer until complete inventory generation
+is exact.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2524,6 +2525,38 @@ Focused PPO, progression, cash-out, tactical-transition, encoding, and R0
 validation passed **123 tests** locally. GitHub Actions run `34727919406`, job
 `103645284426`, passed; the actual log reports **2812 passed, 1602 deselected in
 121.81s**.
+
+### Exact normal-shop Booster checkpoint
+
+Commit `9cbba75e1f5dc1c377b1f8c7ce7296c09df87017` adds the canonical
+normal-shop Booster generation and main-shop/Booster composition owners for the
+exact no-Tag Red/White boundary. The pinned source catalogue contains all 32
+vanilla Booster centers in source order with a total poll weight of `22.42`.
+Generic slots use the exact cumulative weighted `shop_pack{ante}` keyed poll.
+Pinned source inspection confirmed that this poll does **not** resample
+unavailable positions; the earlier roadmap wording that required Booster
+resampling was inaccurate and is superseded by this checkpoint.
+
+The first shop preserves vanilla's forced normal Buffoon first slot and its ban
+guard. Its variant is selected by global unkeyed `math.random(1, 2)` after
+UI-coupled work outside the keyed RNG owner, so headless generation requires the
+exact variant as explicit authority and fails closed when it is absent or
+invalid. No keyed or seed-derived substitute exists. The second slot remains
+the ordinary keyed weighted poll.
+
+Materialization owns exact family, label, base cost, pack size, choice count,
+position, discount/inflation pricing, and Astronomer's free Celestial-pack
+effect. Profile discovery remains explicitly unknown rather than invented.
+Malformed bans, active Tags, inconsistent Voucher pricing, full Booster areas,
+and empty eligible pools reject atomically before RNG mutation. Composition
+generates the exact main shop first and Boosters afterward, verifies that no
+Voucher has been published, and stops before that still-unowned authority; the
+PPO backend therefore remains fail-closed before `SHOP` exposure.
+
+Focused Booster, shop-composition, pricing, ordinary-resolution, PPO backend,
+encoding, tactical, and R0 validation passed **177 tests** locally. GitHub
+Actions run `34728799301`, job `103647670630`, passed; the actual log reports
+**2822 passed, 1602 deselected in 130.02s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
