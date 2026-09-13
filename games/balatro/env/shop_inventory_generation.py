@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Collection
 from dataclasses import dataclass
 
+from games.balatro.blinds.blind import BlindType
 from games.balatro.env.shop_booster_generation import (
     GeneratedNormalShopBoosters,
     first_shop_buffoon_center,
@@ -40,6 +41,54 @@ class GeneratedNormalShopInventory:
     main: GeneratedMainShop
     voucher: GeneratedShopVoucherItem
     boosters: GeneratedNormalShopBoosters
+
+
+def first_shop_from_retained_progression(run: HeadlessRunState) -> bool:
+    """Classify the one first shop from exact public/private progression."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    state = run.public
+    if state.phase != "SHOP" or not state.shop_active:
+        raise HeadlessTransitionError("shop classification requires active SHOP")
+    progression = run.require_blind_progression_state()
+    blind_type = getattr(state.blind, "type", None)
+    if blind_type not in {BlindType.SMALL, BlindType.BIG}:
+        raise HeadlessTransitionError(
+            "ordinary shop classification requires a Small or Big Blind"
+        )
+    blind_name = blind_type.value.title()
+    if (
+        progression.blind_ante != state.ante
+        or progression.blind_on_deck != blind_name
+        or progression.status_for(blind_name) != "Defeated"
+        or "Current" in (
+            progression.small_status,
+            progression.big_status,
+            progression.boss_status,
+        )
+        or type(state.round) is not int
+        or state.round < 1
+    ):
+        raise HeadlessTransitionError(
+            "shop boundary conflicts with retained blind progression"
+        )
+    return state.ante == 1 and state.round == 1
+
+
+def generate_progression_normal_shop_inventory(
+    run: HeadlessRunState,
+    *,
+    first_buffoon_variant: int,
+    banned_booster_keys: Collection[str] = (),
+) -> GeneratedNormalShopInventory:
+    """Generate a normal shop with first-shop status owned by progression."""
+    first_shop = first_shop_from_retained_progression(run)
+    return generate_normal_shop_inventory(
+        run,
+        first_shop=first_shop,
+        first_buffoon_variant=first_buffoon_variant if first_shop else None,
+        banned_booster_keys=banned_booster_keys,
+    )
 
 
 def _validate_first_shop_authority(

@@ -3,13 +3,14 @@ from types import SimpleNamespace
 import pytest
 
 from games.balatro.actions import PLAY_CARDS, BalatroAction
+from games.balatro.blinds.blind import BlindType
 from games.balatro.env.action_encoding import action_index
 from games.balatro.env.action_encoding import legal_action_mask
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.environment import BalatroHeadlessEnvironment
 from games.balatro.env.episode_backend import (
-    PRISTINE_LOSS_BACKEND_SCHEMA,
-    PristineFirstBlindLossBackend,
+    PPO_HEADLESS_BACKEND_SCHEMA,
+    PPOHeadlessBackend,
     pristine_red_white_reset,
     sparse_terminal_reward,
 )
@@ -19,6 +20,7 @@ from games.balatro.env.ppo_contract import (
     PPO_TRAINING_CONTRACT,
     PPOContractError,
     PPOPolicyOutput,
+    PPORolloutBoundary,
     PPOTrainingRun,
 )
 from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
@@ -40,7 +42,7 @@ class _InvalidTacticalPolicy:
 
 def _environment(policy=None):
     return BalatroHeadlessEnvironment(
-        PristineFirstBlindLossBackend(policy or _OneCardTacticalPolicy())
+        PPOHeadlessBackend(policy or _OneCardTacticalPolicy())
     )
 
 
@@ -80,7 +82,7 @@ def test_env_ppo_backend_reset_is_exact_pristine_red_white_boundary():
 
 
 def test_env_ppo_backend_composes_select_and_tactical_owners_to_exact_loss():
-    backend = PristineFirstBlindLossBackend(_OneCardTacticalPolicy())
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
     environment = BalatroHeadlessEnvironment(backend)
     environment.reset(seed="BACKEND2")
 
@@ -100,7 +102,7 @@ def test_env_ppo_backend_composes_select_and_tactical_owners_to_exact_loss():
     assert environment.frame.state.score < environment.frame.state.blind.requirement
     assert backend.run.blind_progression_state.small_status == "Current"
     assert info == {
-        "backend_schema": PRISTINE_LOSS_BACKEND_SCHEMA,
+        "backend_schema": PPO_HEADLESS_BACKEND_SCHEMA,
         "reward_contract": PPO_REWARD_CONTRACT,
         "game_seed": "BACKEND2",
         "tactical_actions": 4,
@@ -137,7 +139,7 @@ def test_env_ppo_backend_invalid_tactical_or_snapshot_state_fails_closed():
 
 
 def test_env_ppo_backend_clear_cashout_exposes_exact_generated_first_shop():
-    backend = PristineFirstBlindLossBackend(_OneCardTacticalPolicy())
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
     environment = BalatroHeadlessEnvironment(backend)
     environment.reset(seed="CLEAR")
     backend.run.public.hand_levels["HIGH_CARD"] = 1000
@@ -195,6 +197,94 @@ def test_env_ppo_backend_clear_cashout_exposes_exact_generated_first_shop():
     assert restored.frame.encoded_observation().values == observation.values
     assert restored.serialize() == snapshot
     assert restored.legal_actions() == actions
+
+
+def test_env_ppo_backend_replays_first_shop_big_blind_and_later_shop_exactly():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed=0)
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+
+    first_shop_snapshot = environment.serialize()
+    assert tuple(
+        item.center_key
+        for items in (
+            backend.run.public.shop_jokers,
+            backend.run.public.shop_consumables,
+            backend.run.public.shop_vouchers,
+            backend.run.public.shop_boosters,
+        )
+        for item in items
+    ) == (
+        "c_jupiter",
+        "c_heirophant",
+        "v_wasteful",
+        "p_buffoon_normal_1",
+        "p_standard_normal_3",
+    )
+    first_boundary = PPORolloutBoundary.from_frame(environment.frame)
+    assert first_boundary.blind_requirement is None
+
+    replay_backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    replay = BalatroHeadlessEnvironment(replay_backend)
+    replay.restore(first_shop_snapshot)
+    for current, current_backend in (
+        (environment, backend),
+        (replay, replay_backend),
+    ):
+        current.step(EnvAction.from_alias("END_SHOP"))
+        run = current_backend.run
+        assert current.frame.state.phase == "BLIND_SELECT"
+        assert current.frame.state.blind.type is BlindType.BIG
+        assert current.frame.state.blind.requirement == 450
+        assert current.frame.state.blind.reward == 4
+        assert run.blind_progression_state.small_status == "Defeated"
+        assert run.blind_progression_state.big_status == "Select"
+        assert run.blind_progression_state.blind_on_deck == "Big"
+        assert current.legal_actions() == (EnvAction.from_alias("SELECT_BLIND"),)
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+
+    assert replay.serialize() == environment.serialize()
+    assert replay.frame.encoded_observation().values == (
+        environment.frame.encoded_observation().values
+    )
+    run = backend.run
+    assert (run.public.phase, run.public.round, run.public.money) == ("SHOP", 2, 19)
+    assert run.blind_progression_state.big_status == "Defeated"
+    assert tuple(
+        item.center_key
+        for items in (
+            run.public.shop_jokers,
+            run.public.shop_consumables,
+            run.public.shop_vouchers,
+            run.public.shop_boosters,
+        )
+        for item in items
+    ) == (
+        "j_ice_cream",
+        "j_faceless",
+        "v_planet_merchant",
+        "p_buffoon_normal_2",
+        "p_celestial_mega_1",
+    )
+    assert all(
+        item.discovered is False
+        for items in (
+            run.public.shop_jokers,
+            run.public.shop_vouchers,
+            run.public.shop_boosters,
+        )
+        for item in items
+    )
+    actions = environment.legal_actions()
+    assert actions == (EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}),)
+    mask = legal_action_mask(actions)
+    assert sum(mask.values) == 1
+    assert mask.values[action_index(actions[0])] is True
+    assert all(action.alias not in {"END_SHOP", "OPEN_PACK"} for action in actions)
+    later_boundary = PPORolloutBoundary.from_frame(environment.frame)
+    assert later_boundary.blind_requirement is None
 
 
 def test_env_ppo_sparse_terminal_reward_contract_is_exact():

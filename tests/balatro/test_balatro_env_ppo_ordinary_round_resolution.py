@@ -13,6 +13,9 @@ from games.balatro.env.ordinary_round_resolution import (
     resolve_supported_ordinary_round,
 )
 from games.balatro.env.select_blind import select_blind_exact
+from games.balatro.env.shop_inventory_generation import (
+    first_shop_from_retained_progression,
+)
 from games.balatro.env.tactical_transition import apply_planned_tactical_step
 from games.balatro.env.transition import HeadlessTransitionError
 
@@ -71,6 +74,7 @@ def test_env_ppo_ordinary_round_resolution_composes_progression_then_cashout():
     assert result.run.public.shop_consumables == []
     assert result.run.public.shop_boosters == []
     assert result.run.public.shop_vouchers == []
+    assert first_shop_from_retained_progression(result.run) is True
 
 
 def test_env_ppo_ordinary_round_resolution_supports_big_blind_exactly():
@@ -87,6 +91,7 @@ def test_env_ppo_ordinary_round_resolution_supports_big_blind_exactly():
     assert result.progression.blind_on_deck == "Big"
     assert result.run.public.money == 11
     assert result.run.public.phase == "SHOP"
+    assert first_shop_from_retained_progression(result.run) is False
 
 
 def test_env_ppo_ordinary_round_resolution_rejects_parallel_progression_drift():

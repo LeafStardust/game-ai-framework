@@ -397,8 +397,12 @@ class PPORolloutBoundary:
         if not isinstance(frame, EnvStateFrame):
             raise TypeError("rollout boundary requires EnvStateFrame")
         state = frame.state
-        requirement = None if state.blind is None else _finite_number(
-            state.blind.requirement, "rollout blind requirement"
+        requirement = (
+            None
+            if state.blind is None or state.phase == "SHOP"
+            else _finite_number(
+                state.blind.requirement, "rollout blind requirement"
+            )
         )
         return cls(
             observation=None if frame.status.terminal else frame.encoded_observation(),

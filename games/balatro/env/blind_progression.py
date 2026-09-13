@@ -264,6 +264,93 @@ def enter_blind_select_progression(
     return next_progression
 
 
+def exit_shop_to_selected_big_blind(
+    run: "HeadlessRunState",
+) -> "HeadlessRunState":
+    """Exit a post-Small shop into the exact same-Ante Big-Blind choice.
+
+    This is deliberately narrower than a generic shop exit. Once Big is
+    terminal, selecting the Boss also requires retained Boss-generation
+    authority and therefore remains fail-closed.
+    """
+    from games.balatro.blinds.blind import Blind, BlindType
+    from games.balatro.env.blind_requirement import (
+        red_white_base_blind_amount,
+        red_white_nonboss_blind_reward,
+    )
+    from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    state = run.public
+    if state.phase != "SHOP" or not state.shop_active:
+        raise HeadlessTransitionError("shop exit requires an active SHOP")
+    progression = run.require_blind_progression_state()
+    if progression.blind_ante != state.ante:
+        raise HeadlessTransitionError(
+            "shop exit public Ante conflicts with retained progression"
+        )
+    if (
+        progression.blind_on_deck != "Small"
+        or progression.small_status != "Defeated"
+        or progression.big_status != "Upcoming"
+        or progression.boss_status != "Upcoming"
+        or getattr(state.blind, "type", None) is not BlindType.SMALL
+    ):
+        raise HeadlessTransitionError(
+            "exact shop exit currently requires a defeated Small Blind"
+        )
+    playing_order = run.require_playing_card_order()
+    if (
+        state.hand
+        or state.discard_pile
+        or run.discard_pile
+        or run.played_pile
+        or len(run.draw_pile) != len(state.deck)
+        or len(run.draw_pile) != len(playing_order)
+        or {id(card) for card in run.draw_pile} != {id(card) for card in state.deck}
+        or {id(card) for card in run.draw_pile} != {id(card) for card in playing_order}
+    ):
+        raise HeadlessTransitionError(
+            "shop exit requires the complete exact round-end deck"
+        )
+
+    next_progression = enter_blind_select_progression(progression)
+    if next_progression.blind_on_deck != "Big":
+        raise HeadlessTransitionError("shop exit did not select the Big Blind")
+
+    next_run = run.copy()
+    next_run.blind_progression_state = next_progression
+    next_run.draw_pile.clear()
+    next_state = next_run.public
+    requirement = red_white_base_blind_amount(next_state.ante) * 3 // 2
+    next_state.phase = "BLIND_SELECT"
+    next_state.shop_active = False
+    next_state.score = 0
+    next_state.blind_score = 0
+    next_state.blind = Blind(
+        BlindType.BIG,
+        requirement,
+        reward=red_white_nonboss_blind_reward("BIG"),
+        tag_key=next_progression.big_tag,
+    )
+    next_state.boss_name = None
+    next_state.shop_jokers.clear()
+    next_state.shop_consumables.clear()
+    next_state.shop_boosters.clear()
+    next_state.shop_vouchers.clear()
+    return next_run
+
+
+def can_exit_shop_to_selected_big_blind(run: "HeadlessRunState") -> bool:
+    """Return exact retained-progression shop-exit legality atomically."""
+    try:
+        exit_shop_to_selected_big_blind(run)
+    except ValueError:
+        return False
+    return True
+
+
 def activate_selected_blind_progression(
     run: "HeadlessRunState",
 ) -> "HeadlessRunState":

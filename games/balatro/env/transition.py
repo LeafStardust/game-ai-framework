@@ -493,7 +493,17 @@ class ShopTransitionEngine:
             if self._voucher_redemption_is_exact(run, item, slot)
             and self._is_affordable(state, item)
         )
-        actions.append(EnvAction.from_alias("END_SHOP"))
+        if run.blind_progression_state is None:
+            # Retain the original isolated R1 phase-transfer surface for generic
+            # shop states that do not claim exact run progression.
+            actions.append(EnvAction.from_alias("END_SHOP"))
+        else:
+            from games.balatro.env.blind_progression import (
+                can_exit_shop_to_selected_big_blind,
+            )
+
+            if can_exit_shop_to_selected_big_blind(run):
+                actions.append(EnvAction.from_alias("END_SHOP"))
         return tuple(actions)
 
     def step(self, run: HeadlessRunState, action: EnvAction) -> HeadlessRunState:
@@ -512,6 +522,12 @@ class ShopTransitionEngine:
             return sell_joker_exact(run, joker_index)
 
         if action.alias == "END_SHOP":
+            if run.blind_progression_state is not None:
+                from games.balatro.env.blind_progression import (
+                    exit_shop_to_selected_big_blind,
+                )
+
+                return exit_shop_to_selected_big_blind(run)
             state.shop_active = False
             state.phase = "BLIND_SELECT"
             state.shop_jokers.clear()

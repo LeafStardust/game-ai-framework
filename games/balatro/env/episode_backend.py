@@ -1,4 +1,4 @@
-"""Canonical concrete backend for the first exact complete Red/White episode."""
+"""Canonical concrete backend for deterministic Red/White PPO episodes."""
 
 from __future__ import annotations
 
@@ -24,7 +24,9 @@ from games.balatro.env.serialization import (
     serialize_headless_run_state,
 )
 from games.balatro.env.skip_blind import can_skip_blind_exact, skip_blind_exact
-from games.balatro.env.shop_inventory_generation import generate_normal_shop_inventory
+from games.balatro.env.shop_inventory_generation import (
+    generate_progression_normal_shop_inventory,
+)
 from games.balatro.env.state import BackendStep, EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.env.tactical_transition import apply_planned_tactical_step
 from games.balatro.env.transition import (
@@ -35,7 +37,7 @@ from games.balatro.env.transition import (
 from games.balatro.state import BalatroState
 
 
-PRISTINE_LOSS_BACKEND_SCHEMA = "balatro-red-white-pristine-loss-backend-v2"
+PPO_HEADLESS_BACKEND_SCHEMA = "balatro-red-white-ppo-headless-backend-v1"
 _MAX_TACTICAL_ACTIONS = 4096
 
 
@@ -87,13 +89,14 @@ def pristine_red_white_reset(seed: str | int) -> HeadlessRunState:
     return initialize_pristine_ppo_generation_authority(run)
 
 
-class PristineFirstBlindLossBackend:
-    """Exact backend slice through the first generated normal shop.
+class PPOHeadlessBackend:
+    """Exact backend slice through first and later ordinary shops.
 
     The injected tactical owner is called through the existing production-shaped
     ``decide(state)`` bridge. If that policy clears the first ordinary Blind, this
-    slice completes exact progression and cash-out and publishes the source-ordered
-    main cards, Voucher, and Boosters before exposing the SHOP boundary.
+    slice completes exact progression and cash-out and publishes source-ordered
+    main cards, Voucher, and Boosters. Retained progression owns first-versus-
+    later shop generation and the supported Small-shop to Big-Blind exit.
     """
 
     def __init__(self, tactical_decision_engine: object):
@@ -117,7 +120,7 @@ class PristineFirstBlindLossBackend:
     ) -> EnvStateFrame:
         state = run.public
         info = {
-            "backend_schema": PRISTINE_LOSS_BACKEND_SCHEMA,
+            "backend_schema": PPO_HEADLESS_BACKEND_SCHEMA,
             "reward_contract": PPO_REWARD_CONTRACT,
             "game_seed": str(run.seed),
             "tactical_actions": tactical_actions,
@@ -202,9 +205,8 @@ class PristineFirstBlindLossBackend:
                 raise HeadlessTransitionError(
                     "ordinary cash-out did not reach an ungenerated SHOP"
                 )
-            generated = generate_normal_shop_inventory(
+            generated = generate_progression_normal_shop_inventory(
                 resolution.run,
-                first_shop=True,
                 first_buffoon_variant=(
                     PPO_TRAINING_PROFILE.first_shop_buffoon_variant
                 ),
@@ -248,7 +250,7 @@ class PristineFirstBlindLossBackend:
         if self._frame is None:
             raise RuntimeError("backend has not been reset")
         return {
-            "schema": PRISTINE_LOSS_BACKEND_SCHEMA,
+            "schema": PPO_HEADLESS_BACKEND_SCHEMA,
             "tactical_actions": self._tactical_actions,
             "run": serialize_headless_run_state(run),
         }
@@ -260,7 +262,7 @@ class PristineFirstBlindLossBackend:
             "run",
         }:
             raise HeadlessTransitionError("backend snapshot fields are incomplete")
-        if payload["schema"] != PRISTINE_LOSS_BACKEND_SCHEMA:
+        if payload["schema"] != PPO_HEADLESS_BACKEND_SCHEMA:
             raise HeadlessTransitionError("backend snapshot schema mismatch")
         actions = payload["tactical_actions"]
         if isinstance(actions, bool) or not isinstance(actions, int) or actions < 0:
