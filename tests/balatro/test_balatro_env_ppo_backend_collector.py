@@ -67,6 +67,11 @@ def test_env_ppo_backend_reset_is_exact_pristine_red_white_boundary():
     assert run.blind_progression_state.small_status == "Select"
     assert run.blind_progression_state.blind_on_deck == "Small"
     assert run.public.blind.requirement == 300
+    assert run.public.blind.reward == 3
+    assert run.public.vouchers_observed is True
+    assert run.public.vouchers == []
+    assert run.public.shop_discount_percent_observed is True
+    assert run.public.shop_discount_percent == 0
 
 
 def test_env_ppo_backend_composes_select_and_tactical_owners_to_exact_loss():
@@ -126,14 +131,17 @@ def test_env_ppo_backend_invalid_tactical_or_snapshot_state_fails_closed():
         invalid.restore({**before, "schema": "old"})
 
 
-def test_env_ppo_backend_clear_fails_closed_without_projecting_a_terminal():
+def test_env_ppo_backend_clear_cashout_fails_closed_before_incomplete_shop():
     backend = PristineFirstBlindLossBackend(_OneCardTacticalPolicy())
     environment = BalatroHeadlessEnvironment(backend)
     environment.reset(seed="CLEAR")
-    backend.run.public.hand_levels["HIGH_CARD"] = 100
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
     before = backend.serialize()
 
-    with pytest.raises(HeadlessTransitionError, match="cleared-blind continuation"):
+    with pytest.raises(
+        HeadlessTransitionError,
+        match="complete normal shop inventory authority.*exact ordinary cash-out",
+    ):
         environment.step(EnvAction.from_alias("SELECT_BLIND"))
 
     assert backend.serialize() == before

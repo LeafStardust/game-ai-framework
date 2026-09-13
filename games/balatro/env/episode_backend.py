@@ -10,6 +10,9 @@ from games.balatro.env.blind_progression import (
     BlindProgressionState,
     activate_selected_blind_progression,
 )
+from games.balatro.env.ordinary_round_resolution import (
+    resolve_supported_ordinary_round,
+)
 from games.balatro.env.ppo_contract import PPO_REWARD_CONTRACT
 from games.balatro.env.select_blind import can_select_blind_exact, select_blind_exact
 from games.balatro.env.serialization import (
@@ -53,6 +56,10 @@ def pristine_red_white_reset(seed: str | int) -> HeadlessRunState:
     state.round = 0
     state.money = 4
     state.blind = create_small_blind(300)
+    state.blind.reward = 3
+    state.vouchers_observed = True
+    state.shop_discount_percent_observed = True
+    state.shop_discount_percent = 0
     state.round_reset_hands_observed = True
     state.round_reset_hands = 4
     state.round_reset_discards_observed = True
@@ -74,9 +81,10 @@ class PristineFirstBlindLossBackend:
     """Exact backend slice that reaches a natural first-Small-Blind loss.
 
     The injected tactical owner is called through the existing production-shaped
-    ``decide(state)`` bridge. If that policy clears the Blind, this slice rejects
-    the transition because ordinary cash-out/shop progression is the next
-    canonical expansion; it never converts a clear into a synthetic terminal.
+    ``decide(state)`` bridge. If that policy clears an ordinary Blind, this slice
+    completes exact progression and cash-out, then rejects the transition before
+    the still-ungenerated SHOP can become policy-visible. It never converts a
+    clear into a synthetic terminal or publishes partial shop inventory.
     """
 
     def __init__(self, tactical_decision_engine: object):
@@ -167,8 +175,25 @@ class PristineFirstBlindLossBackend:
             )
             tactical_actions += 1
         if next_run.public.phase == "ROUND_EVAL":
+            resolution = resolve_supported_ordinary_round(
+                next_run,
+                next_run.require_blind_progression_state(),
+            )
+            shop = resolution.run.public
+            if shop.phase != "SHOP" or not shop.shop_active or any(
+                (
+                    shop.shop_jokers,
+                    shop.shop_consumables,
+                    shop.shop_boosters,
+                    shop.shop_vouchers,
+                )
+            ):
+                raise HeadlessTransitionError(
+                    "ordinary cash-out did not reach an ungenerated SHOP"
+                )
             raise HeadlessTransitionError(
-                "cleared-blind continuation is not yet owned by this backend slice"
+                "complete normal shop inventory authority is unavailable after "
+                "exact ordinary cash-out"
             )
         if next_run.public.phase != "GAME_OVER":
             raise HeadlessTransitionError(
