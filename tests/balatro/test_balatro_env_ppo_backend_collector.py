@@ -278,13 +278,40 @@ def test_env_ppo_backend_replays_first_shop_big_blind_and_later_shop_exactly():
         for item in items
     )
     actions = environment.legal_actions()
-    assert actions == (EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}),)
+    assert actions == (
+        EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}),
+        EnvAction.from_alias("END_SHOP"),
+    )
     mask = legal_action_mask(actions)
-    assert sum(mask.values) == 1
+    assert sum(mask.values) == 2
     assert mask.values[action_index(actions[0])] is True
-    assert all(action.alias not in {"END_SHOP", "OPEN_PACK"} for action in actions)
+    assert all(action.alias != "OPEN_PACK" for action in actions)
     later_boundary = PPORolloutBoundary.from_frame(environment.frame)
     assert later_boundary.blind_requirement is None
+
+    for current, current_backend in (
+        (environment, backend),
+        (replay, replay_backend),
+    ):
+        current.step(EnvAction.from_alias("END_SHOP"))
+        run = current_backend.run
+        assert current.frame.state.phase == "BLIND_SELECT"
+        assert current.frame.state.blind.type is BlindType.BOSS
+        assert current.frame.state.blind.requirement == 600
+        assert current.frame.state.blind.reward == 5
+        assert current.frame.state.boss_name == "The Psychic"
+        assert run.blind_progression_state.boss_status == "Select"
+        assert run.blind_progression_state.blind_on_deck == "Boss"
+        assert run.boss_selection_state.usage_counts["bl_psychic"] == 1
+        assert current.legal_actions() == (EnvAction.from_alias("SELECT_BLIND"),)
+
+    assert replay.serialize() == environment.serialize()
+    boss_boundary = PPORolloutBoundary.from_frame(environment.frame)
+    assert boss_boundary.blind_requirement == 600.0
+    before = environment.serialize()
+    with pytest.raises(HeadlessTransitionError):
+        environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    assert environment.serialize() == before
 
 
 def test_env_ppo_sparse_terminal_reward_contract_is_exact():

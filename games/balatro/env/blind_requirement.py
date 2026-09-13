@@ -56,3 +56,8 @@ def red_white_nonboss_blind_reward(blind_type: str) -> int:
     if normalized == "BIG":
         return 4
     raise BlindRequirementError("Red/White non-Boss reward requires Small or Big")
+
+
+def red_white_boss_blind_reward() -> int:
+    """Return the exact White-Stake Boss Blind reward."""
+    return 5

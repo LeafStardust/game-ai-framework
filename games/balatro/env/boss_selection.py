@@ -27,6 +27,7 @@ class BossMetadata:
     name: str
     min_ante: int
     showdown: bool = False
+    multiplier: int = 2
 
 
 # Pinned to vanilla ``G.P_BLINDS`` at the repository's source-audit commit.
@@ -40,7 +41,7 @@ _BOSS_METADATA: tuple[BossMetadata, ...] = (
     BossMetadata("bl_final_bell", "Cerulean Bell", 10, True),
     BossMetadata("bl_final_heart", "Crimson Heart", 10, True),
     BossMetadata("bl_final_leaf", "Verdant Leaf", 10, True),
-    BossMetadata("bl_final_vessel", "Violet Vessel", 10, True),
+    BossMetadata("bl_final_vessel", "Violet Vessel", 10, True, 6),
     BossMetadata("bl_fish", "The Fish", 2),
     BossMetadata("bl_flint", "The Flint", 2),
     BossMetadata("bl_goad", "The Goad", 1),
@@ -57,7 +58,7 @@ _BOSS_METADATA: tuple[BossMetadata, ...] = (
     BossMetadata("bl_psychic", "The Psychic", 1),
     BossMetadata("bl_serpent", "The Serpent", 5),
     BossMetadata("bl_tooth", "The Tooth", 3),
-    BossMetadata("bl_wall", "The Wall", 2),
+    BossMetadata("bl_wall", "The Wall", 2, multiplier=4),
     BossMetadata("bl_water", "The Water", 2),
     BossMetadata("bl_wheel", "The Wheel", 2),
     BossMetadata("bl_window", "The Window", 1),
@@ -114,6 +115,16 @@ class BossSelectionState:
 class BossSelectionResult:
     boss_key: str
     boss_name: str
+
+
+def red_white_boss_requirement(boss_name: str, ante: int) -> int:
+    """Return the exact selected Boss target through the Ante-8 objective."""
+    from games.balatro.env.blind_requirement import red_white_base_blind_amount
+
+    key = BOSS_KEY_BY_NAME.get(boss_name)
+    if key is None:
+        raise BossSelectionError("Boss requirement needs a vanilla Boss identity")
+    return red_white_base_blind_amount(ante) * BOSS_METADATA_BY_KEY[key].multiplier
 
 
 def _eligible_keys(state: BossSelectionState, ante: int) -> list[str]:

@@ -4,6 +4,7 @@ from games.balatro.env.boss_selection import (
     ALL_BOSS_KEYS,
     BossSelectionError,
     BossSelectionState,
+    red_white_boss_requirement,
     select_normal_boss,
 )
 from games.balatro.env.transition import HeadlessRunState
@@ -24,6 +25,15 @@ def test_env_r2_boss_selection_initializes_every_vanilla_boss_usage_to_zero():
     assert set(selection.usage_counts) == ALL_BOSS_KEYS
     assert set(selection.usage_counts.values()) == {0}
     assert selection.win_ante == 8
+
+
+def test_env_r2_boss_requirement_uses_exact_standard_and_inflated_multipliers():
+    assert red_white_boss_requirement("The Hook", 1) == 600
+    assert red_white_boss_requirement("The Wall", 8) == 200_000
+    assert red_white_boss_requirement("Violet Vessel", 8) == 300_000
+
+    with pytest.raises(BossSelectionError, match="vanilla Boss"):
+        red_white_boss_requirement("Modded Boss", 1)
 
 
 def test_env_r2_boss_selection_pins_ante_two_key_sort_and_boss_rng_vector():

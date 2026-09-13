@@ -102,6 +102,29 @@ def test_env_r6_headless_state_round_trips_exact_generated_shop_metadata():
         HeadlessRunState.restore(payload)
 
 
+def test_env_r6_headless_state_round_trips_and_validates_boss_selection_state():
+    from games.balatro.env.episode_backend import pristine_red_white_reset
+
+    run = pristine_red_white_reset("R6-BOSS-SELECTION")
+    payload = run.serialize()
+    restored = HeadlessRunState.restore(json.loads(json.dumps(payload)))
+
+    assert restored.boss_selection_state == run.boss_selection_state
+    assert restored.blind_progression_state.boss_name == (
+        run.blind_progression_state.boss_name
+    )
+    assert restored.serialize() == payload
+
+    selected_key = next(
+        key
+        for key, count in payload["boss_selection"]["usage_counts"].items()
+        if count == 1
+    )
+    payload["boss_selection"]["usage_counts"].pop(selected_key)
+    with pytest.raises(HeadlessTransitionError):
+        HeadlessRunState.restore(payload)
+
+
 @pytest.mark.parametrize(
     "mutate",
     [

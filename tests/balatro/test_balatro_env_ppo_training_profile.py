@@ -8,6 +8,7 @@ from games.balatro.env.ppo_training_profile import (
     PPO_TRAINING_PROFILE,
     PPO_TRAINING_PROFILE_SCHEMA,
     initialize_pristine_ppo_generation_authority,
+    initialize_pristine_ppo_boss_authority,
     pristine_profile_discovery,
 )
 from games.balatro.env.shop_generation_state import eligible_joker_keys_from_state
@@ -61,6 +62,8 @@ def test_env_ppo_training_profile_contract_is_versioned_and_exact():
     assert PPO_TRAINING_PROFILE.used_center_keys == ()
     assert PPO_TRAINING_PROFILE.played_secret_hands == ()
     assert PPO_TRAINING_PROFILE.first_shop_buffoon_variant == 1
+    assert PPO_TRAINING_PROFILE.banned_boss_keys == ()
+    assert PPO_TRAINING_PROFILE.win_ante == 8
     assert pristine_profile_discovery("j_joker") is True
     assert pristine_profile_discovery("j_greedy_joker") is False
     assert pristine_profile_discovery("c_fool") is False
@@ -120,6 +123,26 @@ def test_env_ppo_profile_rejects_nonpristine_or_existing_authority_atomically():
         initialize_pristine_ppo_generation_authority(initialized)
 
 
+def test_env_ppo_profile_selects_and_retains_exact_initial_boss_authority():
+    generated = initialize_pristine_ppo_generation_authority(
+        _uninitialized_pristine_run("PROFILE-BOSS")
+    )
+    before = generated.rng_snapshot()
+    initialized = initialize_pristine_ppo_boss_authority(generated)
+
+    assert generated.boss_selection_state is None
+    assert generated.blind_progression_state.boss_name is None
+    assert generated.rng_snapshot() == before
+    assert initialized.public.boss_name is None
+    assert initialized.blind_progression_state.boss_name == "The Pillar"
+    assert initialized.boss_selection_state.usage_counts["bl_pillar"] == 1
+    assert sum(initialized.boss_selection_state.usage_counts.values()) == 1
+    assert "boss" in initialized.rng_snapshot()["nodes"]
+
+    with pytest.raises(HeadlessTransitionError, match="already initialized"):
+        initialize_pristine_ppo_boss_authority(initialized)
+
+
 @pytest.mark.parametrize(
     "field,value",
     [
@@ -142,6 +165,9 @@ def test_env_ppo_reset_installs_profile_generation_and_discovery_authority():
     assert run.public.voucher_generation_pool_observed is True
     assert run.generated_center_discovered("j_joker") is True
     assert run.generated_center_discovered("c_fool") is False
+    assert run.public.boss_name is None
+    assert run.blind_progression_state.boss_name == "The Window"
+    assert run.boss_selection_state.usage_counts["bl_window"] == 1
 
 
 def test_env_ppo_profile_drives_complete_first_shop_in_source_order():

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from games.balatro.env.boss_selection import BossSelectionState, select_normal_boss
 from games.balatro.env.consumable_centers import (
     VANILLA_PLANET_CENTER_ORDER,
     VANILLA_TAROT_CENTER_ORDER,
@@ -20,7 +21,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.env.voucher_centers import VANILLA_VOUCHER_CENTERS
 
 
-PPO_TRAINING_PROFILE_SCHEMA = "balatro-red-white-pristine-profile-v1"
+PPO_TRAINING_PROFILE_SCHEMA = "balatro-red-white-pristine-profile-v2"
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +37,8 @@ class PPOTrainingProfileContract:
     used_center_keys: tuple[str, ...] = ()
     played_secret_hands: tuple[str, ...] = ()
     first_shop_buffoon_variant: int = 1
+    banned_boss_keys: tuple[str, ...] = ()
+    win_ante: int = 8
 
 
 PPO_TRAINING_PROFILE = PPOTrainingProfileContract()
@@ -193,4 +196,44 @@ def initialize_pristine_ppo_generation_authority(
         key: pristine_profile_discovery(key)
         for key in _PROFILE_SHOP_CENTER_KEYS
     }
+    return next_run
+
+
+def initialize_pristine_ppo_boss_authority(
+    run: HeadlessRunState,
+) -> HeadlessRunState:
+    """Select and retain the exact initial Boss without exposing it early."""
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    state = run.public
+    progression = run.require_blind_progression_state()
+    if run.boss_selection_state is not None:
+        raise HeadlessTransitionError("initial Boss authority is already initialized")
+    if (
+        state.deck_name != "RED"
+        or state.stake_name != "WHITE"
+        or state.phase != "BLIND_SELECT"
+        or state.ante != 1
+        or state.round != 0
+        or state.boss_name is not None
+        or run.generation_discovery is None
+        or progression.blind_ante != 1
+        or progression.blind_on_deck != "Small"
+        or progression.boss_name is not None
+    ):
+        raise HeadlessTransitionError(
+            "initial Boss authority requires the pristine Red/White reset"
+        )
+
+    selection = BossSelectionState(
+        banned_keys=frozenset(PPO_TRAINING_PROFILE.banned_boss_keys),
+        win_ante=PPO_TRAINING_PROFILE.win_ante,
+    )
+    next_run, next_selection, boss = select_normal_boss(
+        run,
+        selection,
+        ante=state.ante,
+    )
+    next_run.blind_progression_state.boss_name = boss.boss_name
+    next_run.boss_selection_state = next_selection
     return next_run

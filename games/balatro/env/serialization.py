@@ -9,6 +9,7 @@ from typing import Any, Mapping
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.env.blind_progression import BlindProgressionState
+from games.balatro.env.boss_selection import BossSelectionState
 from games.balatro.env.joker_order import JokerOrderState
 from games.balatro.env.shop_booster_generation import GeneratedShopBoosterItem
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
@@ -18,7 +19,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.state import BalatroState
 
 
-HEADLESS_RUN_STATE_SCHEMA = "balatro-headless-run-state-v2"
+HEADLESS_RUN_STATE_SCHEMA = "balatro-headless-run-state-v3"
 _CARD_ZONE_FIELDS = frozenset({"deck", "owned_deck", "hand", "discard_pile"})
 _UNSUPPORTED_OBJECT_FIELDS = frozenset(
     {
@@ -118,6 +119,44 @@ def _blind_payload(blind: Blind | None) -> dict[str, Any] | None:
         "disabled": blind.disabled,
         "tag_key": blind.tag_key,
     }
+
+
+def _boss_selection_payload(
+    selection: BossSelectionState | None,
+) -> dict[str, Any] | None:
+    if selection is None:
+        return None
+    if not isinstance(selection, BossSelectionState):
+        raise HeadlessTransitionError("invalid retained Boss selection state")
+    return {
+        "usage_counts": _plain_value(selection.usage_counts),
+        "banned_keys": sorted(selection.banned_keys),
+        "win_ante": selection.win_ante,
+    }
+
+
+def _restore_boss_selection(value: Any) -> BossSelectionState | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping) or set(value) != {
+        "usage_counts", "banned_keys", "win_ante"
+    }:
+        raise HeadlessTransitionError("invalid retained Boss selection record")
+    banned = value["banned_keys"]
+    if (
+        not isinstance(banned, list)
+        or any(not isinstance(key, str) for key in banned)
+        or len(banned) != len(set(banned))
+    ):
+        raise HeadlessTransitionError("invalid retained Boss ban state")
+    try:
+        return BossSelectionState(
+            usage_counts=_restore_plain(value["usage_counts"]),
+            banned_keys=frozenset(banned),
+            win_ante=value["win_ante"],
+        )
+    except (TypeError, ValueError) as exc:
+        raise HeadlessTransitionError("invalid retained Boss selection record") from exc
 
 
 def _shop_item_payload(item: Any, expected_kind: str) -> dict[str, Any]:
@@ -248,6 +287,7 @@ def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
             "played_pile": refs(run.played_pile),
         },
         "blind_progression": progression,
+        "boss_selection": _boss_selection_payload(run.boss_selection_state),
         "private": {name: _plain_value(getattr(run, name)) for name in _PRIVATE_SCALARS},
     }
 
@@ -257,7 +297,7 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
         raise HeadlessTransitionError("unsupported headless run-state snapshot schema")
     expected_keys = {
         "schema", "seed", "rng", "cards", "public", "private_zones",
-        "blind_progression", "private",
+        "blind_progression", "boss_selection", "private",
     }
     if set(payload) != expected_keys:
         raise HeadlessTransitionError("headless run-state snapshot fields are incomplete")
@@ -348,6 +388,7 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
             playing_card_order=cards,
             joker_order_state=JokerOrderState([], []),
             blind_progression_state=progression,
+            boss_selection_state=_restore_boss_selection(payload["boss_selection"]),
             draw_pile=card_refs(zones["draw_pile"]) or [],
             discard_pile=card_refs(zones["discard_pile"]) or [],
             played_pile=card_refs(zones["played_pile"]) or [],

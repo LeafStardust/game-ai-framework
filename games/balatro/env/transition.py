@@ -12,7 +12,10 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from games.balatro.env.boss_selection import BossSelectionState
 
 from games.balatro.card import BalatroCard
 from games.balatro.deck_rules import starting_deck_size_for_name
@@ -205,6 +208,7 @@ class HeadlessRunState:
     playing_card_order: list[BalatroCard] | None = None
     joker_order_state: JokerOrderState | None = None
     blind_progression_state: BlindProgressionState | None = None
+    boss_selection_state: BossSelectionState | None = None
     draw_pile: list[BalatroCard] = field(default_factory=list)
     discard_pile: list[BalatroCard] = field(default_factory=list)
     played_pile: list[BalatroCard] = field(default_factory=list)
@@ -276,6 +280,30 @@ class HeadlessRunState:
             raise HeadlessTransitionError(
                 "blind_progression_state must be BlindProgressionState or None"
             )
+        if self.boss_selection_state is not None:
+            from games.balatro.env.boss_selection import (
+                BOSS_KEY_BY_NAME,
+                BossSelectionState,
+            )
+
+            if not isinstance(self.boss_selection_state, BossSelectionState):
+                raise HeadlessTransitionError(
+                    "boss_selection_state must be BossSelectionState or None"
+                )
+            if self.blind_progression_state is None:
+                raise HeadlessTransitionError(
+                    "Boss selection authority requires retained blind progression"
+                )
+            boss_name = self.blind_progression_state.boss_name
+            boss_key = BOSS_KEY_BY_NAME.get(boss_name)
+            if boss_key is None or self.boss_selection_state.usage_counts[boss_key] < 1:
+                raise HeadlessTransitionError(
+                    "retained Boss identity disagrees with Boss selection authority"
+                )
+            if self.public.boss_name is not None and self.public.boss_name != boss_name:
+                raise HeadlessTransitionError(
+                    "public Boss identity disagrees with retained selection authority"
+                )
 
         if self.boss_hands_sub is not None:
             self._require_int("boss_hands_sub", self.boss_hands_sub)
@@ -432,6 +460,11 @@ class HeadlessRunState:
             raise HeadlessTransitionError("exact blind progression state is unavailable")
         return self.blind_progression_state
 
+    def require_boss_selection_state(self) -> "BossSelectionState":
+        if self.boss_selection_state is None:
+            raise HeadlessTransitionError("exact Boss selection state is unavailable")
+        return self.boss_selection_state
+
     def generated_center_discovered(self, center_key: str) -> bool | None:
         """Return retained profile discovery, or None for observed live runs."""
         if self.generation_discovery is None:
@@ -499,10 +532,10 @@ class ShopTransitionEngine:
             actions.append(EnvAction.from_alias("END_SHOP"))
         else:
             from games.balatro.env.blind_progression import (
-                can_exit_shop_to_selected_big_blind,
+                can_exit_shop_to_selected_blind,
             )
 
-            if can_exit_shop_to_selected_big_blind(run):
+            if can_exit_shop_to_selected_blind(run):
                 actions.append(EnvAction.from_alias("END_SHOP"))
         return tuple(actions)
 
@@ -524,10 +557,10 @@ class ShopTransitionEngine:
         if action.alias == "END_SHOP":
             if run.blind_progression_state is not None:
                 from games.balatro.env.blind_progression import (
-                    exit_shop_to_selected_big_blind,
+                    exit_shop_to_selected_blind,
                 )
 
-                return exit_shop_to_selected_big_blind(run)
+                return exit_shop_to_selected_blind(run)
             state.shop_active = False
             state.phase = "BLIND_SELECT"
             state.shop_jokers.clear()

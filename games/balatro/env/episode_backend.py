@@ -16,6 +16,7 @@ from games.balatro.env.ordinary_round_resolution import (
 from games.balatro.env.ppo_contract import PPO_REWARD_CONTRACT
 from games.balatro.env.ppo_training_profile import (
     PPO_TRAINING_PROFILE,
+    initialize_pristine_ppo_boss_authority,
     initialize_pristine_ppo_generation_authority,
 )
 from games.balatro.env.select_blind import can_select_blind_exact, select_blind_exact
@@ -37,7 +38,7 @@ from games.balatro.env.transition import (
 from games.balatro.state import BalatroState
 
 
-PPO_HEADLESS_BACKEND_SCHEMA = "balatro-red-white-ppo-headless-backend-v1"
+PPO_HEADLESS_BACKEND_SCHEMA = "balatro-red-white-ppo-headless-backend-v2"
 _MAX_TACTICAL_ACTIONS = 4096
 
 
@@ -86,7 +87,8 @@ def pristine_red_white_reset(seed: str | int) -> HeadlessRunState:
             blind_ante=1,
         ),
     )
-    return initialize_pristine_ppo_generation_authority(run)
+    run = initialize_pristine_ppo_generation_authority(run)
+    return initialize_pristine_ppo_boss_authority(run)
 
 
 class PPOHeadlessBackend:
