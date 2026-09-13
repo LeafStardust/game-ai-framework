@@ -2,7 +2,7 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow The Tooth / The Hook Boss paths, with an unmodified base playing-card deck
+narrow Psychic / Tooth / Hook Boss paths, with an unmodified base playing-card deck
 and no Joker, Tag, consumable, Voucher, random card, or other unowned callbacks.
 The boundary can widen only when those source-order mechanics have canonical
 environment owners.
@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from games.balatro.blinds.blind import BlindType
+from games.balatro.boss_trigger import boss_hand_is_debuffed
 from games.balatro.env.boss_play import (
     apply_hook_press_play_discards_from_played_pile,
     apply_tooth_press_play_economy_from_played_pile,
@@ -99,10 +100,12 @@ def _require_supported_context(run: HeadlessRunState) -> None:
     blind_type = getattr(state.blind, "type", None)
     boss_name = _boss_name(state)
     ordinary = blind_type in {BlindType.SMALL, BlindType.BIG} and not boss_name
-    supported_boss = blind_type == BlindType.BOSS and boss_name in {"The Tooth", "The Hook"}
+    supported_boss = blind_type == BlindType.BOSS and boss_name in {
+        "The Psychic", "The Tooth", "The Hook"
+    }
     if not ordinary and not supported_boss:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds, The Tooth, and The Hook only"
+            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, and The Hook only"
         )
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
@@ -219,14 +222,20 @@ def apply_supported_ordinary_play(
         next_state = next_run.public
         selected = list(next_run.played_pile)
 
-    hand_score = BalatroScorer().score(
-        poker_hand,
-        state=next_state,
-        cards=selected,
-        include_card_chips=True,
-        resolve_random_effects=False,
-    )
-    next_state.score += hand_score.total
+    boss_hand = boss_hand_is_debuffed(next_state, poker_hand, selected)
+    if not boss_hand.resolvable:
+        raise HeadlessTransitionError(
+            "R4 baseline Play cannot resolve the active Boss hand constraint"
+        )
+    if not boss_hand.triggered:
+        hand_score = BalatroScorer().score(
+            poker_hand,
+            state=next_state,
+            cards=selected,
+            include_card_chips=True,
+            resolve_random_effects=False,
+        )
+        next_state.score += hand_score.total
 
     # The admitted slice has no destruction or after-scoring callbacks, so every
     # played card survives and moves from G.play to the discard tail in play order.

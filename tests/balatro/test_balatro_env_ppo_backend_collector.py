@@ -315,10 +315,12 @@ def test_env_ppo_backend_replays_first_shop_big_blind_and_later_shop_exactly():
     assert replay.serialize() == environment.serialize()
     boss_boundary = PPORolloutBoundary.from_frame(environment.frame)
     assert boss_boundary.blind_requirement == 600.0
-    before = environment.serialize()
-    with pytest.raises(HeadlessTransitionError):
-        environment.step(EnvAction.from_alias("SELECT_BLIND"))
-    assert environment.serialize() == before
+    _, reward, terminated, truncated, _ = environment.step(
+        EnvAction.from_alias("SELECT_BLIND")
+    )
+    assert (reward, terminated, truncated) == (-1.0, True, False)
+    assert environment.frame.state.score == 0
+    assert environment.frame.state.hands_remaining == 0
 
 
 def test_env_ppo_sparse_terminal_reward_contract_is_exact():
@@ -407,9 +409,69 @@ def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
         assert state.blind.tag_key == "tag_skip"
         assert state.boss_name is None
         assert current.legal_actions() == (EnvAction.from_alias("SELECT_BLIND"),)
+        for hand_name in state.hand_levels:
+            state.hand_levels[hand_name] = 1000
 
     assert restored.serialize() == environment.serialize()
     assert restored.frame.encoded_observation() == environment.frame.encoded_observation()
+
+    for current in (environment, restored):
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BIG
+        assert current.frame.state.blind.requirement == 1200
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BOSS
+        assert current.frame.state.blind.requirement == 1600
+        assert current.frame.state.boss_name == "The Psychic"
+
+    assert restored.serialize() == environment.serialize()
+    psychic_snapshot = environment.serialize()
+
+    one_card = _environment(_OneCardTacticalPolicy())
+    one_card.restore(psychic_snapshot)
+    _, reward, terminated, truncated, _ = one_card.step(
+        EnvAction.from_alias("SELECT_BLIND")
+    )
+    assert (reward, terminated, truncated) == (-1.0, True, False)
+    assert one_card.frame.state.score == 0
+    assert one_card.frame.state.hands_remaining == 0
+
+    for current in (environment, restored):
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        assert current.frame.state.ante == 3
+        assert current.frame.state.round == 6
+        assert current.frame.state.money == 59
+        assert current.frame.status is RunStatus.RUNNING
+
+    assert restored.serialize() == environment.serialize()
+    assert restored.frame.encoded_observation() == environment.frame.encoded_observation()
+    run = backend.run
+    assert run.blind_progression_state.small_tag == "tag_standard"
+    assert run.blind_progression_state.big_tag == "tag_top_up"
+    assert run.blind_progression_state.boss_name == "The Pillar"
+    assert run.boss_selection_state.usage_counts["bl_psychic"] == 1
+    assert sum(run.boss_selection_state.usage_counts.values()) == 3
+    assert tuple(
+        item.center_key
+        for items in (
+            run.public.shop_jokers,
+            run.public.shop_consumables,
+            run.public.shop_vouchers,
+            run.public.shop_boosters,
+        )
+        for item in items
+    ) == (
+        "j_space",
+        "j_banner",
+        "v_magic_trick",
+        "p_arcana_normal_3",
+        "p_buffoon_normal_2",
+    )
 
 
 def test_env_ppo_collector_records_complete_deterministic_terminal_episode():
