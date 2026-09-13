@@ -59,7 +59,7 @@ python -m pytest -q tests/balatro -k "translator or mechanics or legality or sho
 
 ---
 
-# Current checkpoint — 2026-09-12
+# Current checkpoint — 2026-09-13
 
 ```text
 Branch: feat/v1.0-red-white-competence
@@ -701,7 +701,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
 - B0 RL baseline infrastructure: **COMPLETE / GREEN**.
-- PPO/observation training: **IN PROGRESS — TRAINING/ROLLOUT CONTRACT GREEN; NEXT TASK IS THE CANONICAL FULL-EPISODE BACKEND/COLLECTOR**.
+- PPO/observation training: **IN PROGRESS — FIRST EXACT TERMINAL-LOSS BACKEND/COLLECTOR SLICE GREEN; NEXT TASK IS ORDINARY-BLIND CLEAR/CASH-OUT CONTINUATION**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
 ## Current strategic action contract
@@ -2018,7 +2018,7 @@ capture.
 
 ### Next actions
 
-1. Implement the canonical concrete full-episode `HeadlessBackend` adapter and PPO rollout collector against the frozen training/rollout contract before adding optimizer code.
+1. Extend the canonical PPO backend through an ordinary Small/Big Blind clear into source-ordered progression and cash-out. Compose the existing progression and economy owners, preserve retained blind progression, and stop before exposing `SHOP` until complete normal shop inventory authority exists. Do not add optimizer code yet.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2425,17 +2425,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Implement the canonical concrete full-episode `HeadlessBackend` adapter and PPO
-rollout collector. The adapter must compose the existing reset, strategic,
-tactical, environment-lifecycle, and terminal owners at their canonical
-boundaries; it must not duplicate mechanics in learner code. The collector must
-use only `BalatroHeadlessEnvironment`, `select_ppo_action`, canonical backend
-rewards, and `PPORolloutEpisode.completed`, and must retain every boundary from
-the Ante-1 reset through one exact terminal result. Unsupported mechanics,
-empty nonterminal masks, illegal actions, non-finite outputs/rewards, truncated
-episodes, fixed-holdout seed use, and provenance drift remain fail-closed. Do
-not add the neural model or optimizer until this backend/collector slice is
-green and recorded.
+Extend the canonical backend through an ordinary Small/Big Blind clear into
+source-ordered progression and cash-out. Compose
+`finalize_won_round_progression` and
+`cash_out_baseline_ordinary_blind`, preserve retained blind progression, and
+stop before exposing `SHOP` until full normal shop inventory authority is
+available. Do not omit or approximate missing main-card, booster, or Voucher
+generation. Unsupported mechanics, empty nonterminal masks, illegal actions,
+non-finite outputs/rewards, truncated episodes, fixed-holdout seed use, and
+provenance drift remain fail-closed. Do not add the neural model or optimizer.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2451,7 +2449,9 @@ transition batch, 256-transition minibatches, 10 update epochs, and exactly
 lambda 0.95, policy/value clip is 0.20, learning rate is 0.0003, entropy
 coefficient is 0.01, value
 coefficient is 0.50, maximum gradient norm is 0.50, and the complete-episode
-action cap is 4,096. Reward authority is canonical backend reward only.
+action cap is 4,096. Reward authority is the explicit
+`balatro-red-white-sparse-terminal-reward-v1` backend contract: running
+boundaries receive `0.0`, losses `-1.0`, and Ante-8 wins `+1.0`.
 
 Each explicit root seed deterministically derives separate learner and rollout
 SHA-256 streams. Training game seeds are episode-index-derived and reject any
@@ -2472,6 +2472,36 @@ JSON. The deterministic workflow now explicitly selects `env_ppo`. Focused PPO,
 B0 diagnostics/promotion, observation/action encoding, and R0 validation passed
 **78 tests** locally. GitHub Actions run `34702892095`, job `103577661324`,
 passed; the actual log reports **2798 passed, 1602 deselected in 122.86s**.
+
+### First exact PPO terminal-loss episode checkpoint
+
+Commit `0de5b883866fd789a98a6b949edeba2ff606417e` adds the first
+concrete `HeadlessBackend` slice and generic complete-episode PPO collector.
+The exact pristine Red Deck / White Stake reset begins at Ante 1 Small-Blind
+selection with $4, a 300-point requirement, four hands, three discards, and
+retained Small-Blind progression in `Select`. Selecting that Blind now passes
+through the canonical retained-progression activation owner before the existing
+exact blind-start owner. Tactical play remains delegated to the production-
+shaped tactical transition owner.
+
+With the deterministic one-card policy, the backend naturally reaches an exact
+first-Small-Blind exhausted-hands `GAME_OVER` loss after four tactical plays and
+one strategic action. The generic collector uses only
+`BalatroHeadlessEnvironment`, the canonical legal-action mask,
+`select_ppo_action`, environment rewards, and `PPORolloutEpisode.completed`.
+Every exposed strategic boundary is isolated, serialize/restore is
+deterministic, and terminal boundaries carry `observation=null` instead of
+fabricating a 2,444-value policy observation for the unsupported terminal
+phase.
+
+This checkpoint deliberately does not support a cleared-Blind continuation.
+If tactical play reaches `ROUND_EVAL`, the backend fails closed before exposing
+an incomplete continuation and leaves its authoritative state unchanged. It is
+therefore an exact terminal-loss episode slice, not yet a full Red/White backend
+or a training-ready competence path. Focused backend, collector, PPO-contract,
+progression, tactical-transition, encoding, and R0 validation passed **103
+tests** locally. GitHub Actions run `34727355077`, job `103643740089`, passed;
+the actual log reports **2808 passed, 1602 deselected in 90.52s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
