@@ -2429,13 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the retained-progression shop-exit owner for the exact post-Boss shop
-shape produced by `reset_blinds()`. Expose `END_SHOP` only when it can install
-the generated next-Ante Small Blind requirement, reward, Tag identity,
-progression, v3 observation, and canonical action mask. Freeze restore/replay
-across that boundary. Unsupported generated-Tag skip settlement must remain
-absent from the mask, and unsupported Boss mechanics must remain fail-closed;
-do not add the neural model/optimizer yet.
+Audit and admit The Psychic through the canonical tactical Play lifecycle only
+if its existing exact five-card hand constraint is the complete reachable Play
+mutation at this boundary. Continue deterministic seed `24` through generalized
+Ante-2 Small/Big progression to The Psychic, freeze failure for non-five-card
+plans and exact clear/restore/replay for legal five-card plans, and compose the
+supported Boss resolution only if every downstream mutation remains exact.
+Do not broaden other Bosses or add the neural model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2740,6 +2740,29 @@ GitHub Actions run `34789951472`, job `103812209208`, passed with **2842 passed,
 1602 deselected in 91.70s**. The final frozen-boundary commit passed GitHub
 Actions run `34790102807`, job `103812613785`; its actual log reports **2842
 passed, 1602 deselected in 123.18s**.
+
+### Exact post-Boss shop exit and next-Ante Small checkpoint
+
+Commit `4d158d243a7e097185ecdbdd054372dea2d5bb48` extends the canonical
+retained-progression shop-exit owner to the exact post-Boss shop shape produced
+by `reset_blinds()`. It requires the public defeated Boss, both the defeated and
+next Boss identities in retained usage authority, all three next-Ante statuses
+`Upcoming`, and both generated Tags before exposing `END_SHOP`. It then uses the
+existing blind-select progression owner to install the next-Ante Small Blind.
+Partial reset state, unknown/missing Tags, or Boss-usage disagreement stays out
+of the action mask.
+
+For seed `24`, the post-Boss shop now exposes its two supported purchases plus
+`END_SHOP`. Exiting produces Ante-2 Small at requirement `800`, reward `$3`,
+and visible `tag_skip`, with private Small status `Select`. Because `tag_skip`
+settlement is unsupported, the canonical mask contains only `SELECT_BLIND` and
+does not approximate `SKIP_BLIND`. Snapshot restore/replay and the v3 public
+observation agree across the new boundary; removing the retained Small Tag
+removes `END_SHOP` and an attempted exit leaves state unchanged. Focused
+post-Boss/progression/skip/observation validation passed **51 tests** locally.
+The exact CI-equivalent selector passed **2842 tests** locally. GitHub Actions
+run `34790620013`, job `103814019608`, passed; the actual log reports **2842
+passed, 1602 deselected in 86.09s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
