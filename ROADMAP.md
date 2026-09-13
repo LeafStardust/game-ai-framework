@@ -2429,12 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Install exact initial Boss-selection authority in the frozen PPO reset, retain
-and serialize its Boss usage state, and expose the post-Big-shop `END_SHOP`
-transition only when it can install the exact Ante-1 Boss identity, requirement,
-progression, v2 observation, and canonical action mask. Freeze restore/replay
-across that new boundary. Keep unsupported Boss-round mechanics fail-closed
-after selection, and do not add the neural model/optimizer yet.
+Retain and serialize the frozen pristine-profile `TagProfileState`, then route
+only an exactly supported cleared Boss `ROUND_EVAL` through the existing
+canonical `resolve_supported_boss_round` owner. Compose its ungenerated
+next-Ante shop with the existing exact normal-shop inventory owner and freeze
+restore/replay through that post-Boss shop boundary. Unsupported Boss start,
+tactical, defeat, cash-out, Tag, or shop mechanics must remain fail-closed; do
+not add the neural model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2681,6 +2682,30 @@ active blind requirement instead of publishing an invalid positive-target
 claim. The exact CI-equivalent selection passed **2836 tests** locally. GitHub
 Actions run `34754850718`, job `103717391285`, passed; the actual log reports
 **2836 passed, 1602 deselected in 116.90s**.
+
+### Exact initial Boss-selection PPO checkpoint
+
+Commit `ceb35dab09de8390830fbbaee69217d702f800c8` installs initial Boss
+selection as private frozen-profile authority during the pristine PPO reset.
+The profile now pins empty Boss bans and win Ante 8, selection consumes the
+canonical `boss` RNG stream exactly once, and the complete vanilla usage-count
+state is retained without exposing the chosen identity before the Boss choice.
+The versioned headless snapshot is now `balatro-headless-run-state-v3`; it
+serializes and strictly restores usage counts, bans, and win Ante. The PPO
+profile and backend schemas are correspondingly versioned `v2`.
+
+The retained-progression shop-exit owner now advances either Small to Big or
+Big to Boss. The Boss path requires its selected identity to agree with retained
+usage authority, installs the exact Red/White requirement multiplier and `$5`
+reward, publishes the identity only at `BLIND_SELECT`, clears the completed shop,
+and exposes the canonical v2 observation and `SELECT_BLIND`-only action mask.
+For seed `0`, deterministic replay reaches The Psychic at a 600-point target;
+the existing one-card tactical policy is illegal for that Boss, so selection
+fails atomically and the snapshot remains unchanged rather than approximating a
+Boss round. Focused profile/backend/serialization/Boss/progression/encoding
+validation passed **89 tests** locally. The exact CI-equivalent selection passed
+**2839 tests** locally. GitHub Actions run `34769919493`, job `103757503778`,
+passed; the actual log reports **2839 passed, 1602 deselected in 117.38s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
