@@ -67,6 +67,7 @@ _BOSS_METADATA: tuple[BossMetadata, ...] = (
 BOSS_METADATA_BY_KEY = {meta.key: meta for meta in _BOSS_METADATA}
 BOSS_KEY_BY_NAME = {meta.name: meta.key for meta in _BOSS_METADATA}
 ALL_BOSS_KEYS = frozenset(BOSS_METADATA_BY_KEY)
+VANILLA_BOSS_NAMES = tuple(meta.name for meta in _BOSS_METADATA)
 
 
 class BossSelectionError(ValueError):

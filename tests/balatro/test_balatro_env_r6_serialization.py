@@ -110,6 +110,7 @@ def test_env_r6_headless_state_round_trips_and_validates_boss_selection_state():
     restored = HeadlessRunState.restore(json.loads(json.dumps(payload)))
 
     assert restored.boss_selection_state == run.boss_selection_state
+    assert restored.tag_profile_state == run.tag_profile_state
     assert restored.blind_progression_state.boss_name == (
         run.blind_progression_state.boss_name
     )
@@ -122,6 +123,11 @@ def test_env_r6_headless_state_round_trips_and_validates_boss_selection_state():
     )
     payload["boss_selection"]["usage_counts"].pop(selected_key)
     with pytest.raises(HeadlessTransitionError):
+        HeadlessRunState.restore(payload)
+
+    payload = run.serialize()
+    payload["tag_profile"].append("j_blueprint")
+    with pytest.raises(HeadlessTransitionError, match="invalid headless run-state"):
         HeadlessRunState.restore(payload)
 
 

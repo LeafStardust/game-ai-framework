@@ -7,6 +7,7 @@ from games.balatro.card import BalatroCard
 from games.balatro.env.observation_encoding import (
     PUBLIC_OBSERVATION_SCHEMA,
     PUBLIC_OBSERVATION_VERSION,
+    BOSS_NAMES,
     PublicObservationEncodingError,
     VOUCHER_KEYS,
     encode_public_observation,
@@ -18,6 +19,7 @@ from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
 from games.balatro.env.transition import HeadlessRunState, ShopTransitionEngine
 from games.balatro.env.voucher_capabilities import SHOP_BASE_GENERATION_VOUCHER_KEYS
 from games.balatro.env.voucher_centers import VANILLA_VOUCHER_CENTER_KEYS
+from games.balatro.env.boss_selection import VANILLA_BOSS_NAMES
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.state import BalatroState
 
@@ -73,6 +75,15 @@ def test_env_o_v2_separates_all_voucher_identities_from_mechanics_support():
         # Identity is visible, but Blank redemption remains unsupported.
         EnvAction.from_alias("END_SHOP"),
     )
+
+
+def test_env_o_v3_represents_all_boss_identities_independently_of_support():
+    assert BOSS_NAMES == VANILLA_BOSS_NAMES
+    assert len(BOSS_NAMES) == 28
+    frame = _frame()
+    frame.state.blind = Blind(BlindType.BOSS, 600, reward=5)
+    frame.state.boss_name = "The Hook"
+    assert _at(encode_public_observation(frame), "state.boss_name") > 0.0
 
 
 def test_env_o_voucher_pool_features_encode_eligibility_not_catalogue_presence():

@@ -52,6 +52,22 @@ def first_shop_from_retained_progression(run: HeadlessRunState) -> bool:
         raise HeadlessTransitionError("shop classification requires active SHOP")
     progression = run.require_blind_progression_state()
     blind_type = getattr(state.blind, "type", None)
+    if blind_type is BlindType.BOSS:
+        if (
+            progression.blind_ante != state.ante
+            or progression.blind_on_deck != "Small"
+            or progression.small_status != "Upcoming"
+            or progression.big_status != "Upcoming"
+            or progression.boss_status != "Upcoming"
+            or not progression.boss_name
+            or not state.boss_name
+            or type(state.round) is not int
+            or state.round < 1
+        ):
+            raise HeadlessTransitionError(
+                "post-Boss shop conflicts with reset blind progression"
+            )
+        return False
     if blind_type not in {BlindType.SMALL, BlindType.BIG}:
         raise HeadlessTransitionError(
             "ordinary shop classification requires a Small or Big Blind"

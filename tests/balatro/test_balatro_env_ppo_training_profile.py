@@ -165,6 +165,7 @@ def test_env_ppo_reset_installs_profile_generation_and_discovery_authority():
     assert run.public.voucher_generation_pool_observed is True
     assert run.generated_center_discovered("j_joker") is True
     assert run.generated_center_discovered("c_fool") is False
+    assert run.tag_profile_state.discovered_center_keys == frozenset({"j_joker"})
     assert run.public.boss_name is None
     assert run.blind_progression_state.boss_name == "The Window"
     assert run.boss_selection_state.usage_counts["bl_window"] == 1

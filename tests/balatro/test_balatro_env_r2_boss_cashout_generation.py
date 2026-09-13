@@ -119,6 +119,33 @@ def test_env_r2_post_boss_generation_isolates_all_inputs():
     assert progression.boss_name == "The Hook"
     assert selection.usage_counts == before_usage
     assert result.run.rng_snapshot() != before_rng
+    assert result.run.boss_selection_state == result.boss_selection
+    assert result.run.tag_profile_state == TagProfileState(frozenset())
+
+
+def test_env_r2_post_boss_generation_rejects_retained_authority_drift():
+    progression = _progression()
+    selection = _selection()
+    profile = TagProfileState(frozenset())
+    run = _run()
+    run.blind_progression_state = progression
+    run.boss_selection_state = selection
+    run.tag_profile_state = profile
+
+    different_selection = _selection()
+    different_selection.usage_counts["bl_club"] = 1
+    with pytest.raises(BossSelectionError, match="retained run authority"):
+        generate_post_boss_cashout_choices(
+            run, progression, different_selection, profile
+        )
+
+    with pytest.raises(BlindProgressionError, match="Tag profile"):
+        generate_post_boss_cashout_choices(
+            run,
+            progression,
+            selection,
+            TagProfileState(frozenset({"j_blueprint"})),
+        )
 
 
 def test_env_r2_post_boss_generation_requires_exact_cashout_boundary():

@@ -40,6 +40,13 @@ class _InvalidTacticalPolicy:
         return SimpleNamespace(action=object())
 
 
+class _FiveCardTacticalPolicy:
+    def decide(self, state):
+        return SimpleNamespace(
+            action=BalatroAction(PLAY_CARDS, cards=list(state.hand[:5]))
+        )
+
+
 def _environment(policy=None):
     return BalatroHeadlessEnvironment(
         PPOHeadlessBackend(policy or _OneCardTacticalPolicy())
@@ -320,6 +327,36 @@ def test_env_ppo_sparse_terminal_reward_contract_is_exact():
     assert sparse_terminal_reward(RunStatus.ANTE_8_WIN) == 1.0
     with pytest.raises(TypeError):
         sparse_terminal_reward("LOSS")
+
+
+def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
+    backend = PPOHeadlessBackend(_FiveCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed=24)
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    environment.step(EnvAction.from_alias("END_SHOP"))
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    environment.step(EnvAction.from_alias("END_SHOP"))
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+
+    run = backend.run
+    assert (run.public.phase, run.public.ante, run.public.round) == ("SHOP", 2, 3)
+    assert run.blind_progression_state.blind_on_deck == "Small"
+    assert run.blind_progression_state.small_status == "Upcoming"
+    assert run.blind_progression_state.boss_status == "Upcoming"
+    assert run.boss_selection_state.usage_counts["bl_hook"] == 1
+    assert sum(run.boss_selection_state.usage_counts.values()) == 2
+    assert run.tag_profile_state.discovered_center_keys == frozenset({"j_joker"})
+    assert len(run.public.shop_vouchers) == 1
+    assert len(run.public.shop_boosters) == 2
+
+    snapshot = environment.serialize()
+    restored = BalatroHeadlessEnvironment(PPOHeadlessBackend(_FiveCardTacticalPolicy()))
+    restored.restore(snapshot)
+    assert restored.serialize() == snapshot
+    assert restored.frame.encoded_observation() == environment.frame.encoded_observation()
 
 
 def test_env_ppo_collector_records_complete_deterministic_terminal_episode():

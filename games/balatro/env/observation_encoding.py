@@ -11,6 +11,7 @@ from games.balatro.env.consumable_centers import (
     VANILLA_PLANET_CENTER_ORDER,
     VANILLA_TAROT_CENTER_ORDER,
 )
+from games.balatro.env.boss_selection import VANILLA_BOSS_NAMES
 from games.balatro.env.joker_centers import VANILLA_JOKER_CENTERS
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.tag_selection import ALL_TAG_KEYS
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
     from games.balatro.env.state import EnvStateFrame
 
 
-PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v2"
+PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v3"
 
 PHASES = (
     "ROUND_START", "BLIND_SELECT", "DRAW_TO_HAND", "SELECTING_HAND", "SHOP",
@@ -35,11 +36,7 @@ PHASES = (
 STATUSES = ("RUNNING", "ANTE_8_WIN", "LOSS")
 OWNERS = ("AGENT", "TACTICAL_POLICY", "ENVIRONMENT", "TERMINAL")
 BLIND_TYPES = ("SMALL", "BIG", "BOSS")
-BOSS_NAMES = (
-    "The Psychic", "The Eye", "The Mouth", "The Club", "The Goad", "The Window",
-    "The Plant", "The Pillar", "The Head", "The House", "The Wheel", "The Fish",
-    "The Mark", "Amber Acorn", "Verdant Leaf", "Crimson Heart", "Cerulean Bell",
-)
+BOSS_NAMES = VANILLA_BOSS_NAMES
 RANKS = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
 SUITS = ("Hearts", "Diamonds", "Clubs", "Spades")
 HAND_KEYS = tuple(hand.value for hand in PokerHand)

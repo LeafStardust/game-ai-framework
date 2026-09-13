@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from games.balatro.env.boss_selection import BossSelectionState
+    from games.balatro.env.tag_selection import TagProfileState
 
 from games.balatro.card import BalatroCard
 from games.balatro.deck_rules import starting_deck_size_for_name
@@ -209,6 +210,7 @@ class HeadlessRunState:
     joker_order_state: JokerOrderState | None = None
     blind_progression_state: BlindProgressionState | None = None
     boss_selection_state: BossSelectionState | None = None
+    tag_profile_state: TagProfileState | None = None
     draw_pile: list[BalatroCard] = field(default_factory=list)
     discard_pile: list[BalatroCard] = field(default_factory=list)
     played_pile: list[BalatroCard] = field(default_factory=list)
@@ -301,9 +303,46 @@ class HeadlessRunState:
                     "retained Boss identity disagrees with Boss selection authority"
                 )
             if self.public.boss_name is not None and self.public.boss_name != boss_name:
-                raise HeadlessTransitionError(
-                    "public Boss identity disagrees with retained selection authority"
+                public_boss_key = BOSS_KEY_BY_NAME.get(self.public.boss_name)
+                post_boss_shop = (
+                    self.public.phase == "SHOP"
+                    and self.public.shop_active
+                    and getattr(
+                        getattr(getattr(self.public, "blind", None), "type", None),
+                        "value",
+                        None,
+                    ) == "BOSS"
+                    and self.blind_progression_state.blind_on_deck == "Small"
+                    and self.blind_progression_state.small_status == "Upcoming"
+                    and self.blind_progression_state.big_status == "Upcoming"
+                    and self.blind_progression_state.boss_status == "Upcoming"
+                    and public_boss_key is not None
+                    and self.boss_selection_state.usage_counts[public_boss_key] >= 1
                 )
+                if not post_boss_shop:
+                    raise HeadlessTransitionError(
+                        "public Boss identity disagrees with retained selection authority"
+                    )
+        if self.tag_profile_state is not None:
+            from games.balatro.env.tag_selection import TagProfileState
+
+            if not isinstance(self.tag_profile_state, TagProfileState):
+                raise HeadlessTransitionError(
+                    "tag_profile_state must be TagProfileState or None"
+                )
+            if self.generation_discovery is not None:
+                retained_discovered = {
+                    key for key, discovered in self.generation_discovery.items()
+                    if discovered
+                }
+                represented_discovered = (
+                    self.tag_profile_state.discovered_center_keys
+                    & self.generation_discovery.keys()
+                )
+                if represented_discovered != retained_discovered:
+                    raise HeadlessTransitionError(
+                        "Tag profile disagrees with retained generation discovery"
+                    )
 
         if self.boss_hands_sub is not None:
             self._require_int("boss_hands_sub", self.boss_hands_sub)
@@ -464,6 +503,11 @@ class HeadlessRunState:
         if self.boss_selection_state is None:
             raise HeadlessTransitionError("exact Boss selection state is unavailable")
         return self.boss_selection_state
+
+    def require_tag_profile_state(self) -> "TagProfileState":
+        if self.tag_profile_state is None:
+            raise HeadlessTransitionError("exact Tag profile state is unavailable")
+        return self.tag_profile_state
 
     def generated_center_discovered(self, center_key: str) -> bool | None:
         """Return retained profile discovery, or None for observed live runs."""

@@ -16,10 +16,11 @@ from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.env.shop_items import GeneratedShopJokerItem
 from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.tag_selection import TagProfileState
 from games.balatro.state import BalatroState
 
 
-HEADLESS_RUN_STATE_SCHEMA = "balatro-headless-run-state-v3"
+HEADLESS_RUN_STATE_SCHEMA = "balatro-headless-run-state-v4"
 _CARD_ZONE_FIELDS = frozenset({"deck", "owned_deck", "hand", "discard_pile"})
 _UNSUPPORTED_OBJECT_FIELDS = frozenset(
     {
@@ -159,6 +160,26 @@ def _restore_boss_selection(value: Any) -> BossSelectionState | None:
         raise HeadlessTransitionError("invalid retained Boss selection record") from exc
 
 
+def _tag_profile_payload(profile: TagProfileState | None) -> list[str] | None:
+    if profile is None:
+        return None
+    if not isinstance(profile, TagProfileState):
+        raise HeadlessTransitionError("invalid retained Tag profile state")
+    return sorted(profile.discovered_center_keys)
+
+
+def _restore_tag_profile(value: Any) -> TagProfileState | None:
+    if value is None:
+        return None
+    if (
+        not isinstance(value, list)
+        or any(not isinstance(key, str) for key in value)
+        or len(value) != len(set(value))
+    ):
+        raise HeadlessTransitionError("invalid retained Tag profile record")
+    return TagProfileState(frozenset(value))
+
+
 def _shop_item_payload(item: Any, expected_kind: str) -> dict[str, Any]:
     item_type = _SHOP_ITEM_TYPES[expected_kind]
     if type(item) is not item_type:
@@ -288,6 +309,7 @@ def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
         },
         "blind_progression": progression,
         "boss_selection": _boss_selection_payload(run.boss_selection_state),
+        "tag_profile": _tag_profile_payload(run.tag_profile_state),
         "private": {name: _plain_value(getattr(run, name)) for name in _PRIVATE_SCALARS},
     }
 
@@ -297,7 +319,7 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
         raise HeadlessTransitionError("unsupported headless run-state snapshot schema")
     expected_keys = {
         "schema", "seed", "rng", "cards", "public", "private_zones",
-        "blind_progression", "boss_selection", "private",
+        "blind_progression", "boss_selection", "tag_profile", "private",
     }
     if set(payload) != expected_keys:
         raise HeadlessTransitionError("headless run-state snapshot fields are incomplete")
@@ -389,6 +411,7 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
             joker_order_state=JokerOrderState([], []),
             blind_progression_state=progression,
             boss_selection_state=_restore_boss_selection(payload["boss_selection"]),
+            tag_profile_state=_restore_tag_profile(payload["tag_profile"]),
             draw_pile=card_refs(zones["draw_pile"]) or [],
             discard_pile=card_refs(zones["discard_pile"]) or [],
             played_pile=card_refs(zones["played_pile"]) or [],

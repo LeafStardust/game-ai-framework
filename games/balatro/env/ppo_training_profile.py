@@ -18,6 +18,7 @@ from games.balatro.env.consumable_centers import (
 from games.balatro.env.joker_centers import VANILLA_JOKER_CENTERS
 from games.balatro.env.shop_booster_generation import VANILLA_BOOSTER_CENTERS
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.tag_selection import TagProfileState
 from games.balatro.env.voucher_centers import VANILLA_VOUCHER_CENTERS
 
 
@@ -196,6 +197,12 @@ def initialize_pristine_ppo_generation_authority(
         key: pristine_profile_discovery(key)
         for key in _PROFILE_SHOP_CENTER_KEYS
     }
+    next_run.tag_profile_state = TagProfileState(
+        frozenset(
+            key for key, discovered in next_run.generation_discovery.items()
+            if discovered
+        )
+    )
     return next_run
 
 

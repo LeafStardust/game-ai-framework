@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from games.balatro.blinds.blind import create_small_blind
+from games.balatro.blinds.blind import BlindType
+from games.balatro.env.boss_round_resolution import resolve_supported_boss_round
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.blind_progression import (
     BlindProgressionState,
@@ -38,7 +40,7 @@ from games.balatro.env.transition import (
 from games.balatro.state import BalatroState
 
 
-PPO_HEADLESS_BACKEND_SCHEMA = "balatro-red-white-ppo-headless-backend-v2"
+PPO_HEADLESS_BACKEND_SCHEMA = "balatro-red-white-ppo-headless-backend-v3"
 _MAX_TACTICAL_ACTIONS = 4096
 
 
@@ -191,10 +193,18 @@ class PPOHeadlessBackend:
             )
             tactical_actions += 1
         if next_run.public.phase == "ROUND_EVAL":
-            resolution = resolve_supported_ordinary_round(
-                next_run,
-                next_run.require_blind_progression_state(),
-            )
+            if next_run.public.blind.type is BlindType.BOSS:
+                resolution = resolve_supported_boss_round(
+                    next_run,
+                    next_run.require_blind_progression_state(),
+                    next_run.require_boss_selection_state(),
+                    next_run.require_tag_profile_state(),
+                )
+            else:
+                resolution = resolve_supported_ordinary_round(
+                    next_run,
+                    next_run.require_blind_progression_state(),
+                )
             shop = resolution.run.public
             if shop.phase != "SHOP" or not shop.shop_active or any(
                 (

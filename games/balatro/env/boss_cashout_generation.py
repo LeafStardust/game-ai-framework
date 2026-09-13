@@ -68,6 +68,14 @@ def generate_post_boss_cashout_choices(
         raise BlindProgressionError(
             "explicit blind progression conflicts with retained run progression"
         )
+    if run.boss_selection_state is not None and run.boss_selection_state != boss_selection:
+        raise BossSelectionError(
+            "explicit Boss selection conflicts with retained run authority"
+        )
+    if run.tag_profile_state is not None and run.tag_profile_state != tag_profile:
+        raise BlindProgressionError(
+            "explicit Tag profile conflicts with retained run authority"
+        )
 
     state = run.public
     if state.phase != "SHOP" or not state.shop_active:
@@ -131,6 +139,8 @@ def generate_post_boss_cashout_choices(
     next_progression.small_tag = small_tag
     next_progression.big_tag = big_tag
     next_run.blind_progression_state = deepcopy(next_progression)
+    next_run.boss_selection_state = next_boss_selection
+    next_run.tag_profile_state = tag_profile
 
     return PostBossCashoutGeneration(
         run=next_run,
