@@ -701,7 +701,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
 - B0 RL baseline infrastructure: **COMPLETE / GREEN**.
-- PPO/observation training: **IN PROGRESS — FIRST COMPLETE PPO SHOP EXPOSURE GREEN; NEXT TASK IS EXACT LATER ORDINARY-SHOP CONTINUATION**.
+- PPO/observation training: **IN PROGRESS — BIG-BLIND/LATER-SHOP CONTINUATION GREEN; NEXT TASK IS INITIAL BOSS-SELECTION AUTHORITY**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
 ## Current strategic action contract
@@ -2018,11 +2018,11 @@ capture.
 
 ### Next actions
 
-1. Extend the concrete PPO backend through `END_SHOP`, Big-Blind selection,
-   exact ordinary clear/cash-out, and a later normal shop generated with
-   `first_shop=False`. Derive first-versus-later shop status from retained run
-   progression rather than a call-site constant, and freeze the complete
-   Small-Shop -> Big-Blind -> later-Shop observation/mask/snapshot trajectory.
+1. Install exact initial Boss-selection authority in the frozen PPO reset,
+   retain and serialize its Boss usage state, and expose the post-Big-shop
+   `END_SHOP` transition only when it can install the exact Ante-1 Boss identity,
+   requirement, progression, v2 observation, and canonical action mask. Keep
+   unsupported Boss-round mechanics fail-closed after selection.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2429,13 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the concrete PPO backend through `END_SHOP`, Big-Blind selection, exact
-ordinary clear/cash-out, and a later normal shop generated with
-`first_shop=False`. Derive first-versus-later shop status from retained run
-progression rather than a call-site constant. Freeze the complete first-Shop ->
-Big-Blind -> later-Shop trajectory across v2 observations, canonical action
-masks, snapshots, and replay. Keep unsupported purchases and pack opening
-fail-closed, and do not add the neural model/optimizer yet.
+Install exact initial Boss-selection authority in the frozen PPO reset, retain
+and serialize its Boss usage state, and expose the post-Big-shop `END_SHOP`
+transition only when it can install the exact Ante-1 Boss identity, requirement,
+progression, v2 observation, and canonical action mask. Freeze restore/replay
+across that new boundary. Keep unsupported Boss-round mechanics fail-closed
+after selection, and do not add the neural model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2653,6 +2652,35 @@ remains absent, and `END_SHOP` remains legal. Backend snapshots are versioned
 Focused profile/backend/serialization/Booster/observation validation passed
 **49 tests** locally. GitHub Actions run `34754106354`, job `103715456908`,
 passed; the actual log reports **2835 passed, 1602 deselected in 117.33s**.
+
+### Exact Big-Blind and later-shop PPO checkpoint
+
+Commit `9f8341d6b861cca666956b1754a735e2868fbab0` replaces the obsolete
+first-loss backend identity with the canonical `PPOHeadlessBackend` and
+`balatro-red-white-ppo-headless-backend-v1` snapshot schema. Its retained-
+progression shop-exit owner now validates the complete round-end deck, advances
+Small from Defeated to Big Select, installs the exact same-Ante Big Blind and
+White-Stake `$4` reward, clears shop inventory, and normalizes the private deck
+boundary before the existing generalized round-start shuffle/deal owner runs.
+
+Normal-shop generation now derives the one first-shop condition from exact
+public/private progression plus Ante/round state. The backend no longer passes
+a first-shop boolean. For deterministic seed `0`, the first shop contains
+Jupiter, The Hierophant, Wasteful, forced Buffoon Pack variant 1, and Standard
+Pack variant 3. After `END_SHOP`, the exact Ante-1 Big Blind has requirement
+`450`; clearing it reaches round 2 with `$19` and a later shop containing Ice
+Cream, Faceless Joker, Planet Merchant, weighted Buffoon Pack variant 2, and
+Mega Celestial Pack variant 1. Snapshot restore/replay and both 2,456-value
+observations match exactly.
+
+The later shop's canonical mask contains only its supported Planet Merchant
+purchase for this seed. Booster opening remains absent, and `END_SHOP` remains
+absent because exact initial Boss-selection authority is not yet retained.
+Rollout boundaries now represent SHOP's defeated zero-requirement Blind as no
+active blind requirement instead of publishing an invalid positive-target
+claim. The exact CI-equivalent selection passed **2836 tests** locally. GitHub
+Actions run `34754850718`, job `103717391285`, passed; the actual log reports
+**2836 passed, 1602 deselected in 116.90s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
