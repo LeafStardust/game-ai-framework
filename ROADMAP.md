@@ -701,7 +701,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
 - B0 RL baseline infrastructure: **COMPLETE / GREEN**.
-- PPO/observation training: **IN PROGRESS — ORDINARY-BLIND CLEAR/CASH-OUT COMPOSITION GREEN; NEXT TASK IS EXACT NORMAL-SHOP BOOSTER GENERATION**.
+- PPO/observation training: **IN PROGRESS — FIRST COMPLETE PPO SHOP EXPOSURE GREEN; NEXT TASK IS EXACT LATER ORDINARY-SHOP CONTINUATION**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
 ## Current strategic action contract
@@ -2018,7 +2018,11 @@ capture.
 
 ### Next actions
 
-1. Propagate frozen profile discovery into generated shop items, install the profile generation authority during PPO reset, add exact snapshot round-trip support for generated shop metadata, and expose the complete first `SHOP` after ordinary cash-out. Legal actions must come from the canonical shop transition owner; unsupported Voucher purchases and Booster opening remain illegal.
+1. Extend the concrete PPO backend through `END_SHOP`, Big-Blind selection,
+   exact ordinary clear/cash-out, and a later normal shop generated with
+   `first_shop=False`. Derive first-versus-later shop status from retained run
+   progression rather than a call-site constant, and freeze the complete
+   Small-Shop -> Big-Blind -> later-Shop observation/mask/snapshot trajectory.
 2. Keep the natural Money Tree capture on hold until the user explicitly resumes it.
 3. Keep unsupported Boss skips/rerolls, pack/pre-blind/Verdant sales, shop buy-and-use, Tarot/Spectral mechanics, booster Planet choices, policy tuning, and playing-card purchases fail-closed. `BUY_CARD` and `REROLL_BOSS` remain unavailable.
 
@@ -2425,14 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Propagate the frozen profile's exact discovery state into generated Joker,
-Tarot/Planet, Voucher, and Booster items. Install the profile generation
-authority during PPO reset, add exact snapshot round-trip support for the
-generated shop metadata types, and compose the first shop as main cards ->
-Voucher -> Boosters after ordinary cash-out. Expose that `SHOP` only when its
-v2 observation, restore result, and canonical legal-action mask agree. Keep
-unsupported Voucher purchases and Booster opening illegal, and do not add the
-neural model/optimizer yet.
+Extend the concrete PPO backend through `END_SHOP`, Big-Blind selection, exact
+ordinary clear/cash-out, and a later normal shop generated with
+`first_shop=False`. Derive first-versus-later shop status from retained run
+progression rather than a call-site constant. Freeze the complete first-Shop ->
+Big-Blind -> later-Shop trajectory across v2 observations, canonical action
+masks, snapshots, and replay. Keep unsupported purchases and pack opening
+fail-closed, and do not add the neural model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2619,6 +2622,37 @@ generated inventory snapshot support are owned. Focused Voucher-catalogue,
 observation, action, PPO, profile, backend, and baseline validation passed **89
 tests** locally. GitHub Actions run `34753261588`, job `103713261354`, passed;
 the actual log reports **2833 passed, 1602 deselected in 110.58s**.
+
+### Exact first PPO shop exposure checkpoint
+
+Commit `eca99c33618402c1f4b23cbb1876557263a286dc` installs the frozen
+profile's complete generation and discovery authority at the pristine PPO
+reset. Discovery is retained as private deterministic run state and propagated
+by the canonical Joker, Tarot/Planet, Voucher, and Booster materializers. The
+base Joker is discovered and every other pinned new-profile shop center starts
+undiscovered; a generated center missing from retained authority fails closed
+rather than inheriting a default.
+
+The versioned headless snapshot is now
+`balatro-headless-run-state-v2`. It admits only the four exact generated shop
+metadata dataclasses, validates their concrete type and fields, preserves the
+discovery authority, and rejects malformed records or discovery disagreement.
+Owned Joker/consumable objects and pack-choice objects remain outside this
+snapshot surface.
+
+After exact first-Small-Blind progression and ordinary cash-out, the concrete
+backend now composes main cards -> Voucher -> Boosters and exposes the complete
+agent-owned `SHOP`. For deterministic seed `CLEAR`, the exact visible sequence
+is Droll, The Tower, Director's Cut, Buffoon Pack variant 1, and Celestial Pack
+variant 4; all five centers are undiscovered. Its 2,456-value v2 observation,
+snapshot restore, and canonical legal-action mask agree exactly. The selected
+unsupported Director's Cut Voucher has no `BUY_VOUCHER` action, Booster opening
+remains absent, and `END_SHOP` remains legal. Backend snapshots are versioned
+`balatro-red-white-pristine-loss-backend-v2`.
+
+Focused profile/backend/serialization/Booster/observation validation passed
+**49 tests** locally. GitHub Actions run `34754106354`, job `103715456908`,
+passed; the actual log reports **2835 passed, 1602 deselected in 117.33s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
