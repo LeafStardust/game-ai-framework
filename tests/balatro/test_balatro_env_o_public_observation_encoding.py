@@ -8,11 +8,16 @@ from games.balatro.env.observation_encoding import (
     PUBLIC_OBSERVATION_SCHEMA,
     PUBLIC_OBSERVATION_VERSION,
     PublicObservationEncodingError,
+    VOUCHER_KEYS,
     encode_public_observation,
 )
+from games.balatro.env.actions import EnvAction
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.env.shop_items import GeneratedShopJokerItem
 from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
+from games.balatro.env.transition import HeadlessRunState, ShopTransitionEngine
+from games.balatro.env.voucher_capabilities import SHOP_BASE_GENERATION_VOUCHER_KEYS
+from games.balatro.env.voucher_centers import VANILLA_VOUCHER_CENTER_KEYS
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.state import BalatroState
 
@@ -39,6 +44,7 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
     assert PUBLIC_OBSERVATION_SCHEMA.version == PUBLIC_OBSERVATION_VERSION
     assert encoded.schema_version == PUBLIC_OBSERVATION_VERSION
     assert encoded.shape == PUBLIC_OBSERVATION_SCHEMA.shape
+    assert encoded.shape == (2456,)
     assert PUBLIC_OBSERVATION_SCHEMA.feature_names[:5] == (
         "frame.status", "frame.owner", "state.phase", "state.money", "state.ante"
     )
@@ -46,6 +52,52 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
     assert _at(encoded, "state.blind.requirement") == 300.0
     assert _at(encoded, "hand.0.rank") == 13.0
     assert _at(encoded, "jokers.0.present") == 1.0
+
+
+def test_env_o_v2_separates_all_voucher_identities_from_mechanics_support():
+    assert VOUCHER_KEYS == VANILLA_VOUCHER_CENTER_KEYS
+    assert len(VOUCHER_KEYS) == 32
+    assert "v_blank" in VOUCHER_KEYS
+    assert "v_blank" not in SHOP_BASE_GENERATION_VOUCHER_KEYS
+
+    frame = _frame()
+    frame.state.phase = "SHOP"
+    frame.state.shop_active = True
+    frame.state.money = 20
+    frame.state.shop_vouchers = [GeneratedShopVoucherItem("v_blank", 10, 10)]
+    encoded = encode_public_observation(frame)
+    assert _at(encoded, "shop.vouchers.0.center") > 0.0
+
+    run = HeadlessRunState(public=frame.state, seed="UNSUPPORTED-VOUCHER")
+    assert ShopTransitionEngine().legal_actions(run) == (
+        # Identity is visible, but Blank redemption remains unsupported.
+        EnvAction.from_alias("END_SHOP"),
+    )
+
+
+def test_env_o_voucher_pool_features_encode_eligibility_not_catalogue_presence():
+    frame = _frame()
+    frame.state.voucher_generation_pool_observed = True
+    frame.state.voucher_generation_pool = [
+        {
+            "key": key,
+            "cost": 10,
+            "unlocked": key == "v_overstock_norm",
+            "requires": [] if key == "v_overstock_norm" else ["v_overstock_norm"],
+            "no_pool_flag": None,
+            "yes_pool_flag": None,
+            "eligible": key == "v_overstock_norm",
+        }
+        for key in VANILLA_VOUCHER_CENTER_KEYS
+    ]
+    encoded = encode_public_observation(frame)
+    assert _at(encoded, "pool.voucher.v_overstock_norm") == 1.0
+    assert _at(encoded, "pool.voucher.v_overstock_plus") == 0.0
+    assert _at(encoded, "pool.voucher.v_blank") == 0.0
+
+    frame.state.voucher_generation_pool[0]["eligible"] = None
+    with pytest.raises(PublicObservationEncodingError, match="invalid eligibility"):
+        encode_public_observation(frame)
 
 
 def test_env_o_encoded_output_and_schema_are_immutable():

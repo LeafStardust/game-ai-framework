@@ -14,7 +14,7 @@ from games.balatro.env.consumable_centers import (
 from games.balatro.env.joker_centers import VANILLA_JOKER_CENTERS
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.tag_selection import ALL_TAG_KEYS
-from games.balatro.env.voucher_capabilities import SHOP_BASE_GENERATION_VOUCHER_KEYS
+from games.balatro.env.voucher_centers import VANILLA_VOUCHER_CENTER_KEYS
 from games.balatro.hand import PokerHand
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.planets import PLANET_CARDS
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from games.balatro.env.state import EnvStateFrame
 
 
-PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v1"
+PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v2"
 
 PHASES = (
     "ROUND_START", "BLIND_SELECT", "DRAW_TO_HAND", "SELECTING_HAND", "SHOP",
@@ -47,7 +47,7 @@ ENHANCEMENT_ORDER = tuple(sorted(ENHANCEMENTS))
 EDITION_ORDER = tuple(sorted(EDITIONS))
 SEAL_ORDER = tuple(sorted(SEALS))
 TAG_KEYS = tuple(sorted(ALL_TAG_KEYS))
-VOUCHER_KEYS = tuple(sorted(SHOP_BASE_GENERATION_VOUCHER_KEYS))
+VOUCHER_KEYS = VANILLA_VOUCHER_CENTER_KEYS
 JOKER_CENTER_KEYS = tuple(center.key for center in VANILLA_JOKER_CENTERS)
 CONSUMABLE_CENTER_KEYS = (*VANILLA_TAROT_CENTER_ORDER, *VANILLA_PLANET_CENTER_ORDER)
 PACK_CENTER_KEYS = tuple(
@@ -371,7 +371,14 @@ def _fixed_shop(items: Any, capacity: int, field: str, centers: tuple[str, ...],
     return values
 
 
-def _pool_mask(observed: bool, pools: Any, keys: tuple[str, ...], field: str) -> list[float]:
+def _pool_mask(
+    observed: bool,
+    pools: Any,
+    keys: tuple[str, ...],
+    field: str,
+    *,
+    eligibility_field: str | None = None,
+) -> list[float]:
     if not observed:
         if pools not in ({}, []):
             raise PublicObservationEncodingError(f"{field} data exists without observation authority")
@@ -382,7 +389,19 @@ def _pool_mask(observed: bool, pools: Any, keys: tuple[str, ...], field: str) ->
     record_keys = [record.get("key") for record in records]
     if any(key not in keys for key in record_keys) or len(record_keys) != len(set(record_keys)):
         raise PublicObservationEncodingError(f"{field} contains unknown or duplicate centers")
-    return [1.0 if key in record_keys else 0.0 for key in keys]
+    if eligibility_field is None:
+        eligible = set(record_keys)
+    else:
+        eligible = set()
+        for record in records:
+            value = record.get(eligibility_field)
+            if not isinstance(value, bool):
+                raise PublicObservationEncodingError(
+                    f"{field} contains invalid eligibility"
+                )
+            if value:
+                eligible.add(record["key"])
+    return [1.0 if key in eligible else 0.0 for key in keys]
 
 
 def encode_public_observation(frame: "EnvStateFrame") -> EncodedPublicObservation:
@@ -462,7 +481,15 @@ def encode_public_observation(frame: "EnvStateFrame") -> EncodedPublicObservatio
     values.extend(_fixed_shop(state.shop_vouchers, MAX_SHOP_VOUCHERS, "shop.vouchers", VOUCHER_KEYS, "VOUCHER"))
     values.extend(_pool_mask(state.joker_generation_pool_observed, state.joker_generation_pools, JOKER_CENTER_KEYS, "Joker pool"))
     values.extend(_pool_mask(state.consumable_generation_pool_observed, state.consumable_generation_pools, CONSUMABLE_CENTER_KEYS, "consumable pool"))
-    values.extend(_pool_mask(state.voucher_generation_pool_observed, state.voucher_generation_pool, VOUCHER_KEYS, "Voucher pool"))
+    values.extend(
+        _pool_mask(
+            state.voucher_generation_pool_observed,
+            state.voucher_generation_pool,
+            VOUCHER_KEYS,
+            "Voucher pool",
+            eligibility_field="eligible",
+        )
+    )
     encoded = EncodedPublicObservation(PUBLIC_OBSERVATION_VERSION, tuple(values))
     if encoded.shape != PUBLIC_OBSERVATION_SCHEMA.shape:
         raise RuntimeError("public observation implementation drifted from its versioned schema")

@@ -17,6 +17,7 @@ from games.balatro.env.consumable_centers import (
 from games.balatro.env.joker_centers import VANILLA_JOKER_CENTERS
 from games.balatro.env.shop_booster_generation import VANILLA_BOOSTER_CENTERS
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.voucher_centers import VANILLA_VOUCHER_CENTERS
 
 
 PPO_TRAINING_PROFILE_SCHEMA = "balatro-red-white-pristine-profile-v1"
@@ -57,28 +58,11 @@ _INITIAL_INELIGIBLE_UNLOCKED_JOKERS = frozenset(
     }
 )
 
-_BASE_VOUCHERS = (
-    "v_overstock_norm", "v_clearance_sale", "v_hone", "v_reroll_surplus",
-    "v_crystal_ball", "v_telescope", "v_grabber", "v_wasteful",
-    "v_tarot_merchant", "v_planet_merchant", "v_seed_money", "v_blank",
-    "v_magic_trick", "v_hieroglyph", "v_directors_cut", "v_paint_brush",
-)
-_UPGRADE_VOUCHERS = (
-    "v_overstock_plus", "v_liquidation", "v_glow_up", "v_reroll_glut",
-    "v_omen_globe", "v_observatory", "v_nacho_tong", "v_recyclomancy",
-    "v_tarot_tycoon", "v_planet_tycoon", "v_money_tree", "v_antimatter",
-    "v_illusion", "v_petroglyph", "v_retcon", "v_palette",
-)
-
 _PROFILE_SHOP_CENTER_KEYS = frozenset(
     tuple(center.key for center in VANILLA_JOKER_CENTERS)
     + VANILLA_TAROT_CENTER_ORDER
     + VANILLA_PLANET_CENTER_ORDER
-    + tuple(
-        key
-        for pair in zip(_BASE_VOUCHERS, _UPGRADE_VOUCHERS, strict=True)
-        for key in pair
-    )
+    + tuple(center.key for center in VANILLA_VOUCHER_CENTERS)
     + tuple(center.center_key for center in VANILLA_BOOSTER_CENTERS)
 )
 
@@ -146,17 +130,18 @@ def _consumable_pools() -> dict[str, list[dict]]:
 
 
 def _voucher_pool() -> list[dict]:
-    result: list[dict] = []
-    for base, upgrade in zip(_BASE_VOUCHERS, _UPGRADE_VOUCHERS, strict=True):
-        result.append(
-            {"key": base, "cost": 10, "unlocked": True, "requires": [],
-             "no_pool_flag": None, "yes_pool_flag": None, "eligible": True}
-        )
-        result.append(
-            {"key": upgrade, "cost": 10, "unlocked": False, "requires": [base],
-             "no_pool_flag": None, "yes_pool_flag": None, "eligible": False}
-        )
-    return result
+    return [
+        {
+            "key": center.key,
+            "cost": center.base_cost,
+            "unlocked": center.default_unlocked,
+            "requires": list(center.requires),
+            "no_pool_flag": None,
+            "yes_pool_flag": None,
+            "eligible": center.default_unlocked and not center.requires,
+        }
+        for center in VANILLA_VOUCHER_CENTERS
+    ]
 
 
 def initialize_pristine_ppo_generation_authority(

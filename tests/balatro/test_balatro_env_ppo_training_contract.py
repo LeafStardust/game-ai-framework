@@ -66,7 +66,7 @@ def test_env_ppo_training_design_is_frozen_and_binds_every_input_contract():
 
     assert contract.version == PPO_TRAINING_CONTRACT_VERSION
     assert contract.algorithm == "clipped_ppo"
-    assert (contract.observation_size, contract.action_size) == (2444, 27)
+    assert (contract.observation_size, contract.action_size) == (2456, 27)
     assert contract.reward_contract == "balatro-red-white-sparse-terminal-reward-v1"
     assert contract.training_seed_policy == "derived_non_holdout_game_seeds"
     assert contract.policy_hidden_sizes == (512, 256)

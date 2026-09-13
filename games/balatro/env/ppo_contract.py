@@ -33,10 +33,10 @@ from games.balatro.env.seeded_evaluation import (
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 
 
-PPO_TRAINING_CONTRACT_VERSION = "balatro-red-white-ppo-training-v1"
-PPO_TRAINING_RUN_SCHEMA = "balatro-red-white-ppo-run-v1"
-PPO_POLICY_OUTPUT_SCHEMA = "balatro-red-white-ppo-policy-output-v1"
-PPO_ROLLOUT_EPISODE_SCHEMA = "balatro-red-white-ppo-rollout-episode-v1"
+PPO_TRAINING_CONTRACT_VERSION = "balatro-red-white-ppo-training-v2"
+PPO_TRAINING_RUN_SCHEMA = "balatro-red-white-ppo-run-v2"
+PPO_POLICY_OUTPUT_SCHEMA = "balatro-red-white-ppo-policy-output-v2"
+PPO_ROLLOUT_EPISODE_SCHEMA = "balatro-red-white-ppo-rollout-episode-v2"
 PPO_ALGORITHM = "clipped_ppo"
 PPO_REWARD_CONTRACT = "balatro-red-white-sparse-terminal-reward-v1"
 PPO_TRAINING_SEED_POLICY = "derived_non_holdout_game_seeds"
@@ -101,7 +101,7 @@ class PPOTrainingContract:
     maximum_episode_actions: int = 4096
 
     def __post_init__(self) -> None:
-        # Keep v1 pre-registration immutable. A changed design requires a new version.
+        # Keep v2 pre-registration immutable. A changed design requires a new version.
         frozen = {
             "version": PPO_TRAINING_CONTRACT_VERSION,
             "algorithm": PPO_ALGORITHM,
@@ -130,7 +130,7 @@ class PPOTrainingContract:
             "maximum_episode_actions": 4096,
         }
         if asdict(self) != frozen:
-            raise PPOContractError("PPO training contract v1 has drifted")
+            raise PPOContractError("PPO training contract v2 has drifted")
         batch_size = self.parallel_environments * self.rollout_steps_per_environment
         if batch_size % self.minibatch_size or self.total_environment_steps % batch_size:
             raise PPOContractError("PPO batch schedule must divide exactly")

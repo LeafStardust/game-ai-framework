@@ -3,6 +3,7 @@ import pytest
 from games.balatro.blinds.blind import create_small_blind
 from games.balatro.env.blind_progression import BlindProgressionState
 from games.balatro.env.episode_backend import pristine_red_white_reset
+from games.balatro.env.observation_encoding import PUBLIC_OBSERVATION_SCHEMA
 from games.balatro.env.ppo_training_profile import (
     PPO_TRAINING_PROFILE,
     PPO_TRAINING_PROFILE_SCHEMA,
@@ -15,6 +16,7 @@ from games.balatro.env.shop_consumable_generation_state import (
     eligible_consumable_records_from_state,
 )
 from games.balatro.env.shop_voucher_generation import voucher_pool_from_observed_state
+from games.balatro.env.state import EnvStateFrame
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
 
@@ -97,6 +99,9 @@ def test_env_ppo_pristine_profile_installs_exact_source_ordered_catalogues():
         "v_overstock_norm", "UNAVAILABLE", "v_clearance_sale", "UNAVAILABLE",
     )
     assert voucher_pool[-2:] == ("v_paint_brush", "UNAVAILABLE")
+    assert EnvStateFrame(initialized.public).encoded_observation().shape == (
+        len(PUBLIC_OBSERVATION_SCHEMA.feature_names),
+    )
 
 
 def test_env_ppo_profile_rejects_nonpristine_or_existing_authority_atomically():
