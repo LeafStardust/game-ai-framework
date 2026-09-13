@@ -2429,13 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Retain and serialize the frozen pristine-profile `TagProfileState`, then route
-only an exactly supported cleared Boss `ROUND_EVAL` through the existing
-canonical `resolve_supported_boss_round` owner. Compose its ungenerated
-next-Ante shop with the existing exact normal-shop inventory owner and freeze
-restore/replay through that post-Boss shop boundary. Unsupported Boss start,
-tactical, defeat, cash-out, Tag, or shop mechanics must remain fail-closed; do
-not add the neural model/optimizer yet.
+Extend the retained-progression shop-exit owner for the exact post-Boss shop
+shape produced by `reset_blinds()`. Expose `END_SHOP` only when it can install
+the generated next-Ante Small Blind requirement, reward, Tag identity,
+progression, v3 observation, and canonical action mask. Freeze restore/replay
+across that boundary. Unsupported generated-Tag skip settlement must remain
+absent from the mask, and unsupported Boss mechanics must remain fail-closed;
+do not add the neural model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2706,6 +2706,40 @@ Boss round. Focused profile/backend/serialization/Boss/progression/encoding
 validation passed **89 tests** locally. The exact CI-equivalent selection passed
 **2839 tests** locally. GitHub Actions run `34769919493`, job `103757503778`,
 passed; the actual log reports **2839 passed, 1602 deselected in 117.38s**.
+
+### Supported Boss resolution and post-Boss PPO shop checkpoint
+
+Commits `6b19666fcc1b0e703df67b186f1a1c7430cb6815` and
+`7a98fd786ff8829d77982fbbf325cea3b1c5639a` retain the frozen pristine
+`TagProfileState` as private run authority, serialize it in
+`balatro-headless-run-state-v4`, reject retained generation-discovery drift,
+and make the canonical post-Boss generation owner retain both advanced Boss
+usage and Tag-profile state. The backend dispatches only Boss `ROUND_EVAL` to
+the existing `resolve_supported_boss_round`; ordinary rounds remain on their
+existing resolver. Post-Boss shop classification admits only the exact reset
+shape with next-Ante Small, Big, and Boss all `Upcoming`.
+
+The complete pinned 28-Boss identity catalogue now owns observation identity
+representation independently of mechanics capability. The fixed 2,456-value
+observation is versioned `balatro-red-white-public-observation-v3`, and the PPO
+training, run, policy-output, and rollout schemas are correspondingly versioned
+`v3`; the action vocabulary is unchanged. Unsupported Boss Play paths remain
+fail-closed.
+
+Deterministic seed `24` selects the already-audited Hook path. A legal five-card
+tactical policy clears Ante 1 through the canonical Boss teardown, payout, Tag
+generation, next-Boss selection, reset, and normal-shop owners. The exact
+Ante-2 shop has `$24`, Small `tag_skip`, Big `tag_voucher`, next Boss The
+Psychic, and Mad Joker, Pluto, Wasteful, Standard Pack variant 1, and Jumbo
+Arcana Pack variant 1. Snapshot restore, v3 observation, and generated inventory
+replay exactly. The post-Boss mask currently contains only supported
+`BUY_CONSUMABLE` and `BUY_VOUCHER`; `END_SHOP` remains absent until its exact
+reset-progression transition is owned. Focused validation passed **74 tests**
+locally, and the exact CI-equivalent selector passed **2842 tests** locally.
+GitHub Actions run `34789951472`, job `103812209208`, passed with **2842 passed,
+1602 deselected in 91.70s**. The final frozen-boundary commit passed GitHub
+Actions run `34790102807`, job `103812613785`; its actual log reports **2842
+passed, 1602 deselected in 123.18s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
