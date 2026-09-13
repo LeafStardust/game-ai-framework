@@ -25,6 +25,7 @@ class GeneratedShopJokerItem:
     base_cost: int
     edition: str | None
     price: int
+    discovered: bool | None = None
 
     @property
     def kind(self) -> str:
@@ -63,6 +64,7 @@ def materialize_shop_joker_descriptor(
         base_cost=descriptor.base_cost,
         edition=descriptor.edition,
         price=price,
+        discovered=descriptor.run.generated_center_discovered(center_key),
     )
     return descriptor.run.copy(), item
 

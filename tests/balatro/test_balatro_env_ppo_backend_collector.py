@@ -4,6 +4,7 @@ import pytest
 
 from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.env.action_encoding import action_index
+from games.balatro.env.action_encoding import legal_action_mask
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.environment import BalatroHeadlessEnvironment
 from games.balatro.env.episode_backend import (
@@ -72,6 +73,10 @@ def test_env_ppo_backend_reset_is_exact_pristine_red_white_boundary():
     assert run.public.vouchers == []
     assert run.public.shop_discount_percent_observed is True
     assert run.public.shop_discount_percent == 0
+    assert run.public.joker_generation_pool_observed is True
+    assert run.public.consumable_generation_pool_observed is True
+    assert run.public.voucher_generation_pool_observed is True
+    assert run.generated_center_discovered("j_joker") is True
 
 
 def test_env_ppo_backend_composes_select_and_tactical_owners_to_exact_loss():
@@ -131,22 +136,65 @@ def test_env_ppo_backend_invalid_tactical_or_snapshot_state_fails_closed():
         invalid.restore({**before, "schema": "old"})
 
 
-def test_env_ppo_backend_clear_cashout_fails_closed_before_incomplete_shop():
+def test_env_ppo_backend_clear_cashout_exposes_exact_generated_first_shop():
     backend = PristineFirstBlindLossBackend(_OneCardTacticalPolicy())
     environment = BalatroHeadlessEnvironment(backend)
     environment.reset(seed="CLEAR")
     backend.run.public.hand_levels["HIGH_CARD"] = 1000
-    before = backend.serialize()
+    _, reward, terminated, truncated, _ = environment.step(
+        EnvAction.from_alias("SELECT_BLIND")
+    )
 
-    with pytest.raises(
-        HeadlessTransitionError,
-        match="complete normal shop inventory authority.*exact ordinary cash-out",
-    ):
-        environment.step(EnvAction.from_alias("SELECT_BLIND"))
-
-    assert backend.serialize() == before
+    assert (reward, terminated, truncated) == (0.0, False, False)
     assert environment.frame.status is RunStatus.RUNNING
-    assert environment.frame.state.phase == "BLIND_SELECT"
+    assert environment.frame.owner is TurnOwner.AGENT
+    assert environment.frame.state.phase == "SHOP"
+    observation = environment.frame.encoded_observation()
+    assert observation.shape == (PPO_TRAINING_CONTRACT.observation_size,)
+    assert len(backend.run.public.shop_jokers) + len(
+        backend.run.public.shop_consumables
+    ) == 2
+    assert len(backend.run.public.shop_vouchers) == 1
+    assert len(backend.run.public.shop_boosters) == 2
+    assert tuple(
+        item.center_key
+        for items in (
+            backend.run.public.shop_jokers,
+            backend.run.public.shop_consumables,
+            backend.run.public.shop_vouchers,
+            backend.run.public.shop_boosters,
+        )
+        for item in items
+    ) == (
+        "j_droll",
+        "c_tower",
+        "v_directors_cut",
+        "p_buffoon_normal_1",
+        "p_celestial_normal_4",
+    )
+    assert all(
+        item.discovered is False
+        for items in (
+            backend.run.public.shop_jokers,
+            backend.run.public.shop_consumables,
+            backend.run.public.shop_vouchers,
+            backend.run.public.shop_boosters,
+        )
+        for item in items
+    )
+
+    actions = environment.legal_actions()
+    assert EnvAction.from_alias("END_SHOP") in actions
+    assert all(action.alias != "OPEN_PACK" for action in actions)
+    assert all(action.alias != "BUY_VOUCHER" for action in actions)
+    assert legal_action_mask(actions).values[action_index(EnvAction.from_alias("END_SHOP"))]
+
+    snapshot = environment.serialize()
+    restored = _environment()
+    restored.restore(snapshot)
+    assert restored.frame.encoded_observation().values == observation.values
+    assert restored.serialize() == snapshot
+    assert restored.legal_actions() == actions
 
 
 def test_env_ppo_sparse_terminal_reward_contract_is_exact():

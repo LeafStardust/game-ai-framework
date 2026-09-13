@@ -10,22 +10,34 @@ from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.env.blind_progression import BlindProgressionState
 from games.balatro.env.joker_order import JokerOrderState
+from games.balatro.env.shop_booster_generation import GeneratedShopBoosterItem
+from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
+from games.balatro.env.shop_items import GeneratedShopJokerItem
+from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
 
 
-HEADLESS_RUN_STATE_SCHEMA = "balatro-headless-run-state-v1"
+HEADLESS_RUN_STATE_SCHEMA = "balatro-headless-run-state-v2"
 _CARD_ZONE_FIELDS = frozenset({"deck", "owned_deck", "hand", "discard_pile"})
 _UNSUPPORTED_OBJECT_FIELDS = frozenset(
     {
         "jokers",
         "consumables",
-        "shop_jokers",
-        "shop_consumables",
-        "shop_boosters",
-        "shop_vouchers",
     }
 )
+_SHOP_ITEM_TYPES = {
+    "JOKER": GeneratedShopJokerItem,
+    "CONSUMABLE": GeneratedShopConsumableItem,
+    "BOOSTER": GeneratedShopBoosterItem,
+    "VOUCHER": GeneratedShopVoucherItem,
+}
+_SHOP_FIELDS = {
+    "shop_jokers": "JOKER",
+    "shop_consumables": "CONSUMABLE",
+    "shop_boosters": "BOOSTER",
+    "shop_vouchers": "VOUCHER",
+}
 _PRIVATE_SCALARS = (
     "round_bonus_hands",
     "round_bonus_discards",
@@ -41,6 +53,7 @@ _PRIVATE_SCALARS = (
     "consumable_usage_observed",
     "consumable_usage_counts",
     "consumable_usage_totals",
+    "generation_discovery",
 )
 
 
@@ -107,6 +120,78 @@ def _blind_payload(blind: Blind | None) -> dict[str, Any] | None:
     }
 
 
+def _shop_item_payload(item: Any, expected_kind: str) -> dict[str, Any]:
+    item_type = _SHOP_ITEM_TYPES[expected_kind]
+    if type(item) is not item_type:
+        raise HeadlessTransitionError(
+            f"headless snapshot requires exact generated {expected_kind} metadata"
+        )
+    _validate_shop_item(item, expected_kind)
+    return {
+        "type": expected_kind,
+        "fields": _plain_value(asdict(item)),
+    }
+
+
+def _validate_shop_item(item: Any, kind: str) -> None:
+    if not isinstance(item.center_key, str) or not item.center_key:
+        raise HeadlessTransitionError("generated shop center key is invalid")
+    for name in ("base_cost", "price"):
+        value = getattr(item, name)
+        if type(value) is not int or value < 0:
+            raise HeadlessTransitionError(f"generated shop {name} is invalid")
+    if item.discovered is not None and not isinstance(item.discovered, bool):
+        raise HeadlessTransitionError("generated shop discovery is invalid")
+    if kind == "JOKER":
+        if type(item.rarity) is not int or item.rarity not in (1, 2, 3):
+            raise HeadlessTransitionError("generated Joker rarity is invalid")
+        if item.edition not in {None, "Foil", "Holographic", "Polychrome", "Negative"}:
+            raise HeadlessTransitionError("generated Joker edition is invalid")
+    elif kind == "CONSUMABLE":
+        if item.card_type not in {"Tarot", "Planet"}:
+            raise HeadlessTransitionError("generated consumable type is invalid")
+    elif kind == "VOUCHER":
+        if item.area_index is not None and (
+            type(item.area_index) is not int or item.area_index < 0
+        ):
+            raise HeadlessTransitionError("generated Voucher area index is invalid")
+    elif kind == "BOOSTER":
+        if any(
+            not isinstance(getattr(item, name), str) or not getattr(item, name)
+            for name in ("family", "label")
+        ):
+            raise HeadlessTransitionError("generated Booster labels are invalid")
+        if any(
+            type(getattr(item, name)) is not int or getattr(item, name) < 1
+            for name in ("pack_size", "choices")
+        ) or item.booster_position not in (1, 2):
+            raise HeadlessTransitionError("generated Booster dimensions are invalid")
+
+
+def _restore_shop_item(value: Any, expected_kind: str) -> Any:
+    item_type = _SHOP_ITEM_TYPES[expected_kind]
+    expected_fields = {field.name for field in fields(item_type)}
+    if (
+        not isinstance(value, Mapping)
+        or set(value) != {"type", "fields"}
+        or value["type"] != expected_kind
+        or not isinstance(value["fields"], Mapping)
+        or set(value["fields"]) != expected_fields
+    ):
+        raise HeadlessTransitionError("invalid generated shop item record")
+    try:
+        item = item_type(**{
+            key: _restore_plain(field_value)
+            for key, field_value in value["fields"].items()
+        })
+    except (TypeError, ValueError) as exc:
+        raise HeadlessTransitionError("invalid generated shop item record") from exc
+    # Re-encoding enforces the admitted concrete type, metadata invariants, and
+    # plain-value surface.
+    _shop_item_payload(item, expected_kind)
+    return item
+
+
 def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -135,6 +220,10 @@ def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
             public_payload[name] = refs(value)
         elif name == "blind":
             public_payload[name] = _blind_payload(value)
+        elif name in _SHOP_FIELDS:
+            public_payload[name] = [
+                _shop_item_payload(item, _SHOP_FIELDS[name]) for item in value
+            ]
         else:
             public_payload[name] = _plain_value(value)
 
@@ -219,6 +308,14 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
                     raise HeadlessTransitionError("invalid Blind in headless snapshot") from exc
             else:
                 raise HeadlessTransitionError("invalid Blind record in headless snapshot")
+        elif name in _SHOP_FIELDS:
+            if not isinstance(value, list):
+                raise HeadlessTransitionError("invalid generated shop inventory")
+            setattr(
+                state,
+                name,
+                [_restore_shop_item(item, _SHOP_FIELDS[name]) for item in value],
+            )
         else:
             setattr(state, name, _restore_plain(value))
 

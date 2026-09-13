@@ -262,6 +262,7 @@ def materialize_normal_shop_booster(
         pack_size=center.pack_size,
         choices=center.choices,
         booster_position=booster_position,
+        discovered=run.generated_center_discovered(center.center_key),
     )
 
 

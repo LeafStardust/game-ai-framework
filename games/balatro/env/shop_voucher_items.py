@@ -36,6 +36,7 @@ class GeneratedShopVoucherItem:
     base_cost: int
     price: int
     area_index: int | None = None
+    discovered: bool | None = None
 
     @property
     def kind(self) -> str:
@@ -106,6 +107,7 @@ def materialize_normal_shop_voucher_descriptor(
         center_key=descriptor.center_key,
         base_cost=descriptor.base_cost,
         price=price,
+        discovered=run.generated_center_discovered(descriptor.center_key),
     )
 
 

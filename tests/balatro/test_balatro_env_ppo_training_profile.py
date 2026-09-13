@@ -135,11 +135,13 @@ def test_env_ppo_profile_rejects_nonpristine_generation_rates(field, value):
         initialize_pristine_ppo_generation_authority(run)
 
 
-def test_env_ppo_reset_remains_closed_before_profile_schema_integration():
+def test_env_ppo_reset_installs_profile_generation_and_discovery_authority():
     run = pristine_red_white_reset("PROFILE-RESET")
-    assert run.public.joker_generation_pool_observed is False
-    assert run.public.consumable_generation_pool_observed is False
-    assert run.public.voucher_generation_pool_observed is False
+    assert run.public.joker_generation_pool_observed is True
+    assert run.public.consumable_generation_pool_observed is True
+    assert run.public.voucher_generation_pool_observed is True
+    assert run.generated_center_discovered("j_joker") is True
+    assert run.generated_center_discovered("c_fool") is False
 
 
 def test_env_ppo_profile_drives_complete_first_shop_in_source_order():
@@ -171,6 +173,9 @@ def test_env_ppo_profile_drives_complete_first_shop_in_source_order():
         "p_buffoon_normal_1",
         "p_arcana_normal_4",
     )
+    assert tuple(item.discovered for item in generated.main.items) == (False, False)
+    assert generated.voucher.discovered is False
+    assert tuple(item.discovered for item in generated.boosters.items) == (False, False)
     nodes = generated.run.rng_snapshot()["nodes"]
     assert "Voucher" in nodes
     assert "shop_pack1" in nodes

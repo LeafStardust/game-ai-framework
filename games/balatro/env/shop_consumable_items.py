@@ -49,6 +49,7 @@ class GeneratedShopConsumableItem:
     center_key: str
     base_cost: int
     price: int
+    discovered: bool | None = None
 
     @property
     def kind(self) -> str:
@@ -171,6 +172,7 @@ def materialize_base_shop_consumable_descriptor(
         center_key=descriptor.center_key,
         base_cost=descriptor.base_cost,
         price=price,
+        discovered=run.generated_center_discovered(descriptor.center_key),
     )
     return run.copy(), item
 

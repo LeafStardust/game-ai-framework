@@ -189,4 +189,8 @@ def initialize_pristine_ppo_generation_authority(
     next_run.public.consumable_generation_pools = _consumable_pools()
     next_run.public.voucher_generation_pool_observed = True
     next_run.public.voucher_generation_pool = _voucher_pool()
+    next_run.generation_discovery = {
+        key: pristine_profile_discovery(key)
+        for key in _PROFILE_SHOP_CENTER_KEYS
+    }
     return next_run

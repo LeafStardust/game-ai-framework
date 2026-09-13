@@ -223,6 +223,7 @@ class HeadlessRunState:
     consumable_usage_observed: bool = False
     consumable_usage_counts: dict[str, int] = field(default_factory=dict)
     consumable_usage_totals: dict[str, int] = field(default_factory=dict)
+    generation_discovery: dict[str, bool] | None = None
 
     def __post_init__(self) -> None:
         if str(self.public.deck_name).upper() != "RED":
@@ -355,6 +356,31 @@ class HeadlessRunState:
                 raise HeadlessTransitionError(f"{name} must be a dictionary")
             if any(not isinstance(key, str) or type(value) is not int or value < 0 for key, value in values.items()):
                 raise HeadlessTransitionError(f"{name} must map strings to nonnegative integers")
+        if self.generation_discovery is not None:
+            if not isinstance(self.generation_discovery, dict) or any(
+                not isinstance(key, str)
+                or not key
+                or not isinstance(discovered, bool)
+                for key, discovered in self.generation_discovery.items()
+            ):
+                raise HeadlessTransitionError(
+                    "generation_discovery must map nonempty center keys to booleans"
+                )
+            for field_name in (
+                "shop_jokers",
+                "shop_consumables",
+                "shop_vouchers",
+                "shop_boosters",
+            ):
+                for item in getattr(self.public, field_name):
+                    center_key = getattr(item, "center_key", None)
+                    discovered = getattr(item, "discovered", None)
+                    if center_key not in self.generation_discovery or (
+                        discovered is not self.generation_discovery[center_key]
+                    ):
+                        raise HeadlessTransitionError(
+                            "generated shop item disagrees with discovery authority"
+                        )
         self._require_nonnegative_int("base_reroll_cost", self.base_reroll_cost)
         self._require_nonnegative_int("reroll_cost", self.reroll_cost)
         self._require_nonnegative_int("skips", self.skips)
@@ -405,6 +431,16 @@ class HeadlessRunState:
         if self.blind_progression_state is None:
             raise HeadlessTransitionError("exact blind progression state is unavailable")
         return self.blind_progression_state
+
+    def generated_center_discovered(self, center_key: str) -> bool | None:
+        """Return retained profile discovery, or None for observed live runs."""
+        if self.generation_discovery is None:
+            return None
+        if center_key not in self.generation_discovery:
+            raise HeadlessTransitionError(
+                "generated center is outside retained discovery authority"
+            )
+        return self.generation_discovery[center_key]
 
     def copy(self) -> "HeadlessRunState":
         return deepcopy(self)

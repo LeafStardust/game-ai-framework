@@ -14,19 +14,28 @@ from games.balatro.env.ordinary_round_resolution import (
     resolve_supported_ordinary_round,
 )
 from games.balatro.env.ppo_contract import PPO_REWARD_CONTRACT
+from games.balatro.env.ppo_training_profile import (
+    PPO_TRAINING_PROFILE,
+    initialize_pristine_ppo_generation_authority,
+)
 from games.balatro.env.select_blind import can_select_blind_exact, select_blind_exact
 from games.balatro.env.serialization import (
     restore_headless_run_state,
     serialize_headless_run_state,
 )
 from games.balatro.env.skip_blind import can_skip_blind_exact, skip_blind_exact
+from games.balatro.env.shop_inventory_generation import generate_normal_shop_inventory
 from games.balatro.env.state import BackendStep, EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.env.tactical_transition import apply_planned_tactical_step
-from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.transition import (
+    HeadlessRunState,
+    HeadlessTransitionError,
+    ShopTransitionEngine,
+)
 from games.balatro.state import BalatroState
 
 
-PRISTINE_LOSS_BACKEND_SCHEMA = "balatro-red-white-pristine-loss-backend-v1"
+PRISTINE_LOSS_BACKEND_SCHEMA = "balatro-red-white-pristine-loss-backend-v2"
 _MAX_TACTICAL_ACTIONS = 4096
 
 
@@ -64,7 +73,7 @@ def pristine_red_white_reset(seed: str | int) -> HeadlessRunState:
     state.round_reset_hands = 4
     state.round_reset_discards_observed = True
     state.round_reset_discards = 3
-    return HeadlessRunState(
+    run = HeadlessRunState(
         public=state,
         seed=seed,
         blind_progression_state=BlindProgressionState(
@@ -75,16 +84,16 @@ def pristine_red_white_reset(seed: str | int) -> HeadlessRunState:
             blind_ante=1,
         ),
     )
+    return initialize_pristine_ppo_generation_authority(run)
 
 
 class PristineFirstBlindLossBackend:
-    """Exact backend slice that reaches a natural first-Small-Blind loss.
+    """Exact backend slice through the first generated normal shop.
 
     The injected tactical owner is called through the existing production-shaped
-    ``decide(state)`` bridge. If that policy clears an ordinary Blind, this slice
-    completes exact progression and cash-out, then rejects the transition before
-    the still-ungenerated SHOP can become policy-visible. It never converts a
-    clear into a synthetic terminal or publishes partial shop inventory.
+    ``decide(state)`` bridge. If that policy clears the first ordinary Blind, this
+    slice completes exact progression and cash-out and publishes the source-ordered
+    main cards, Voucher, and Boosters before exposing the SHOP boundary.
     """
 
     def __init__(self, tactical_decision_engine: object):
@@ -128,7 +137,7 @@ class PristineFirstBlindLossBackend:
                 owner=TurnOwner.TERMINAL,
                 info=info,
             )
-        if state.phase != "BLIND_SELECT":
+        if state.phase not in {"BLIND_SELECT", "SHOP"}:
             raise HeadlessTransitionError(
                 "backend exposed a non-strategic nonterminal boundary"
             )
@@ -151,6 +160,8 @@ class PristineFirstBlindLossBackend:
         run = self.run
         if self._frame is None or self._frame.status.terminal:
             return ()
+        if run.public.phase == "SHOP":
+            return ShopTransitionEngine().legal_actions(run)
         actions: list[EnvAction] = []
         if can_skip_blind_exact(run):
             actions.append(EnvAction.from_alias("SKIP_BLIND"))
@@ -191,10 +202,15 @@ class PristineFirstBlindLossBackend:
                 raise HeadlessTransitionError(
                     "ordinary cash-out did not reach an ungenerated SHOP"
                 )
-            raise HeadlessTransitionError(
-                "complete normal shop inventory authority is unavailable after "
-                "exact ordinary cash-out"
+            generated = generate_normal_shop_inventory(
+                resolution.run,
+                first_shop=True,
+                first_buffoon_variant=(
+                    PPO_TRAINING_PROFILE.first_shop_buffoon_variant
+                ),
+                banned_booster_keys=PPO_TRAINING_PROFILE.banned_center_keys,
             )
+            return generated.run, tactical_actions
         if next_run.public.phase != "GAME_OVER":
             raise HeadlessTransitionError(
                 f"tactical settlement reached unsupported phase {next_run.public.phase!r}"
@@ -206,7 +222,9 @@ class PristineFirstBlindLossBackend:
             raise HeadlessTransitionError(f"illegal backend action: {action.alias}")
         run = self.run
         tactical_actions = self._tactical_actions
-        if action.alias == "SKIP_BLIND":
+        if run.public.phase == "SHOP":
+            next_run = ShopTransitionEngine().step(run, action)
+        elif action.alias == "SKIP_BLIND":
             next_run = skip_blind_exact(run)
         elif action.alias == "SELECT_BLIND":
             activated = activate_selected_blind_progression(run)
