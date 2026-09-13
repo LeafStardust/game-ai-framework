@@ -267,7 +267,7 @@ def enter_blind_select_progression(
 def exit_shop_to_selected_blind(
     run: "HeadlessRunState",
 ) -> "HeadlessRunState":
-    """Exit an ordinary shop into an exact retained Big/Boss choice."""
+    """Exit a completed shop into its exact retained next Blind choice."""
     from games.balatro.blinds.blind import Blind, BlindType
     from games.balatro.env.blind_requirement import (
         red_white_boss_blind_reward,
@@ -278,6 +278,7 @@ def exit_shop_to_selected_blind(
         BOSS_KEY_BY_NAME,
         red_white_boss_requirement,
     )
+    from games.balatro.env.tag_selection import ALL_TAG_KEYS
     from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
     if not isinstance(run, HeadlessRunState):
@@ -292,25 +293,46 @@ def exit_shop_to_selected_blind(
         )
     prior_blind = progression.blind_on_deck
     public_blind_type = getattr(state.blind, "type", None)
-    if prior_blind not in {"Small", "Big"} or (
-        progression.status_for(prior_blind) != "Defeated"
-        or progression.boss_status != "Upcoming"
-        or public_blind_type not in {BlindType.SMALL, BlindType.BIG}
-        or public_blind_type.value.title() != prior_blind
-    ):
-        raise HeadlessTransitionError(
-            "exact shop exit requires a defeated ordinary Blind"
-        )
-    if prior_blind == "Small" and progression.big_status != "Upcoming":
-        raise HeadlessTransitionError(
-            "post-Small shop exit requires an upcoming Big Blind"
-        )
-    if prior_blind == "Big" and progression.small_status not in {
-        "Defeated", "Skipped", "Hide"
-    }:
-        raise HeadlessTransitionError(
-            "post-Big shop exit requires a terminal Small Blind"
-        )
+    post_boss_shop = public_blind_type is BlindType.BOSS
+    if post_boss_shop:
+        selection = run.require_boss_selection_state()
+        public_boss_key = BOSS_KEY_BY_NAME.get(state.boss_name)
+        next_boss_key = BOSS_KEY_BY_NAME.get(progression.boss_name)
+        if (
+            prior_blind != "Small"
+            or progression.small_status != "Upcoming"
+            or progression.big_status != "Upcoming"
+            or progression.boss_status != "Upcoming"
+            or progression.small_tag not in ALL_TAG_KEYS
+            or progression.big_tag not in ALL_TAG_KEYS
+            or public_boss_key is None
+            or next_boss_key is None
+            or selection.usage_counts[public_boss_key] < 1
+            or selection.usage_counts[next_boss_key] < 1
+        ):
+            raise HeadlessTransitionError(
+                "post-Boss shop exit requires exact reset progression"
+            )
+    else:
+        if prior_blind not in {"Small", "Big"} or (
+            progression.status_for(prior_blind) != "Defeated"
+            or progression.boss_status != "Upcoming"
+            or public_blind_type not in {BlindType.SMALL, BlindType.BIG}
+            or public_blind_type.value.title() != prior_blind
+        ):
+            raise HeadlessTransitionError(
+                "exact shop exit requires a defeated ordinary Blind"
+            )
+        if prior_blind == "Small" and progression.big_status != "Upcoming":
+            raise HeadlessTransitionError(
+                "post-Small shop exit requires an upcoming Big Blind"
+            )
+        if prior_blind == "Big" and progression.small_status not in {
+            "Defeated", "Skipped", "Hide"
+        }:
+            raise HeadlessTransitionError(
+                "post-Big shop exit requires a terminal Small Blind"
+            )
     playing_order = run.require_playing_card_order()
     if (
         state.hand
@@ -328,7 +350,7 @@ def exit_shop_to_selected_blind(
 
     next_progression = enter_blind_select_progression(progression)
     selected = next_progression.blind_on_deck
-    if selected not in {"Big", "Boss"}:
+    if selected not in {"Small", "Big", "Boss"}:
         raise HeadlessTransitionError("shop exit selected an unsupported Blind")
 
     next_run = run.copy()
@@ -339,7 +361,15 @@ def exit_shop_to_selected_blind(
     next_state.shop_active = False
     next_state.score = 0
     next_state.blind_score = 0
-    if selected == "Big":
+    if selected == "Small":
+        next_state.blind = Blind(
+            BlindType.SMALL,
+            red_white_base_blind_amount(next_state.ante),
+            reward=red_white_nonboss_blind_reward("SMALL"),
+            tag_key=next_progression.small_tag,
+        )
+        next_state.boss_name = None
+    elif selected == "Big":
         requirement = red_white_base_blind_amount(next_state.ante) * 3 // 2
         next_state.blind = Blind(
             BlindType.BIG,

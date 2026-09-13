@@ -378,6 +378,39 @@ def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
     assert restored.serialize() == snapshot
     assert restored.frame.encoded_observation() == environment.frame.encoded_observation()
 
+    expected_actions = (
+        EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 0}),
+        EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}),
+        EnvAction.from_alias("END_SHOP"),
+    )
+    assert environment.legal_actions() == expected_actions
+    assert restored.legal_actions() == expected_actions
+
+    incomplete_backend = PPOHeadlessBackend(_FiveCardTacticalPolicy())
+    incomplete = BalatroHeadlessEnvironment(incomplete_backend)
+    incomplete.restore(snapshot)
+    incomplete_backend.run.blind_progression_state.small_tag = None
+    assert EnvAction.from_alias("END_SHOP") not in incomplete.legal_actions()
+    before = incomplete.serialize()
+    with pytest.raises(ValueError, match="illegal action"):
+        incomplete.step(EnvAction.from_alias("END_SHOP"))
+    assert incomplete.serialize() == before
+
+    for current in (environment, restored):
+        current.step(EnvAction.from_alias("END_SHOP"))
+        state = current.frame.state
+        assert state.phase == "BLIND_SELECT"
+        assert state.ante == 2
+        assert state.blind.type is BlindType.SMALL
+        assert state.blind.requirement == 800
+        assert state.blind.reward == 3
+        assert state.blind.tag_key == "tag_skip"
+        assert state.boss_name is None
+        assert current.legal_actions() == (EnvAction.from_alias("SELECT_BLIND"),)
+
+    assert restored.serialize() == environment.serialize()
+    assert restored.frame.encoded_observation() == environment.frame.encoded_observation()
+
 
 def test_env_ppo_collector_records_complete_deterministic_terminal_episode():
     training_run = PPOTrainingRun.from_seed("COLLECT")
