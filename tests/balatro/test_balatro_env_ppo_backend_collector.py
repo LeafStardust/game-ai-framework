@@ -346,11 +346,31 @@ def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
     assert run.blind_progression_state.blind_on_deck == "Small"
     assert run.blind_progression_state.small_status == "Upcoming"
     assert run.blind_progression_state.boss_status == "Upcoming"
+    assert run.blind_progression_state.small_tag == "tag_skip"
+    assert run.blind_progression_state.big_tag == "tag_voucher"
+    assert run.blind_progression_state.boss_name == "The Psychic"
     assert run.boss_selection_state.usage_counts["bl_hook"] == 1
     assert sum(run.boss_selection_state.usage_counts.values()) == 2
     assert run.tag_profile_state.discovered_center_keys == frozenset({"j_joker"})
+    assert run.public.money == 24
     assert len(run.public.shop_vouchers) == 1
     assert len(run.public.shop_boosters) == 2
+    assert tuple(
+        item.center_key
+        for items in (
+            run.public.shop_jokers,
+            run.public.shop_consumables,
+            run.public.shop_vouchers,
+            run.public.shop_boosters,
+        )
+        for item in items
+    ) == (
+        "j_mad",
+        "c_pluto",
+        "v_wasteful",
+        "p_standard_normal_1",
+        "p_arcana_jumbo_1",
+    )
 
     snapshot = environment.serialize()
     restored = BalatroHeadlessEnvironment(PPOHeadlessBackend(_FiveCardTacticalPolicy()))
