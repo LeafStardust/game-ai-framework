@@ -3,10 +3,12 @@ import pytest
 from games.balatro.env.blind_progression import (
     BlindProgressionError,
     BlindProgressionState,
+    activate_selected_blind_progression,
     enter_blind_select_progression,
     finalize_won_round_progression,
     reset_blinds_after_boss_cashout,
 )
+from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.transition import HeadlessRunState
 from games.balatro.state import BalatroState
 
@@ -143,6 +145,53 @@ def test_env_r2_private_blind_progression_validates_canonical_state():
 
     assert BlindProgressionState(blind_ante=0).blind_ante == 0
     assert BlindProgressionState(blind_ante=-1).blind_ante == -1
+
+
+def test_env_r2_selected_blind_activation_is_exact_and_isolated():
+    state = BalatroState()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
+    state.phase = "BLIND_SELECT"
+    state.ante = 3
+    state.blind = Blind(BlindType.BIG, requirement=900, reward=4)
+    progression = BlindProgressionState(
+        small_status="Defeated",
+        big_status="Select",
+        boss_status="Upcoming",
+        blind_on_deck="Big",
+        blind_ante=3,
+    )
+    run = HeadlessRunState(
+        public=state,
+        seed="ACTIVATE",
+        blind_progression_state=progression,
+    )
+
+    result = activate_selected_blind_progression(run)
+
+    assert result.blind_progression_state.big_status == "Current"
+    assert run.blind_progression_state.big_status == "Select"
+
+
+def test_env_r2_selected_blind_activation_rejects_progression_drift():
+    state = BalatroState()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
+    state.phase = "BLIND_SELECT"
+    state.ante = 2
+    state.blind = Blind(BlindType.SMALL, requirement=800, reward=3)
+    run = HeadlessRunState(
+        public=state,
+        seed="ACTIVATE-DRIFT",
+        blind_progression_state=BlindProgressionState(
+            small_status="Select",
+            blind_on_deck="Small",
+            blind_ante=1,
+        ),
+    )
+
+    with pytest.raises(BlindProgressionError, match="public Ante"):
+        activate_selected_blind_progression(run)
 
 
 def test_env_r2_boss_reset_blinds_restores_upcoming_state_for_new_ante():

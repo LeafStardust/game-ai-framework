@@ -38,7 +38,7 @@ PPO_TRAINING_RUN_SCHEMA = "balatro-red-white-ppo-run-v1"
 PPO_POLICY_OUTPUT_SCHEMA = "balatro-red-white-ppo-policy-output-v1"
 PPO_ROLLOUT_EPISODE_SCHEMA = "balatro-red-white-ppo-rollout-episode-v1"
 PPO_ALGORITHM = "clipped_ppo"
-PPO_REWARD_CONTRACT = "canonical_backend_reward_only"
+PPO_REWARD_CONTRACT = "balatro-red-white-sparse-terminal-reward-v1"
 PPO_TRAINING_SEED_POLICY = "derived_non_holdout_game_seeds"
 
 
@@ -380,7 +380,7 @@ def select_ppo_action(
 
 @dataclass(frozen=True)
 class PPORolloutBoundary:
-    observation: EncodedPublicObservation
+    observation: EncodedPublicObservation | None
     deck: str
     stake: str
     mode: str
@@ -401,7 +401,7 @@ class PPORolloutBoundary:
             state.blind.requirement, "rollout blind requirement"
         )
         return cls(
-            observation=frame.encoded_observation(),
+            observation=None if frame.status.terminal else frame.encoded_observation(),
             deck=state.deck_name,
             stake=state.stake_name,
             mode=EVALUATION_MODE,
@@ -415,7 +415,12 @@ class PPORolloutBoundary:
         )
 
     def __post_init__(self) -> None:
-        if (
+        if not isinstance(self.status, RunStatus) or not isinstance(self.owner, TurnOwner):
+            raise PPOContractError("rollout boundary status/owner is invalid")
+        if self.status.terminal:
+            if self.observation is not None:
+                raise PPOContractError("terminal rollout boundary cannot expose a policy observation")
+        elif (
             not isinstance(self.observation, EncodedPublicObservation)
             or self.observation.schema_version != PUBLIC_OBSERVATION_VERSION
             or self.observation.shape != PUBLIC_OBSERVATION_SCHEMA.shape
@@ -429,8 +434,6 @@ class PPORolloutBoundary:
             raise PPOContractError("rollout boundary is not Red Deck / White Stake / normal mode")
         if not isinstance(self.phase, str) or not self.phase:
             raise PPOContractError("rollout boundary phase is invalid")
-        if not isinstance(self.status, RunStatus) or not isinstance(self.owner, TurnOwner):
-            raise PPOContractError("rollout boundary status/owner is invalid")
         _exact_int(self.ante, "rollout Ante", minimum=1)
         _exact_int(self.money, "rollout money", minimum=-10**9)
         _finite_number(self.score, "rollout score")
@@ -443,7 +446,9 @@ class PPORolloutBoundary:
 
     def as_dict(self) -> dict[str, Any]:
         return {
-            "observation": {
+            "observation": None
+            if self.observation is None
+            else {
                 "schema_version": self.observation.schema_version,
                 "values": list(self.observation.values),
             },

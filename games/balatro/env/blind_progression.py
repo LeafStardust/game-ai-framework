@@ -262,3 +262,38 @@ def enter_blind_select_progression(
     next_progression.blind_on_deck = selected
     next_progression.set_status(selected, "Select")
     return next_progression
+
+
+def activate_selected_blind_progression(
+    run: "HeadlessRunState",
+) -> "HeadlessRunState":
+    """Mark the exact retained blind choice Current before its round starts."""
+    from games.balatro.env.transition import HeadlessRunState
+
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    if run.public.phase != "BLIND_SELECT":
+        raise BlindProgressionError(
+            "blind activation requires BLIND_SELECT phase"
+        )
+    progression = run.require_blind_progression_state()
+    blind_type = getattr(getattr(run.public, "blind", None), "type", None)
+    normalized = _normalize_blind_type(getattr(blind_type, "value", blind_type))
+    if progression.blind_on_deck != normalized:
+        raise BlindProgressionError(
+            "selected public Blind conflicts with private blind_on_deck"
+        )
+    if progression.status_for(normalized) != "Select":
+        raise BlindProgressionError(
+            "blind activation requires selected private progression"
+        )
+    if progression.blind_ante != run.public.ante:
+        raise BlindProgressionError(
+            "selected public Ante conflicts with private blind_ante"
+        )
+
+    next_run = run.copy()
+    next_progression = deepcopy(progression)
+    next_progression.set_status(normalized, "Current")
+    next_run.blind_progression_state = next_progression
+    return next_run

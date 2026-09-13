@@ -67,7 +67,7 @@ def test_env_ppo_training_design_is_frozen_and_binds_every_input_contract():
     assert contract.version == PPO_TRAINING_CONTRACT_VERSION
     assert contract.algorithm == "clipped_ppo"
     assert (contract.observation_size, contract.action_size) == (2444, 27)
-    assert contract.reward_contract == "canonical_backend_reward_only"
+    assert contract.reward_contract == "balatro-red-white-sparse-terminal-reward-v1"
     assert contract.training_seed_policy == "derived_non_holdout_game_seeds"
     assert contract.policy_hidden_sizes == (512, 256)
     assert contract.rollout_batch_size == 2048
@@ -182,11 +182,13 @@ def test_env_ppo_completed_rollout_preserves_terminal_episode_provenance():
     assert episode.action_count == 1
     assert episode.status is RunStatus.LOSS
     assert episode.boundaries[0].money == 4
+    assert episode.boundaries[-1].observation is None
     assert episode.to_json() == episode.to_json()
     payload = json.loads(episode.to_json())
     assert payload["training_run"]["contract_sha256"] == PPO_TRAINING_CONTRACT.sha256
     assert payload["decisions"][0]["action"]["alias"] == "SELECT_BLIND"
     assert payload["decisions"][0]["value_estimate"] == 0.0
+    assert payload["boundaries"][-1]["observation"] is None
     first.state.money = 999
     assert episode.boundaries[0].money == 4
 
