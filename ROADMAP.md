@@ -2429,14 +2429,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Audit and admit The Fish through the canonical Boss-start and tactical Play
-lifecycle only if its existing initial face-up deal, post-Play face-down
-replenishment, public identity masking, repeated Play, and defeat-cleanup owners
-compose exactly at this boundary. Continue deterministic seed `24` through
-generalized Ante-5 Small/Big progression to The Fish, freeze exact snapshot
-restore/replay across the hidden-card transition, and compose the supported Boss
-resolution only if every downstream mutation remains exact. Do not broaden other
-facing Bosses or add the neural model/optimizer yet.
+Audit and admit The Mouth through the canonical mutable-hand-rule start and
+tactical Play lifecycle only if first-hand locking, same-type scoring,
+different-type zero scoring, and defeat cleanup compose exactly at this boundary.
+Continue deterministic seed `24` through generalized Ante-6 Small/Big progression
+to The Mouth, freeze exact snapshot restore/replay across the mutable locked-hand
+state, and compose the supported Boss resolution only if every downstream
+mutation remains exact. Do not broaden The Eye or other Bosses, and do not add
+the neural model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2840,6 +2840,30 @@ again cleared. Focused validation passed **32 tests** locally, and the exact
 CI-equivalent selector passed **2854 tests** locally. GitHub Actions run
 `34806339982`, job `103858840634`, passed; the actual log reports **2854 passed,
 1602 deselected in 93.58s**.
+
+### Exact Fish Play and Ante-6 PPO checkpoint
+
+Commit `b57756bba7ad4347e82e224c367c8c044c7b6c4e` admits The Fish
+through its canonical start, Play movement, replenishment, public-observation,
+and defeat owners. The initial deal is authoritatively face up. A selected hidden
+card moves to the played area facing up before classification and scoring, while
+only the subsequent replacement draw is marked face down. The policy-facing
+copy masks each hidden card's rank, suit, and physical identity; the simulator
+retains the true card internally. Fish-only validation rejects unknown hand
+facing or face-down cards outside the current hand, and other contexts remain
+fail-closed.
+
+A deterministic low-level branch at the seed-24 Fish boundary uses level-one
+High Card and one-card Plays. It observes a fully face-up initial hand, masked
+hidden replacements on all three later decisions, and an exact four-hand loss at
+score `60`. The five-card path clears generalized Ante-5 Small and Big, reaches
+The Fish at requirement `22000`, restores exactly, clears the Boss, and converges
+on the Ante-6 shop at `$167`: `tag_standard`, `tag_boss`, next Boss The Mouth,
+and Raised Fist, Credit Card, Paint Brush, Standard Pack variant 1, and Buffoon
+Pack variant 2. All facing state is clean after resolution. Focused validation
+passed **50 tests** locally, and the exact CI-equivalent selector passed **2858
+tests** locally. GitHub Actions run `34807034893`, job `103860829726`, passed;
+the actual log reports **2858 passed, 1602 deselected in 128.86s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
