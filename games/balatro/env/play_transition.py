@@ -2,7 +2,7 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow Psychic / Tooth / Hook / Pillar Boss paths, with an unmodified base
+narrow Psychic / Tooth / Hook / Pillar / Arm Boss paths, with an unmodified base
 playing-card deck and no Joker, Tag, consumable, Voucher, random card, or other
 unowned callbacks.
 The boundary can widen only when those source-order mechanics have canonical
@@ -16,6 +16,7 @@ from collections.abc import Iterable
 from games.balatro.blinds.blind import BlindType
 from games.balatro.boss_trigger import boss_hand_is_debuffed
 from games.balatro.env.boss_debuffs import require_pillar_history_debuff_state
+from games.balatro.env.boss_hand import apply_arm_debuff_hand_level
 from games.balatro.env.boss_play import (
     apply_hook_press_play_discards_from_played_pile,
     apply_tooth_press_play_economy_from_played_pile,
@@ -104,6 +105,13 @@ def _is_hook_context(state) -> bool:
     )
 
 
+def _is_arm_context(state) -> bool:
+    return (
+        getattr(state.blind, "type", None) == BlindType.BOSS
+        and _boss_name(state) == "The Arm"
+    )
+
+
 def _require_supported_context(run: HeadlessRunState) -> None:
     state = run.public
     if state.phase != "SELECTING_HAND":
@@ -115,11 +123,11 @@ def _require_supported_context(run: HeadlessRunState) -> None:
     boss_name = _boss_name(state)
     ordinary = blind_type in {BlindType.SMALL, BlindType.BIG} and not boss_name
     supported_boss = blind_type == BlindType.BOSS and boss_name in {
-        "The Psychic", "The Tooth", "The Hook", "The Pillar"
+        "The Psychic", "The Tooth", "The Hook", "The Pillar", "The Arm"
     }
     if not ordinary and not supported_boss:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, and The Pillar only"
+            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, and The Arm only"
         )
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
@@ -241,12 +249,22 @@ def apply_supported_ordinary_play(
         next_state = next_run.public
         selected = list(next_run.played_pile)
 
-    boss_hand = boss_hand_is_debuffed(next_state, poker_hand, selected)
-    if not boss_hand.resolvable:
-        raise HeadlessTransitionError(
-            "R4 baseline Play cannot resolve the active Boss hand constraint"
-        )
-    if not boss_hand.triggered:
+    hand_scores_zero = False
+    if _is_arm_context(next_state):
+        # Arm's debuff_hand trigger is a persistent level mutation, not a
+        # whole-hand scoring debuff. Vanilla applies it immediately before the
+        # ordinary score reads that hand level.
+        next_run = apply_arm_debuff_hand_level(next_run, hand_name)
+        next_state = next_run.public
+        selected = list(next_run.played_pile)
+    else:
+        boss_hand = boss_hand_is_debuffed(next_state, poker_hand, selected)
+        if not boss_hand.resolvable:
+            raise HeadlessTransitionError(
+                "R4 baseline Play cannot resolve the active Boss hand constraint"
+            )
+        hand_scores_zero = boss_hand.triggered
+    if not hand_scores_zero:
         hand_score = BalatroScorer().score(
             poker_hand,
             state=next_state,
