@@ -2429,14 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Audit and admit The Needle through the canonical resource-mutating Boss start,
-tactical Play lifecycle, and resource-defeat cleanup only if its exact one-hand
-round composes at this boundary. Continue deterministic seed `24` through
-generalized Ante-7 Small/Big progression to The Needle, freeze exact snapshot
-restore/replay across the private stored-hands adjustment, and compose the
-supported Boss resolution only if every downstream mutation remains exact. Do
-not broaden The Water, The Manacle, or other Bosses, and do not add the neural
-model/optimizer yet.
+Audit and admit Verdant Leaf through the canonical all-playing-card debuff
+start, tactical Play lifecycle, defeat cleanup, and terminal Ante-8 win boundary
+only if the no-owned-Joker path composes exactly without inventing a sale or
+disable event. Continue deterministic seed `24` through generalized Ante-8
+Small/Big progression to the showdown, freeze exact snapshot restore/replay
+across the active all-card debuff, and terminate at the exact competence target
+without generating unsupported post-win Ante-9 state. Do not broaden Joker
+purchase/sale or other finisher Bosses, and do not add the neural model/optimizer
+yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2888,6 +2889,30 @@ Brush, Celestial Pack variant 4, and Celestial Pack variant 3.
 Focused Mouth/start/constraint/end-to-end validation passed **27 tests**
 locally. GitHub Actions run `34807700940`, job `103862695704`, passed; the
 actual log reports **2862 passed, 1602 deselected in 123.44s**.
+
+### Exact Needle Play and Ante-8 PPO checkpoint
+
+Commit `705ab1d97d128b5c5bd43f7226d2a81688b46a91` admits The Needle
+through its canonical resource-mutating Boss start, ordinary tactical scoring,
+and resource-defeat cleanup. Play requires authoritative round-reset hands, the
+exact private `round_reset_hands - 1` stored adjustment, and no conflicting
+Water/Manacle adjustment. Missing or inconsistent private state fails
+atomically instead of treating Needle as an ordinary untracked Boss.
+
+Focused regressions serialize and restore the started one-hand round, prove a
+single Play spends its only hand, preserve the stored adjustment through a win
+boundary, and clear it only through the canonical defeat owner. Deterministic
+seed `24` clears generalized Ante-7 Small and Big at requirements `35000` and
+`52500`, reaches The Needle at `70000`, and restores the Boss boundary exactly.
+A level-one branch loses after the sole hand with the pending adjustment intact;
+original and restored high-level paths clear the Boss, drop the round-only
+adjustment, and converge on the Ante-8 shop at `$236` with `tag_investment`,
+`tag_voucher`, next Boss Verdant Leaf, and Droll Joker, Scary Face, Hieroglyph,
+Jumbo Arcana Pack variant 2, and Standard Pack variant 4.
+
+Focused Needle/start/defeat/end-to-end validation passed **34 tests** locally.
+GitHub Actions run `34808317752`, job `103864471638`, passed; the actual log
+reports **2868 passed, 1602 deselected in 129.47s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
