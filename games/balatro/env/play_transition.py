@@ -2,7 +2,7 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow Psychic / Tooth / Hook / Pillar / Arm / Fish / Mouth Boss paths, with an
+narrow Psychic / Tooth / Hook / Pillar / Arm / Fish / Mouth / Needle Boss paths, with an
 unmodified base playing-card deck and no Joker, Tag, consumable, Voucher, random
 card, or other unowned callbacks.
 The boundary can widen only when those source-order mechanics have canonical
@@ -154,11 +154,18 @@ def _require_supported_context(run: HeadlessRunState) -> None:
     boss_name = _boss_name(state)
     ordinary = blind_type in {BlindType.SMALL, BlindType.BIG} and not boss_name
     supported_boss = blind_type == BlindType.BOSS and boss_name in {
-        "The Psychic", "The Tooth", "The Hook", "The Pillar", "The Arm", "The Fish", "The Mouth"
+        "The Psychic",
+        "The Tooth",
+        "The Hook",
+        "The Pillar",
+        "The Arm",
+        "The Fish",
+        "The Mouth",
+        "The Needle",
     }
     if not ordinary and not supported_boss:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, The Fish, and The Mouth only"
+            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, The Fish, The Mouth, and The Needle only"
         )
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
@@ -193,6 +200,23 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         if only_hand is not None and only_hand not in state.hand_levels:
             raise HeadlessTransitionError(
                 "Mouth Play requires a canonical locked hand"
+            )
+    if boss_name == "The Needle":
+        if state.round_reset_hands_observed is not True:
+            raise HeadlessTransitionError(
+                "Needle Play requires authoritative round-reset hands"
+            )
+        reset_hands = state.round_reset_hands
+        if (
+            isinstance(reset_hands, bool)
+            or not isinstance(reset_hands, int)
+            or reset_hands < 0
+            or run.boss_hands_sub != reset_hands - 1
+            or run.boss_discards_sub is not None
+            or run.boss_hand_size_sub is not None
+        ):
+            raise HeadlessTransitionError(
+                "Needle Play requires its exact stored hands adjustment"
             )
 
     _require_exact_int("score", state.score)

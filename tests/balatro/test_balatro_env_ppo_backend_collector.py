@@ -796,6 +796,82 @@ def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
         "p_celestial_normal_3",
     )
 
+    for current in five_card_paths:
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.SMALL
+        assert current.frame.state.blind.requirement == 35_000
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BIG
+        assert current.frame.state.blind.requirement == 52_500
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BOSS
+        assert current.frame.state.blind.requirement == 70_000
+        assert current.frame.state.boss_name == "The Needle"
+        assert current._backend.run.boss_hands_sub is None
+        assert current.frame.state.hands_remaining == 4
+
+    assert all(current.serialize() == environment.serialize() for current in five_card_paths)
+    needle_snapshot = environment.serialize()
+    needle_restored = BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(_FiveCardTacticalPolicy())
+    )
+    needle_restored.restore(needle_snapshot)
+    assert needle_restored.serialize() == needle_snapshot
+    assert needle_restored.frame.encoded_observation() == (
+        environment.frame.encoded_observation()
+    )
+
+    needle_loss = BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(_FiveCardTacticalPolicy())
+    )
+    needle_loss.restore(needle_snapshot)
+    for hand_name in needle_loss.frame.state.hand_levels:
+        needle_loss._backend.run.public.hand_levels[hand_name] = 1
+    _, reward, terminated, truncated, _ = needle_loss.step(
+        EnvAction.from_alias("SELECT_BLIND")
+    )
+    assert (reward, terminated, truncated) == (-1.0, True, False)
+    assert needle_loss.frame.state.hands_remaining == 0
+    assert needle_loss._backend.run.boss_hands_sub == 3
+
+    five_card_paths = (*five_card_paths, needle_restored)
+    for current in five_card_paths:
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        assert current.frame.state.ante == 8
+        assert current.frame.state.round == 21
+        assert current.frame.state.money == 236
+        assert current._backend.run.boss_hands_sub is None
+        assert current.frame.status is RunStatus.RUNNING
+
+    assert all(current.serialize() == environment.serialize() for current in five_card_paths)
+    run = backend.run
+    assert run.blind_progression_state.small_tag == "tag_investment"
+    assert run.blind_progression_state.big_tag == "tag_voucher"
+    assert run.blind_progression_state.boss_name == "Verdant Leaf"
+    assert run.boss_selection_state.usage_counts["bl_needle"] == 1
+    assert sum(run.boss_selection_state.usage_counts.values()) == 8
+    assert tuple(
+        item.center_key
+        for items in (
+            run.public.shop_jokers,
+            run.public.shop_consumables,
+            run.public.shop_vouchers,
+            run.public.shop_boosters,
+        )
+        for item in items
+    ) == (
+        "j_droll",
+        "j_scary_face",
+        "v_hieroglyph",
+        "p_arcana_jumbo_2",
+        "p_standard_normal_4",
+    )
+
 
 def test_env_ppo_collector_records_complete_deterministic_terminal_episode():
     training_run = PPOTrainingRun.from_seed("COLLECT")
