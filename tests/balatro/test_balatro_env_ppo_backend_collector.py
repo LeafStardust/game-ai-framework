@@ -732,6 +732,70 @@ def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
         "p_buffoon_normal_2",
     )
 
+    for current in five_card_paths:
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.SMALL
+        assert current.frame.state.blind.requirement == 20_000
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BIG
+        assert current.frame.state.blind.requirement == 30_000
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BOSS
+        assert current.frame.state.blind.requirement == 40_000
+        assert current.frame.state.boss_name == "The Mouth"
+        assert current.frame.state.boss_blind_only_hand is None
+        assert current.frame.state.boss_blind_state_observed is False
+
+    assert all(current.serialize() == environment.serialize() for current in five_card_paths)
+    mouth_snapshot = environment.serialize()
+    mouth_restored = BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(_FiveCardTacticalPolicy())
+    )
+    mouth_restored.restore(mouth_snapshot)
+    assert mouth_restored.serialize() == mouth_snapshot
+    assert mouth_restored.frame.encoded_observation() == (
+        environment.frame.encoded_observation()
+    )
+
+    five_card_paths = (*five_card_paths, mouth_restored)
+    for current in five_card_paths:
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        assert current.frame.state.ante == 7
+        assert current.frame.state.round == 18
+        assert current.frame.state.money == 203
+        assert current.frame.state.boss_blind_only_hand is None
+        assert current.frame.state.boss_blind_state_observed is False
+        assert current.frame.status is RunStatus.RUNNING
+
+    assert all(current.serialize() == environment.serialize() for current in five_card_paths)
+    run = backend.run
+    assert run.blind_progression_state.small_tag == "tag_meteor"
+    assert run.blind_progression_state.big_tag == "tag_handy"
+    assert run.blind_progression_state.boss_name == "The Needle"
+    assert run.boss_selection_state.usage_counts["bl_mouth"] == 1
+    assert sum(run.boss_selection_state.usage_counts.values()) == 7
+    assert tuple(
+        item.center_key
+        for items in (
+            run.public.shop_jokers,
+            run.public.shop_consumables,
+            run.public.shop_vouchers,
+            run.public.shop_boosters,
+        )
+        for item in items
+    ) == (
+        "j_burglar",
+        "c_jupiter",
+        "v_paint_brush",
+        "p_celestial_normal_4",
+        "p_celestial_normal_3",
+    )
+
 
 def test_env_ppo_collector_records_complete_deterministic_terminal_episode():
     training_run = PPOTrainingRun.from_seed("COLLECT")

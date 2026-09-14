@@ -2,7 +2,7 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow Psychic / Tooth / Hook / Pillar / Arm / Fish Boss paths, with an
+narrow Psychic / Tooth / Hook / Pillar / Arm / Fish / Mouth Boss paths, with an
 unmodified base playing-card deck and no Joker, Tag, consumable, Voucher, random
 card, or other unowned callbacks.
 The boundary can widen only when those source-order mechanics have canonical
@@ -14,7 +14,10 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from games.balatro.blinds.blind import BlindType
-from games.balatro.boss_trigger import boss_hand_is_debuffed
+from games.balatro.boss_trigger import (
+    boss_hand_is_debuffed,
+    record_accepted_boss_hand,
+)
 from games.balatro.env.boss_debuffs import require_pillar_history_debuff_state
 from games.balatro.env.boss_facing import draw_fish_post_play_cards
 from games.balatro.env.boss_hand import apply_arm_debuff_hand_level
@@ -151,11 +154,11 @@ def _require_supported_context(run: HeadlessRunState) -> None:
     boss_name = _boss_name(state)
     ordinary = blind_type in {BlindType.SMALL, BlindType.BIG} and not boss_name
     supported_boss = blind_type == BlindType.BOSS and boss_name in {
-        "The Psychic", "The Tooth", "The Hook", "The Pillar", "The Arm", "The Fish"
+        "The Psychic", "The Tooth", "The Hook", "The Pillar", "The Arm", "The Fish", "The Mouth"
     }
     if not ordinary and not supported_boss:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, and The Fish only"
+            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, The Fish, and The Mouth only"
         )
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
@@ -181,6 +184,16 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "R4 baseline Play currently requires the ordinary Red Deck hand size"
         )
+    if boss_name == "The Mouth":
+        if state.boss_blind_state_observed is not True:
+            raise HeadlessTransitionError(
+                "Mouth Play requires authoritative mutable Boss state"
+            )
+        only_hand = state.boss_blind_only_hand
+        if only_hand is not None and only_hand not in state.hand_levels:
+            raise HeadlessTransitionError(
+                "Mouth Play requires a canonical locked hand"
+            )
 
     _require_exact_int("score", state.score)
     _require_exact_int("hands_remaining", state.hands_remaining, minimum=1)
@@ -304,6 +317,7 @@ def apply_supported_ordinary_play(
             )
         hand_scores_zero = boss_hand.triggered
     if not hand_scores_zero:
+        record_accepted_boss_hand(next_state, poker_hand)
         hand_score = BalatroScorer().score(
             poker_hand,
             state=next_state,
