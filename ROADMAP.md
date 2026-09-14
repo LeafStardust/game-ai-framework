@@ -2429,15 +2429,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Audit and admit Verdant Leaf through the canonical all-playing-card debuff
-start, tactical Play lifecycle, defeat cleanup, and terminal Ante-8 win boundary
-only if the no-owned-Joker path composes exactly without inventing a sale or
-disable event. Continue deterministic seed `24` through generalized Ante-8
-Small/Big progression to the showdown, freeze exact snapshot restore/replay
-across the active all-card debuff, and terminate at the exact competence target
-without generating unsupported post-win Ante-9 state. Do not broaden Joker
-purchase/sale or other finisher Bosses, and do not add the neural model/optimizer
-yet.
+Implement the pre-registered PPO neural model and optimizer against the frozen
+v3 observation/training/rollout contracts. Own deterministic seeded parameter
+initialization, the `(512, 256)` tanh actor-critic forward pass, exact illegal-
+action masking, value inference, GAE/return computation, clipped policy/value
+losses, entropy, gradient clipping, and the frozen minibatch/update schedule.
+Add deterministic numerical regressions before any training result exists. Do
+not tune hyperparameters, run the full training schedule, inspect learned-policy
+promotion results, or widen environment mechanics in this task.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2913,6 +2912,33 @@ Jumbo Arcana Pack variant 2, and Standard Pack variant 4.
 Focused Needle/start/defeat/end-to-end validation passed **34 tests** locally.
 GitHub Actions run `34808317752`, job `103864471638`, passed; the actual log
 reports **2868 passed, 1602 deselected in 129.47s**.
+
+### Exact Verdant Leaf and terminal Ante-8 PPO checkpoint
+
+Commit `87a3652e2806be5c93b83b07919944ab904e4d08` admits the seed-24
+Verdant Leaf showdown through its canonical all-playing-card debuff start and
+tactical Play boundary. The Play owner requires the exact 52-card debuff state;
+debuffed cards classify the hand and use its base Chips/Mult but contribute no
+card chips. A partial debuff pattern fails atomically. Separate focused coverage
+proves normal defeat clears every card without inventing a Joker sale or
+`Blind:disable` event.
+
+The terminal owner follows the pinned `end_round` win-notification boundary:
+when the current Boss is cleared at retained `win_ante == 8`, the backend emits
+the existing `ANTE_8_WIN` terminal status directly from `ROUND_EVAL`. It does
+not advance Ante, cash out, clean up the still-active Boss, select another Boss,
+or generate a post-win shop. Restore revalidates the complete showdown identity,
+current private progression, exact target satisfaction, and retained Boss
+authority; malformed terminal snapshots fail closed.
+
+Deterministic seed `24` clears Ante-8 Small and Big at requirements `50000` and
+`75000`, reaches Verdant Leaf at `100000`, and converges across every accumulated
+original/restored path on an exact terminal frame: Ante `8`, round `24`, `$259`,
+score `9995000`, all 52 cards still debuffed, `+1` reward, and no legal actions.
+The terminal snapshot restores exactly without any Ante-9 RNG or inventory
+generation. Focused Verdant/start/defeat/terminal/end-to-end validation passed
+**27 tests** locally. GitHub Actions run `34809159888`, job `103866836513`,
+passed; the actual log reports **2876 passed, 1602 deselected in 78.75s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
