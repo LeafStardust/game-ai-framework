@@ -2429,14 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Audit and admit The Pillar through the canonical Boss-start and tactical Play
-lifecycle only if its existing permanent `played_this_ante` history, card-debuff,
-scoring, and defeat-cleanup owners compose exactly at this boundary. Continue
-deterministic seed `24` through generalized Ante-3 Small/Big progression to The
-Pillar, freeze exact debuffed-card rejection/scoring behavior plus snapshot
-restore/replay, and compose the supported Boss resolution only if every
-downstream mutation remains exact. Do not broaden other Bosses or add the neural
-model/optimizer yet.
+Audit and admit The Arm through the canonical tactical Play lifecycle only if
+its existing hand-level decrement is the complete reachable pre-scoring mutation
+at this boundary. Continue deterministic seed `24` through generalized Ante-4
+Small/Big progression to The Arm, freeze exact level-greater-than-one decrement,
+level-one no-op, post-decrement scoring, and snapshot restore/replay, and compose
+the supported Boss resolution only if every downstream mutation remains exact.
+Do not broaden other Bosses or add the neural model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2789,6 +2788,35 @@ Focused validation passed **44 tests** locally, and the exact CI-equivalent
 selector passed **2844 tests** locally. GitHub Actions run `34791274115`, job
 `103815836834`, passed; the actual log reports **2844 passed, 1602 deselected in
 90.69s**.
+
+### Exact Pillar Play and Ante-4 PPO checkpoint
+
+Commit `43f721ff3dc0c348e246d92d668200f117949c8e` composes The
+Pillar's existing Boss-start, permanent history, transient card-debuff, scoring,
+defeat-cleanup, and Boss-resolution owners through the canonical PPO path. The
+pristine reset now establishes authoritative false `played_this_ante` state for
+all 52 permanent cards. Boss round teardown clears that history only after exact
+Boss-owned debuff cleanup, matching the pinned source's Boss round-end behavior
+without weakening cleanup validation.
+
+The canonical Pillar invariant requires every transient debuff to belong to a
+card with authoritative current-Ante history and every still-active prior-history
+card to remain debuffed. A card newly played during The Pillar is marked in
+history but remains clean after the pre-deal debuff pass and is accepted only
+after it has moved to discard. Debuffed cards still classify the poker hand but
+contribute no card chips; malformed or incomplete debuff patterns reject
+atomically. Ordinary and all other unsupported debuff contexts remain closed.
+
+Deterministic seed `24` now clears generalized Ante-3 Small and Big and reaches
+The Pillar at requirement `4000` with exactly nine permanent cards marked from
+that Ante. Original and restored five-card paths clear it identically, remove
+all transient debuffs, clear the completed Ante's history, and reach the Ante-4
+shop at `$95` with `tag_investment`, `tag_orbital`, next Boss The Arm, and
+Vagabond, 8 Ball, Paint Brush, Buffoon Pack variant 1, and Arcana Pack variant 1.
+Serialized state and the v3 observation replay exactly. Focused final validation
+passed **41 tests** locally, and the exact CI-equivalent selector passed **2851
+tests** locally. GitHub Actions run `34792575604`, job `103819447284`, passed;
+the actual log reports **2851 passed, 1602 deselected in 101.58s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
