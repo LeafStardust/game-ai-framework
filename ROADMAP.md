@@ -2429,14 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Implement the pre-registered PPO neural model and optimizer against the frozen
-v3 observation/training/rollout contracts. Own deterministic seeded parameter
-initialization, the `(512, 256)` tanh actor-critic forward pass, exact illegal-
-action masking, value inference, GAE/return computation, clipped policy/value
-losses, entropy, gradient clipping, and the frozen minibatch/update schedule.
-Add deterministic numerical regressions before any training result exists. Do
-not tune hyperparameters, run the full training schedule, inspect learned-policy
-promotion results, or widen environment mechanics in this task.
+Implement the versioned rollout-to-training-batch assembler. It must consume
+only complete validated `PPORolloutEpisode` evidence, compute GAE independently
+across each terminal episode, and deterministically contribute exactly 256
+transitions from each of eight rollout streams to the frozen 2,048-transition
+batch while retaining surplus complete-episode transitions as explicit
+carryover. Episode indices, stream assignment, observation/mask/action/old-
+policy provenance, and carryover must fail closed on drift. Do not truncate an
+episode artifact, bootstrap across terminal boundaries, run the full training
+schedule, inspect learned-policy results, or widen environment mechanics.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2939,6 +2940,34 @@ The terminal snapshot restores exactly without any Ante-9 RNG or inventory
 generation. Focused Verdant/start/defeat/terminal/end-to-end validation passed
 **27 tests** locally. GitHub Actions run `34809159888`, job `103866836513`,
 passed; the actual log reports **2876 passed, 1602 deselected in 78.75s**.
+
+### Deterministic PPO actor-critic and optimizer checkpoint
+
+Commit `87ee81aa06b68062fc4f1fb79950c573c450b638` adds the versioned
+`balatro-red-white-ppo-actor-critic-v1` model and
+`balatro-red-white-ppo-adam-v1` optimizer before any learned-policy result. The
+canonical runtime is NumPy `>=2.0,<3.0`. The learner seed deterministically owns
+Xavier-uniform parameter initialization for the frozen `2456 -> 512 -> 256`
+tanh trunk, separate 27-logit policy head, and scalar value head; parameter
+digests reproduce for the same training run and diverge for another seed.
+
+Inference validates v3 observation/action identity, applies illegal-action
+masking at logits, emits exact zero probability outside the mask, and rejects
+empty nonterminal masks. The optimizer owns terminal-aware GAE with frozen
+gamma/lambda, clipped policy and value objectives, entropy regularization,
+manual full-network backpropagation, global gradient-norm clipping, and Adam
+with fixed beta1 `0.9`, beta2 `0.999`, and epsilon `1e-8`. Its seeded schedule
+produces exactly 10 epochs of eight 256-transition minibatches over each 2,048-
+transition batch. Training-run mismatch, malformed batches, illegal selected
+actions, shape drift, and nonfinite gradients fail closed.
+
+Deterministic numerical regressions cover seeded initialization and minibatch
+ordering, exact masked inference, GAE constants, finite-difference agreement for
+the policy gradient, identical optimizer updates, and gradient clipping. Focused
+model/optimizer/contract validation passed **28 tests** locally. GitHub Actions
+run `34809876592`, job `103868926821`, passed after installing NumPy on the clean
+Python 3.12 runner; the actual log reports **2885 passed, 1602 deselected in
+131.63s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
