@@ -872,6 +872,66 @@ def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
         "p_standard_normal_4",
     )
 
+    for current in five_card_paths:
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.SMALL
+        assert current.frame.state.blind.requirement == 50_000
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        assert current.frame.state.money == 247
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BIG
+        assert current.frame.state.blind.requirement == 75_000
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        assert current.frame.state.money == 259
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BOSS
+        assert current.frame.state.blind.requirement == 100_000
+        assert current.frame.state.boss_name == "Verdant Leaf"
+
+    assert all(current.serialize() == environment.serialize() for current in five_card_paths)
+    verdant_snapshot = environment.serialize()
+    verdant_restored = BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(_FiveCardTacticalPolicy())
+    )
+    verdant_restored.restore(verdant_snapshot)
+    assert verdant_restored.serialize() == verdant_snapshot
+    assert verdant_restored.frame.encoded_observation() == (
+        environment.frame.encoded_observation()
+    )
+
+    five_card_paths = (*five_card_paths, verdant_restored)
+    for current in five_card_paths:
+        _, reward, terminated, truncated, _ = current.step(
+            EnvAction.from_alias("SELECT_BLIND")
+        )
+        assert (reward, terminated, truncated) == (1.0, True, False)
+        assert current.frame.status is RunStatus.ANTE_8_WIN
+        assert current.frame.owner is TurnOwner.TERMINAL
+        assert current.frame.state.phase == "ROUND_EVAL"
+        assert current.frame.state.ante == 8
+        assert current.frame.state.round == 24
+        assert current.frame.state.money == 259
+        assert current.frame.state.score == 9_995_000
+        assert current.legal_actions() == ()
+        assert current._backend.run.blind_progression_state.boss_status == "Current"
+        assert all(
+            card.debuffed
+            for card in current._backend.run.require_playing_card_order()
+        )
+
+    assert all(current.serialize() == environment.serialize() for current in five_card_paths)
+    terminal_snapshot = environment.serialize()
+    terminal_restored = BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(_FiveCardTacticalPolicy())
+    )
+    terminal_restored.restore(terminal_snapshot)
+    assert terminal_restored.serialize() == terminal_snapshot
+    assert terminal_restored.frame.status is RunStatus.ANTE_8_WIN
+    assert terminal_restored.frame.owner is TurnOwner.TERMINAL
+    assert terminal_restored.legal_actions() == ()
+
 
 def test_env_ppo_collector_records_complete_deterministic_terminal_episode():
     training_run = PPOTrainingRun.from_seed("COLLECT")

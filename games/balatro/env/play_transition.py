@@ -2,7 +2,8 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow Psychic / Tooth / Hook / Pillar / Arm / Fish / Mouth / Needle Boss paths, with an
+narrow Psychic / Tooth / Hook / Pillar / Arm / Fish / Mouth / Needle / Verdant
+Leaf Boss paths, with an
 unmodified base playing-card deck and no Joker, Tag, consumable, Voucher, random
 card, or other unowned callbacks.
 The boundary can widen only when those source-order mechanics have canonical
@@ -26,6 +27,7 @@ from games.balatro.env.boss_play import (
     apply_tooth_press_play_economy_from_played_pile,
 )
 from games.balatro.env.deal import draw_one_supported_card_to_hand
+from games.balatro.env.joker_sale import require_verdant_leaf_debuff_state
 from games.balatro.env.round_zones import (
     normalize_visible_card_indices,
     require_exact_selecting_hand_zones,
@@ -57,6 +59,7 @@ def _require_plain_base_cards(
     *,
     allow_pillar_history_debuffs: bool,
     allow_fish_facing: bool,
+    allow_verdant_leaf_debuffs: bool,
 ) -> None:
     order = run.require_playing_card_order()
     identities = [(card.rank, card.suit) for card in order]
@@ -100,6 +103,10 @@ def _require_plain_base_cards(
             raise HeadlessTransitionError(
                 "Fish Play encountered face-down state outside the current hand"
             )
+
+    if allow_verdant_leaf_debuffs:
+        require_verdant_leaf_debuff_state(run)
+        return
 
     if not allow_pillar_history_debuffs:
         if any(card.debuffed for card in order):
@@ -162,10 +169,11 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         "The Fish",
         "The Mouth",
         "The Needle",
+        "Verdant Leaf",
     }
     if not ordinary and not supported_boss:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, The Fish, The Mouth, and The Needle only"
+            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, The Fish, The Mouth, The Needle, and Verdant Leaf only"
         )
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
@@ -236,6 +244,9 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         ),
         allow_fish_facing=(
             blind_type is BlindType.BOSS and boss_name == "The Fish"
+        ),
+        allow_verdant_leaf_debuffs=(
+            blind_type is BlindType.BOSS and boss_name == "Verdant Leaf"
         ),
     )
 

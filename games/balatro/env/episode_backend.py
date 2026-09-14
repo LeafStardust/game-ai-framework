@@ -33,6 +33,7 @@ from games.balatro.env.shop_inventory_generation import (
 )
 from games.balatro.env.state import BackendStep, EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.env.tactical_transition import apply_planned_tactical_step
+from games.balatro.env.terminal_win import require_ante_8_win_boundary
 from games.balatro.env.transition import (
     HeadlessRunState,
     HeadlessTransitionError,
@@ -146,6 +147,14 @@ class PPOHeadlessBackend:
                 owner=TurnOwner.TERMINAL,
                 info=info,
             )
+        if state.phase == "ROUND_EVAL":
+            require_ante_8_win_boundary(run)
+            return EnvStateFrame(
+                state,
+                status=RunStatus.ANTE_8_WIN,
+                owner=TurnOwner.TERMINAL,
+                info=info,
+            )
         if state.phase not in {"BLIND_SELECT", "SHOP"}:
             raise HeadlessTransitionError(
                 "backend exposed a non-strategic nonterminal boundary"
@@ -196,6 +205,10 @@ class PPOHeadlessBackend:
             tactical_actions += 1
         if next_run.public.phase == "ROUND_EVAL":
             if next_run.public.blind.type is BlindType.BOSS:
+                selection = next_run.require_boss_selection_state()
+                if next_run.public.ante == selection.win_ante:
+                    require_ante_8_win_boundary(next_run)
+                    return next_run, tactical_actions
                 resolution = resolve_supported_boss_round(
                     next_run,
                     next_run.require_blind_progression_state(),

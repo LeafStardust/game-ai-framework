@@ -150,6 +150,11 @@ def _require_verdant_all_card_debuff(run: HeadlessRunState) -> None:
         )
 
 
+def require_verdant_leaf_debuff_state(run: HeadlessRunState) -> None:
+    """Validate the canonical active all-playing-card debuff state."""
+    _require_verdant_all_card_debuff(run)
+
+
 def _clear_verdant_playing_cards(run: HeadlessRunState) -> HeadlessRunState:
     next_run = run.copy()
     for card in next_run.require_playing_card_order():
