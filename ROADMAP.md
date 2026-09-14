@@ -2429,13 +2429,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Audit and admit The Arm through the canonical tactical Play lifecycle only if
-its existing hand-level decrement is the complete reachable pre-scoring mutation
-at this boundary. Continue deterministic seed `24` through generalized Ante-4
-Small/Big progression to The Arm, freeze exact level-greater-than-one decrement,
-level-one no-op, post-decrement scoring, and snapshot restore/replay, and compose
-the supported Boss resolution only if every downstream mutation remains exact.
-Do not broaden other Bosses or add the neural model/optimizer yet.
+Audit and admit The Fish through the canonical Boss-start and tactical Play
+lifecycle only if its existing initial face-up deal, post-Play face-down
+replenishment, public identity masking, repeated Play, and defeat-cleanup owners
+compose exactly at this boundary. Continue deterministic seed `24` through
+generalized Ante-5 Small/Big progression to The Fish, freeze exact snapshot
+restore/replay across the hidden-card transition, and compose the supported Boss
+resolution only if every downstream mutation remains exact. Do not broaden other
+facing Bosses or add the neural model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2817,6 +2818,28 @@ Serialized state and the v3 observation replay exactly. Focused final validation
 passed **41 tests** locally, and the exact CI-equivalent selector passed **2851
 tests** locally. GitHub Actions run `34792575604`, job `103819447284`, passed;
 the actual log reports **2851 passed, 1602 deselected in 101.58s**.
+
+### Exact Arm Play and Ante-5 PPO checkpoint
+
+Commit `8c4d42a149d15c0d35ed531f1a90b3f2c4096251` admits The Arm at
+the canonical tactical pre-scoring boundary. Its `debuff_hand` trigger is
+correctly treated as a persistent hand-level mutation rather than a whole-hand
+scoring debuff: levels above one decrement exactly once before that Play's score
+reads the level, while level one remains unchanged. Repeated deterministic Play
+regressions prove the level stops at one, input state remains isolated, and the
+ordinary scorer uses the post-decrement value.
+
+Deterministic seed `24` now clears generalized Ante-4 Small and Big, reaches The
+Arm at requirement `10000` with ten current-Ante cards marked, and restores the
+Boss boundary exactly. The five-card Play classifies as Pair, persistently lowers
+only Pair from level `1000` to `999`, clears the Boss, and converges across all
+original/restored paths on the Ante-5 shop at `$131`: `tag_garbage`,
+`tag_investment`, next Boss The Fish, and Gros Michel, Strength, Tarot Merchant,
+Arcana Pack variant 1, and Arcana Pack variant 3. Completed-Ante card history is
+again cleared. Focused validation passed **32 tests** locally, and the exact
+CI-equivalent selector passed **2854 tests** locally. GitHub Actions run
+`34806339982`, job `103858840634`, passed; the actual log reports **2854 passed,
+1602 deselected in 93.58s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
