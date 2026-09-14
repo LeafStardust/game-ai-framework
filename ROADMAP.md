@@ -2429,13 +2429,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Audit and admit The Psychic through the canonical tactical Play lifecycle only
-if its existing exact five-card hand constraint is the complete reachable Play
-mutation at this boundary. Continue deterministic seed `24` through generalized
-Ante-2 Small/Big progression to The Psychic, freeze failure for non-five-card
-plans and exact clear/restore/replay for legal five-card plans, and compose the
-supported Boss resolution only if every downstream mutation remains exact.
-Do not broaden other Bosses or add the neural model/optimizer yet.
+Audit and admit The Pillar through the canonical Boss-start and tactical Play
+lifecycle only if its existing permanent `played_this_ante` history, card-debuff,
+scoring, and defeat-cleanup owners compose exactly at this boundary. Continue
+deterministic seed `24` through generalized Ante-3 Small/Big progression to The
+Pillar, freeze exact debuffed-card rejection/scoring behavior plus snapshot
+restore/replay, and compose the supported Boss resolution only if every
+downstream mutation remains exact. Do not broaden other Bosses or add the neural
+model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2763,6 +2764,31 @@ post-Boss/progression/skip/observation validation passed **51 tests** locally.
 The exact CI-equivalent selector passed **2842 tests** locally. GitHub Actions
 run `34790620013`, job `103814019608`, passed; the actual log reports **2842
 passed, 1602 deselected in 86.09s**.
+
+### Exact Psychic Play and Ante-3 PPO checkpoint
+
+Commit `45a998a497a57d0e08413716e8fa6e84fd1c4494` admits The Psychic
+through the canonical tactical Play owner. Its complete reachable mutation in
+the supported base-deck/no-callback slice is the existing Boss hand-debuff
+decision: plays below five cards are accepted, spend a hand, update permanent
+Ante history and hand counters, score exactly zero, move the played cards, and
+continue or lose normally; exactly five-card plays use the ordinary exact score.
+The headless owner now invokes that canonical decision at vanilla's scoring
+boundary instead of treating a legal Psychic play as unsupported or allowing
+the ordinary scorer to award chips.
+
+Deterministic seed `24` now exits the Ante-2 post-Boss shop, clears generalized
+Ante-2 Small and Big, and reaches The Psychic at requirement `1600`. A restored
+one-card plan loses exactly at score zero with no hands remaining. Independent
+original and restored five-card plans clear The Psychic and traverse the
+existing Boss teardown, payout, Tag/Boss generation, reset, and shop-generation
+owners to the same Ante-3 shop: `$59`, `tag_standard`, `tag_top_up`, next Boss
+The Pillar, and Space Joker, Banner, Magic Trick, Arcana Pack variant 3, and
+Buffoon Pack variant 2. Their serialized state and v3 observation are identical.
+Focused validation passed **44 tests** locally, and the exact CI-equivalent
+selector passed **2844 tests** locally. GitHub Actions run `34791274115`, job
+`103815836834`, passed; the actual log reports **2844 passed, 1602 deselected in
+90.69s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
