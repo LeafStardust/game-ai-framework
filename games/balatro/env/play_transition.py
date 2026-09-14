@@ -2,9 +2,9 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow Psychic / Tooth / Hook / Pillar / Arm Boss paths, with an unmodified base
-playing-card deck and no Joker, Tag, consumable, Voucher, random card, or other
-unowned callbacks.
+narrow Psychic / Tooth / Hook / Pillar / Arm / Fish Boss paths, with an
+unmodified base playing-card deck and no Joker, Tag, consumable, Voucher, random
+card, or other unowned callbacks.
 The boundary can widen only when those source-order mechanics have canonical
 environment owners.
 """
@@ -16,6 +16,7 @@ from collections.abc import Iterable
 from games.balatro.blinds.blind import BlindType
 from games.balatro.boss_trigger import boss_hand_is_debuffed
 from games.balatro.env.boss_debuffs import require_pillar_history_debuff_state
+from games.balatro.env.boss_facing import draw_fish_post_play_cards
 from games.balatro.env.boss_hand import apply_arm_debuff_hand_level
 from games.balatro.env.boss_play import (
     apply_hook_press_play_discards_from_played_pile,
@@ -52,6 +53,7 @@ def _require_plain_base_cards(
     run: HeadlessRunState,
     *,
     allow_pillar_history_debuffs: bool,
+    allow_fish_facing: bool,
 ) -> None:
     order = run.require_playing_card_order()
     identities = [(card.rank, card.suit) for card in order]
@@ -71,10 +73,29 @@ def _require_plain_base_cards(
             or card.seal is not None
             or card.permanent_bonus != 0
             or card.forced_selection
-            or card.face_down
         ):
             raise HeadlessTransitionError(
                 "R4 baseline Play does not yet own modified/debuffed/forced/face-down card effects"
+            )
+
+    if not allow_fish_facing:
+        if any(card.face_down for card in order):
+            raise HeadlessTransitionError(
+                "R4 baseline Play does not yet own modified/debuffed/forced/face-down card effects"
+            )
+    else:
+        hand_ids = {id(card) for card in run.public.hand}
+        if any(not card.facing_observed for card in run.public.hand):
+            raise HeadlessTransitionError(
+                "Fish Play requires authoritative current-hand facing state"
+            )
+        if any(
+            card.face_down
+            and (not card.facing_observed or id(card) not in hand_ids)
+            for card in order
+        ):
+            raise HeadlessTransitionError(
+                "Fish Play encountered face-down state outside the current hand"
             )
 
     if not allow_pillar_history_debuffs:
@@ -112,6 +133,13 @@ def _is_arm_context(state) -> bool:
     )
 
 
+def _is_fish_context(state) -> bool:
+    return (
+        getattr(state.blind, "type", None) == BlindType.BOSS
+        and _boss_name(state) == "The Fish"
+    )
+
+
 def _require_supported_context(run: HeadlessRunState) -> None:
     state = run.public
     if state.phase != "SELECTING_HAND":
@@ -123,11 +151,11 @@ def _require_supported_context(run: HeadlessRunState) -> None:
     boss_name = _boss_name(state)
     ordinary = blind_type in {BlindType.SMALL, BlindType.BIG} and not boss_name
     supported_boss = blind_type == BlindType.BOSS and boss_name in {
-        "The Psychic", "The Tooth", "The Hook", "The Pillar", "The Arm"
+        "The Psychic", "The Tooth", "The Hook", "The Pillar", "The Arm", "The Fish"
     }
     if not ordinary and not supported_boss:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, and The Arm only"
+            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, and The Fish only"
         )
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
@@ -168,6 +196,9 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         run,
         allow_pillar_history_debuffs=(
             blind_type is BlindType.BOSS and boss_name == "The Pillar"
+        ),
+        allow_fish_facing=(
+            blind_type is BlindType.BOSS and boss_name == "The Fish"
         ),
     )
 
@@ -210,6 +241,14 @@ def apply_supported_ordinary_play(
         card for card in next_state.hand if id(card) not in selected_ids
     ]
     next_run.played_pile.extend(selected)
+
+    # Pinned vanilla moves highlighted cards to G.play facing up. This reveals
+    # Fish-hidden identities to mechanics before hand classification while the
+    # policy only ever saw their masked public observation.
+    if _is_fish_context(next_state):
+        for card in selected:
+            card.face_down = False
+            card.facing_observed = True
 
     # Permanent Ante history is written immediately on hand->play movement.
     for card in selected:
@@ -294,6 +333,8 @@ def apply_supported_ordinary_play(
         raise HeadlessTransitionError(
             "R4 baseline Play does not yet own deck-exhaustion redraw semantics"
         )
+    if _is_fish_context(next_state):
+        return draw_fish_post_play_cards(next_run)
     while len(next_run.public.hand) < next_run.public.hand_size:
         next_run = draw_one_supported_card_to_hand(next_run)
 

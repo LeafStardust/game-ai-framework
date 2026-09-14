@@ -47,6 +47,19 @@ class _FiveCardTacticalPolicy:
         )
 
 
+class _RecordingOneCardTacticalPolicy:
+    def __init__(self):
+        self.hands = []
+
+    def decide(self, state):
+        self.hands.append(
+            tuple((card.face_down, card.rank, card.suit) for card in state.hand)
+        )
+        return SimpleNamespace(
+            action=BalatroAction(PLAY_CARDS, cards=[state.hand[0]])
+        )
+
+
 def _environment(policy=None):
     return BalatroHeadlessEnvironment(
         PPOHeadlessBackend(policy or _OneCardTacticalPolicy())
@@ -632,6 +645,91 @@ def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
         "v_tarot_merchant",
         "p_arcana_normal_1",
         "p_arcana_normal_3",
+    )
+
+    five_card_paths = (environment, restored, pillar_restored, arm_restored)
+    for current in five_card_paths:
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.SMALL
+        assert current.frame.state.blind.requirement == 11_000
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BIG
+        assert current.frame.state.blind.requirement == 16_500
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BOSS
+        assert current.frame.state.blind.requirement == 22_000
+        assert current.frame.state.boss_name == "The Fish"
+
+    assert all(current.serialize() == environment.serialize() for current in five_card_paths)
+    fish_snapshot = environment.serialize()
+    fish_restored = BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(_FiveCardTacticalPolicy())
+    )
+    fish_restored.restore(fish_snapshot)
+    assert fish_restored.serialize() == fish_snapshot
+    assert fish_restored.frame.encoded_observation() == (
+        environment.frame.encoded_observation()
+    )
+
+    recording_policy = _RecordingOneCardTacticalPolicy()
+    hidden_loss = BalatroHeadlessEnvironment(PPOHeadlessBackend(recording_policy))
+    hidden_loss.restore(fish_snapshot)
+    hidden_loss._backend.run.public.hand_levels["HIGH_CARD"] = 1
+    _, reward, terminated, truncated, _ = hidden_loss.step(
+        EnvAction.from_alias("SELECT_BLIND")
+    )
+    assert (reward, terminated, truncated) == (-1.0, True, False)
+    assert hidden_loss.frame.state.score == 60
+    assert hidden_loss.frame.state.hands_remaining == 0
+    assert len(recording_policy.hands) == 4
+    assert not any(face_down for face_down, _, _ in recording_policy.hands[0])
+    assert all(
+        any(face_down for face_down, _, _ in hand)
+        for hand in recording_policy.hands[1:]
+    )
+    assert all(
+        rank == suit == "?"
+        for hand in recording_policy.hands[1:]
+        for face_down, rank, suit in hand
+        if face_down
+    )
+
+    five_card_paths = (*five_card_paths, fish_restored)
+    for current in five_card_paths:
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        assert current.frame.state.ante == 6
+        assert current.frame.state.round == 15
+        assert current.frame.state.money == 167
+        assert current.frame.status is RunStatus.RUNNING
+
+    assert all(current.serialize() == environment.serialize() for current in five_card_paths)
+    run = backend.run
+    assert run.blind_progression_state.small_tag == "tag_standard"
+    assert run.blind_progression_state.big_tag == "tag_boss"
+    assert run.blind_progression_state.boss_name == "The Mouth"
+    assert run.boss_selection_state.usage_counts["bl_fish"] == 1
+    assert sum(run.boss_selection_state.usage_counts.values()) == 6
+    assert not any(card.face_down for card in run.require_playing_card_order())
+    assert tuple(
+        item.center_key
+        for items in (
+            run.public.shop_jokers,
+            run.public.shop_consumables,
+            run.public.shop_vouchers,
+            run.public.shop_boosters,
+        )
+        for item in items
+    ) == (
+        "j_raised_fist",
+        "j_credit_card",
+        "v_paint_brush",
+        "p_standard_normal_1",
+        "p_buffoon_normal_2",
     )
 
 
