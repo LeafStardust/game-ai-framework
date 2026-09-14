@@ -2429,14 +2429,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Audit and admit The Mouth through the canonical mutable-hand-rule start and
-tactical Play lifecycle only if first-hand locking, same-type scoring,
-different-type zero scoring, and defeat cleanup compose exactly at this boundary.
-Continue deterministic seed `24` through generalized Ante-6 Small/Big progression
-to The Mouth, freeze exact snapshot restore/replay across the mutable locked-hand
-state, and compose the supported Boss resolution only if every downstream
-mutation remains exact. Do not broaden The Eye or other Bosses, and do not add
-the neural model/optimizer yet.
+Audit and admit The Needle through the canonical resource-mutating Boss start,
+tactical Play lifecycle, and resource-defeat cleanup only if its exact one-hand
+round composes at this boundary. Continue deterministic seed `24` through
+generalized Ante-7 Small/Big progression to The Needle, freeze exact snapshot
+restore/replay across the private stored-hands adjustment, and compose the
+supported Boss resolution only if every downstream mutation remains exact. Do
+not broaden The Water, The Manacle, or other Bosses, and do not add the neural
+model/optimizer yet.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2864,6 +2864,30 @@ Pack variant 2. All facing state is clean after resolution. Focused validation
 passed **50 tests** locally, and the exact CI-equivalent selector passed **2858
 tests** locally. GitHub Actions run `34807034893`, job `103860829726`, passed;
 the actual log reports **2858 passed, 1602 deselected in 128.86s**.
+
+### Exact Mouth Play and Ante-7 PPO checkpoint
+
+Commit `accbacc5dfda2bba19faf92c5775a03469dcdf73` admits The Mouth
+through the canonical mutable-hand-rule start and tactical Play lifecycle. The
+first accepted poker hand locks the canonical hand identity before scoring;
+later Plays of the same type score ordinarily, while a different type spends a
+hand, updates permanent and round history, moves cards normally, and scores
+exactly zero without replacing the lock. Unobserved mutable state and
+noncanonical locked identities fail atomically.
+
+Focused regressions serialize and restore after the first accepted Play, prove
+same-type continuation and different-type zero scoring, preserve input
+isolation, and reject malformed state. Deterministic seed `24` clears
+generalized Ante-6 Small and Big at requirements `20000` and `30000`, reaches
+The Mouth at `40000`, and restores the Boss boundary exactly. Original and
+restored five-card paths clear the Boss, remove the mutable lock through the
+canonical defeat owner, and converge on the Ante-7 shop at `$203` with
+`tag_meteor`, `tag_handy`, next Boss The Needle, and Burglar, Jupiter, Paint
+Brush, Celestial Pack variant 4, and Celestial Pack variant 3.
+
+Focused Mouth/start/constraint/end-to-end validation passed **27 tests**
+locally. GitHub Actions run `34807700940`, job `103862695704`, passed; the
+actual log reports **2862 passed, 1602 deselected in 123.44s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
