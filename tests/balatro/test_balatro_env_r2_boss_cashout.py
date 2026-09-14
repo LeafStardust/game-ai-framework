@@ -20,7 +20,10 @@ def _boss_round(name: str, *, money: int = 14, reward: int = 5) -> HeadlessRunSt
     state.blind_is_boss = True
     state.blind = Blind(BlindType.BOSS, requirement=100, reward=reward)
     state.blind_score = 100
-    return HeadlessRunState(public=state, seed="BOSSCASH")
+    run = HeadlessRunState(public=state, seed="BOSSCASH")
+    for card in run.require_playing_card_order():
+        card.played_this_ante_observed = True
+    return run
 
 
 def _finish(run: HeadlessRunState, *, score: int = 120, hands: int = 1) -> HeadlessRunState:
@@ -47,6 +50,7 @@ def _card_signature(card):
 
 def test_env_r2_simple_boss_cashout_pays_and_enters_ungenerated_shop():
     run = _finish(_boss_round("The Psychic", money=14, reward=5), hands=1)
+    run.require_playing_card_order()[0].played_this_ante = True
 
     result = cash_out_supported_boss(run)
 
@@ -60,6 +64,19 @@ def test_env_r2_simple_boss_cashout_pays_and_enters_ungenerated_shop():
     assert result.public.shop_vouchers == []
     # Ante progression is owned by leaving the shop, not cash-out.
     assert result.public.ante == 1
+    assert not any(card.played_this_ante for card in result.require_playing_card_order())
+    assert run.require_playing_card_order()[0].played_this_ante is True
+
+
+def test_env_r2_boss_cashout_rejects_unknown_ante_history_atomically():
+    run = _finish(_boss_round("The Psychic"))
+    run.require_playing_card_order()[-1].played_this_ante_observed = False
+
+    with pytest.raises(HeadlessTransitionError, match="authoritative permanent-card history"):
+        cash_out_supported_boss(run)
+
+    assert run.public.phase == "ROUND_EVAL"
+    assert run.public.money == 14
 
 
 def test_env_r2_manacle_boss_cashout_restores_persistent_hand_size_without_draw():

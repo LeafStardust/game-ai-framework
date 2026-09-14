@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from games.balatro.blinds.blind import BlindType
 from games.balatro.env.boss_defeat import defeat_supported_boss
+from games.balatro.env.card_history import clear_played_this_ante_for_new_ante
 from games.balatro.env.round_end import (
     _ROUND_END_DOLLAR_JOKER_TYPES,
     _ROUND_END_INERT_JOKER_TYPES,
@@ -37,10 +38,11 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
 
     1. capture the active Boss reward/target before Blind reset;
     2. run exact normal ``Blind:defeat`` cleanup;
-    3. compute reward, unused-hand dollars, supported Joker dollar rows, and
+    3. clear permanent played-this-Ante history at the Boss round-end boundary;
+    4. compute reward, unused-hand dollars, supported Joker dollar rows, and
        interest from *pre-payout* money;
-    4. repopulate permanent playing cards into the round-end deck;
-    5. enter an active but ungenerated SHOP.
+    5. repopulate permanent playing cards into the round-end deck;
+    6. enter an active but ungenerated SHOP.
 
     Important source-order exclusions:
 
@@ -120,7 +122,8 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
     payout = reward + hands_remaining + joker_dollars + interest
 
     defeated = defeat_supported_boss(run)
-    next_run = repopulate_round_end_deck(defeated)
+    history_reset = clear_played_this_ante_for_new_ante(defeated)
+    next_run = repopulate_round_end_deck(history_reset)
     next_state = next_run.public
     next_state.money = money + payout
     next_state.phase = "SHOP"

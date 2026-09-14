@@ -82,6 +82,14 @@ def test_env_ppo_backend_reset_is_exact_pristine_red_white_boundary():
     assert run.public.vouchers == []
     assert run.public.shop_discount_percent_observed is True
     assert run.public.shop_discount_percent == 0
+    assert all(
+        card.played_this_ante_observed
+        for card in run.require_playing_card_order()
+    )
+    assert not any(
+        card.played_this_ante
+        for card in run.require_playing_card_order()
+    )
     assert run.public.joker_generation_pool_observed is True
     assert run.public.consumable_generation_pool_observed is True
     assert run.public.voucher_generation_pool_observed is True
@@ -471,6 +479,84 @@ def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
         "v_magic_trick",
         "p_arcana_normal_3",
         "p_buffoon_normal_2",
+    )
+    assert not any(
+        card.played_this_ante
+        for card in run.require_playing_card_order()
+    )
+
+    for current in (environment, restored):
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.SMALL
+        assert current.frame.state.blind.requirement == 2000
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BIG
+        assert current.frame.state.blind.requirement == 3000
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        current.step(EnvAction.from_alias("END_SHOP"))
+        assert current.frame.state.blind.type is BlindType.BOSS
+        assert current.frame.state.blind.requirement == 4000
+        assert current.frame.state.boss_name == "The Pillar"
+
+    assert restored.serialize() == environment.serialize()
+    assert sum(
+        card.played_this_ante
+        for card in backend.run.require_playing_card_order()
+    ) == 9
+    assert all(
+        card.played_this_ante_observed
+        for card in backend.run.require_playing_card_order()
+    )
+    pillar_snapshot = environment.serialize()
+    pillar_restored = BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(_FiveCardTacticalPolicy())
+    )
+    pillar_restored.restore(pillar_snapshot)
+    assert pillar_restored.serialize() == pillar_snapshot
+    assert pillar_restored.frame.encoded_observation() == (
+        environment.frame.encoded_observation()
+    )
+
+    for current in (environment, restored, pillar_restored):
+        current.step(EnvAction.from_alias("SELECT_BLIND"))
+        assert current.frame.state.phase == "SHOP"
+        assert current.frame.state.ante == 4
+        assert current.frame.state.round == 9
+        assert current.frame.state.money == 95
+        assert current.frame.status is RunStatus.RUNNING
+
+    assert restored.serialize() == environment.serialize()
+    assert pillar_restored.serialize() == environment.serialize()
+    assert restored.frame.encoded_observation() == environment.frame.encoded_observation()
+    run = backend.run
+    assert run.blind_progression_state.small_tag == "tag_investment"
+    assert run.blind_progression_state.big_tag == "tag_orbital"
+    assert run.blind_progression_state.boss_name == "The Arm"
+    assert run.boss_selection_state.usage_counts["bl_pillar"] == 1
+    assert sum(run.boss_selection_state.usage_counts.values()) == 4
+    assert not any(card.debuffed for card in run.require_playing_card_order())
+    assert not any(
+        card.played_this_ante
+        for card in run.require_playing_card_order()
+    )
+    assert tuple(
+        item.center_key
+        for items in (
+            run.public.shop_jokers,
+            run.public.shop_consumables,
+            run.public.shop_vouchers,
+            run.public.shop_boosters,
+        )
+        for item in items
+    ) == (
+        "j_vagabond",
+        "j_8_ball",
+        "v_paint_brush",
+        "p_buffoon_normal_1",
+        "p_arcana_normal_1",
     )
 
 

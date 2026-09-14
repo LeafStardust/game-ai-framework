@@ -24,6 +24,8 @@ def _cleared_hook_run() -> HeadlessRunState:
     state.blind_score = 100
 
     run = HeadlessRunState(public=state, seed="TESTSEED")
+    for card in run.require_playing_card_order():
+        card.played_this_ante_observed = True
     dealt = deal_supported_round_start(run)
     dealt.public.phase = "ROUND_EVAL"
     dealt.public.score = 120

@@ -147,5 +147,35 @@ def test_env_r2_pillar_cleanup_rejects_unowned_debuff_pattern():
     prepared = prepare_supported_pillar_start(run)
     prepared.require_playing_card_order()[1].debuffed = True
 
-    with pytest.raises(HeadlessTransitionError, match="unowned card debuff"):
+    with pytest.raises(HeadlessTransitionError, match="outside owned Ante history"):
+        clear_pillar_history_debuff(prepared)
+
+
+def test_env_r2_pillar_cleanup_accepts_newly_played_clean_discard_history():
+    prepared = start_supported_pillar(_run(seed="PILLAR-CLEAN-DISCARD"))
+    played = prepared.public.hand.pop(0)
+    played.played_this_ante = True
+    prepared.discard_pile.append(played)
+    prepared.public.discard_pile.append(played)
+
+    cleaned = clear_pillar_history_debuff(prepared)
+
+    assert all(not card.debuffed for card in cleaned.require_playing_card_order())
+    matching = [
+        card
+        for card in cleaned.require_playing_card_order()
+        if _identity(card) == _identity(played)
+    ]
+    assert len(matching) == 1
+    assert matching[0].played_this_ante is True
+
+
+def test_env_r2_pillar_cleanup_rejects_clean_active_prior_history():
+    prepared = start_supported_pillar(_run(seed="PILLAR-BAD-ACTIVE"))
+    prepared.public.hand[0].played_this_ante = True
+
+    with pytest.raises(
+        HeadlessTransitionError,
+        match="incomplete active history debuffs",
+    ):
         clear_pillar_history_debuff(prepared)

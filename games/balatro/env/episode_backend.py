@@ -6,8 +6,9 @@ from typing import Any
 
 from games.balatro.blinds.blind import create_small_blind
 from games.balatro.blinds.blind import BlindType
-from games.balatro.env.boss_round_resolution import resolve_supported_boss_round
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.boss_round_resolution import resolve_supported_boss_round
+from games.balatro.env.card_history import initialize_pristine_played_this_ante_history
 from games.balatro.env.blind_progression import (
     BlindProgressionState,
     activate_selected_blind_progression,
@@ -89,6 +90,7 @@ def pristine_red_white_reset(seed: str | int) -> HeadlessRunState:
             blind_ante=1,
         ),
     )
+    run = initialize_pristine_played_this_ante_history(run)
     run = initialize_pristine_ppo_generation_authority(run)
     return initialize_pristine_ppo_boss_authority(run)
 

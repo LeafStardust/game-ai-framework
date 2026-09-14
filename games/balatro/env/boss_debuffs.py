@@ -193,6 +193,32 @@ def apply_pillar_history_debuff(run: HeadlessRunState) -> HeadlessRunState:
     return next_run
 
 
+def require_pillar_history_debuff_state(run: HeadlessRunState) -> None:
+    """Validate The Pillar's exact active and already-played debuff pattern."""
+    if run.public.boss_name != "The Pillar":
+        raise HeadlessTransitionError("Pillar debuff state requires The Pillar boss")
+    cards = run.require_playing_card_order()
+    if len(cards) != 52 or any(not card.played_this_ante_observed for card in cards):
+        raise HeadlessTransitionError(
+            "Pillar debuff state requires authoritative played-this-ante history"
+        )
+    if any(card.debuffed and not card.played_this_ante for card in cards):
+        raise HeadlessTransitionError(
+            "Pillar debuff state encountered a debuff outside owned Ante history"
+        )
+
+    # Cards played during The Pillar gain permanent history after the pre-deal
+    # debuff pass, but are not retroactively debuffed and have moved to discard.
+    active_ids = {id(card) for card in (*run.public.hand, *run.draw_pile)}
+    if any(
+        id(card) in active_ids and card.played_this_ante and not card.debuffed
+        for card in cards
+    ):
+        raise HeadlessTransitionError(
+            "Pillar debuff state encountered incomplete active history debuffs"
+        )
+
+
 def clear_pillar_history_debuff(run: HeadlessRunState) -> HeadlessRunState:
     """Clear only the transient debuffs proven to belong to The Pillar.
 
@@ -202,15 +228,7 @@ def clear_pillar_history_debuff(run: HeadlessRunState) -> HeadlessRunState:
     """
     if run.public.boss_name != "The Pillar":
         raise HeadlessTransitionError("Pillar cleanup requires The Pillar boss")
-    cards = run.require_playing_card_order()
-    if len(cards) != 52 or any(not card.played_this_ante_observed for card in cards):
-        raise HeadlessTransitionError(
-            "Pillar cleanup requires authoritative permanent-card history"
-        )
-    if any(card.debuffed != card.played_this_ante for card in cards):
-        raise HeadlessTransitionError(
-            "Pillar cleanup encountered unowned card debuff"
-        )
+    require_pillar_history_debuff_state(run)
 
     next_run = run.copy()
     for card in next_run.require_playing_card_order():

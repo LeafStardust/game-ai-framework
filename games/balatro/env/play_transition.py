@@ -2,8 +2,9 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow Psychic / Tooth / Hook Boss paths, with an unmodified base playing-card deck
-and no Joker, Tag, consumable, Voucher, random card, or other unowned callbacks.
+narrow Psychic / Tooth / Hook / Pillar Boss paths, with an unmodified base
+playing-card deck and no Joker, Tag, consumable, Voucher, random card, or other
+unowned callbacks.
 The boundary can widen only when those source-order mechanics have canonical
 environment owners.
 """
@@ -14,6 +15,7 @@ from collections.abc import Iterable
 
 from games.balatro.blinds.blind import BlindType
 from games.balatro.boss_trigger import boss_hand_is_debuffed
+from games.balatro.env.boss_debuffs import require_pillar_history_debuff_state
 from games.balatro.env.boss_play import (
     apply_hook_press_play_discards_from_played_pile,
     apply_tooth_press_play_economy_from_played_pile,
@@ -45,7 +47,11 @@ def _require_exact_int(name: str, value: object, *, minimum: int = 0) -> int:
     return value
 
 
-def _require_plain_base_cards(run: HeadlessRunState) -> None:
+def _require_plain_base_cards(
+    run: HeadlessRunState,
+    *,
+    allow_pillar_history_debuffs: bool,
+) -> None:
     order = run.require_playing_card_order()
     identities = [(card.rank, card.suit) for card in order]
     if (
@@ -63,13 +69,21 @@ def _require_plain_base_cards(run: HeadlessRunState) -> None:
             or card.edition is not None
             or card.seal is not None
             or card.permanent_bonus != 0
-            or card.debuffed
             or card.forced_selection
             or card.face_down
         ):
             raise HeadlessTransitionError(
                 "R4 baseline Play does not yet own modified/debuffed/forced/face-down card effects"
             )
+
+    if not allow_pillar_history_debuffs:
+        if any(card.debuffed for card in order):
+            raise HeadlessTransitionError(
+                "R4 baseline Play does not yet own modified/debuffed/forced/face-down card effects"
+            )
+        return
+
+    require_pillar_history_debuff_state(run)
 
 
 def _boss_name(state) -> str:
@@ -101,11 +115,11 @@ def _require_supported_context(run: HeadlessRunState) -> None:
     boss_name = _boss_name(state)
     ordinary = blind_type in {BlindType.SMALL, BlindType.BIG} and not boss_name
     supported_boss = blind_type == BlindType.BOSS and boss_name in {
-        "The Psychic", "The Tooth", "The Hook"
+        "The Psychic", "The Tooth", "The Hook", "The Pillar"
     }
     if not ordinary and not supported_boss:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, and The Hook only"
+            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, and The Pillar only"
         )
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
@@ -142,7 +156,12 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("blind requirement cannot be negative")
 
     require_exact_selecting_hand_zones(run)
-    _require_plain_base_cards(run)
+    _require_plain_base_cards(
+        run,
+        allow_pillar_history_debuffs=(
+            blind_type is BlindType.BOSS and boss_name == "The Pillar"
+        ),
+    )
 
 
 def _increment_hand_counter(mapping: dict, hand_name: str, *, label: str) -> None:
