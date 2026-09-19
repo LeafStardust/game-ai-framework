@@ -2429,14 +2429,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Implement the versioned resumable PPO learner/checkpoint owner. It must bind the
-training run, model/optimizer/assembler versions, exact model parameters, Adam
-moments and step, assembler carryover, next episode indices, completed batch
-count, and total consumed environment transitions. Prove deterministic
-interrupted/restored equivalence across one exact optimizer update and reject
-schema, shape, provenance, counter, or nonfinite-state drift. Do not launch the
-full training schedule, inspect learned-policy results, tune hyperparameters, or
-widen environment mechanics.
+Implement the versioned deterministic PPO training-session driver. It must use
+the existing headless collector and resumable learner owners, advance the eight
+rollout streams in exact episode-index order, admit only complete episodes,
+update only on an exact assembled batch, and stop on the frozen optimizer-
+consumed transition schedule. Checkpoint/resume must neither recollect nor skip
+an episode or batch. Prove the orchestration with bounded deterministic fakes;
+do not launch the full training schedule, inspect learned-policy results, tune
+hyperparameters, or widen environment mechanics.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2994,6 +2994,32 @@ duplicate, out-of-order, cross-run, and tampered evidence. Focused batch/model/
 contract validation passed **32 tests** locally. GitHub Actions run
 `35439352348`, job `105887366171`, passed; the actual log reports **2889 passed,
 1602 deselected in 126.26s**.
+
+### Resumable PPO learner/checkpoint checkpoint
+
+Commit `5d070b24d5b982752ddf648fdb626d7e041b6413` adds the versioned
+`balatro-red-white-ppo-learner-checkpoint-v1` owner around the exact actor-
+critic, Adam optimizer, and complete-episode batch assembler. Its checkpoint
+binds the training-run digest and all three component versions, exact model
+parameters, both Adam moment sets and step, deterministic minibatch RNG state,
+assembler carryover and next episode indices, completed batch count, and total
+collected environment transitions.
+
+Every numeric array is encoded as canonical little-endian float64 bytes with
+an exact shape and SHA-256 digest. Restore rejects field/version/run drift,
+parameter or moment name/shape/dtype/byte/digest drift, malformed RNG state,
+nonfinite arrays, non-exact counters, impossible optimizer-step counts, and any
+transition count not exactly accounted for by completed 2,048-transition
+batches plus assembler carryover. Checkpoints are therefore valid only at
+complete batch-update boundaries; no partial optimizer update is silently
+represented as resumable.
+
+Deterministic regressions round-trip every owned field, preserve nonempty
+carryover and per-stream next indices, prove identical minibatch RNG and exact
+model/Adam results across the next optimizer step after restore, and exercise
+the fail-closed drift cases. Focused learner/model/assembler validation passed
+**25 tests** locally. GitHub Actions run `35439895137`, job `105888773703`,
+passed; the actual log reports **2901 passed, 1602 deselected in 132.69s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
