@@ -2429,14 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Implement the versioned production PPO campaign runner and CLI. It must freeze
-the exact tactical decision engine and eight-environment factory, accept an
-explicit root seed and artifact directory, advance only through the bounded
-training-session API, write canonical checkpoints atomically, resume only a
-matching run, and emit compact deterministic progress/final manifests. Prove
-new/start/resume/completion and interrupted-write behavior with bounded tests;
-do not launch the full training schedule, inspect learned-policy results, tune
-hyperparameters, or widen environment mechanics.
+Repair the canonical tactical Play admission boundary for held consumables and
+already-redeemed Vouchers reachable through the frozen PPO profile. Explicitly
+classify exact play-time no-effect families, retain fail-closed handling for
+Observatory or any other unowned scoring callback, and add focused deterministic
+regressions. Then rerun the single-episode production CLI smoke and record its
+throughput/artifacts. Do not launch the full training schedule, inspect learned-
+policy results, tune hyperparameters, or widen unrelated mechanics.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -3046,6 +3045,35 @@ bounds, and fail-closed incomplete, index-drifted, counter-drifted, schema, and
 run-provenance cases. Focused session/learner/assembler/model validation passed
 **30 tests** locally. GitHub Actions run `35443064717`, job `105897170345`,
 passed; the actual log reports **2906 passed, 1602 deselected in 100.41s**.
+
+### Production PPO campaign CLI checkpoint
+
+Commit `520ef4f8ca3ebbabc1dc4f1d5f0f80d973482b1e` adds the versioned
+`balatro-red-white-ppo-campaign-v1` command and freezes
+`balatro-red-white-ppo-tactical-factory-v1`. The factory constructs eight exact
+PPO backends with an explicitly configured D1 planner, strategy-aware tactical
+policy, full deterministic search schedule, and no wall-clock cutoff. The CLI
+requires an explicit root seed, artifact directory, and positive episode bound.
+
+The campaign advances the bounded session one complete episode at a time and
+atomically replaces its canonical JSON checkpoint after every admitted episode.
+Progress can be reconstructed from the checkpoint if publication is interrupted;
+resume rejects campaign, tactical-factory, or training-run drift. Compact
+progress and final manifests bind the checkpoint digest, counters, next episode
+indices, completion state, and final parameter digest. Stale partial/final
+artifact combinations fail closed. Focused campaign/session/learner/assembler/
+model validation passed **36 tests** locally. GitHub Actions run `35443598496`,
+job `105898619632`, passed; the actual log reports **2912 passed, 1602 deselected
+in 132.52s**.
+
+The first bounded production CLI smoke used root seed `RED-WHITE-PPO-V1` and
+`--maximum-episodes 1`. It did not publish a checkpoint because the complete
+episode contract was not reached. After several minutes of exact tactical work,
+the run failed closed in `apply_supported_ordinary_play`: the policy had reached
+a later round with a held consumable, while the canonical R4 Play owner still
+rejects every nonempty consumable inventory as an unowned scoring interaction.
+This is a concrete campaign-readiness mechanics boundary, not permission to
+drop the item, mask an otherwise-supported purchase, or approximate its effect.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
