@@ -14,6 +14,7 @@ from games.balatro.jokers.vagabond import VagabondJoker
 from games.balatro.live.generated_consumable_outcomes import (
     LiveGeneratedConsumableScoreOutcomeModel,
     ProjectedGeneratedConsumable,
+    _copy_generated_consumable_branch_state,
 )
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.state import BalatroState
@@ -46,6 +47,35 @@ def _generated_categories(outcome):
         for consumable in outcome.state_after_scoring.consumables
         if isinstance(consumable, ProjectedGeneratedConsumable)
     ]
+
+
+def test_generated_branch_copy_shares_only_frozen_generation_authority():
+    card = BalatroCard("A", "Spades")
+    state = _state([card], [], consumables=["held"])
+    state.joker_unlocks = {"j_joker": {"unlocked": True}}
+    state.joker_generation_pools = {"Common": [{"key": "j_joker"}]}
+    state.consumable_generation_pools = {"Tarot": [{"key": "c_fool"}]}
+    state.voucher_generation_pool = [{"key": "v_overstock", "requires": []}]
+
+    branch = _copy_generated_consumable_branch_state(state)
+
+    assert branch is not state
+    assert branch.hand is not state.hand
+    assert branch.hand[0] is not state.hand[0]
+    assert branch.consumables is not state.consumables
+    assert branch.jokers is not state.jokers
+    for name in (
+        "joker_unlocks",
+        "joker_generation_pools",
+        "consumable_generation_pools",
+        "voucher_generation_pool",
+    ):
+        assert getattr(branch, name) is getattr(state, name)
+
+    branch.consumables.append("projected")
+    branch.hand.clear()
+    assert state.consumables == ["held"]
+    assert state.hand == [card]
 
 
 def test_seance_creates_abstract_spectral_without_sampling_identity():
