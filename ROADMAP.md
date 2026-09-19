@@ -701,7 +701,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
 - B0 RL baseline infrastructure: **COMPLETE / GREEN**.
-- PPO/observation training: **IN PROGRESS — ONE PRODUCTION EPISODE GREEN; NEXT TASK IS DETERMINISTIC TACTICAL-COST ATTRIBUTION**.
+- PPO/observation training: **IN PROGRESS — FIRST TACTICAL COPY COST REPAIRED; LATER-STATE ATTRIBUTION NEXT**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
 ## Current strategic action contract
@@ -2429,15 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Attribute the production PPO episode's tactical decision cost at the canonical
-D1 owner. Add a deterministic fixed-state benchmark/diagnostic that separates
-candidate generation, search attempts, and final policy arbitration for the
-exact early Red/White states reached by the production factory. Use that evidence
-to repair the first dominant canonical cost without changing legal actions,
-selected actions, exact mechanics, seeded replay, or the frozen PPO transition
-contract. The training path must not depend on a wall-clock cutoff. Re-run the
-same one-episode CLI smoke after a green CI checkpoint and record its exact
-throughput and artifacts. Do not launch the full training schedule, inspect
+Extend the production PPO tactical diagnostic across the unchanged first episode
+so every tactical decision records a deterministic public-input digest, selected
+action/indices, search-attempt/node trace, and separate candidate-generation,
+search-evaluation, and final-policy elapsed times. Identify the slowest later
+state and repair its first dominant canonical cost without changing the episode's
+actions, checkpoint digest, exact mechanics, seeded replay, or frozen PPO
+transition contract. The training path must not depend on a wall-clock cutoff.
+Re-run the same one-episode CLI smoke after a green CI checkpoint and record its
+exact throughput and artifacts. Do not launch the full training schedule, inspect
 learned-policy results, tune hyperparameters, or widen unrelated mechanics.
 
 ### Versioned PPO training and rollout contract checkpoint
@@ -3118,6 +3118,41 @@ path, but **0.1546 episodes/minute** and **0.0103 transitions/second** are not a
 viable training rate: holding that transition rate would require about **6.45
 years** for the frozen 2,097,152-transition schedule. The active blocker is now
 canonical tactical decision cost, not another demonstrated mechanics gap.
+
+Commit `3c3bed692f9a5e22833896779a1ca3edbc5e2c5e` adds the versioned
+`balatro-red-white-ppo-tactical-cost-v1` fixed-state diagnostic. It reconstructs
+the exact episode-0 game seed `7258FFDA` and separates candidate generation,
+search evaluation, final policy arbitration, and other decision time while
+pinning the selected action and complete search-attempt/node trace. The first
+profile attributed **40.836 of 48.703 seconds** to discard-beam candidate
+priority, dominated by recursive copies of the large frozen generation-authority
+catalogues inside generated-consumable outcome branches.
+
+The canonical generated-consumable projector now deep-copies mutable tactical
+branch state while memoizing only the four generation-authority fields that are
+initialized as immutable catalogue evidence and never mutated in-place. Cards,
+Jokers, held consumables, and every other mutable gameplay field remain isolated.
+The exact first decision remains `DISCARD_CARDS` at visible indices
+`(3, 4, 5, 6, 7)` with the identical search trace: horizon/node counts
+`(2, 18)`, `(3, 79)`, and confirmation `(3, 38)`. The checked-in diagnostic
+reported **9.696 seconds** total: **8.722 seconds** candidate generation,
+**0.396 seconds** search evaluation, **0.577 seconds** policy arbitration, and
+**0.002 seconds** other. Focused outcome/planner/campaign/diagnostic validation
+passed **51 tests** locally. GitHub Actions run `35454969477`, job
+`105928524098`, passed; the actual job log reports **2929 passed, 1602
+deselected in 85.84s**. The preceding roadmap checkpoint run `35446297426`, job
+`105905687463`, passed with **2923 passed, 1602 deselected in 133.15s**.
+
+The unchanged one-episode production CLI smoke then completed in **358.595
+seconds**, down **29.441 seconds (7.59%)** from the 388.036-second baseline. It
+published the same **44,734,132-byte** checkpoint, **568-byte** progress manifest,
+and checkpoint digest
+`2a6c689d9f135e34c826a3fd39a09153ee248b57c572cfb37574dd3a0d1d8abe`,
+proving the complete episode trajectory and training state are unchanged. The
+resulting **0.1673 episodes/minute** and **0.0112 transitions/second** would still
+require about **5.96 years** for the frozen transition schedule if sustained.
+The opening-state repair is real but later tactical states now require direct
+per-decision attribution before another optimization.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
