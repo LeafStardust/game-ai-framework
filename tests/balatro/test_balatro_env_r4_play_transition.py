@@ -3,6 +3,7 @@ import pytest
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.play_transition import apply_supported_ordinary_play
+from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
@@ -208,6 +209,49 @@ def test_env_r4_ordinary_play_admits_profile_consumables_as_play_time_no_ops(
     assert len(result.public.consumables) == 1
     assert type(result.public.consumables[0]) is type(held_item)
     assert result.public.consumables[0].name == held_item.name
+
+
+@pytest.mark.parametrize(
+    "held_item",
+    [
+        GeneratedShopConsumableItem("Tarot", "c_fool", 3, 3, False),
+        GeneratedShopConsumableItem("Planet", "c_mercury", 3, 2, True),
+    ],
+)
+def test_env_r4_ordinary_play_admits_generated_consumable_descriptors_as_play_time_no_ops(
+    held_item,
+):
+    baseline = _play_run(seed="R4-GENERATED-HELD-NO-OP")
+    held = _play_run(seed="R4-GENERATED-HELD-NO-OP")
+    held.public.consumables = [held_item]
+
+    expected = apply_supported_ordinary_play(baseline, (0,))
+    result = apply_supported_ordinary_play(held, (0,))
+
+    assert result.public.score == expected.public.score
+    assert result.public.hand == expected.public.hand
+    assert result.public.consumables == [held_item]
+
+
+@pytest.mark.parametrize(
+    "held_item",
+    [
+        GeneratedShopConsumableItem("Spectral", "c_aura", 4, 4),
+        GeneratedShopConsumableItem("Tarot", "c_mercury", 3, 3),
+        GeneratedShopConsumableItem("Planet", "c_unknown", 3, 3),
+        GeneratedShopConsumableItem("Tarot", "c_fool", True, 3),
+        GeneratedShopConsumableItem("Tarot", "c_fool", 3, -1),
+        GeneratedShopConsumableItem("Tarot", "c_fool", 3, 3, "yes"),
+    ],
+)
+def test_env_r4_ordinary_play_rejects_unowned_or_malformed_generated_consumables(
+    held_item,
+):
+    run = _play_run(seed="R4-GENERATED-HELD-REJECT")
+    run.public.consumables = [held_item]
+
+    with pytest.raises(HeadlessTransitionError, match="held consumable"):
+        apply_supported_ordinary_play(run, (0,))
 
 
 def test_env_r4_ordinary_play_admits_applied_voucher_and_rejects_observatory():

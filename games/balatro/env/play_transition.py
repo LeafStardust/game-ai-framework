@@ -26,6 +26,10 @@ from games.balatro.env.boss_play import (
     apply_hook_press_play_discards_from_played_pile,
     apply_tooth_press_play_economy_from_played_pile,
 )
+from games.balatro.env.consumable_centers import (
+    VANILLA_PLANET_CENTER_ORDER,
+    VANILLA_TAROT_CENTER_ORDER,
+)
 from games.balatro.env.deal import draw_one_supported_card_to_hand
 from games.balatro.env.joker_sale import require_verdant_leaf_debuff_state
 from games.balatro.env.round_zones import (
@@ -43,6 +47,7 @@ from games.balatro.env.voucher_capabilities import (
     EXACT_SHOP_SIZE_VOUCHER_KEYS,
     EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS,
 )
+from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.consumable import PlanetCard, TarotCard
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.scoring import BalatroScorer
@@ -65,6 +70,10 @@ _PLAY_TIME_NO_EFFECT_VOUCHERS = (
     | EXACT_SHOP_SIZE_VOUCHER_KEYS
     | EXACT_ANTE_VOUCHER_KEYS
 )
+_PLAY_TIME_NO_EFFECT_CONSUMABLE_CENTERS = {
+    "Tarot": frozenset(VANILLA_TAROT_CENTER_ORDER),
+    "Planet": frozenset(VANILLA_PLANET_CENTER_ORDER),
+}
 
 
 def _require_exact_int(name: str, value: object, *, minimum: int = 0) -> int:
@@ -73,6 +82,25 @@ def _require_exact_int(name: str, value: object, *, minimum: int = 0) -> int:
     if value < minimum:
         raise HeadlessTransitionError(f"{name} must be at least {minimum}")
     return value
+
+
+def _is_play_time_no_effect_consumable(item: object) -> bool:
+    if isinstance(item, (PlanetCard, TarotCard)):
+        return True
+    if type(item) is not GeneratedShopConsumableItem:
+        return False
+
+    centers = _PLAY_TIME_NO_EFFECT_CONSUMABLE_CENTERS.get(item.card_type)
+    return (
+        centers is not None
+        and type(item.center_key) is str
+        and item.center_key in centers
+        and type(item.base_cost) is int
+        and item.base_cost >= 0
+        and type(item.price) is int
+        and item.price >= 0
+        and (item.discovered is None or type(item.discovered) is bool)
+    )
 
 
 def _require_plain_base_cards(
@@ -208,7 +236,7 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("R4 baseline Play does not yet own Joker callbacks")
     if run.tags:
         raise HeadlessTransitionError("R4 baseline Play does not yet own Tag callbacks")
-    if any(not isinstance(item, (PlanetCard, TarotCard)) for item in state.consumables):
+    if any(not _is_play_time_no_effect_consumable(item) for item in state.consumables):
         raise HeadlessTransitionError(
             "R4 baseline Play does not own this held consumable scoring interaction"
         )
