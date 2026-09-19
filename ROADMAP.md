@@ -701,7 +701,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
 - B0 RL baseline infrastructure: **COMPLETE / GREEN**.
-- PPO/observation training: **IN PROGRESS — BIG-BLIND/LATER-SHOP CONTINUATION GREEN; NEXT TASK IS INITIAL BOSS-SELECTION AUTHORITY**.
+- PPO/observation training: **IN PROGRESS — ONE PRODUCTION EPISODE GREEN; NEXT TASK IS DETERMINISTIC TACTICAL-COST ATTRIBUTION**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
 ## Current strategic action contract
@@ -2429,14 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Complete the canonical tactical Play admission boundary for purchased held
-`GeneratedShopConsumableItem` descriptors. Validate their Tarot/Planet identity
-against the frozen catalogue and treat only that exact representation as the
-same play-time no-op already admitted for gameplay Tarot/Planet objects. Keep
-unknown/Spectral descriptors and Observatory or other unowned scoring callbacks
-fail-closed. Then rerun the single-episode production CLI smoke and record its
-throughput/artifacts. Do not launch the full training schedule, inspect learned-
-policy results, tune hyperparameters, or widen unrelated mechanics.
+Attribute the production PPO episode's tactical decision cost at the canonical
+D1 owner. Add a deterministic fixed-state benchmark/diagnostic that separates
+candidate generation, search attempts, and final policy arbitration for the
+exact early Red/White states reached by the production factory. Use that evidence
+to repair the first dominant canonical cost without changing legal actions,
+selected actions, exact mechanics, seeded replay, or the frozen PPO transition
+contract. The training path must not depend on a wall-clock cutoff. Re-run the
+same one-episode CLI smoke after a green CI checkpoint and record its exact
+throughput and artifacts. Do not launch the full training schedule, inspect
+learned-policy results, tune hyperparameters, or widen unrelated mechanics.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -3092,6 +3094,30 @@ it to a gameplay Tarot/Planet class. The descriptor already carries exact
 `card_type` and `center_key`; admitting a validated frozen-catalogue descriptor
 is therefore the active representation repair. The incomplete episode again
 published no checkpoint or progress artifact.
+
+Commit `a3a5ada7adaf2a579c965ff58f2a6b265d2e1e54` completes the held-item
+representation boundary. The canonical Play owner now accepts only exact
+`GeneratedShopConsumableItem` descriptors whose `card_type` and `center_key`
+agree with the frozen vanilla Tarot/Planet catalogues and whose inert descriptor
+metadata is well formed. Spectral, type/identity-mismatched, unknown, malformed,
+and subclass representations remain fail-closed; Observatory and other unowned
+scoring callbacks remain excluded. Focused Play/headless/PPO campaign validation
+passed **49 tests** locally. GitHub Actions run `35445740136`, job
+`105904229093`, passed; the actual job log reports **2923 passed, 1602 deselected
+in 134.18s**.
+
+The unchanged root-seed `RED-WHITE-PPO-V1` production CLI smoke then completed
+one whole episode successfully in **388.036 seconds**. It atomically published a
+**44,734,132-byte** `checkpoint.json` and **568-byte** `progress.json` with
+checkpoint digest
+`2a6c689d9f135e34c826a3fd39a09153ee248b57c572cfb37574dd3a0d1d8abe`.
+The manifest records 4 collected environment transitions, zero completed
+optimizer batches, next episode indices `[8, 1, 2, 3, 4, 5, 6, 7]`, and
+`complete=false`. This proves the complete episode/checkpoint/resume publication
+path, but **0.1546 episodes/minute** and **0.0103 transitions/second** are not a
+viable training rate: holding that transition rate would require about **6.45
+years** for the frozen 2,097,152-transition schedule. The active blocker is now
+canonical tactical decision cost, not another demonstrated mechanics gap.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
