@@ -47,6 +47,8 @@ def _small_batch(model):
         observations=observations,
         action_masks=masks,
         action_indices=actions,
+        episode_indices=np.asarray([0, 0], dtype=np.int64),
+        decision_indices=np.asarray([0, 1], dtype=np.int64),
         old_log_probabilities=np.log(probabilities[np.arange(size), actions]),
         old_values=values.copy(),
         advantages=np.asarray([1.0, -0.5]),

@@ -47,6 +47,8 @@ class PPOBatch:
     observations: np.ndarray
     action_masks: np.ndarray
     action_indices: np.ndarray
+    episode_indices: np.ndarray
+    decision_indices: np.ndarray
     old_log_probabilities: np.ndarray
     old_values: np.ndarray
     advantages: np.ndarray
@@ -56,6 +58,8 @@ class PPOBatch:
         observations = _finite_array(self.observations, "observations", ndim=2)
         masks = np.asarray(self.action_masks)
         actions = np.asarray(self.action_indices)
+        episode_indices = np.asarray(self.episode_indices)
+        decision_indices = np.asarray(self.decision_indices)
         old_log_probabilities = _finite_array(
             self.old_log_probabilities, "old log probabilities", ndim=1
         )
@@ -77,6 +81,18 @@ class PPOBatch:
             raise PPOContractError("PPO batch action index is outside the action schema")
         if not np.all(masks[np.arange(size), actions]):
             raise PPOContractError("PPO batch contains an illegal selected action")
+        for indices, label in (
+            (episode_indices, "episode"),
+            (decision_indices, "decision"),
+        ):
+            if (
+                indices.shape != (size,)
+                or not np.issubdtype(indices.dtype, np.integer)
+                or np.any(indices < 0)
+            ):
+                raise PPOContractError(
+                    f"PPO batch {label} indices must be a nonnegative integer vector"
+                )
         vectors = (old_log_probabilities, old_values, advantages, returns)
         if any(vector.shape != (size,) for vector in vectors):
             raise PPOContractError("PPO batch vector lengths disagree")
@@ -86,6 +102,8 @@ class PPOBatch:
             observations,
             masks,
             actions.astype(np.int64, copy=False),
+            episode_indices.astype(np.int64, copy=False),
+            decision_indices.astype(np.int64, copy=False),
             old_log_probabilities,
             old_values,
             advantages,
@@ -97,6 +115,8 @@ class PPOBatch:
             self.observations[indices],
             self.action_masks[indices],
             self.action_indices[indices],
+            self.episode_indices[indices],
+            self.decision_indices[indices],
             self.old_log_probabilities[indices],
             self.old_values[indices],
             self.advantages[indices],
