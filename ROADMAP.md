@@ -2429,15 +2429,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Implement the versioned rollout-to-training-batch assembler. It must consume
-only complete validated `PPORolloutEpisode` evidence, compute GAE independently
-across each terminal episode, and deterministically contribute exactly 256
-transitions from each of eight rollout streams to the frozen 2,048-transition
-batch while retaining surplus complete-episode transitions as explicit
-carryover. Episode indices, stream assignment, observation/mask/action/old-
-policy provenance, and carryover must fail closed on drift. Do not truncate an
-episode artifact, bootstrap across terminal boundaries, run the full training
-schedule, inspect learned-policy results, or widen environment mechanics.
+Implement the versioned resumable PPO learner/checkpoint owner. It must bind the
+training run, model/optimizer/assembler versions, exact model parameters, Adam
+moments and step, assembler carryover, next episode indices, completed batch
+count, and total consumed environment transitions. Prove deterministic
+interrupted/restored equivalence across one exact optimizer update and reject
+schema, shape, provenance, counter, or nonfinite-state drift. Do not launch the
+full training schedule, inspect learned-policy results, tune hyperparameters, or
+widen environment mechanics.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -2968,6 +2967,33 @@ model/optimizer/contract validation passed **28 tests** locally. GitHub Actions
 run `34809876592`, job `103868926821`, passed after installing NumPy on the clean
 Python 3.12 runner; the actual log reports **2885 passed, 1602 deselected in
 131.63s**.
+
+### Complete-episode PPO batch-assembly checkpoint
+
+Commit `eda175e746c232b9ae8ebb489128c2b27da0aa1a` adds the versioned
+`balatro-red-white-ppo-batch-assembler-v1` owner. Complete validated rollout
+episodes are assigned deterministically by `episode_index mod 8`; each stream
+requires its exact next index. GAE is computed independently through each
+episode's terminal boundary before any transitions enter a queue, so neither
+bootstrap values nor advantages cross episode boundaries.
+
+Each frozen batch contains exactly 256 queued transitions from each stream in
+stream order, for 2,048 total transitions. Surplus transitions remain explicit
+carryover instead of truncating the source episode artifact. Observations,
+canonical action masks, selected actions, old log probabilities, old values,
+advantages, returns, episode indices, and decision indices all survive into the
+training batch. Minibatch shuffling preserves those provenance arrays.
+
+Assembler snapshots retain all carryover plus the eight next episode indices
+and training-run digest. Restore rejects version/run drift, malformed or illegal
+transitions, wrong stream assignment, gaps/reordering within an episode, and
+nonsequential episodes. Deterministic regressions assemble the exact `8 x 256`
+shape from 257-transition episodes, prove one-transition carryover per stream,
+round-trip that carryover, verify independent terminal GAE, and reject missing,
+duplicate, out-of-order, cross-run, and tampered evidence. Focused batch/model/
+contract validation passed **32 tests** locally. GitHub Actions run
+`35439352348`, job `105887366171`, passed; the actual log reports **2889 passed,
+1602 deselected in 126.26s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
