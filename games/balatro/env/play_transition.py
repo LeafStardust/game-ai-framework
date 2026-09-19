@@ -3,9 +3,9 @@
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
 narrow Psychic / Tooth / Hook / Pillar / Arm / Fish / Mouth / Needle / Verdant
-Leaf Boss paths, with an
-unmodified base playing-card deck and no Joker, Tag, consumable, Voucher, random
-card, or other unowned callbacks.
+Leaf Boss paths, with an unmodified base playing-card deck and no Joker, Tag,
+random-card, or other unowned callbacks. Held profile Tarot/Planet cards and
+already-applied supported Vouchers are explicit play-time no-ops.
 The boundary can widen only when those source-order mechanics have canonical
 environment owners.
 """
@@ -33,6 +33,17 @@ from games.balatro.env.round_zones import (
     require_exact_selecting_hand_zones,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.voucher_capabilities import (
+    EXACT_ANTE_VOUCHER_KEYS,
+    EXACT_DISCOUNT_VOUCHER_KEYS,
+    EXACT_EDITION_RATE_VOUCHER_KEYS,
+    EXACT_INTEREST_CAP_VOUCHER_KEYS,
+    EXACT_REROLL_COST_VOUCHER_KEYS,
+    EXACT_RESOURCE_VOUCHER_KEYS,
+    EXACT_SHOP_SIZE_VOUCHER_KEYS,
+    EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS,
+)
+from games.balatro.consumable import PlanetCard, TarotCard
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.scoring import BalatroScorer
 
@@ -43,6 +54,16 @@ _VANILLA_IDENTITIES = frozenset(
     (rank, suit)
     for rank in _VANILLA_RANKS
     for suit in _VANILLA_SUITS
+)
+_PLAY_TIME_NO_EFFECT_VOUCHERS = (
+    EXACT_RESOURCE_VOUCHER_KEYS
+    | EXACT_EDITION_RATE_VOUCHER_KEYS
+    | EXACT_DISCOUNT_VOUCHER_KEYS
+    | EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS
+    | EXACT_REROLL_COST_VOUCHER_KEYS
+    | EXACT_INTEREST_CAP_VOUCHER_KEYS
+    | EXACT_SHOP_SIZE_VOUCHER_KEYS
+    | EXACT_ANTE_VOUCHER_KEYS
 )
 
 
@@ -187,11 +208,11 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("R4 baseline Play does not yet own Joker callbacks")
     if run.tags:
         raise HeadlessTransitionError("R4 baseline Play does not yet own Tag callbacks")
-    if state.consumables:
+    if any(not isinstance(item, (PlanetCard, TarotCard)) for item in state.consumables):
         raise HeadlessTransitionError(
-            "R4 baseline Play does not yet own held consumable scoring interactions"
+            "R4 baseline Play does not own this held consumable scoring interaction"
         )
-    if state.vouchers:
+    if any(key not in _PLAY_TIME_NO_EFFECT_VOUCHERS for key in state.vouchers):
         raise HeadlessTransitionError(
             "R4 baseline Play does not yet own Voucher action-time interactions"
         )

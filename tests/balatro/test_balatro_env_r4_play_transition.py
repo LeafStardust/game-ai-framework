@@ -6,6 +6,8 @@ from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
+from games.balatro.consumable import PlanetCard
+from games.balatro.tarots import Fool
 
 
 def _play_run(*, seed="R4-PLAY", requirement=9999, hands_remaining=4):
@@ -185,6 +187,40 @@ def test_env_r4_ordinary_play_fails_closed_on_joker_tag_consumable_and_voucher_c
     voucher_run.public.vouchers = ["v_observatory"]
     with pytest.raises(HeadlessTransitionError, match="Voucher action-time"):
         apply_supported_ordinary_play(voucher_run, (0,))
+
+
+@pytest.mark.parametrize(
+    "held_item",
+    [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],
+)
+def test_env_r4_ordinary_play_admits_profile_consumables_as_play_time_no_ops(
+    held_item,
+):
+    baseline = _play_run(seed="R4-HELD-NO-OP")
+    held = _play_run(seed="R4-HELD-NO-OP")
+    held.public.consumables = [held_item]
+
+    expected = apply_supported_ordinary_play(baseline, (0,))
+    result = apply_supported_ordinary_play(held, (0,))
+
+    assert result.public.score == expected.public.score
+    assert result.public.hand == expected.public.hand
+    assert len(result.public.consumables) == 1
+    assert type(result.public.consumables[0]) is type(held_item)
+    assert result.public.consumables[0].name == held_item.name
+
+
+def test_env_r4_ordinary_play_admits_applied_voucher_and_rejects_observatory():
+    supported = _play_run(seed="R4-VOUCHER-NO-OP")
+    supported.public.vouchers = ["v_seed_money"]
+    result = apply_supported_ordinary_play(supported, (0,))
+    assert result.public.vouchers == ["v_seed_money"]
+
+    observatory = _play_run(seed="R4-OBSERVATORY")
+    observatory.public.vouchers = ["v_observatory"]
+    observatory.public.consumables = [PlanetCard("Mercury", "PAIR", 15, 1)]
+    with pytest.raises(HeadlessTransitionError, match="Voucher action-time"):
+        apply_supported_ordinary_play(observatory, (0,))
 
 
 def test_env_r4_ordinary_play_rejects_invalid_selection_and_stale_private_zone():
