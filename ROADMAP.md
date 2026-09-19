@@ -2429,11 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Repair the canonical tactical Play admission boundary for held consumables and
-already-redeemed Vouchers reachable through the frozen PPO profile. Explicitly
-classify exact play-time no-effect families, retain fail-closed handling for
-Observatory or any other unowned scoring callback, and add focused deterministic
-regressions. Then rerun the single-episode production CLI smoke and record its
+Complete the canonical tactical Play admission boundary for purchased held
+`GeneratedShopConsumableItem` descriptors. Validate their Tarot/Planet identity
+against the frozen catalogue and treat only that exact representation as the
+same play-time no-op already admitted for gameplay Tarot/Planet objects. Keep
+unknown/Spectral descriptors and Observatory or other unowned scoring callbacks
+fail-closed. Then rerun the single-episode production CLI smoke and record its
 throughput/artifacts. Do not launch the full training schedule, inspect learned-
 policy results, tune hyperparameters, or widen unrelated mechanics.
 
@@ -3074,6 +3075,23 @@ a later round with a held consumable, while the canonical R4 Play owner still
 rejects every nonempty consumable inventory as an unowned scoring interaction.
 This is a concrete campaign-readiness mechanics boundary, not permission to
 drop the item, mask an otherwise-supported purchase, or approximate its effect.
+
+Commit `8ded979e96eb60679c2ed6738580b17dd209e6b8` repairs the first
+half of that boundary. Exact gameplay `TarotCard` and `PlanetCard` instances are
+now retained as explicit play-time no-ops, and all Voucher families with effects
+already owned by canonical redemption/round/shop owners are admitted at Play.
+Unknown consumables and Observatory remain fail-closed. Focused Play/backend/
+campaign validation passed **33 tests** locally. GitHub Actions run
+`35444353143`, job `105900613897`, passed; the actual log reports **2915 passed,
+1602 deselected in 134.00s**.
+
+The unchanged one-episode smoke then ran for **328.36 seconds** before failing
+at the same guard. Inspection established that ordinary shop purchases retain
+the canonical `GeneratedShopConsumableItem` descriptor rather than converting
+it to a gameplay Tarot/Planet class. The descriptor already carries exact
+`card_type` and `center_key`; admitting a validated frozen-catalogue descriptor
+is therefore the active representation repair. The incomplete episode again
+published no checkpoint or progress artifact.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
