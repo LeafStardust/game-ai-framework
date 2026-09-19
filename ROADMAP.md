@@ -2429,12 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Implement the versioned deterministic PPO training-session driver. It must use
-the existing headless collector and resumable learner owners, advance the eight
-rollout streams in exact episode-index order, admit only complete episodes,
-update only on an exact assembled batch, and stop on the frozen optimizer-
-consumed transition schedule. Checkpoint/resume must neither recollect nor skip
-an episode or batch. Prove the orchestration with bounded deterministic fakes;
+Implement the versioned production PPO campaign runner and CLI. It must freeze
+the exact tactical decision engine and eight-environment factory, accept an
+explicit root seed and artifact directory, advance only through the bounded
+training-session API, write canonical checkpoints atomically, resume only a
+matching run, and emit compact deterministic progress/final manifests. Prove
+new/start/resume/completion and interrupted-write behavior with bounded tests;
 do not launch the full training schedule, inspect learned-policy results, tune
 hyperparameters, or widen environment mechanics.
 
@@ -3020,6 +3020,32 @@ model/Adam results across the next optimizer step after restore, and exercise
 the fail-closed drift cases. Focused learner/model/assembler validation passed
 **25 tests** locally. GitHub Actions run `35439895137`, job `105888773703`,
 passed; the actual log reports **2901 passed, 1602 deselected in 132.69s**.
+
+### Deterministic PPO training-session checkpoint
+
+Commit `c656927ce96eb77ff629d87ac2b2c4939987d8e2` adds the versioned
+`balatro-red-white-ppo-training-session-v1` orchestration owner. It constructs
+exactly eight reusable headless environments, always selects the globally
+smallest assembler-owned next episode index, routes it to `episode_index mod 8`,
+and admits only a complete `PPORolloutEpisode` returned by the existing
+collector. Ready 2,048-transition batches are drained through the resumable
+learner without hiding an unbounded loop.
+
+Every call has an explicit positive episode bound. The driver derives the exact
+1,024-batch target from the frozen 2,097,152-transition contract, reports
+optimizer-consumed separately from collected/carryover transitions, and stops
+without collecting another episode once that optimizer schedule is complete.
+Its checkpoint is a versioned run-bound wrapper around the full learner state;
+restore recreates the eight environments while retaining assembler episode
+indices, so it neither recollects nor skips an episode.
+
+Bounded deterministic regressions prove exact eight-stream order, one-batch
+completion from the penultimate frozen batch, the exact transition stop,
+checkpoint continuation from episodes 0–2 directly to 3–4, explicit call
+bounds, and fail-closed incomplete, index-drifted, counter-drifted, schema, and
+run-provenance cases. Focused session/learner/assembler/model validation passed
+**30 tests** locally. GitHub Actions run `35443064717`, job `105897170345`,
+passed; the actual log reports **2906 passed, 1602 deselected in 100.41s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
