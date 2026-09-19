@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import asdict, dataclass
+from hashlib import sha256
 import json
 import math
 from time import perf_counter
@@ -13,6 +14,8 @@ from games.balatro.env.blind_progression import activate_selected_blind_progress
 from games.balatro.env.episode_backend import pristine_red_white_reset
 from games.balatro.env.ppo_campaign import make_ppo_training_environment
 from games.balatro.env.ppo_contract import PPOTrainingRun
+from games.balatro.env.ppo_training_session import PPOTrainingSession
+from games.balatro.env.parity import canonical_public_state_signature
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.select_blind import select_blind_exact
 
@@ -41,6 +44,19 @@ class PPOTacticalCostReport:
 
     def to_json(self) -> str:
         return json.dumps(self.as_dict(), sort_keys=True)
+
+
+@dataclass(frozen=True)
+class PPOTacticalEpisodeDecisionCost:
+    public_input_sha256: str
+    action: str
+    selected_hand_indices: tuple[int, ...]
+    search_attempts: tuple[tuple[int, int, int, bool], ...]
+    total_elapsed_seconds: float
+    candidate_generation_elapsed_seconds: float
+    search_evaluation_elapsed_seconds: float
+    policy_arbitration_elapsed_seconds: float
+    other_elapsed_seconds: float
 
 
 @dataclass
@@ -72,6 +88,126 @@ def _instrument_planner(planner, clock, accumulator: _CostAccumulator) -> None:
         "candidate_generation",
         planner._candidate_actions,
     )
+
+
+def _public_input_sha256(state) -> str:
+    signature = canonical_public_state_signature(state)
+    content = json.dumps(signature, separators=(",", ":"), ensure_ascii=True)
+    return sha256(content.encode("ascii")).hexdigest()
+
+
+def _instrument_episode_engine(engine, clock, records) -> None:
+    active = {"cost": None}
+
+    def timed(field, function):
+        def wrapped(*args, **kwargs):
+            accumulator = active["cost"]
+            if accumulator is None:
+                return function(*args, **kwargs)
+            started = float(clock())
+            try:
+                return function(*args, **kwargs)
+            finally:
+                setattr(
+                    accumulator,
+                    field,
+                    getattr(accumulator, field) + float(clock()) - started,
+                )
+
+        return wrapped
+
+    def instrument_planner(planner):
+        planner._candidate_actions = timed(
+            "candidate_generation",
+            planner._candidate_actions,
+        )
+
+    instrument_planner(engine.planner)
+    original_adaptive_planner = engine._adaptive_planner
+
+    def adaptive_planner(config):
+        planner = original_adaptive_planner(config)
+        instrument_planner(planner)
+        return planner
+
+    engine._adaptive_planner = adaptive_planner
+    engine.rank_plans = timed("ranked_search", engine.rank_plans)
+    engine.policy.decide = timed("policy_arbitration", engine.policy.decide)
+    original_decide = engine.decide
+
+    def decide(state):
+        accumulator = _CostAccumulator()
+        active["cost"] = accumulator
+        started = float(clock())
+        try:
+            decision = original_decide(state)
+        finally:
+            total = float(clock()) - started
+            active["cost"] = None
+
+        search_evaluation = max(
+            0.0,
+            accumulator.ranked_search - accumulator.candidate_generation,
+        )
+        policy = accumulator.policy_arbitration
+        other = max(0.0, total - accumulator.ranked_search - policy)
+        records.append(
+            PPOTacticalEpisodeDecisionCost(
+                public_input_sha256=_public_input_sha256(state),
+                action=decision.action.name,
+                selected_hand_indices=tuple(
+                    state.hand.index(card) for card in decision.action.cards
+                ),
+                search_attempts=tuple(
+                    (
+                        attempt.horizon,
+                        attempt.nodes_evaluated,
+                        attempt.max_nodes,
+                        attempt.budget_exceeded,
+                    )
+                    for attempt in decision.search_attempts
+                ),
+                total_elapsed_seconds=total,
+                candidate_generation_elapsed_seconds=accumulator.candidate_generation,
+                search_evaluation_elapsed_seconds=search_evaluation,
+                policy_arbitration_elapsed_seconds=policy,
+                other_elapsed_seconds=other,
+            )
+        )
+        return decision
+
+    engine.decide = decide
+
+
+def trace_first_ppo_episode_tactical_costs(
+    *,
+    root_seed: str = "RED-WHITE-PPO-V1",
+    clock: Callable[[], float] = perf_counter,
+) -> tuple[PPOTacticalEpisodeDecisionCost, ...]:
+    """Run episode zero and return ordered per-decision tactical cost evidence."""
+    if not isinstance(root_seed, str) or not root_seed:
+        raise ValueError("root_seed must be a nonempty string")
+    if not callable(clock):
+        raise TypeError("clock must be callable")
+
+    records: list[PPOTacticalEpisodeDecisionCost] = []
+
+    def environment_factory(stream_index: int):
+        environment = make_ppo_training_environment(stream_index)
+        if stream_index == 0:
+            _instrument_episode_engine(
+                environment._backend._tactical_decision_engine,
+                clock,
+                records,
+            )
+        return environment
+
+    training_run = PPOTrainingRun.from_seed(root_seed)
+    session = PPOTrainingSession(training_run, environment_factory)
+    result = session.advance(maximum_episodes=1)
+    if result.episodes_collected != 1 or result.last_episode_index != 0:
+        raise RuntimeError("PPO tactical episode diagnostic did not complete episode zero")
+    return tuple(records)
 
 
 def measure_ppo_tactical_cost(

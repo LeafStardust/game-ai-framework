@@ -14,7 +14,6 @@ from games.balatro.jokers.vagabond import VagabondJoker
 from games.balatro.live.generated_consumable_outcomes import (
     LiveGeneratedConsumableScoreOutcomeModel,
     ProjectedGeneratedConsumable,
-    _copy_generated_consumable_branch_state,
 )
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.state import BalatroState
@@ -57,7 +56,7 @@ def test_generated_branch_copy_shares_only_frozen_generation_authority():
     state.consumable_generation_pools = {"Tarot": [{"key": "c_fool"}]}
     state.voucher_generation_pool = [{"key": "v_overstock", "requires": []}]
 
-    branch = _copy_generated_consumable_branch_state(state)
+    branch = state.copy_for_tactical_projection()
 
     assert branch is not state
     assert branch.hand is not state.hand

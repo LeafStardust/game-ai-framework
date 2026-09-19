@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass
 from math import comb
 
@@ -24,24 +23,6 @@ from games.balatro.live.score_outcomes import (
     ScoreProjectionTransition,
 )
 from games.balatro.scoring import BalatroScorer
-
-
-_IMMUTABLE_GENERATION_AUTHORITY_FIELDS = (
-    "joker_unlocks",
-    "joker_generation_pools",
-    "consumable_generation_pools",
-    "voucher_generation_pool",
-)
-
-
-def _copy_generated_consumable_branch_state(state):
-    """Deep-copy mutable play state without cloning frozen generation authority."""
-    memo = {
-        id(value): value
-        for name in _IMMUTABLE_GENERATION_AUTHORITY_FIELDS
-        if (value := getattr(state, name, None)) is not None
-    }
-    return deepcopy(state, memo)
 
 
 @dataclass
@@ -271,7 +252,7 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
                 saw_eight_ball_roll = True
 
             for eight_ball_created, probability in eight_ball_branches:
-                branch_state = _copy_generated_consumable_branch_state(source_state)
+                branch_state = source_state.copy_for_tactical_projection()
                 if eight_ball_created:
                     self._add_abstract_consumables(
                         branch_state,

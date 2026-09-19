@@ -187,6 +187,19 @@ class BalatroState(GameState):
         new_state.visible_poker_hands = tuple(self.visible_poker_hands)
         return new_state
 
+    def copy_for_tactical_projection(self):
+        """Deep-copy gameplay state while sharing immutable generation evidence."""
+        memo = {
+            id(value): value
+            for value in (
+                self.joker_unlocks,
+                self.joker_generation_pools,
+                self.consumable_generation_pools,
+                self.voucher_generation_pool,
+            )
+        }
+        return deepcopy(self, memo)
+
     def add_consumable(self, consumable) -> bool:
         if len(self.consumables) >= self.consumable_slots:
             return False
