@@ -701,7 +701,7 @@ All counts above were read from the actual `balatro-deterministic-tests` job log
 - R6 environment performance gate: **COMPLETE / GREEN**.
 - Observation/action encoding: **COMPLETE / GREEN**.
 - B0 RL baseline infrastructure: **COMPLETE / GREEN**.
-- PPO/observation training: **IN PROGRESS — FIRST TACTICAL COPY COST REPAIRED; LATER-STATE ATTRIBUTION NEXT**.
+- PPO/observation training: **IN PROGRESS — SLOW HORIZON-5 STATE IDENTIFIED; CANDIDATE SUB-PROFILING NEXT**.
 - Live Balatro validation: **ON HOLD BY USER DIRECTION — DO NOT REQUEST MORE MONEY TREE RUNS UNTIL RESUMED**.
 
 ## Current strategic action contract
@@ -2429,16 +2429,18 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the production PPO tactical diagnostic across the unchanged first episode
-so every tactical decision records a deterministic public-input digest, selected
-action/indices, search-attempt/node trace, and separate candidate-generation,
-search-evaluation, and final-policy elapsed times. Identify the slowest later
-state and repair its first dominant canonical cost without changing the episode's
-actions, checkpoint digest, exact mechanics, seeded replay, or frozen PPO
-transition contract. The training path must not depend on a wall-clock cutoff.
-Re-run the same one-episode CLI smoke after a green CI checkpoint and record its
-exact throughput and artifacts. Do not launch the full training schedule, inspect
-learned-policy results, tune hyperparameters, or widen unrelated mechanics.
+Sub-profile candidate generation for the exact later public state with digest
+`657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`.
+Capture that state inside the existing ordered episode diagnostic and attribute
+its 147-second candidate cost below `_candidate_actions` before changing code.
+Repair only the first dominant canonical sub-owner and require the complete
+10-decision public-input digest/action sequence, search semantics, campaign
+checkpoint digest, exact mechanics, seeded replay, and frozen PPO transition
+contract to remain unchanged. Do not reapply the rejected D1-wide projection-copy
+substitution: it produced no material improvement and drifted a node count. The
+training path must not depend on a wall-clock cutoff. Do not launch the full
+training schedule, inspect learned-policy results, tune hyperparameters, or widen
+unrelated mechanics.
 
 ### Versioned PPO training and rollout contract checkpoint
 
@@ -3153,6 +3155,48 @@ resulting **0.1673 episodes/minute** and **0.0112 transitions/second** would sti
 require about **5.96 years** for the frozen transition schedule if sustained.
 The opening-state repair is real but later tactical states now require direct
 per-decision attribution before another optimization.
+
+Commit `808c9c0ecbe70495180e6efaf4f9ade451b47946` extends the diagnostic
+across the complete unchanged episode. Each tactical decision now records a
+SHA-256 digest of its canonical public input, action/visible indices, complete
+search-attempt/node trace, and the same four exclusive timing categories. The
+episode contains **10 tactical decisions** and **328.276 seconds** of measured
+tactical work. Two horizon-5 discard states dominate: digest `657e5ffd...` took
+**150.385 seconds**, including **147.435 seconds** in candidate generation, and
+digest `933abbb1...` took **116.284 seconds**, including **113.473 seconds** in
+candidate generation. Together they account for about 81% of tactical time.
+All ten ordered input digests, actions, and selected visible indices are now
+durable comparison evidence. The compact baseline is:
+
+```text
+e855e86f  D(3,4,5,6,7)  2/18,3/79,3c/38
+a19bc4bf  P(2,3,6,7)    2/18,3/80,4/202
+9ea626b2  P(2,3,5,6,7)  2/2
+657e5ffd  D(0,1,3,6,7)  2/18,3/83,4/268,5/639
+933abbb1  D(0,1,2,4,7)  2/18,3/82,4/245,5/506
+6c9b6547  P(4,5,6)      2/18,3/137,3c/72,4/417
+d3b9bdc7  D(2,4)        2/18,3/134,4/380
+786b40e3  P(0,1,2,3)    2/9,3/12
+8016c839  P(0,1,3,4)    2/9
+88d56f76  P(6,7)        1/3
+```
+
+`P`/`D` mean Play/Discard, indices are visible-hand positions, `h/n` means
+horizon/nodes, and `c` marks a confirmation attempt.
+
+The immutable generation-authority memoization is also moved from the generated-
+consumable module into `BalatroState.copy_for_tactical_projection`, its canonical
+state owner; mutable cards, Jokers, held items, and other gameplay state remain
+deep-copy isolated. A broader experiment replaced every D1 hypothetical branch
+copy with this owner. It was rejected and reverted: total tactical time was
+**324.831 seconds** versus 328.276, within host noise, and the second slow
+horizon-5 search evaluated 507 rather than 506 nodes. Actions and public-input
+digests remained equal, but the change supplied neither material performance nor
+strict search-trace preservation. Focused validation passed **36 tests** locally.
+GitHub Actions run `35456323579`, job `105932123827`, passed; the actual log
+reports **2930 passed, 1602 deselected in 119.96s**. The preceding roadmap run
+`35455478236`, job `105929866319`, passed with **2929 passed, 1602 deselected in
+142.97s**.
 
 Do not begin until R-phase exactness, representative parity, performance, observation/action encoding, and baseline gates are satisfied.
 
