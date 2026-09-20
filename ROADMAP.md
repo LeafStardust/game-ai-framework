@@ -2429,16 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Define and regression-test a canonical score-distribution-only projection
-boundary for `LiveHandDecisionEvaluator._estimate_play` and
-`_has_guaranteed_clearing_play`, whose callers consume score distributions but
-currently construct full mutable transition states. First prove exact
-distribution parity and fail-closed admission across supported scoring mechanics;
-do not optimize a mechanic whose score requires unrepresented transition state.
-Then re-profile corrected-cache exact state digest
+Attribute the remaining generic planner deepcopy cost for corrected-cache exact
+state digest
 `657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
-and retain the boundary only if it materially reduces the approximately
-71-second candidate cost. Require the complete corrected 10-decision public-input
+below `_estimate_play` and `_estimate_discard`. Repair only the first dominant
+canonical branch-copy owner, and retain it only if it materially reduces the
+remaining approximately 4.6-second target candidate cost. Require the complete
+corrected 10-decision public-input
 digest/action/search sequence, campaign checkpoint digest, exact mechanics,
 seeded replay, and frozen PPO transition contract to remain unchanged. Do not
 reapply the rejected D1-wide projection-copy substitution, manual/per-field state
@@ -2617,6 +2614,46 @@ The next task is to establish an exact canonical distribution-only boundary with
 mechanics-parity regressions before attempting to remove that state work. This
 is not permission to revive the rejected context/guaranteed-clear projection
 reuse: each caller must retain its independent evaluation and allocation order.
+
+### Deterministic score-distribution-only checkpoint
+
+Commit `620f29979a2ea7b2318f17448b3d600628950df9` makes the existing
+`ScoreOutcomeModel.project()` distribution boundary real for the exact
+deterministic subset used by the pristine Red/White search. A non-null state
+with an exact empty Joker inventory, no active Boss, and no played Lucky or Glass
+card is scored directly by the final canonical scorer without constructing an
+unused mutable post-score transition. Null/malformed state, every Joker, every
+Boss, and Lucky/Glass randomness continue through the complete transition stack;
+unsupported mechanics are not approximated. Focused regressions prove exact
+distribution parity with and without card chips, input non-mutation, and fallback
+for Joker, Boss, Lucky, and Glass mechanics.
+
+The complete corrected ten-decision sequence remains byte-for-byte identical in
+public input digest, action, selected visible indices, and search attempts. It
+now takes **18.207 seconds** of tactical work with **12.179 seconds** in candidate
+generation, down 132.649 seconds (87.93%) from the 150.856-second allocation-safe
+checkpoint. The target fell from 72.937 / 70.968 seconds to **6.210 / 4.603
+seconds** total/candidate, and the later horizon-five decision fell from
+50.293 / 48.640 seconds to **4.784 / 3.452 seconds**.
+
+The unchanged production one-episode campaign completed in about 19 seconds and
+again published the exact **44,734,132-byte** checkpoint and **568-byte** progress
+manifest with four transitions, next episode indices `[8, 1, 2, 3, 4, 5, 6, 7]`,
+and checkpoint digest
+`2a6c689d9f135e34c826a3fd39a09153ee248b57c572cfb37574dd3a0d1d8abe`.
+Focused score/Boss/Joker validation passed **125 tests** locally; expanded PPO,
+backend, contract, state-copy, and mechanics validation passed **161 tests**.
+GitHub Actions run `35507903294`, job `106070700788`, is authoritative and passed
+with **2936 passed, 1607 deselected in 135.64s**.
+
+The post-repair target cProfile retained `DISCARD_CARDS (0, 1, 3, 6, 7)` and
+`2/18, 3/83, 4/267, 5/631`. It recorded 88,746,746 calls (80,592,865 primitive)
+and 25.473 profiler seconds. Candidate generation accounted for 17.087 seconds;
+generic `deepcopy` now accounts for 10.424 cumulative seconds, principally below
+planner `_estimate_play` / `_estimate_discard`. Score-only projection handled
+91,560 calls in 9.467 cumulative seconds, while only 1,797 stateful score
+transitions remained. The next task is therefore branch-copy attribution, not
+another widening of the score-only admission contract.
 
 ### Versioned PPO training and rollout contract checkpoint
 
