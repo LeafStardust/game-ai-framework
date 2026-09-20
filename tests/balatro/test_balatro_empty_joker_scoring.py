@@ -100,6 +100,34 @@ def test_empty_joker_plain_held_cards_skip_held_trigger_context(monkeypatch):
     )
 
 
+@pytest.mark.parametrize("empty_jokers", [[], ()])
+def test_empty_joker_scoring_cards_skip_joker_context_without_losing_effects(
+    empty_jokers,
+    monkeypatch,
+):
+    state, played = _state(empty_jokers)
+    state.hand[1].enhancement = None
+    scorer = BalatroScorer()
+
+    def unexpected(*args, **kwargs):
+        raise AssertionError("empty Joker scoring must not construct JokerContext")
+
+    monkeypatch.setattr("games.balatro.scoring.JokerContext", unexpected)
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        [played],
+        include_card_chips=True,
+        resolve_random_effects=False,
+        joker_data={"retrigger_played_cards": 1},
+    )
+
+    # Base 5 chips plus three Red-Seal/retriggered Bonus Aces at 41 each.
+    assert score.chips == 128
+    assert score.mult == 1.0
+
+
 def test_malformed_joker_inventory_does_not_enter_empty_fast_path():
     state, played = _state(None)
 

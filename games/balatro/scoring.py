@@ -266,6 +266,27 @@ class BalatroScorer:
             for card in scoring_cards
             if not self.is_card_debuffed(card)
         ]
+        on_scored_jokers = []
+        if state is not None:
+            on_scored_jokers = [
+                joker
+                for joker in getattr(state, "jokers", [])
+                if type(joker).__name__ in self.ON_SCORED_JOKER_CLASS_NAMES
+            ]
+
+        if not on_scored_jokers:
+            for card in active_scoring_cards:
+                for _ in range(
+                    self._played_card_trigger_count(card, extra_retriggers)
+                ):
+                    score.chips += self.card_chip_value(card)
+                    self._apply_single_card_modifier(
+                        score,
+                        card,
+                        resolve_random_effects=resolve_random_effects,
+                    )
+            return
+
         first_scoring_face_card = next(
             (
                 card
@@ -274,13 +295,6 @@ class BalatroScorer:
             ),
             None,
         )
-        on_scored_jokers = []
-        if state is not None:
-            on_scored_jokers = [
-                joker
-                for joker in getattr(state, "jokers", [])
-                if type(joker).__name__ in self.ON_SCORED_JOKER_CLASS_NAMES
-            ]
 
         for card in active_scoring_cards:
             trigger_count = self._played_card_trigger_count(
@@ -294,9 +308,6 @@ class BalatroScorer:
                     card,
                     resolve_random_effects=resolve_random_effects,
                 )
-
-                if not on_scored_jokers:
-                    continue
 
                 card_data = dict(context_data or {})
                 card_data.update(
