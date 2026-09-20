@@ -2429,19 +2429,17 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Instrument the canonical `LiveHandDecisionEvaluator` identity caches during the
-exact ordered episode and prove or refute stale Python-object-ID reuse before
-another optimization. Cover both `_cached_state_id` / `_cached_context` and
-`_outer_d1_cache_state_id` / outer projection/evaluation/guaranteed-clear caches
-without retaining states or otherwise changing allocation lifetime in the measured
-path. Repair only a demonstrated first wrong owner and require the complete
-10-decision public-input digest/action sequence, search semantics, campaign
-checkpoint digest, exact mechanics, seeded replay, and frozen PPO transition
-contract to remain unchanged. Do not reapply the rejected D1-wide projection-copy
-substitution, manual/per-field state reconstruction, context/guaranteed-clear
-projection reuse, custom `BalatroCard.__deepcopy__`, or scalar card-state memo
-paths recorded below. The
-training path must not depend on a wall-clock cutoff. Do not launch the full
+Re-profile candidate generation for corrected-cache exact state digest
+`657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
+with the guarded scalar-card memo active. Attribute the remaining 94-second
+candidate cost below `_candidate_actions`, repair only the first dominant
+canonical sub-owner, and require the complete corrected 10-decision public-input
+digest/action/search sequence, campaign checkpoint digest, exact mechanics,
+seeded replay, and frozen PPO transition contract to remain unchanged. Do not
+reapply the rejected D1-wide projection-copy substitution, manual/per-field state
+reconstruction, context/guaranteed-clear projection reuse, or custom
+`BalatroCard.__deepcopy__` paths recorded below. The training path must not depend
+on a wall-clock cutoff. Do not launch the full
 training schedule, inspect learned-policy results, tune hyperparameters, or widen
 unrelated mechanics.
 
@@ -2507,6 +2505,48 @@ no card-state memo implementation remains. Roadmap checkpoint commit
 `a69922218eb139d636ae80996cd90124f03f0214` passed GitHub Actions run
 `35492224810`, job `106029016695`; the actual job log reports **2930 passed,
 1602 deselected in 142.83s**.
+
+### Identity-safe tactical cache and card-copy checkpoint
+
+Weak-reference instrumentation across the exact ordered episode proved that both
+`LiveHandDecisionEvaluator` caches repeatedly accepted recycled Python object IDs
+after their prior state had died. Stale outer hits sometimes retained three play
+projections, and stale context hits also occurred. Merely observing those hits
+without changing cache behavior preserved every public digest and selected action
+but changed the later horizon-five count from the nominal 506 to 505. Together
+with the earlier 507-node copy experiments, this proves the old count was allocator
+dependent rather than a deterministic search contract.
+
+Commit `bc91b46bff00473dc0afa1228079917375f59b51` makes exact state-object identity
+the canonical cache owner; integer IDs remain diagnostic metadata only. Focused
+regressions force recycled-ID markers and prove that neither context nor outer
+evaluation results are reused for a different object. The corrected unoptimized
+episode preserved all ten public input digests, actions, and selected indices and
+established the replacement search counts: the target is now `2/18`, `3/83`,
+`4/267`, `5/631`; the later `933abbb1...` state is `2/18`, `3/82`, `4/245`,
+`5/507`; every other attempt remains as previously recorded.
+
+With identity correctness established, the state owner now memoizes only exact
+declared scalar `BalatroCard` attribute mappings while retaining generic deepcopy
+object reconstruction. Cards remain distinct mutable objects, aliases across
+deck/owned-deck/hand/discard zones remain exact, and any subclass, extra field,
+or mutable field value falls back to ordinary recursive copying. The optimized
+episode reproduced the corrected search sequence exactly under its different
+allocation pattern. Its ten tactical decisions took **196.731 seconds**, including
+**187.615 seconds** in candidate generation, down 131.545 seconds (40.07%) from
+the original 328.276-second tactical baseline. The target decision fell to
+**96.863 seconds**, including **94.443 seconds** in candidate generation; the
+later horizon-five decision fell to **61.756 / 59.812 seconds**.
+
+The unchanged production one-episode campaign completed in about 150 seconds and
+published the same **44,734,132-byte** checkpoint, **568-byte** progress manifest,
+four transitions, next episode indices `[8, 1, 2, 3, 4, 5, 6, 7]`, and checkpoint
+digest `2a6c689d9f135e34c826a3fd39a09153ee248b57c572cfb37574dd3a0d1d8abe`.
+Focused cache/projection/decision/state/diagnostic validation passed **45 tests**;
+an expanded local selection passed 59 with one deselected before five campaign
+fixtures hit the Windows sandbox's denied pytest temp directory. GitHub Actions
+run `35498620883`, job `106046185075`, is authoritative and passed with **2932
+passed, 1604 deselected in 141.10s**.
 
 ### Versioned PPO training and rollout contract checkpoint
 
