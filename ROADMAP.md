@@ -2477,6 +2477,9 @@ cadence through its current identity caches. Finally, a generic-semantics
 opening trace, but the complete trace regressed: the target became 174.259
 seconds / 170.695 candidate seconds and the later horizon-five state again used
 507 rather than 506 nodes. No implementation from these experiments remains.
+Roadmap checkpoint commit `5e3aa10e2be353fe4e89ee45fd144f8f2f73d7c6`
+passed GitHub Actions run `35491514677`, job `106027147144`; the actual job log
+reports **2930 passed, 1602 deselected in 129.66s**.
 
 ### Versioned PPO training and rollout contract checkpoint
 
