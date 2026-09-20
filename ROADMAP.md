@@ -2429,12 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Profile direct canonical scoring work at exact state digest
+Profile canonical scoring-card-phase work at exact state digest
 `657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
-after the stateful generated-consumable branch-copy investigation recorded below.
-Attribute repeated work within the exact-empty-Joker scoring-card/held-card path
-at its canonical owner and retain another repair only if it materially reduces
-target candidate cost. Require the complete corrected 10-decision public-input
+with the exact-empty-Joker held-card scorer guard recorded below active. Attribute
+repeated work within `_apply_scoring_card_phase` at its canonical owner and retain
+another repair only if it materially reduces target candidate cost. Require the
+complete corrected 10-decision public-input
 digest/action/search sequence, campaign checkpoint digest, exact mechanics,
 seeded replay, and frozen PPO transition contract to remain unchanged. Do not
 reapply the rejected D1-wide projection-copy substitution, manual/per-field state
@@ -2736,6 +2736,30 @@ so no implementation or tests from either experiment remain. Stateful branch
 copying is therefore treated as required unless a future canonical owner proves
 otherwise; the next bounded target is direct single-call scoring work, not
 another projection-copy or cross-branch reuse experiment.
+
+### Exact-empty-Joker held-card scorer checkpoint
+
+Commit `d313daf6a8c03567a0e264763be04be50c93ca3b` makes the canonical
+`BalatroScorer._apply_held_phase` skip rank ordering, lowest-card discovery, and
+held-Joker context construction when the Joker inventory is an exact empty list
+or tuple. Intrinsic held Steel effects still resolve in card order and preserve
+Red Seal plus projected retrigger counts; nonempty inventories retain the full
+Joker path and malformed authority still fails closed. Focused regressions cover
+empty list/tuple Steel with combined retriggers and prove plain held cards do not
+enter trigger-context work.
+
+The complete corrected ten-decision digest/action/index/search sequence remains
+exact. In a same-host A/B, target candidate cost fell from **3.483 to 3.296
+seconds (5.39%)** and target total cost fell from **5.000 to 4.841 seconds**.
+Whole-trace candidate cost fell from 9.819 to 9.442 seconds; the retained run
+took 15.277 seconds total. The bounded production campaign again emitted the
+exact **44,734,132-byte** checkpoint and **568-byte** progress manifest with four
+transitions, next indices `[8, 1, 2, 3, 4, 5, 6, 7]`, and checkpoint digest
+`2a6c689d9f135e34c826a3fd39a09153ee248b57c572cfb37574dd3a0d1d8abe`.
+Focused scoring validation passed **35 tests** locally. GitHub Actions run
+`35532804216`, job `106136335508`, is authoritative and passed with **2943
+passed, 1607 deselected in 134.23s**. The next direct scorer sub-owner is the
+scoring-card phase; cross-branch caching remains out of scope.
 
 ### Versioned PPO training and rollout contract checkpoint
 
