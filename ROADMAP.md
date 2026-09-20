@@ -2429,12 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Re-profile candidate generation for corrected-cache exact state digest
+Define and regression-test a canonical score-distribution-only projection
+boundary for `LiveHandDecisionEvaluator._estimate_play` and
+`_has_guaranteed_clearing_play`, whose callers consume score distributions but
+currently construct full mutable transition states. First prove exact
+distribution parity and fail-closed admission across supported scoring mechanics;
+do not optimize a mechanic whose score requires unrepresented transition state.
+Then re-profile corrected-cache exact state digest
 `657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
-with the allocation-safe state-copy owner active. Attribute the remaining
-approximately 71-second candidate cost below `_candidate_actions`, repair only
-the first dominant
-canonical sub-owner, and require the complete corrected 10-decision public-input
+and retain the boundary only if it materially reduces the approximately
+71-second candidate cost. Require the complete corrected 10-decision public-input
 digest/action/search sequence, campaign checkpoint digest, exact mechanics,
 seeded replay, and frozen PPO transition contract to remain unchanged. Do not
 reapply the rejected D1-wide projection-copy substitution, manual/per-field state
@@ -2590,6 +2594,29 @@ selection passed **81 tests** before five campaign fixtures encountered the
 known Windows sandbox denial for pytest's temporary directory. GitHub Actions
 run `35505959879`, job `106065705362`, is authoritative and passed with
 **2932 passed, 1605 deselected in 100.79s**.
+
+### Post-copy target re-profile checkpoint
+
+The exact target was re-profiled after the allocation-safe state-copy repair.
+It retained `DISCARD_CARDS (0, 1, 3, 6, 7)` and search attempts
+`2/18, 3/83, 4/267, 5/631`. cProfile recorded 780,355,124 calls (712,667,015
+primitive) and 232.880 profiler seconds. Candidate generation accounted for
+224.824 seconds. The final-Joker/generated-consumable transition stack still
+made 93,357 tactical projection copies; `copy_for_tactical_projection` accounted
+for 167.591 cumulative seconds and generic `deepcopy` for 122.969. In contrast,
+186,931 ordinary `BalatroState.copy()` calls now account for only 9.043 cumulative
+seconds, confirming that checkpoint's repair and ruling ordinary construction
+out as the next dominant owner.
+
+The remaining duplication is now structurally explicit: `_context` made 45,780
+evaluation-only play estimates, while `_has_guaranteed_clearing_play` performed
+another complete score-distribution scan. Both call `score_outcomes.project()`,
+which currently delegates to `project_transition()` and constructs mutable
+post-score state even though these two callers consume only distribution values.
+The next task is to establish an exact canonical distribution-only boundary with
+mechanics-parity regressions before attempting to remove that state work. This
+is not permission to revive the rejected context/guaranteed-clear projection
+reuse: each caller must retain its independent evaluation and allocation order.
 
 ### Versioned PPO training and rollout contract checkpoint
 
