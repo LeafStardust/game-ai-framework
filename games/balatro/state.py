@@ -112,7 +112,10 @@ class BalatroState(GameState):
         return [BalatroCard(rank, suit) for rank in ranks for suit in suits]
 
     def copy(self):
-        new_state = BalatroState()
+        # Every field is populated below, so constructing a pristine 52-card
+        # deck here only to replace it immediately is redundant.  Tactical
+        # projection invokes this owner for every hypothetical score branch.
+        new_state = BalatroState.__new__(BalatroState)
         new_state.money = self.money
         new_state.ante = self.ante
         new_state.round = self.round
@@ -121,6 +124,8 @@ class BalatroState(GameState):
         if self.blind is not None:
             copy_method = getattr(self.blind, "copy", None)
             new_state.blind = copy_method() if callable(copy_method) else deepcopy(self.blind)
+        else:
+            new_state.blind = None
         new_state.boss_name = self.boss_name
         new_state.boss_blind_state_observed = self.boss_blind_state_observed
         new_state.boss_blind_hands = self.boss_blind_hands.copy()
