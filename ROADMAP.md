@@ -2503,7 +2503,10 @@ to about 144.93 seconds and the target to 67.256 seconds / 65.399 candidate
 seconds, but that later search drifted at both horizon 4 (244 rather than 245)
 and horizon 5 (507 rather than 506). The large speedup plus allocation-sensitive
 node drift now makes cache-identity instrumentation the required next diagnostic;
-no card-state memo implementation remains.
+no card-state memo implementation remains. Roadmap checkpoint commit
+`a69922218eb139d636ae80996cd90124f03f0214` passed GitHub Actions run
+`35492224810`, job `106029016695`; the actual job log reports **2930 passed,
+1602 deselected in 142.83s**.
 
 ### Versioned PPO training and rollout contract checkpoint
 
