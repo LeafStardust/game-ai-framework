@@ -2429,18 +2429,54 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Sub-profile candidate generation for the exact later public state with digest
+Sub-profile `BalatroState.copy_for_tactical_projection` for the exact later
+public state with digest
 `657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`.
-Capture that state inside the existing ordered episode diagnostic and attribute
-its 147-second candidate cost below `_candidate_actions` before changing code.
-Repair only the first dominant canonical sub-owner and require the complete
+Attribute its cost by mutable state field and `deepcopy` dispatch while preserving
+the existing `deepcopy(self, memo)` reconstruction/allocation semantics. Repair
+only the first dominant canonical sub-owner and require the complete
 10-decision public-input digest/action sequence, search semantics, campaign
 checkpoint digest, exact mechanics, seeded replay, and frozen PPO transition
 contract to remain unchanged. Do not reapply the rejected D1-wide projection-copy
-substitution: it produced no material improvement and drifted a node count. The
+substitution, manual/per-field state reconstruction, context/guaranteed-clear
+projection reuse, or custom `BalatroCard.__deepcopy__` paths recorded below. The
 training path must not depend on a wall-clock cutoff. Do not launch the full
 training schedule, inspect learned-policy results, tune hyperparameters, or widen
 unrelated mechanics.
+
+### Horizon-five candidate sub-profile checkpoint
+
+The exact `657e5ffd...` state was captured inside the ordered episode diagnostic
+before another code change. It is Ante 1 round 2 at 0/450 chips with four hands,
+three discards, no Jokers, one held `GeneratedShopConsumableItem`, an eight-card
+hand, and 44 cards in the deck. The selected action remains `DISCARD_CARDS` at
+visible indices `(0, 1, 3, 6, 7)`, with search attempts/nodes `2/18`, `3/83`,
+`4/268`, and `5/639`.
+
+The isolated cProfile run recorded 1,819,309,949 calls (1,503,164,537 primitive)
+and 883.767 profiler seconds. `_candidate_actions` accounted for 871.467 seconds;
+`LiveFinalJokerScoreOutcomeModel.project_transition` and
+`LiveGeneratedConsumableScoreOutcomeModel.project_transition` were called 87,251
+times and accounted for 860.249 and 849.885 cumulative seconds respectively.
+The generated-consumable owner made 87,251
+`BalatroState.copy_for_tactical_projection` calls, with generic `deepcopy`
+accounting for 741.514 cumulative seconds and the state-copy owner for 725.147.
+`_diverse_discard_beam`, `_estimate_discard`, `_discard_value`, and `_context`
+were callers rather than the first dominant implementation owner.
+
+Three structurally tempting repairs were rejected and fully reverted. Rebuilding
+the state through `BalatroState.copy()` increased the complete trace to 484.577
+seconds, raised the target decision to 220.338 seconds / 216.142 candidate
+seconds, and drifted the later horizon-five node count from 506 to 507. A custom
+per-field reconstruction failed the opening fixed-state trace immediately,
+changing confirmation `3/38` to `3/50` and continuing into extra horizons.
+Reusing the context pass's already-computed guaranteed-clear fact produced the
+same trace drift, proving that this search is sensitive to projection allocation
+cadence through its current identity caches. Finally, a generic-semantics
+`BalatroCard.__deepcopy__` fast path passed 32 focused tests and preserved the
+opening trace, but the complete trace regressed: the target became 174.259
+seconds / 170.695 candidate seconds and the later horizon-five state again used
+507 rather than 506 nodes. No implementation from these experiments remains.
 
 ### Versioned PPO training and rollout contract checkpoint
 
