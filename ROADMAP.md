@@ -2429,17 +2429,17 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Re-profile corrected-cache exact state digest
+Profile direct canonical scoring work at exact state digest
 `657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
-with both the score-distribution-only boundary and exact-empty-Joker scorer guard
-active. Attribute the first remaining dominant canonical sub-owner and retain
-another repair only if it materially reduces target candidate cost. Require the
-complete
-corrected 10-decision public-input
+after the stateful generated-consumable branch-copy investigation recorded below.
+Attribute repeated work within the exact-empty-Joker scoring-card/held-card path
+at its canonical owner and retain another repair only if it materially reduces
+target candidate cost. Require the complete corrected 10-decision public-input
 digest/action/search sequence, campaign checkpoint digest, exact mechanics,
 seeded replay, and frozen PPO transition contract to remain unchanged. Do not
 reapply the rejected D1-wide projection-copy substitution, manual/per-field state
-reconstruction, context/guaranteed-clear projection reuse, or custom
+reconstruction, generated-consumable empty-Joker branch shortcuts,
+context/guaranteed-clear projection reuse, cross-branch scoring caches, or custom
 `BalatroCard.__deepcopy__` paths recorded below. The training path must not depend
 on a wall-clock cutoff. Do not launch the full
 training schedule, inspect learned-policy results, tune hyperparameters, or widen
@@ -2708,6 +2708,34 @@ Focused validation passed **70 tests** and expanded scoring/Joker/PPO validation
 passed **186 tests** locally. GitHub Actions run `35508917285`, job
 `106073304503`, is authoritative and passed with **2940 passed, 1607 deselected
 in 70.85s**.
+
+### Stateful generated-consumable copy attribution checkpoint
+
+With both retained scorer repairs active, the exact `657e5ffd...` cProfile kept
+`DISCARD_CARDS (0, 1, 3, 6, 7)` and search attempts `2/18, 3/83, 4/267,
+5/631`. It recorded 77,243,822 calls (69,089,941 primitive) in 23.253 profiler
+seconds. Candidate generation accounted for 14.313 seconds. Generic `deepcopy`
+accounted for 11.030 cumulative seconds, including 3.555 seconds in the 1,797
+stateful `BalatroState.copy_for_tactical_projection` calls. Direct scoring
+accounted for 4.860 seconds across 95,154 calls, including 1.785 seconds in
+scoring-card selection and 1.184 seconds in held-card processing. Separate hand
+classification accounted for 1.858 seconds across 102,020 calls.
+
+Two exact-empty-Joker generated-consumable shortcuts were tested and fully
+reverted. Returning the complete parent transition without the generated
+layer's isolated branch copy changed the authoritative search traces (the target
+became `2/36, 3/132, 4/318, 4c/1000, 5/592, 5c/1000`), proving that downstream
+branches require the copied state even when no consumable is generated. A
+narrower version retained the isolated copy while skipping only the redundant
+generator probe/checks. It preserved all ten digests, actions, indices, and
+search attempts and passed 36 focused tests, but a same-host A/B reduced target
+candidate cost only from **3.500 to 3.365 seconds (3.85%)** and total target cost
+from **5.036 to 4.892 seconds (2.85%)**. Whole-trace candidate cost fell from
+9.867 to 9.325 seconds. This did not meet the roadmap's materiality requirement,
+so no implementation or tests from either experiment remain. Stateful branch
+copying is therefore treated as required unless a future canonical owner proves
+otherwise; the next bounded target is direct single-call scoring work, not
+another projection-copy or cross-branch reuse experiment.
 
 ### Versioned PPO training and rollout contract checkpoint
 
