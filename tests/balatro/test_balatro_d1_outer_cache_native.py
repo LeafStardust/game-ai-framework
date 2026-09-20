@@ -38,6 +38,37 @@ def test_native_outer_d1_evaluation_cache_reuses_same_state_action():
     assert evaluator.play_value_calls == 2
 
 
+def test_native_outer_d1_cache_rejects_recycled_state_id_marker():
+    class _CountingEvaluator(LiveHandDecisionEvaluator):
+        def __init__(self):
+            super().__init__()
+            self.play_value_calls = 0
+
+        def _context(self, state):
+            del state
+            return SimpleNamespace()
+
+        def _play_value(self, state, action, context):
+            del state, action, context
+            self.play_value_calls += 1
+            return 7.0
+
+    evaluator = _CountingEvaluator()
+    card = BalatroCard("A", "Spades")
+    action = _play_action(card)
+    previous_state = SimpleNamespace()
+    current_state = SimpleNamespace()
+    evaluator._outer_d1_cache_state = previous_state
+    evaluator._outer_d1_cache_state_id = id(current_state)
+    evaluator._outer_d1_evaluation_cache = {
+        evaluator._action_key(action): 99.0,
+    }
+
+    assert evaluator.evaluate(current_state, action) == 7.0
+    assert evaluator.play_value_calls == 1
+    assert evaluator._outer_d1_cache_state is current_state
+
+
 def test_native_outer_d1_projection_cache_reuses_transition():
     evaluator = LiveHandDecisionEvaluator()
     card = BalatroCard("A", "Spades")

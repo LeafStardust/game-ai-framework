@@ -198,6 +198,24 @@ class BalatroState(GameState):
                 self.voucher_generation_pool,
             )
         }
+        card_fields = frozenset(BalatroCard.__dataclass_fields__)
+        seen_cards = set()
+        for collection in (
+            self.deck,
+            self.owned_deck or (),
+            self.hand,
+            self.discard_pile,
+        ):
+            for card in collection:
+                if type(card) is not BalatroCard or id(card) in seen_cards:
+                    continue
+                seen_cards.add(id(card))
+                attributes = vars(card)
+                if set(attributes) == card_fields and all(
+                    value is None or type(value) in {bool, int, float, str}
+                    for value in attributes.values()
+                ):
+                    memo[id(attributes)] = attributes
         return deepcopy(self, memo)
 
     def add_consumable(self, consumable) -> bool:

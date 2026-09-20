@@ -77,6 +77,36 @@ def test_generated_branch_copy_shares_only_frozen_generation_authority():
     assert state.hand == [card]
 
 
+def test_tactical_projection_copy_preserves_card_aliases_and_isolation():
+    card = BalatroCard("A", "Spades", permanent_bonus=12)
+    state = _state([card], [], consumables=["held"])
+    state.deck = [card]
+
+    branch = state.copy_for_tactical_projection()
+
+    assert branch.hand[0] is branch.deck[0]
+    assert branch.hand[0] is branch.owned_deck[0]
+    assert branch.hand[0] is not card
+    assert vars(branch.hand[0]) is not vars(card)
+    branch.hand[0].permanent_bonus = 99
+    assert card.permanent_bonus == 12
+
+
+def test_tactical_projection_copy_deep_copies_extended_card_state():
+    card = BalatroCard("A", "Spades")
+    card.projection_metadata = {"history": ["played"]}
+    state = _state([card], [])
+
+    branch = state.copy_for_tactical_projection()
+
+    assert branch.hand[0].projection_metadata == card.projection_metadata
+    assert branch.hand[0].projection_metadata is not card.projection_metadata
+    assert (
+        branch.hand[0].projection_metadata["history"]
+        is not card.projection_metadata["history"]
+    )
+
+
 def test_seance_creates_abstract_spectral_without_sampling_identity():
     cards = [
         BalatroCard("4", "Hearts"),

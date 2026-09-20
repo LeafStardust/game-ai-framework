@@ -117,6 +117,26 @@ def test_live_projection_reports_exact_pair_of_twos_blind_clear():
     assert projection.clears_blind is True
 
 
+def test_live_context_cache_rejects_recycled_state_id_marker():
+    state = _state(
+        [BalatroCard("A", "Clubs")],
+        score=0,
+        target=100,
+        hands=4,
+        discards=3,
+    )
+    evaluator = LiveHandDecisionEvaluator()
+    evaluator._cached_state = BalatroState()
+    evaluator._cached_state_id = id(state)
+    stale_context = object()
+    evaluator._cached_context = stale_context
+
+    context = evaluator._context(state)
+
+    assert context is not stale_context
+    assert evaluator._cached_state is state
+
+
 def test_live_policy_discards_weak_pair_when_last_hand_cannot_keep_pace():
     state = _state(
         [

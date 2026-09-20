@@ -113,8 +113,10 @@ class LiveHandDecisionEvaluator(Evaluator):
         self.scorer = BalatroScorer()
         self.score_outcomes = LiveFinalJokerScoreOutcomeModel(self.scorer)
         self.action_generator = CardSelector()
+        self._cached_state = None
         self._cached_state_id: int | None = None
         self._cached_context: _DecisionContext | None = None
+        self._outer_d1_cache_state = None
         self._outer_d1_cache_state_id: int | None = None
         self._outer_d1_projection_cache: dict[tuple[str, tuple[int, ...]], LivePlayProjection] = {}
         self._outer_d1_evaluation_cache: dict[tuple[str, tuple[int, ...]], float] = {}
@@ -130,9 +132,10 @@ class LiveHandDecisionEvaluator(Evaluator):
         )
 
     def _ensure_outer_d1_cache(self, state) -> None:
-        state_id = id(state)
-        if self._outer_d1_cache_state_id == state_id:
+        if self._outer_d1_cache_state is state:
             return
+        self._outer_d1_cache_state = state
+        state_id = id(state)
         self._outer_d1_cache_state_id = state_id
         self._outer_d1_projection_cache = {}
         self._outer_d1_evaluation_cache = {}
@@ -220,7 +223,7 @@ class LiveHandDecisionEvaluator(Evaluator):
 
     def _context(self, state) -> _DecisionContext:
         state_id = id(state)
-        if self._cached_state_id == state_id and self._cached_context is not None:
+        if self._cached_state is state and self._cached_context is not None:
             return self._cached_context
 
         requirement = int(getattr(getattr(state, "blind", None), "requirement", 0))
@@ -242,6 +245,7 @@ class LiveHandDecisionEvaluator(Evaluator):
             best_play_score=best_score,
             best_play_hand=best_hand,
         )
+        self._cached_state = state
         self._cached_state_id = state_id
         self._cached_context = context
         return context
