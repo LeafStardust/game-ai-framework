@@ -2429,12 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Attribute the remaining generic planner deepcopy cost for corrected-cache exact
-state digest
+Profile the unconditional `BalatroScorer.most_played_hands` work inside the
+deterministic no-Joker score-only path for corrected-cache exact state digest
 `657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
-below `_estimate_play` and `_estimate_discard`. Repair only the first dominant
-canonical branch-copy owner, and retain it only if it materially reduces the
-remaining approximately 4.6-second target candidate cost. Require the complete
+and prove whether that context is consumed when the exact Joker inventory is
+empty. Repair only the canonical scorer owner, preserve the full path for every
+Joker-bearing state, and retain the change only if it materially reduces the
+remaining target candidate cost. Require the complete
 corrected 10-decision public-input
 digest/action/search sequence, campaign checkpoint digest, exact mechanics,
 seeded replay, and frozen PPO transition contract to remain unchanged. Do not
@@ -2654,6 +2655,32 @@ planner `_estimate_play` / `_estimate_discard`. Score-only projection handled
 91,560 calls in 9.467 cumulative seconds, while only 1,797 stateful score
 transitions remained. The next task is therefore branch-copy attribution, not
 another widening of the score-only admission contract.
+
+### Planner branch-copy attribution checkpoint
+
+Outer-call timing at the exact target attributed 563 leaf Play copies at
+`_estimate_play:432` to 0.725 seconds, 367 recursive discard-redraw copies at
+`_estimate_discard:567` to 0.414 seconds, and 226 retained-state copies at
+`_estimate_play:476` to 0.291 seconds. The redraw and retained copies feed
+independent recursive branches and cannot be shared. A canonical terminal-value
+experiment removed only the leaf copies by passing hypothetical score/hand/
+discard scalars to the terminal reducer. It passed **46 focused tests** and kept
+all ten public digests, actions, selected indices, and search attempts exact.
+
+The experiment was nevertheless rejected and fully reverted. In a same-host A/B,
+the scalar-override target took **8.935 / 7.538 seconds** total/candidate while
+the original leaf-copy path took **8.213 / 6.129 seconds**; whole-trace timings
+were noisy, but the required target metric clearly regressed. No planner or
+terminal-value implementation from the experiment remains. The first remaining
+safe profiled sub-owner is now direct scorer work: 95,154 score calls accounted
+for 8.037 cProfile seconds, including 2.910 seconds in
+`BalatroScorer.most_played_hands`, whose result appears to be prepared
+unconditionally before an empty Joker loop. This must be proven at the canonical
+scorer owner before any change.
+
+The score-only roadmap checkpoint itself passed GitHub Actions run
+`35508158623`, job `106071340778`; the actual log reports **2936 passed, 1607
+deselected in 134.87s**.
 
 ### Versioned PPO training and rollout contract checkpoint
 
