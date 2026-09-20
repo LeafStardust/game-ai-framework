@@ -2429,17 +2429,18 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Sub-profile `BalatroState.copy_for_tactical_projection` for the exact later
-public state with digest
-`657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`.
-Attribute its cost by mutable state field and `deepcopy` dispatch while preserving
-the existing `deepcopy(self, memo)` reconstruction/allocation semantics. Repair
-only the first dominant canonical sub-owner and require the complete
+Instrument the canonical `LiveHandDecisionEvaluator` identity caches during the
+exact ordered episode and prove or refute stale Python-object-ID reuse before
+another optimization. Cover both `_cached_state_id` / `_cached_context` and
+`_outer_d1_cache_state_id` / outer projection/evaluation/guaranteed-clear caches
+without retaining states or otherwise changing allocation lifetime in the measured
+path. Repair only a demonstrated first wrong owner and require the complete
 10-decision public-input digest/action sequence, search semantics, campaign
 checkpoint digest, exact mechanics, seeded replay, and frozen PPO transition
 contract to remain unchanged. Do not reapply the rejected D1-wide projection-copy
 substitution, manual/per-field state reconstruction, context/guaranteed-clear
-projection reuse, or custom `BalatroCard.__deepcopy__` paths recorded below. The
+projection reuse, custom `BalatroCard.__deepcopy__`, or scalar card-state memo
+paths recorded below. The
 training path must not depend on a wall-clock cutoff. Do not launch the full
 training schedule, inspect learned-policy results, tune hyperparameters, or widen
 unrelated mechanics.
@@ -2480,6 +2481,29 @@ seconds / 170.695 candidate seconds and the later horizon-five state again used
 Roadmap checkpoint commit `5e3aa10e2be353fe4e89ee45fd144f8f2f73d7c6`
 passed GitHub Actions run `35491514677`, job `106027147144`; the actual job log
 reports **2930 passed, 1602 deselected in 129.66s**.
+
+The follow-up field/dispatch profile intercepted the same `657e5ffd...` state
+before its decision. Across 1,000 isolated copies per field, `owned_deck` (52
+cards) cost 0.546 seconds, `deck` (44 cards) 0.438 seconds, and `hand` (eight
+aliases into those card sets) 0.076 seconds; every other mutable field was below
+0.008 seconds. Profiling 1,000 complete projection copies took 4.030 seconds and
+12,201,001 calls: generic `deepcopy` accounted for 4.026 cumulative seconds,
+`_reconstruct` 4.015, `_deepcopy_dict` 3.998, and `_deepcopy_list` 3.587. The
+state contains 63 reconstructed child objects per copy in addition to the state,
+principally its card objects and their scalar attribute mappings.
+
+Two narrower scalar-card mapping memo experiments retained generic object
+reconstruction, distinct mutable card instances, cross-zone aliases, and a
+fail-closed fallback for extended/mutable card state. Both were still rejected
+and reverted on the complete trace. Sharing the exact scalar attribute mappings
+cut measured tactical work to about 151.08 seconds and the target to 67.255
+seconds / 65.384 candidate seconds, but the later horizon-five state evaluated
+507 rather than 506 nodes. Memoizing shallow temporary mappings cut tactical work
+to about 144.93 seconds and the target to 67.256 seconds / 65.399 candidate
+seconds, but that later search drifted at both horizon 4 (244 rather than 245)
+and horizon 5 (507 rather than 506). The large speedup plus allocation-sensitive
+node drift now makes cache-identity instrumentation the required next diagnostic;
+no card-state memo implementation remains.
 
 ### Versioned PPO training and rollout contract checkpoint
 
