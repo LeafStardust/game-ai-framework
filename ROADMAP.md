@@ -2431,8 +2431,9 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 Re-profile candidate generation for corrected-cache exact state digest
 `657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
-with the guarded scalar-card memo active. Attribute the remaining 94-second
-candidate cost below `_candidate_actions`, repair only the first dominant
+with the allocation-safe state-copy owner active. Attribute the remaining
+approximately 71-second candidate cost below `_candidate_actions`, repair only
+the first dominant
 canonical sub-owner, and require the complete corrected 10-decision public-input
 digest/action/search sequence, campaign checkpoint digest, exact mechanics,
 seeded replay, and frozen PPO transition contract to remain unchanged. Do not
@@ -2547,6 +2548,48 @@ an expanded local selection passed 59 with one deselected before five campaign
 fixtures hit the Windows sandbox's denied pytest temp directory. GitHub Actions
 run `35498620883`, job `106046185075`, is authoritative and passed with **2932
 passed, 1604 deselected in 141.10s**.
+
+### Allocation-safe state-copy checkpoint
+
+The corrected target was re-profiled with the guarded scalar-card mapping memo
+active. Its 780,915,917 calls (713,227,808 primitive) took 240.975 profiler
+seconds. `_candidate_actions` accounted for 235.116 seconds; the generated-
+consumable and final-Joker transition stack remained dominant, with 93,357
+`copy_for_tactical_projection` calls and 186,931 ordinary `BalatroState.copy()`
+calls. Generic tactical `deepcopy` remained the largest cumulative owner. A
+micro-optimization of the scalar-card validation loop preserved the exact trace
+but was rejected and reverted: the target measured 98.484 seconds and the full
+trace about 207.30 seconds, both slower than the 96.863 / 196.731-second
+corrected baseline. The profiler's apparent validation-loop cost was therefore
+instrumentation distortion rather than a retained repair.
+
+The first safe repeated owner below that stack was ordinary `BalatroState.copy()`.
+It constructed a pristine 52-card deck for every hypothetical score branch and
+then immediately replaced that deck with the explicit shallow branch copy.
+Commit `be949b85b7632919a2081bd38395522f3d29a5ab` now allocates the destination
+without running the constructor; the existing canonical field-copy contract
+still populates every field, including an explicit `blind=None` branch. A focused
+regression proves copying does not call `_create_deck` while preserving a distinct
+deck container. No tactical deepcopy, card-specialization, D1-wide projection,
+or manual/per-field reconstruction experiment was reintroduced.
+
+The complete corrected ten-decision sequence is unchanged, including target
+attempts `2/18, 3/83, 4/267, 5/631` and later horizon-five attempts
+`2/18, 3/82, 4/245, 5/507`. Measured tactical work fell to **150.856 seconds**,
+including about **143.339 seconds** in candidate generation: a 45.875-second
+(23.32%) reduction from the 196.731-second identity-safe baseline. The target
+fell to **72.937 seconds**, including **70.968 seconds** in candidate generation;
+the later horizon-five decision fell to **50.293 / 48.640 seconds**.
+
+The unchanged production one-episode campaign again published the exact
+**44,734,132-byte** checkpoint and **568-byte** progress manifest with four
+transitions, next episode indices `[8, 1, 2, 3, 4, 5, 6, 7]`, and checkpoint
+digest `2a6c689d9f135e34c826a3fd39a09153ee248b57c572cfb37574dd3a0d1d8abe`.
+Focused validation passed **34 tests** locally; the broader deterministic
+selection passed **81 tests** before five campaign fixtures encountered the
+known Windows sandbox denial for pytest's temporary directory. GitHub Actions
+run `35505959879`, job `106065705362`, is authoritative and passed with
+**2932 passed, 1605 deselected in 100.79s**.
 
 ### Versioned PPO training and rollout contract checkpoint
 
