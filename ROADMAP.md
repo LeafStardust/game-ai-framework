@@ -2429,11 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Profile canonical scoring-card-phase work at exact state digest
+Profile canonical scoring-card selection at exact state digest
 `657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
-with the exact-empty-Joker held-card scorer guard recorded below active. Attribute
-repeated work within `_apply_scoring_card_phase` at its canonical owner and retain
-another repair only if it materially reduces target candidate cost. Require the
+with both retained empty-Joker scorer phase guards recorded below active. Attribute
+repeated work within `BalatroScorer.scoring_cards` / `HandEvaluator.scoring_cards`
+at the canonical evaluator owner and retain another repair only if it materially
+reduces target candidate cost. Require the
 complete corrected 10-decision public-input
 digest/action/search sequence, campaign checkpoint digest, exact mechanics,
 seeded replay, and frozen PPO transition contract to remain unchanged. Do not
@@ -2760,6 +2761,37 @@ Focused scoring validation passed **35 tests** locally. GitHub Actions run
 `35532804216`, job `106136335508`, is authoritative and passed with **2943
 passed, 1607 deselected in 134.23s**. The next direct scorer sub-owner is the
 scoring-card phase; cross-branch caching remains out of scope.
+
+### No-CARD_SCORED-Joker scoring-phase checkpoint
+
+Commit `55a105c6c50ddaeb995add8548db7575c5840d97` makes the canonical
+`BalatroScorer._apply_scoring_card_phase` resolve intrinsic scoring-card chips,
+enhancements, editions, and retriggers directly when there is no owned Joker
+whose mechanic fires in `CARD_SCORED` context. Face-card discovery and per-trigger
+`JokerContext` preparation remain on the complete CARD_SCORED-Joker path. Null
+state, exact empty list/tuple inventories, and nonempty inventories without such
+a Joker preserve their existing intrinsic and later independent-Joker behavior;
+malformed Joker authority still fails closed.
+
+The post-held-guard target cProfile retained the exact action/search trace and
+recorded 74,738,978 calls (66,585,097 primitive) in 23.100 profiler seconds.
+`_apply_scoring_card_phase` accounted for 0.857 seconds across 95,154 calls;
+canonical scoring-card selection remained larger at 1.832 seconds. Focused
+regressions prove that an exact empty list/tuple constructs no Joker context while
+preserving Bonus chips, Red Seal, and projected played-card retriggers. Focused
+scoring validation passed **42 tests** locally.
+
+The complete corrected ten-decision digest/action/index/search sequence remains
+exact. In a same-host A/B, target candidate cost fell from **3.747 to 3.495
+seconds (6.73%)**, target total cost fell from 5.510 to 5.144 seconds, and
+whole-trace candidate cost fell from 10.333 to 9.933 seconds. The bounded
+production campaign again emitted the exact **44,734,132-byte** checkpoint and
+**568-byte** manifest with four transitions, next indices `[8, 1, 2, 3, 4, 5,
+6, 7]`, and digest
+`2a6c689d9f135e34c826a3fd39a09153ee248b57c572cfb37574dd3a0d1d8abe`.
+GitHub Actions run `35533467903`, job `106138198581`, is authoritative and
+passed with **2945 passed, 1607 deselected in 135.50s**. The next bounded direct
+owner is scoring-card selection; cross-branch caching remains prohibited.
 
 ### Versioned PPO training and rollout contract checkpoint
 
