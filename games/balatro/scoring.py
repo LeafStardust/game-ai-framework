@@ -477,6 +477,13 @@ class BalatroScorer:
                 extra_retriggers=held_card_retriggers,
             )
 
+            # The remaining context exists only for owned Joker evaluation.
+            # An exact empty inventory can return after card and held-card
+            # scoring without rebuilding hand-history context for an empty loop.
+            jokers = getattr(state, "jokers", None)
+            if isinstance(jokers, (list, tuple)) and not jokers:
+                return score
+
             context_data["scoring_cards"] = [
                 card
                 for card in scoring_cards
@@ -507,7 +514,7 @@ class BalatroScorer:
                 if type(joker).__name__ == "BaseballCardJoker"
                 and not bool(getattr(joker, "debuffed", False))
             ]
-            for joker in state.jokers:
+            for joker in jokers:
                 class_name = type(joker).__name__
                 joker_debuffed = bool(getattr(joker, "debuffed", False))
                 if not joker_debuffed:
