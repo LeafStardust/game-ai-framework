@@ -334,6 +334,21 @@ class BalatroScorer:
             for card in list(cards or [])
             if not self.is_card_debuffed(card)
         ]
+        jokers = getattr(state, "jokers", None)
+        if isinstance(jokers, (list, tuple)) and not jokers:
+            # Without held-card Jokers, rank ordering and JokerContext creation
+            # are irrelevant. Steel remains an intrinsic held-card effect and
+            # must still honor Red Seal and projected retriggers exactly.
+            for card in active_cards:
+                if getattr(card, "enhancement", None) != "Steel":
+                    continue
+                for _ in range(
+                    self._held_card_trigger_count(card, extra_retriggers)
+                ):
+                    score.x_mult *= 1.5
+                    self._fold_x_mult(score)
+            return
+
         ranked_cards = [
             card
             for card in active_cards
@@ -347,7 +362,7 @@ class BalatroScorer:
         )
         held_jokers = [
             joker
-            for joker in getattr(state, "jokers", [])
+            for joker in jokers
             if type(joker).__name__ in self.ON_HELD_JOKER_CLASS_NAMES
         ]
 
