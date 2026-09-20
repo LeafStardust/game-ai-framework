@@ -2429,12 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Profile canonical scoring-card selection at exact state digest
+Profile canonical poker-hand classification at exact state digest
 `657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
 with both retained empty-Joker scorer phase guards recorded below active. Attribute
-repeated work within `BalatroScorer.scoring_cards` / `HandEvaluator.scoring_cards`
-at the canonical evaluator owner and retain another repair only if it materially
-reduces target candidate cost. Require the
+repeated work within `HandEvaluator.evaluate` at the canonical evaluator owner and
+retain another repair only if it materially reduces target candidate cost. Require the
 complete corrected 10-decision public-input
 digest/action/search sequence, campaign checkpoint digest, exact mechanics,
 seeded replay, and frozen PPO transition contract to remain unchanged. Do not
@@ -2792,6 +2791,25 @@ production campaign again emitted the exact **44,734,132-byte** checkpoint and
 GitHub Actions run `35533467903`, job `106138198581`, is authoritative and
 passed with **2945 passed, 1607 deselected in 135.50s**. The next bounded direct
 owner is scoring-card selection; cross-branch caching remains prohibited.
+
+### Scoring-card selection attribution checkpoint
+
+The exact target invokes `HandEvaluator.scoring_cards` 111,961 times. Every call
+uses default rules and contains zero Stone cards. High Card accounts for 73,161
+calls and Pair for 32,046, so those two categories represent 93.96% of the target
+workload. The retained post-phase profile attributes 1.832 seconds to canonical
+scoring-card selection; separate poker-hand classification remains 1.878 seconds
+across 102,020 calls.
+
+A canonical evaluator experiment partitioned Stone/regular cards in one pass and
+constructed rank counts only for Pair through Five of a Kind. It passed **55
+focused tests** and preserved the complete corrected ten-decision digest/action/
+index/search sequence. The real same-host target nevertheless regressed: candidate
+cost was **3.680 seconds** with the experiment versus **3.472 seconds** with the
+original evaluator. The implementation and its tests were fully reverted. Do not
+repeat the one-pass conditional partition or lazy-rank-count path; the next bounded
+owner is poker-hand classification, not cross-branch caching or another scoring-
+card selection rewrite.
 
 ### Versioned PPO training and rollout contract checkpoint
 
