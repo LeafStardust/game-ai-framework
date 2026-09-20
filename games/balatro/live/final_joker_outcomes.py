@@ -98,6 +98,49 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
             joker_projector=LiveFinalJokerScoreProjector(live_scorer),
         )
 
+    def project(
+        self,
+        hand,
+        state,
+        cards,
+        *,
+        include_card_chips: bool = True,
+    ) -> ScoreOutcomeDistribution:
+        """Return score-only evidence without unused transition state when exact."""
+        played_cards = tuple(cards or ())
+        if not self._score_only_projection_is_exact(state, played_cards):
+            return super().project(
+                hand,
+                state,
+                played_cards,
+                include_card_chips=include_card_chips,
+            )
+
+        score = self.scorer.score(
+            hand,
+            state,
+            cards=played_cards,
+            include_card_chips=include_card_chips,
+            resolve_random_effects=False,
+        )
+        return ScoreOutcomeDistribution(
+            outcomes=(ScoreOutcome(score=score.total, probability=1.0),),
+        )
+
+    @staticmethod
+    def _score_only_projection_is_exact(state, cards) -> bool:
+        if state is None:
+            return False
+        jokers = getattr(state, "jokers", None)
+        if not isinstance(jokers, (list, tuple)) or jokers:
+            return False
+        if str(getattr(state, "boss_name", "") or ""):
+            return False
+        return not any(
+            getattr(card, "enhancement", None) in {"Glass", "Lucky"}
+            for card in cards
+        )
+
     def project_transition(
         self,
         hand,
