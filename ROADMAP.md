@@ -2429,13 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Profile the unconditional `BalatroScorer.most_played_hands` work inside the
-deterministic no-Joker score-only path for corrected-cache exact state digest
+Re-profile corrected-cache exact state digest
 `657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
-and prove whether that context is consumed when the exact Joker inventory is
-empty. Repair only the canonical scorer owner, preserve the full path for every
-Joker-bearing state, and retain the change only if it materially reduces the
-remaining target candidate cost. Require the complete
+with both the score-distribution-only boundary and exact-empty-Joker scorer guard
+active. Attribute the first remaining dominant canonical sub-owner and retain
+another repair only if it materially reduces target candidate cost. Require the
+complete
 corrected 10-decision public-input
 digest/action/search sequence, campaign checkpoint digest, exact mechanics,
 seeded replay, and frozen PPO transition contract to remain unchanged. Do not
@@ -2681,6 +2680,34 @@ scorer owner before any change.
 The score-only roadmap checkpoint itself passed GitHub Actions run
 `35508158623`, job `106071340778`; the actual log reports **2936 passed, 1607
 deselected in 134.87s**.
+
+### Exact-empty-Joker scorer checkpoint
+
+Commit `2a1a3ad13ab522f337e7e615064dc686c02ccaf8` makes the canonical
+`BalatroScorer` return after played-card and held-card scoring when the Joker
+inventory is an exact empty list or tuple. `scoring_cards`, hand-history context,
+Baseball Card metadata, editions, and Joker application after that boundary exist
+only for the subsequent owned-Joker loop. Every nonempty or malformed inventory
+retains the complete original path; malformed authority is not treated as empty.
+Focused regressions prove list/tuple parity, verify Joker-bearing states still
+construct hand-history context, and keep malformed inventory fail-closed.
+
+The complete corrected ten-decision digest/action/index/search sequence remains
+exact. Under the same current host load, tactical work fell from **23.128 / 15.651
+seconds** total/candidate to **20.704 / 13.187 seconds**. The target fell from
+**8.213 / 6.129 seconds** to **6.378 / 4.478 seconds**, a 26.94% candidate-cost
+reduction. These are the controlled A/B figures; the earlier 18.207-second full
+trace remains the best absolute host-local observation and is not superseded by
+the noisier current window.
+
+The production one-episode campaign again published the exact
+**44,734,132-byte** checkpoint and **568-byte** manifest with four transitions,
+next indices `[8, 1, 2, 3, 4, 5, 6, 7]`, and digest
+`2a6c689d9f135e34c826a3fd39a09153ee248b57c572cfb37574dd3a0d1d8abe`.
+Focused validation passed **70 tests** and expanded scoring/Joker/PPO validation
+passed **186 tests** locally. GitHub Actions run `35508917285`, job
+`106073304503`, is authoritative and passed with **2940 passed, 1607 deselected
+in 70.85s**.
 
 ### Versioned PPO training and rollout contract checkpoint
 
