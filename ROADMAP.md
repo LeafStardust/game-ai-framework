@@ -2430,9 +2430,9 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 ### Exact next task
 
 Resume the bounded eight-episode production PPO campaign-readiness probe from the
-intact two-episode checkpoint at
+intact three-episode checkpoint at
 `C:\Users\user\AppData\Local\Temp\balatro-eight-episode-probe-e3694b16` with
-root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 6`. Record exact additional
+root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 5`. Record exact additional
 and total elapsed time, collected transitions, per-stream next episode indices,
 checkpoint/progress sizes and digest, and any further fail-closed mechanics
 boundary. This is a throughput and representation probe only: do not launch the
@@ -2494,8 +2494,8 @@ capacity without changing payout, pricing, or RNG. Focused cash-out,
 round-resolution, Voucher-generation, and shop-entry validation passed **68
 tests** locally; the production backend subset passed **32 tests** locally.
 GitHub Actions run `35638588292`, job `106462073158`, passed; the actual log
-reports **2958 passed, 1607 deselected in 136.23s**. The exact next task remains
-the six-additional-episode resume from the intact two-episode checkpoint.
+reports **2958 passed, 1607 deselected in 136.23s**. At that checkpoint, seven
+additional episodes remained.
 
 ### Eight-episode probe Psychic discard checkpoint
 
@@ -2523,7 +2523,37 @@ progress manifest and digest
 `aa05627dd349d17e4eb7275caf7f76251415a98e1fc1001412475bffc5381c9b`.
 It records 15 collected transitions, zero optimizer batches, and next episode
 indices `[8, 9, 2, 3, 4, 5, 6, 7]`; the failed episode 2 replay published no
-partial state. The exact next task is the six-additional-episode resume above.
+partial state. At that checkpoint, six additional episodes remained.
+
+### Eight-episode probe Hone cash-out checkpoint
+
+The post-Psychic resume ran for **328.9824705 seconds**. It traversed the repaired
+Psychic discard, completed episode 2 / stream 2, atomically published a new
+checkpoint, then stopped fail-closed during episode 3 / stream 3 at the narrow
+Boss-cash-out Voucher capability. A disposable replay from that new checkpoint
+identified the exact state in **101.6249364 seconds**: Ante 2 active Manacle,
+authoritative `v_hone` ownership, persisted Joker edition generation rate `2.0`,
+ordinary $25 interest cap, zero shop discount, base/current reroll cost $5, and
+no other Voucher. Hone changes later shop Joker edition generation and has no
+Boss cash-out callback. The diagnostic script was removed completely.
+
+Commit `82db257294618457da3e06fa6386a0d3b4aaa03c` extends the dedicated
+Boss-cash-out no-op capability only to Hone. The capability now validates both
+persisted consequences at this boundary: consumable slots must be exactly three
+with Crystal Ball (otherwise two), and Joker edition generation rate must be
+exactly `2.0` with Hone (otherwise `1.0`). Unobserved/duplicate/unknown Vouchers,
+wrong persisted slot/rate state, and all payout, interest, pricing, or reroll
+modifiers remain fail-closed. Focused cash-out, shop-generation,
+round-resolution, and production PPO backend validation passed **71 tests**
+locally. GitHub Actions run `35643024747`, job `106476678738`, passed; the
+actual log reports **2971 passed, 1607 deselected in 101.03s**.
+
+The current three-episode checkpoint is **44,919,175 bytes** with a **570-byte**
+progress manifest and digest
+`777dd872c17d0c54ecdb482f8a391007eec903abf11c9b2a694de40723285dba`.
+It records 22 collected transitions, zero optimizer batches, and next episode
+indices `[8, 9, 10, 3, 4, 5, 6, 7]`; the failed episode 3 replay published no
+partial state. The exact next task is the five-additional-episode resume above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
