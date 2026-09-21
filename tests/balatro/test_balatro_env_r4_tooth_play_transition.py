@@ -94,7 +94,7 @@ def test_env_r4_unowned_boss_play_remains_fail_closed():
 
     with pytest.raises(
         HeadlessTransitionError,
-        match="Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, The Fish, The Mouth, The Needle, and Verdant Leaf only",
+        match="Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, The Fish, The Mouth, The Needle, The Manacle, and Verdant Leaf only",
     ):
         apply_supported_ordinary_play(run, (0,))
 
