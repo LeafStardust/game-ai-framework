@@ -87,6 +87,39 @@ def test_env_r2_boss_cashout_preserves_exact_crystal_ball_noop():
 
 
 @pytest.mark.parametrize(
+    ("vouchers", "consumable_slots", "edition_rate"),
+    [
+        (["v_hone"], 2, 2.0),
+        (["v_crystal_ball", "v_hone"], 3, 2.0),
+    ],
+)
+def test_env_r2_boss_cashout_preserves_exact_hone_noop(
+    vouchers,
+    consumable_slots,
+    edition_rate,
+):
+    run = _finish(_boss_round("The Manacle", money=4, reward=5), hands=2)
+    run.public.hand_size = 7
+    run.boss_hand_size_sub = 1
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+    run.public.consumable_slots = consumable_slots
+    run.public.joker_generation_edition_rate = edition_rate
+    before_rng = run.rng_snapshot()
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 11
+    assert result.public.phase == "SHOP"
+    assert result.public.vouchers == vouchers
+    assert result.public.consumable_slots == consumable_slots
+    assert result.public.joker_generation_edition_rate == edition_rate
+    assert result.public.hand_size == 8
+    assert result.boss_hand_size_sub is None
+    assert result.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize(
     ("vouchers", "observed"),
     [
         (["v_crystal_ball"], False),
@@ -111,6 +144,30 @@ def test_env_r2_boss_cashout_rejects_inexact_voucher_state_atomically(
     assert run.public.phase == "ROUND_EVAL"
     assert run.public.money == before_money
     assert run.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize(
+    ("vouchers", "consumable_slots", "edition_rate"),
+    [
+        (["v_crystal_ball"], 2, 1.0),
+        (["v_hone"], 2, 1.0),
+        (["v_hone"], 2, 4.0),
+        (["v_crystal_ball", "v_hone"], 3, 1.0),
+    ],
+)
+def test_env_r2_boss_cashout_rejects_inexact_persisted_voucher_effects(
+    vouchers,
+    consumable_slots,
+    edition_rate,
+):
+    run = _finish(_boss_round("The Psychic"))
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+    run.public.consumable_slots = consumable_slots
+    run.public.joker_generation_edition_rate = edition_rate
+
+    with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
+        cash_out_supported_boss(run)
 
 
 def test_env_r2_boss_cashout_rejects_unknown_ante_history_atomically():

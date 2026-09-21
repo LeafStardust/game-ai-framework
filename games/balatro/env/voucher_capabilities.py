@@ -27,11 +27,14 @@ EXACT_INTEREST_CAP_VOUCHER_KEYS = frozenset({"v_seed_money", "v_money_tree"})
 EXACT_SHOP_SIZE_VOUCHER_KEYS = frozenset({"v_overstock_norm", "v_overstock_plus"})
 EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 
-# Crystal Ball's capacity change is persisted when it is redeemed and has no
-# callback during Boss cash-out. Keep this boundary deliberately narrower than
-# general Voucher support: payout/interest/pricing modifiers require their own
-# exact Boss cash-out ownership before they may cross that transition.
-EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset({"v_crystal_ball"})
+# Crystal Ball's capacity change and Hone's Joker-edition generation rate are
+# persisted when redeemed; neither has a callback during Boss cash-out. Keep
+# this boundary deliberately narrower than general Voucher support:
+# payout/interest/pricing modifiers require their own exact Boss cash-out
+# ownership before they may cross that transition.
+EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset(
+    {"v_crystal_ball", "v_hone"}
+)
 
 # These Vouchers have no effect on ordinary base-shop generation. They are
 # nevertheless admitted explicitly at this boundary so authoritative ownership
@@ -104,12 +107,23 @@ def boss_cash_out_vouchers_are_exact(state: BalatroState) -> bool:
     """Return whether owned Vouchers are exact no-ops at Boss cash-out."""
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
+    owned = _owned_supported_vouchers(
+        state,
+        EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS,
+    )
+    if owned is None:
+        return False
+
+    expected_consumable_slots = 3 if "v_crystal_ball" in owned else 2
+    expected_edition_rate = 2.0 if "v_hone" in owned else 1.0
+    slots = state.consumable_slots
+    edition = state.joker_generation_edition_rate
     return (
-        _owned_supported_vouchers(
-            state,
-            EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS,
-        )
-        is not None
+        type(slots) is int
+        and slots == expected_consumable_slots
+        and not isinstance(edition, bool)
+        and isinstance(edition, (int, float))
+        and float(edition) == expected_edition_rate
     )
 
 
