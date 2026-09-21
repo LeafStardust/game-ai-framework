@@ -2430,9 +2430,9 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 ### Exact next task
 
 Resume the bounded eight-episode production PPO campaign-readiness probe from the
-intact one-episode checkpoint at
+intact two-episode checkpoint at
 `C:\Users\user\AppData\Local\Temp\balatro-eight-episode-probe-e3694b16` with
-root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 7`. Record exact additional
+root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 6`. Record exact additional
 and total elapsed time, collected transitions, per-stream next episode indices,
 checkpoint/progress sizes and digest, and any further fail-closed mechanics
 boundary. This is a throughput and representation probe only: do not launch the
@@ -2495,7 +2495,35 @@ round-resolution, Voucher-generation, and shop-entry validation passed **68
 tests** locally; the production backend subset passed **32 tests** locally.
 GitHub Actions run `35638588292`, job `106462073158`, passed; the actual log
 reports **2958 passed, 1607 deselected in 136.23s**. The exact next task remains
-the seven-additional-episode resume from the intact one-episode checkpoint.
+the six-additional-episode resume from the intact two-episode checkpoint.
+
+### Eight-episode probe Psychic discard checkpoint
+
+The second post-Manacle resume ran for **508.0532148 seconds**. It traversed the
+repaired Manacle action and Crystal Ball cash-out boundaries, completed episode
+1 / stream 1, atomically published a new checkpoint, then stopped fail-closed in
+episode 2 / stream 2 at the blanket Boss-discard guard. A disposable replay from
+the new checkpoint identified the exact state in **104.3572452 seconds**: Ante 1
+round 3, active The Psychic, 600-chip requirement, score zero, four hands, three
+discards, ordinary hand size eight, no Jokers, Vouchers, Tags, blind disable, or
+private resource adjustments. Psychic constrains Play actions only and has no
+discard callback. The diagnostic script was removed completely.
+
+Commit `143fd32de0dd730c8d6324ff5f64a1403cccbb77` admits only that exact
+active-Psychic ordinary discard state. Disabled/modified/tagged blinds, altered
+hand size, private Boss resource adjustments, and Joker discard callbacks remain
+fail-closed. The same repair removes the Manacle branch's premature return so a
+valid active Manacle still reaches the Joker-callback guard. Focused Psychic,
+Manacle, tactical, start-lifecycle, and production PPO backend validation passed
+**59 tests** locally. GitHub Actions run `35641079199`, job `106470265610`,
+passed; the actual log reports **2965 passed, 1607 deselected in 105.06s**.
+
+The current two-episode checkpoint is **44,847,226 bytes** with a **569-byte**
+progress manifest and digest
+`aa05627dd349d17e4eb7275caf7f76251415a98e1fc1001412475bffc5381c9b`.
+It records 15 collected transitions, zero optimizer batches, and next episode
+indices `[8, 9, 2, 3, 4, 5, 6, 7]`; the failed episode 2 replay published no
+partial state. The exact next task is the six-additional-episode resume above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
