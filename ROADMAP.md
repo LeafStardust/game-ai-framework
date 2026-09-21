@@ -2474,6 +2474,29 @@ job `106456613452`, passed; the actual log reports **2953 passed, 1607
 deselected in 71.03s**. The checkpoint was re-read after CI and still matches
 the sizes, digest, transition count, and per-stream indices above.
 
+### Eight-episode probe Crystal Ball cash-out checkpoint
+
+The first post-Manacle resume ran for **282.8536730 seconds** and reached the
+cleared Manacle Boss cash-out before stopping fail-closed at the blanket Voucher
+economy guard. The run still owned only Crystal Ball from the previously
+diagnosed state. Crystal Ball's consumable-capacity effect was already persisted
+at redemption and has no Boss cash-out callback or payout, interest, pricing, or
+base-shop-generation consequence. The incomplete episode again published no
+partial state: the checkpoint and progress files retain the exact sizes, digest,
+four transitions, and indices recorded above.
+
+Commit `4fafb61435a3390738d36b680bf3e870e93a1fc7` adds a dedicated
+Boss-cash-out Voucher capability at the canonical capability owner. It admits
+only authoritative, unique ownership of `v_crystal_ball` as an audited no-op;
+unobserved, duplicate, unknown, and genuinely economic Vouchers remain
+fail-closed. Boss cash-out preserves the Voucher and its three-slot consumable
+capacity without changing payout, pricing, or RNG. Focused cash-out,
+round-resolution, Voucher-generation, and shop-entry validation passed **68
+tests** locally; the production backend subset passed **32 tests** locally.
+GitHub Actions run `35638588292`, job `106462073158`, passed; the actual log
+reports **2958 passed, 1607 deselected in 136.23s**. The exact next task remains
+the seven-additional-episode resume from the intact one-episode checkpoint.
+
 ### Horizon-five candidate sub-profile checkpoint
 
 The exact `657e5ffd...` state was captured inside the ordered episode diagnostic
