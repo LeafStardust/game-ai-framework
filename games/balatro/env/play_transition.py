@@ -2,10 +2,10 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow Psychic / Tooth / Hook / Pillar / Arm / Fish / Mouth / Needle / Verdant
-Leaf Boss paths, with an unmodified base playing-card deck and no Joker, Tag,
-random-card, or other unowned callbacks. Held profile Tarot/Planet cards and
-already-applied supported Vouchers are explicit play-time no-ops.
+narrow Psychic / Tooth / Hook / Pillar / Arm / Fish / Mouth / Needle / Manacle /
+Verdant Leaf Boss paths, with an unmodified base playing-card deck and no Joker,
+Tag, random-card, or other unowned callbacks. Held profile Tarot/Planet cards
+and already-applied supported Vouchers are explicit play-time no-ops.
 The boundary can widen only when those source-order mechanics have canonical
 environment owners.
 """
@@ -26,6 +26,7 @@ from games.balatro.env.boss_play import (
     apply_hook_press_play_discards_from_played_pile,
     apply_tooth_press_play_economy_from_played_pile,
 )
+from games.balatro.env.boss_resources import require_active_manacle_state
 from games.balatro.env.consumable_centers import (
     VANILLA_PLANET_CENTER_ORDER,
     VANILLA_TAROT_CENTER_ORDER,
@@ -218,12 +219,15 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         "The Fish",
         "The Mouth",
         "The Needle",
+        "The Manacle",
         "Verdant Leaf",
     }
     if not ordinary and not supported_boss:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, The Fish, The Mouth, The Needle, and Verdant Leaf only"
+            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, The Fish, The Mouth, The Needle, The Manacle, and Verdant Leaf only"
         )
+    if boss_name == "The Manacle":
+        require_active_manacle_state(run)
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
             "R4 baseline Play does not yet own additional blind modifiers"
@@ -244,7 +248,7 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "R4 baseline Play does not yet own Voucher action-time interactions"
         )
-    if state.hand_size != 8:
+    if boss_name != "The Manacle" and state.hand_size != 8:
         raise HeadlessTransitionError(
             "R4 baseline Play currently requires the ordinary Red Deck hand size"
         )
