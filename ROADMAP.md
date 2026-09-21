@@ -2429,19 +2429,50 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run a bounded eight-episode production PPO campaign-readiness probe from root seed
-`RED-WHITE-PPO-V1`, using the unchanged canonical CLI and one episode per frozen
-environment stream. Record exact elapsed time, collected transitions, per-stream
-next episode indices, checkpoint/progress sizes and digest, and any fail-closed
-mechanics boundary. This is a throughput and representation probe only: do not
-launch the full training schedule, inspect learned-policy results, tune
-hyperparameters, alter the frozen PPO contract, add a wall-clock cutoff, or widen
-unrelated mechanics. If a mechanics failure occurs, repair only its canonical
-owner with deterministic regression coverage. If all eight episodes complete,
-use the measured evidence to decide whether another tactical-performance owner is
+Resume the bounded eight-episode production PPO campaign-readiness probe from the
+intact one-episode checkpoint at
+`C:\Users\user\AppData\Local\Temp\balatro-eight-episode-probe-e3694b16` with
+root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 7`. Record exact additional
+and total elapsed time, collected transitions, per-stream next episode indices,
+checkpoint/progress sizes and digest, and any further fail-closed mechanics
+boundary. This is a throughput and representation probe only: do not launch the
+full training schedule, inspect learned-policy results, tune hyperparameters,
+alter the frozen PPO contract, add a wall-clock cutoff, or widen unrelated
+mechanics. If another mechanics failure occurs, repair only its canonical owner
+with deterministic regression coverage. If all eight episodes complete, use the
+measured evidence to decide whether another tactical-performance owner is
 required before full training. Do not reapply any rejected projection-copy,
-evaluator, cache-reuse, manual reconstruction, or custom `BalatroCard.__deepcopy__`
-experiment recorded below.
+evaluator, cache-reuse, manual reconstruction, or custom
+`BalatroCard.__deepcopy__` experiment recorded below.
+
+### Eight-episode probe Manacle checkpoint
+
+The initial unchanged `--maximum-episodes 8` invocation ran for **77.4433825
+seconds** and stopped fail-closed during episode 1 / stream 1 at Ante 1 round 3:
+the active Boss was The Manacle with a 600-chip requirement, four hands, three
+discards, exact reduced hand size seven, no Jokers or consumables, and Crystal
+Ball already owned. Episode 0 had already committed; the incomplete episode
+published no partial progress. The surviving artifact remains the exact known
+one-episode checkpoint: **44,734,132-byte** `checkpoint.json`, **568-byte**
+`progress.json`, digest
+`2a6c689d9f135e34c826a3fd39a09153ee248b57c572cfb37574dd3a0d1d8abe`, four
+collected transitions, zero optimizer batches, and next episode indices
+`[8, 1, 2, 3, 4, 5, 6, 7]`.
+
+Commits `503fc186b7c10c420b94849fff907a8c0c55f3de` and
+`4b73b9bd9c1e30bf3db3a1ba72f8cdc38e2aae1f` repair only that canonical tactical
+boundary. Play and Discard now admit The Manacle only while its Boss blind is
+active and the private one-slot reduction is exactly stored; both refill only to
+seven cards, malformed resource state remains fail-closed, and the existing
+defeat owner alone restores hand size eight without drawing. Focused lifecycle,
+Play, discard, and defeat validation passed **107 tests** locally; the final
+Play-boundary subset passed **54 tests** locally. The first CI run
+`35636535832`, job `106455215631`, exposed one stale supported-Boss message
+assertion and otherwise reported **1 failed, 2952 passed, 1607 deselected in
+134.25s**. After correcting that expectation, GitHub Actions run `35636957441`,
+job `106456613452`, passed; the actual log reports **2953 passed, 1607
+deselected in 71.03s**. The checkpoint was re-read after CI and still matches
+the sizes, digest, transition count, and per-stream indices above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
