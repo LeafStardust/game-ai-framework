@@ -2429,21 +2429,19 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Profile canonical poker-hand classification at exact state digest
-`657e5ffdb74ed0062fcf72900083ef76523f4bcf1e066e31d93d41519fa60903`
-with both retained empty-Joker scorer phase guards recorded below active. Attribute
-repeated work within `HandEvaluator.evaluate` at the canonical evaluator owner and
-retain another repair only if it materially reduces target candidate cost. Require the
-complete corrected 10-decision public-input
-digest/action/search sequence, campaign checkpoint digest, exact mechanics,
-seeded replay, and frozen PPO transition contract to remain unchanged. Do not
-reapply the rejected D1-wide projection-copy substitution, manual/per-field state
-reconstruction, generated-consumable empty-Joker branch shortcuts,
-context/guaranteed-clear projection reuse, cross-branch scoring caches, or custom
-`BalatroCard.__deepcopy__` paths recorded below. The training path must not depend
-on a wall-clock cutoff. Do not launch the full
-training schedule, inspect learned-policy results, tune hyperparameters, or widen
-unrelated mechanics.
+Run a bounded eight-episode production PPO campaign-readiness probe from root seed
+`RED-WHITE-PPO-V1`, using the unchanged canonical CLI and one episode per frozen
+environment stream. Record exact elapsed time, collected transitions, per-stream
+next episode indices, checkpoint/progress sizes and digest, and any fail-closed
+mechanics boundary. This is a throughput and representation probe only: do not
+launch the full training schedule, inspect learned-policy results, tune
+hyperparameters, alter the frozen PPO contract, add a wall-clock cutoff, or widen
+unrelated mechanics. If a mechanics failure occurs, repair only its canonical
+owner with deterministic regression coverage. If all eight episodes complete,
+use the measured evidence to decide whether another tactical-performance owner is
+required before full training. Do not reapply any rejected projection-copy,
+evaluator, cache-reuse, manual reconstruction, or custom `BalatroCard.__deepcopy__`
+experiment recorded below.
 
 ### Horizon-five candidate sub-profile checkpoint
 
@@ -2810,6 +2808,27 @@ original evaluator. The implementation and its tests were fully reverted. Do not
 repeat the one-pass conditional partition or lazy-rank-count path; the next bounded
 owner is poker-hand classification, not cross-branch caching or another scoring-
 card selection rewrite.
+
+### Poker-hand classification attribution checkpoint
+
+The exact target invokes `HandEvaluator.evaluate` 102,020 times, all with default
+rules and no Stone cards. High Card accounts for 72,093 calls and Pair for 27,213;
+together they represent 97.34% of classification work. The retained profile
+attributes 1.878 seconds to this owner.
+
+Three canonical evaluator variants were measured and fully reverted. Combining a
+default sub-five-card early classification with direct no-Wild/Smeared flush suit
+counting preserved the exact ten-decision trace and passed **55 focused tests**, but
+reduced target candidate cost only from 6.182 to 5.964 seconds (3.52%) under the
+loaded same-host window. The isolated sub-five path regressed to 6.413 seconds;
+the isolated flush path was effectively neutral at 6.151 seconds (0.49% lower).
+Neither satisfies the materiality requirement. No evaluator implementation or
+tests remain, and these paths must not be repeated.
+
+The dominant remaining exact-target costs are now either structurally required or
+already bounded by rejected experiments. The next useful evidence is therefore a
+bounded one-episode-per-stream production campaign probe, not another speculative
+micro-optimization or the full training schedule.
 
 ### Versioned PPO training and rollout contract checkpoint
 
