@@ -68,6 +68,51 @@ def test_env_r2_simple_boss_cashout_pays_and_enters_ungenerated_shop():
     assert run.require_playing_card_order()[0].played_this_ante is True
 
 
+def test_env_r2_boss_cashout_preserves_exact_crystal_ball_noop():
+    run = _finish(_boss_round("The Psychic", money=14, reward=5), hands=1)
+    run.public.vouchers = ["v_crystal_ball"]
+    run.public.vouchers_observed = True
+    run.public.consumable_slots = 3
+    before_rng = run.rng_snapshot()
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 22
+    assert result.public.phase == "SHOP"
+    assert result.public.vouchers == ["v_crystal_ball"]
+    assert result.public.vouchers_observed is True
+    assert result.public.consumable_slots == 3
+    assert result.public.shop_discount_percent == 0
+    assert result.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize(
+    ("vouchers", "observed"),
+    [
+        (["v_crystal_ball"], False),
+        (["v_crystal_ball", "v_crystal_ball"], True),
+        (["v_seed_money"], True),
+        (["v_unknown"], True),
+    ],
+)
+def test_env_r2_boss_cashout_rejects_inexact_voucher_state_atomically(
+    vouchers,
+    observed,
+):
+    run = _finish(_boss_round("The Psychic"))
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = observed
+    before_money = run.public.money
+    before_rng = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
+        cash_out_supported_boss(run)
+
+    assert run.public.phase == "ROUND_EVAL"
+    assert run.public.money == before_money
+    assert run.rng_snapshot() == before_rng
+
+
 def test_env_r2_boss_cashout_rejects_unknown_ante_history_atomically():
     run = _finish(_boss_round("The Psychic"))
     run.require_playing_card_order()[-1].played_this_ante_observed = False

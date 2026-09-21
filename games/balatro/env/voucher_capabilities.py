@@ -27,6 +27,12 @@ EXACT_INTEREST_CAP_VOUCHER_KEYS = frozenset({"v_seed_money", "v_money_tree"})
 EXACT_SHOP_SIZE_VOUCHER_KEYS = frozenset({"v_overstock_norm", "v_overstock_plus"})
 EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 
+# Crystal Ball's capacity change is persisted when it is redeemed and has no
+# callback during Boss cash-out. Keep this boundary deliberately narrower than
+# general Voucher support: payout/interest/pricing modifiers require their own
+# exact Boss cash-out ownership before they may cross that transition.
+EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset({"v_crystal_ball"})
+
 # These Vouchers have no effect on ordinary base-shop generation. They are
 # nevertheless admitted explicitly at this boundary so authoritative ownership
 # does not become "inexact" merely because another exact subsystem owns their
@@ -92,6 +98,19 @@ def blind_start_vouchers_are_exact(state: BalatroState) -> bool:
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
     return _owned_supported_vouchers(state) is not None
+
+
+def boss_cash_out_vouchers_are_exact(state: BalatroState) -> bool:
+    """Return whether owned Vouchers are exact no-ops at Boss cash-out."""
+    if not isinstance(state, BalatroState):
+        raise TypeError("state must be BalatroState")
+    return (
+        _owned_supported_vouchers(
+            state,
+            EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS,
+        )
+        is not None
+    )
 
 
 def expected_joker_edition_rate_for_vouchers(state: BalatroState) -> float | None:

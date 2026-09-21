@@ -23,6 +23,7 @@ from games.balatro.env.round_end import (
 )
 from games.balatro.env.round_zones import repopulate_round_end_deck
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.voucher_capabilities import boss_cash_out_vouchers_are_exact
 
 
 def _require_exact_int(name: str, value: object) -> int:
@@ -50,7 +51,8 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
       applied by the progression owner before complete source composition;
     * Boss ``cash_out`` then regenerates Small/Big tag choices and invokes
       ``reset_blinds()``, including exact next-Boss selection;
-    * Voucher economy modifiers and shop generation remain separate owners.
+    * Voucher economy modifiers and shop generation remain separate owners;
+      only explicitly audited cash-out no-ops may cross this helper unchanged.
 
     Therefore this function is an internal exact subset, not a standalone
     training-visible Boss cash-out action.
@@ -97,7 +99,7 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
             "Boss cash-out does not yet own end-of-round Joker effects: "
             + ", ".join(unsupported_jokers)
         )
-    if state.vouchers:
+    if not boss_cash_out_vouchers_are_exact(state):
         raise HeadlessTransitionError(
             "Boss cash-out does not yet own Voucher economy modifiers"
         )
@@ -129,8 +131,8 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
     next_state.phase = "SHOP"
     next_state.shop_active = True
     # As above, this exact Boss-cash-out subset rejects Voucher/tag modifiers and
-    # runs only in normal Red/White. The shop therefore starts with authoritative
-    # vanilla pricing inputs of zero inflation and zero discount.
+    # admits only audited cash-out no-ops. The shop therefore starts with
+    # authoritative vanilla pricing inputs of zero inflation and zero discount.
     next_state.shop_inflation_observed = True
     next_state.shop_inflation = 0
     next_state.shop_discount_percent_observed = True
