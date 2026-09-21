@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
+from games.balatro.blinds.blind import BlindType
 from games.balatro.env.boss_resources import require_active_manacle_state
 from games.balatro.env.deal import draw_one_supported_card_to_hand
 from games.balatro.env.play_transition import apply_supported_ordinary_play
@@ -27,12 +28,44 @@ from games.balatro.env.tactical_evidence import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
+def _require_active_psychic_discard_state(run: HeadlessRunState) -> None:
+    """Require Psychic's exact ordinary-discard Red/White state."""
+    state = run.public
+    blind = state.blind
+    if (
+        state.boss_name != "The Psychic"
+        or blind is None
+        or getattr(blind, "type", None) is not BlindType.BOSS
+        or bool(getattr(blind, "disabled", False))
+    ):
+        raise HeadlessTransitionError(
+            "Psychic discard requires its active Boss blind"
+        )
+    if (
+        getattr(blind, "modifiers", None)
+        or getattr(blind, "tag_key", None) is not None
+    ):
+        raise HeadlessTransitionError(
+            "Psychic discard does not own additional blind modifiers"
+        )
+    if (
+        state.hand_size != 8
+        or run.boss_hands_sub is not None
+        or run.boss_discards_sub is not None
+        or run.boss_hand_size_sub is not None
+    ):
+        raise HeadlessTransitionError(
+            "Psychic discard requires ordinary Red Deck resource state"
+        )
+
+
 def _require_baseline_discard_callbacks_exact(run: HeadlessRunState) -> None:
     state = run.public
     if state.boss_name == "The Manacle":
         require_active_manacle_state(run)
-        return
-    if state.boss_name is not None:
+    elif state.boss_name == "The Psychic":
+        _require_active_psychic_discard_state(run)
+    elif state.boss_name is not None:
         raise HeadlessTransitionError(
             "R4 baseline discard does not yet own boss discard callbacks"
         )
@@ -49,11 +82,11 @@ def apply_supported_tactical_discard(
     """Apply one exact baseline Discard and redraw from retained physical order.
 
     ``card_indices`` are zero-based positions in the currently visible hand. The
-    input state is never mutated. This R4 slice admits only ordinary discard
-    behavior and The Manacle's exact active hand-size reduction; it rejects
-    every Boss/Joker discard callback and Purple-seal generation. Later slices
-    can widen the boundary only after those source-order effects are owned
-    exactly.
+    input state is never mutated. This R4 slice admits ordinary discard behavior
+    under The Psychic and The Manacle's exact active hand-size reduction; it
+    rejects every Boss/Joker discard callback and Purple-seal generation. Later
+    slices can widen the boundary only after those source-order effects are
+    owned exactly.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")

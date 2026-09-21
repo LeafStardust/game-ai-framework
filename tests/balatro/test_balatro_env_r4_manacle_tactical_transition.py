@@ -97,3 +97,22 @@ def test_env_r4_manacle_rejects_wrong_hand_size_and_disabled_blind():
     disabled.public.blind.disabled = True
     with pytest.raises(HeadlessTransitionError, match="active Boss"):
         apply_supported_ordinary_play(disabled, (0,))
+
+
+def test_env_r4_manacle_discard_still_rejects_joker_callbacks():
+    run = _manacle_run(seed="R4-MANACLE-JOKER-DISCARD")
+    joker = object()
+    run.public.jokers = [joker]
+    before_hand = list(run.public.hand)
+    before_draw = list(run.draw_pile)
+    before_rng = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="Joker discard callbacks"):
+        apply_supported_tactical_discard(run, (0,))
+
+    assert run.public.jokers == [joker]
+    assert run.public.hand == before_hand
+    assert run.draw_pile == before_draw
+    assert run.public.discards_remaining == 3
+    assert run.public.discards_used == 0
+    assert run.rng_snapshot() == before_rng
