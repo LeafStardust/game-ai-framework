@@ -2553,7 +2553,40 @@ progress manifest and digest
 `777dd872c17d0c54ecdb482f8a391007eec903abf11c9b2a694de40723285dba`.
 It records 22 collected transitions, zero optimizer batches, and next episode
 indices `[8, 9, 10, 3, 4, 5, 6, 7]`; the failed episode 3 replay published no
-partial state. The exact next task is the five-additional-episode resume above.
+partial state.
+
+### Eight-episode probe audited Boss-discard checkpoint
+
+The next unchanged five-episode resume ran for **2831.9302337 seconds** and
+again stopped fail-closed in episode 3 / stream 3 at the generic Boss-discard
+guard. It did not complete or publish episode 3: the checkpoint remains exactly
+**44,919,175 bytes**, the progress manifest remains **570 bytes**, the digest
+remains
+`777dd872c17d0c54ecdb482f8a391007eec903abf11c9b2a694de40723285dba`,
+and the counters remain 22 transitions, zero optimizer batches, and next
+episode indices `[8, 9, 10, 3, 4, 5, 6, 7]`.
+
+The pinned vanilla source was then audited at the exact discard and draw
+boundaries instead of spending another approximately 47-minute replay merely
+to reveal one Boss name. Vanilla has no direct Blind callback in
+`discard_cards_from_highlighted`: Boss differences occur in the shared redraw
+path. Commit `bd3088ebb5695a345c78e27922bfefcda04ad874` therefore admits the
+complete audited ordinary-redraw Boss set at the canonical tactical owner. Fish
+uses its existing explicit face-up post-discard draw owner; House becomes
+ordinary after `discards_used` advances. Active Boss identity, ordinary Red
+Deck resources, mutable Eye/Mouth state, blind modifiers, Jokers, and Purple
+Seal generation remain validated fail-closed. The Serpent, The Wheel, The Mark,
+and Cerulean Bell retain distinct redraw semantics and remain explicitly
+unsupported; The Water has no legal active discard because its blind-start
+owner removes all current discards.
+
+Focused tactical validation passed **57 tests** locally, and the broader R4
+Boss/tactical/Play slice passed **121 tests, 4483 deselected** locally. GitHub
+Actions run `35715707292`, job `106706578230`, passed; the actual log reports
+**2997 passed, 1607 deselected in 75.36s**. The exact next task remains the
+five-additional-episode resume above. If it reaches one of the four explicit
+special-redraw Bosses, compose only that already-audited redraw owner at the
+discard boundary; otherwise repair only the newly reported canonical boundary.
 
 ### Horizon-five candidate sub-profile checkpoint
 
