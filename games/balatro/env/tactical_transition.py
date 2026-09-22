@@ -13,7 +13,9 @@ from collections.abc import Iterable
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.blinds.blind import BlindType
+from games.balatro.env.boss_facing import draw_fish_post_discard_cards
 from games.balatro.env.boss_resources import require_active_manacle_state
+from games.balatro.env.boss_selection import BOSS_KEY_BY_NAME
 from games.balatro.env.deal import draw_one_supported_card_to_hand
 from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.public_observation import public_observation_state
@@ -26,6 +28,75 @@ from games.balatro.env.tactical_evidence import (
     build_public_tactical_transition_evidence,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+
+
+# Pinned vanilla has no direct Blind callback in
+# ``discard_cards_from_highlighted``. These Bosses also use the ordinary
+# capacity-limited draw after a discard. Fish is included because its existing
+# post-discard owner proves that ``prepped`` is clear and makes the replacement
+# cards face up. House is ordinary after ``discards_used`` advances. Serpent,
+# Wheel, Mark, and Cerulean Bell have distinct redraw behavior and remain
+# fail-closed here until that behavior is composed at this boundary. Water
+# removes every current discard at blind start, so no legal discard exists.
+_ORDINARY_DISCARD_BOSS_NAMES = frozenset(BOSS_KEY_BY_NAME) - {
+    "The Manacle",
+    "The Psychic",
+    "The Water",
+    "The Serpent",
+    "The Wheel",
+    "The Mark",
+    "Cerulean Bell",
+}
+
+
+def _require_active_ordinary_discard_boss_state(run: HeadlessRunState) -> None:
+    """Require an audited Boss whose post-discard draw is ordinary."""
+    state = run.public
+    blind = state.blind
+    if (
+        state.boss_name not in _ORDINARY_DISCARD_BOSS_NAMES
+        or blind is None
+        or getattr(blind, "type", None) is not BlindType.BOSS
+        or bool(getattr(blind, "disabled", False))
+    ):
+        raise HeadlessTransitionError(
+            "ordinary Boss discard requires an active audited Boss blind"
+        )
+    if (
+        getattr(blind, "modifiers", None)
+        or getattr(blind, "tag_key", None) is not None
+    ):
+        raise HeadlessTransitionError(
+            "ordinary Boss discard does not own additional blind modifiers"
+        )
+    if (
+        state.hand_size != 8
+        or run.boss_hands_sub is not None
+        or run.boss_discards_sub is not None
+        or run.boss_hand_size_sub is not None
+    ):
+        raise HeadlessTransitionError(
+            "ordinary Boss discard requires ordinary Red Deck resource state"
+        )
+    if state.boss_name in {"The Eye", "The Mouth"}:
+        if state.boss_blind_state_observed is not True:
+            raise HeadlessTransitionError(
+                "mutable-rule Boss discard requires authoritative Boss state"
+            )
+        if state.boss_name == "The Eye" and not isinstance(
+            state.boss_blind_hands, set
+        ):
+            raise HeadlessTransitionError(
+                "Eye discard requires authoritative used-hand state"
+            )
+        if (
+            state.boss_name == "The Mouth"
+            and state.boss_blind_only_hand is not None
+            and state.boss_blind_only_hand not in state.hand_levels
+        ):
+            raise HeadlessTransitionError(
+                "Mouth discard requires a canonical locked hand"
+            )
 
 
 def _require_active_psychic_discard_state(run: HeadlessRunState) -> None:
@@ -65,9 +136,12 @@ def _require_baseline_discard_callbacks_exact(run: HeadlessRunState) -> None:
         require_active_manacle_state(run)
     elif state.boss_name == "The Psychic":
         _require_active_psychic_discard_state(run)
+    elif state.boss_name in _ORDINARY_DISCARD_BOSS_NAMES:
+        _require_active_ordinary_discard_boss_state(run)
     elif state.boss_name is not None:
         raise HeadlessTransitionError(
-            "R4 baseline discard does not yet own boss discard callbacks"
+            "R4 baseline discard does not yet own boss discard callbacks/redraw semantics for "
+            f"{state.boss_name!r}"
         )
     if state.jokers:
         raise HeadlessTransitionError(
@@ -82,11 +156,10 @@ def apply_supported_tactical_discard(
     """Apply one exact baseline Discard and redraw from retained physical order.
 
     ``card_indices`` are zero-based positions in the currently visible hand. The
-    input state is never mutated. This R4 slice admits ordinary discard behavior
-    under The Psychic and The Manacle's exact active hand-size reduction; it
-    rejects every Boss/Joker discard callback and Purple-seal generation. Later
-    slices can widen the boundary only after those source-order effects are
-    owned exactly.
+    input state is never mutated. This R4 slice admits source-audited ordinary
+    Boss redraw behavior, Fish's explicit face-up post-discard draw, The Psychic,
+    and The Manacle's exact active hand-size reduction. It rejects unowned Boss
+    redraws, every Joker discard callback, and Purple-seal generation.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -132,8 +205,11 @@ def apply_supported_tactical_discard(
     # Normal non-Serpent redraw fills the hand to capacity from the retained
     # physical deck tail. Each primitive draw also restores vanilla hand sort and
     # canonicalizes the public deck without exposing hidden draw order.
-    while len(next_run.public.hand) < next_run.public.hand_size and next_run.draw_pile:
-        next_run = draw_one_supported_card_to_hand(next_run)
+    if next_state.boss_name == "The Fish":
+        next_run = draw_fish_post_discard_cards(next_run)
+    else:
+        while len(next_run.public.hand) < next_run.public.hand_size and next_run.draw_pile:
+            next_run = draw_one_supported_card_to_hand(next_run)
 
     return next_run
 
