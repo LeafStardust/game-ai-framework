@@ -2431,7 +2431,8 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 Resume the bounded eight-episode production PPO campaign-readiness probe from the
 intact three-episode checkpoint at
-`C:\Users\user\AppData\Local\Temp\balatro-eight-episode-probe-e3694b16` with
+`D:\0.5 - Coding\0. game-ai\game-ai-framework\logs\balatro-eight-episode-probe-fa9daf6d`
+with
 root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 5`. Record exact additional
 and total elapsed time, collected transitions, per-stream next episode indices,
 checkpoint/progress sizes and digest, and any further fail-closed mechanics
@@ -2587,6 +2588,18 @@ Actions run `35715707292`, job `106706578230`, passed; the actual log reports
 five-additional-episode resume above. If it reaches one of the four explicit
 special-redraw Bosses, compose only that already-audited redraw owner at the
 discard boundary; otherwise repair only the newly reported canonical boundary.
+
+The Windows Temp directory later retained only an empty campaign directory, so
+the three-episode artifact itself was no longer resumable. The exact campaign
+was replayed from episode 0 at commit
+`fa9daf6dfe81ba244c288d95d63366b3b6243b2f` into the repository-ignored durable
+`logs/` path named in the exact next task. The replay reconstructed the identical
+**44,919,175-byte** checkpoint and **570-byte** progress manifest with digest
+`777dd872c17d0c54ecdb482f8a391007eec903abf11c9b2a694de40723285dba`, 22
+collected transitions, zero optimizer batches, and next episode indices
+`[8, 9, 10, 3, 4, 5, 6, 7]`. This is deterministic recovery of the existing
+checkpoint, not a newly completed episode; the bounded process then continued
+into episode 3.
 
 ### Horizon-five candidate sub-profile checkpoint
 
