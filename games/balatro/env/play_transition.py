@@ -3,9 +3,10 @@
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
 narrow Psychic / Tooth / Hook / Pillar / Arm / Fish / Mouth / Needle / Manacle /
-Verdant Leaf Boss paths, with an unmodified base playing-card deck and no Joker,
-Tag, random-card, or other unowned callbacks. Held profile Tarot/Planet cards
-and already-applied supported Vouchers are explicit play-time no-ops.
+Verdant Leaf / static suit-debuff Boss paths, with an unmodified base playing-
+card deck and no Joker, Tag, random-card, or other unowned callbacks. Held
+profile Tarot/Planet cards and already-applied supported Vouchers are explicit
+play-time no-ops.
 The boundary can widen only when those source-order mechanics have canonical
 environment owners.
 """
@@ -19,7 +20,10 @@ from games.balatro.boss_trigger import (
     boss_hand_is_debuffed,
     record_accepted_boss_hand,
 )
-from games.balatro.env.boss_debuffs import require_pillar_history_debuff_state
+from games.balatro.env.boss_debuffs import (
+    require_pillar_history_debuff_state,
+    require_static_suit_boss_debuff_state,
+)
 from games.balatro.env.boss_facing import draw_fish_post_play_cards
 from games.balatro.env.boss_hand import apply_arm_debuff_hand_level
 from games.balatro.env.boss_play import (
@@ -109,6 +113,7 @@ def _require_plain_base_cards(
     *,
     allow_pillar_history_debuffs: bool,
     allow_fish_facing: bool,
+    allow_static_suit_debuffs: bool,
     allow_verdant_leaf_debuffs: bool,
 ) -> None:
     order = run.require_playing_card_order()
@@ -156,6 +161,10 @@ def _require_plain_base_cards(
 
     if allow_verdant_leaf_debuffs:
         require_verdant_leaf_debuff_state(run)
+        return
+
+    if allow_static_suit_debuffs:
+        require_static_suit_boss_debuff_state(run)
         return
 
     if not allow_pillar_history_debuffs:
@@ -221,10 +230,15 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         "The Needle",
         "The Manacle",
         "Verdant Leaf",
+        "The Goad",
+        "The Window",
+        "The Head",
+        "The Club",
     }
     if not ordinary and not supported_boss:
         raise HeadlessTransitionError(
-            "R4 baseline Play currently supports Small/Big blinds, The Psychic, The Tooth, The Hook, The Pillar, The Arm, The Fish, The Mouth, The Needle, The Manacle, and Verdant Leaf only"
+            "R4 baseline Play does not yet support active Boss "
+            f"{boss_name!r}"
         )
     if boss_name == "The Manacle":
         require_active_manacle_state(run)
@@ -297,6 +311,10 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         ),
         allow_fish_facing=(
             blind_type is BlindType.BOSS and boss_name == "The Fish"
+        ),
+        allow_static_suit_debuffs=(
+            blind_type is BlindType.BOSS
+            and boss_name in {"The Goad", "The Window", "The Head", "The Club"}
         ),
         allow_verdant_leaf_debuffs=(
             blind_type is BlindType.BOSS and boss_name == "Verdant Leaf"

@@ -101,26 +101,31 @@ def apply_static_suit_boss_debuff(run: HeadlessRunState) -> HeadlessRunState:
     return next_run
 
 
-def clear_static_suit_boss_debuff(run: HeadlessRunState) -> HeadlessRunState:
-    """Mirror disable/defeat clearing of this Boss-owned transient debuff."""
+def require_static_suit_boss_debuff_state(run: HeadlessRunState) -> None:
+    """Require the exact active Goad/Window/Head/Club suit-debuff pattern."""
     suit = _STATIC_SUIT_BOSS_TO_SUIT.get(run.public.boss_name)
     if suit is None:
-        raise HeadlessTransitionError("boss has no audited static suit debuff cleanup")
+        raise HeadlessTransitionError("boss has no audited static suit debuff")
 
     cards = run.require_playing_card_order()
-    matching = [card for card in cards if card.suit == suit]
-    if len(cards) != 52 or len(matching) != 13:
+    identities = [(card.rank, card.suit) for card in cards]
+    if (
+        len(cards) != 52
+        or len(set(identities)) != 52
+        or set(identities) != _BASE_IDENTITIES
+    ):
         raise HeadlessTransitionError(
-            "static suit Boss cleanup requires exact base permanent-card set"
+            "static suit Boss state requires exact base permanent-card set"
         )
-    if any(not card.debuffed for card in matching):
+    if any(card.debuffed is not (card.suit == suit) for card in cards):
         raise HeadlessTransitionError(
-            "static suit Boss cleanup requires active owned suit debuffs"
+            "static suit Boss state has incomplete or unowned card debuffs"
         )
-    if any(card.debuffed for card in cards if card.suit != suit):
-        raise HeadlessTransitionError(
-            "static suit Boss cleanup encountered unowned card debuff"
-        )
+
+
+def clear_static_suit_boss_debuff(run: HeadlessRunState) -> HeadlessRunState:
+    """Mirror disable/defeat clearing of this Boss-owned transient debuff."""
+    require_static_suit_boss_debuff_state(run)
 
     next_run = run.copy()
     for card in next_run.require_playing_card_order():
