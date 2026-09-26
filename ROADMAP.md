@@ -2620,6 +2620,34 @@ campaign is incomplete and two episodes remain. The exact next task is the
 two-additional-episode resume above; its deterministic episode-6 replay must
 either publish episode 6 or expose the exact next fail-closed boundary.
 
+### Eight-episode probe The Head Play checkpoint
+
+The first two-episode resume from the durable six-episode checkpoint stopped
+fail-closed after **104.217305 seconds** at the generic unsupported-Boss Play
+dispatcher. The checkpoint remained exactly six episodes. The canonical error
+did not identify its authoritative Boss, so commit preparation improved that
+diagnostic and an unchanged replay identified **The Head** after
+**98.0639584 seconds**. The Head's Hearts debuff was already applied exactly by
+the static suit-debuff blind-start owner; the missing boundary was Play's
+validation and composition of that existing transient state.
+
+Commit `1c33bdc61e4686b369f48325c46c2173d81acf45` adds a reusable
+static-suit debuff-state invariant to the canonical Boss debuff owner and admits
+the complete Goad/Window/Head/Club family in Play. The invariant requires the
+exact base 52-card set and exactly thirteen debuffed cards of the Boss-owned
+suit. The existing scorer retains debuffed ranks/suits for poker-hand
+classification while suppressing their card chips and effects. Incomplete or
+foreign debuffs, inactive/modified Boss state, Jokers, Tags, and modified cards
+remain fail-closed. Unsupported-Boss Play errors now include the authoritative
+Boss name.
+
+Focused lifecycle, cleanup, scoring, and Play validation passed **79 tests**
+locally; the broader R4 Boss/Play/tactical slice passed **130 tests, 4483
+deselected** locally. GitHub Actions run `36242727532`, job `108406167943`,
+passed; the actual log reports **3006 passed, 1607 deselected in 138.47s**. The
+six-episode artifact remains unchanged, and the exact next task is still the
+two-additional-episode resume above.
+
 ### Horizon-five candidate sub-profile checkpoint
 
 The exact `657e5ffd...` state was captured inside the ordered episode diagnostic
