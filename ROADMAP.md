@@ -2429,22 +2429,20 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Resume the bounded eight-episode production PPO campaign-readiness probe from the
-intact seven-episode checkpoint at
-`D:\0.5 - Coding\0. game-ai\game-ai-framework\logs\balatro-eight-episode-probe-fa9daf6d`
-with
-root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 1`. Record exact additional
-and total elapsed time, collected transitions, per-stream next episode indices,
-checkpoint/progress sizes and digest, and any further fail-closed mechanics
-boundary. This is a throughput and representation probe only: do not launch the
-full training schedule, inspect learned-policy results, tune hyperparameters,
-alter the frozen PPO contract, add a wall-clock cutoff, or widen unrelated
-mechanics. If another mechanics failure occurs, repair only its canonical owner
-with deterministic regression coverage. If all eight episodes complete, use the
-measured evidence to decide whether another tactical-performance owner is
-required before full training. Do not reapply any rejected projection-copy,
-evaluator, cache-reuse, manual reconstruction, or custom
-`BalatroCard.__deepcopy__` experiment recorded below.
+Add a deterministic initial-policy tactical-cost diagnostic for any exact first-
+wave episode index `0..7`, then use it to attribute episode 7 / stream 7 without
+replaying episodes 0..6. The diagnostic must use the frozen production environment,
+the exact `PPOTrainingRun.game_seed(episode_index)`, the unchanged initial learner
+model, and the canonical complete-episode collector. It must record ordered public
+input digests, selected actions/indices, search attempts, and disjoint per-decision
+timings, preserve decision semantics, support an injected clock, and reject every
+episode outside the pre-optimizer first wave. Add focused deterministic regression
+tests before running the real episode-7 diagnostic. This is attribution only: do
+not launch the full training schedule, inspect learned-policy results, tune
+hyperparameters, alter the frozen PPO/search contracts, add a wall-clock cutoff,
+or widen mechanics. Do not reapply any rejected projection-copy, evaluator,
+cache-reuse, manual reconstruction, or custom `BalatroCard.__deepcopy__`
+experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -2663,6 +2661,27 @@ It records **52 collected transitions**, zero optimizer batches, and next episod
 indices `[8, 9, 10, 11, 12, 13, 14, 7]`. No final manifest exists yet. The exact
 next task is the one-additional-episode resume above if the active process does
 not itself complete episode 7.
+
+### Eight-episode probe completion checkpoint
+
+The same post-Head process completed episode 7 without another mechanics failure
+and exited cleanly. The two-episode command reported an exact total elapsed time
+of **18,801.1353751 seconds**. Episode 6 had atomically published at 20:50:29 on
+2026-09-26 and episode 7 published at 02:02:11 on 2026-09-27, an exact filesystem
+timestamp span of **5 hours 11 minutes 42 seconds (18,702 seconds)** for the final
+episode. The completed bounded probe therefore establishes a tactical-throughput
+blocker before full training rather than permission to start the 2,097,152-step
+schedule.
+
+The eight-episode checkpoint is **45,299,429 bytes** with a **575-byte** progress
+manifest and verified SHA-256 digest
+`afc170827d2a25012e53e55ace23f85d490a5e2acf0c0e8c303a5b38179c52d5`.
+It records **59 collected transitions** distributed across the eight stream
+buffers as `[4, 11, 7, 13, 5, 6, 6, 7]`, zero optimizer batches, and next episode
+indices `[8, 9, 10, 11, 12, 13, 14, 15]`. The progress manifest remains correctly
+`complete=false`, and no final manifest exists, because this was only the bounded
+one-episode-per-stream readiness probe and not the full frozen campaign. The exact
+next task is the episode-7 tactical attribution diagnostic above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
