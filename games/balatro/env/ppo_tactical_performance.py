@@ -13,8 +13,13 @@ from typing import Callable
 from games.balatro.env.blind_progression import activate_selected_blind_progression
 from games.balatro.env.episode_backend import pristine_red_white_reset
 from games.balatro.env.ppo_campaign import make_ppo_training_environment
-from games.balatro.env.ppo_contract import PPOTrainingRun
-from games.balatro.env.ppo_training_session import PPOTrainingSession
+from games.balatro.env.ppo_contract import (
+    PPO_TRAINING_CONTRACT,
+    PPOContractError,
+    PPOTrainingRun,
+)
+from games.balatro.env.ppo_learner import PPOLearner
+from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.parity import canonical_public_state_signature
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.select_blind import select_blind_exact
@@ -22,6 +27,7 @@ from games.balatro.env.select_blind import select_blind_exact
 
 PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
+PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 
 
 @dataclass(frozen=True)
@@ -57,6 +63,25 @@ class PPOTacticalEpisodeDecisionCost:
     search_evaluation_elapsed_seconds: float
     policy_arbitration_elapsed_seconds: float
     other_elapsed_seconds: float
+
+
+@dataclass(frozen=True)
+class PPOTacticalEpisodeCostReport:
+    schema: str
+    root_seed: str
+    episode_index: int
+    stream_index: int
+    game_seed: str
+    environment_transitions: int
+    total_elapsed_seconds: float
+    tactical_elapsed_seconds: float
+    decisions: tuple[PPOTacticalEpisodeDecisionCost, ...]
+
+    def as_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
 
 
 @dataclass
@@ -185,29 +210,68 @@ def trace_first_ppo_episode_tactical_costs(
     clock: Callable[[], float] = perf_counter,
 ) -> tuple[PPOTacticalEpisodeDecisionCost, ...]:
     """Run episode zero and return ordered per-decision tactical cost evidence."""
+    return trace_initial_policy_ppo_episode_tactical_costs(
+        episode_index=0,
+        root_seed=root_seed,
+        clock=clock,
+    ).decisions
+
+
+def trace_initial_policy_ppo_episode_tactical_costs(
+    *,
+    episode_index: int,
+    root_seed: str = "RED-WHITE-PPO-V1",
+    clock: Callable[[], float] = perf_counter,
+) -> PPOTacticalEpisodeCostReport:
+    """Trace one exact pre-optimizer episode without replaying earlier streams."""
     if not isinstance(root_seed, str) or not root_seed:
         raise ValueError("root_seed must be a nonempty string")
     if not callable(clock):
         raise TypeError("clock must be callable")
-
-    records: list[PPOTacticalEpisodeDecisionCost] = []
-
-    def environment_factory(stream_index: int):
-        environment = make_ppo_training_environment(stream_index)
-        if stream_index == 0:
-            _instrument_episode_engine(
-                environment._backend._tactical_decision_engine,
-                clock,
-                records,
-            )
-        return environment
+    stream_count = PPO_TRAINING_CONTRACT.parallel_environments
+    if (
+        isinstance(episode_index, bool)
+        or not isinstance(episode_index, int)
+        or not 0 <= episode_index < stream_count
+    ):
+        raise PPOContractError(
+            "PPO tactical episode diagnostic requires a first-wave episode index"
+        )
 
     training_run = PPOTrainingRun.from_seed(root_seed)
-    session = PPOTrainingSession(training_run, environment_factory)
-    result = session.advance(maximum_episodes=1)
-    if result.episodes_collected != 1 or result.last_episode_index != 0:
-        raise RuntimeError("PPO tactical episode diagnostic did not complete episode zero")
-    return tuple(records)
+    environment = make_ppo_training_environment(episode_index)
+    learner = PPOLearner(training_run)
+    records: list[PPOTacticalEpisodeDecisionCost] = []
+    _instrument_episode_engine(
+        environment._backend._tactical_decision_engine,
+        clock,
+        records,
+    )
+
+    started = float(clock())
+    episode = collect_complete_ppo_episode(
+        environment,
+        training_run,
+        episode_index=episode_index,
+        policy=learner.model.infer,
+    )
+    total = float(clock()) - started
+    if episode.episode_index != episode_index:
+        raise RuntimeError("PPO tactical episode diagnostic episode index drifted")
+    tactical = sum(record.total_elapsed_seconds for record in records)
+    if any(not math.isfinite(value) or value < 0.0 for value in (total, tactical)):
+        raise RuntimeError("PPO tactical episode diagnostic produced invalid timing")
+    return PPOTacticalEpisodeCostReport(
+        schema=PPO_TACTICAL_EPISODE_COST_SCHEMA,
+        root_seed=root_seed,
+        episode_index=episode_index,
+        stream_index=episode_index,
+        game_seed=training_run.game_seed(episode_index),
+        environment_transitions=len(episode.decisions),
+        total_elapsed_seconds=total,
+        tactical_elapsed_seconds=tactical,
+        decisions=tuple(records),
+    )
 
 
 def measure_ppo_tactical_cost(
@@ -304,8 +368,17 @@ def measure_ppo_tactical_cost(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root-seed", default="RED-WHITE-PPO-V1")
+    parser.add_argument("--episode-index", type=int)
     arguments = parser.parse_args(argv)
-    print(measure_ppo_tactical_cost(root_seed=arguments.root_seed).to_json())
+    report = (
+        measure_ppo_tactical_cost(root_seed=arguments.root_seed)
+        if arguments.episode_index is None
+        else trace_initial_policy_ppo_episode_tactical_costs(
+            episode_index=arguments.episode_index,
+            root_seed=arguments.root_seed,
+        )
+    )
+    print(report.to_json())
     return 0
 
 

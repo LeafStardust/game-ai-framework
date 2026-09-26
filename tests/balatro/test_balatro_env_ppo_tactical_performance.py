@@ -1,11 +1,16 @@
 import json
+from types import SimpleNamespace
 
 import pytest
 
+import games.balatro.env.ppo_tactical_performance as tactical_performance
+from games.balatro.env.ppo_contract import PPOContractError
 from games.balatro.env.ppo_tactical_performance import (
     PPO_TACTICAL_COST_SCHEMA,
     PPO_TACTICAL_COST_WORKLOAD,
+    PPO_TACTICAL_EPISODE_COST_SCHEMA,
     measure_ppo_tactical_cost,
+    trace_initial_policy_ppo_episode_tactical_costs,
     _instrument_episode_engine,
 )
 
@@ -103,3 +108,83 @@ def test_env_ppo_episode_instrumentation_records_ordered_decision_cost():
     assert records[0].selected_hand_indices == (0,)
     assert len(records[0].public_input_sha256) == 64
     assert records[0].search_attempts == ()
+
+
+def test_env_ppo_initial_policy_episode_trace_targets_only_requested_first_wave(
+    monkeypatch,
+):
+    from games.balatro.card import BalatroCard
+    from games.balatro.state import BalatroState
+
+    state = BalatroState()
+    state.hand = [BalatroCard("A", "Spades")]
+    engine = _FakeEngine()
+    environment = SimpleNamespace(
+        _backend=SimpleNamespace(_tactical_decision_engine=engine)
+    )
+    requested_streams = []
+    collector_calls = []
+
+    def environment_factory(stream_index):
+        requested_streams.append(stream_index)
+        return environment
+
+    class FakeLearner:
+        def __init__(self, training_run):
+            self.training_run = training_run
+            self.model = SimpleNamespace(infer=lambda observation, mask: None)
+
+    def collector(target, training_run, *, episode_index, policy):
+        collector_calls.append(
+            (target, training_run.game_seed(episode_index), episode_index, policy)
+        )
+        engine.decide(state)
+        engine.decide(state)
+        return SimpleNamespace(episode_index=episode_index, decisions=(1, 2, 3))
+
+    monkeypatch.setattr(
+        tactical_performance,
+        "make_ppo_training_environment",
+        environment_factory,
+    )
+    monkeypatch.setattr(tactical_performance, "PPOLearner", FakeLearner)
+    monkeypatch.setattr(
+        tactical_performance,
+        "collect_complete_ppo_episode",
+        collector,
+    )
+    ticks = iter(float(value) for value in range(18))
+
+    report = trace_initial_policy_ppo_episode_tactical_costs(
+        episode_index=7,
+        clock=lambda: next(ticks),
+    )
+
+    assert requested_streams == [7]
+    assert len(collector_calls) == 1
+    assert collector_calls[0][:3] == (environment, "3DEFB26A", 7)
+    assert callable(collector_calls[0][3])
+    assert report.schema == PPO_TACTICAL_EPISODE_COST_SCHEMA
+    assert report.root_seed == "RED-WHITE-PPO-V1"
+    assert report.episode_index == 7
+    assert report.stream_index == 7
+    assert report.game_seed == "3DEFB26A"
+    assert report.environment_transitions == 3
+    assert report.total_elapsed_seconds == 17.0
+    assert report.tactical_elapsed_seconds == 14.0
+    assert len(report.decisions) == 2
+    assert [record.action for record in report.decisions] == [
+        "PLAY_CARDS",
+        "PLAY_CARDS",
+    ]
+    payload = json.loads(report.to_json())
+    assert payload["episode_index"] == 7
+    assert len(payload["decisions"]) == 2
+
+
+@pytest.mark.parametrize("episode_index", [-1, 8, True, 1.0, None])
+def test_env_ppo_initial_policy_episode_trace_rejects_non_first_wave_index(
+    episode_index,
+):
+    with pytest.raises(PPOContractError, match="first-wave episode index"):
+        trace_initial_policy_ppo_episode_tactical_costs(episode_index=episode_index)
