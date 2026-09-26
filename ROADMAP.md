@@ -2430,10 +2430,10 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 ### Exact next task
 
 Resume the bounded eight-episode production PPO campaign-readiness probe from the
-intact three-episode checkpoint at
+intact six-episode checkpoint at
 `D:\0.5 - Coding\0. game-ai\game-ai-framework\logs\balatro-eight-episode-probe-fa9daf6d`
 with
-root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 5`. Record exact additional
+root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 2`. Record exact additional
 and total elapsed time, collected transitions, per-stream next episode indices,
 checkpoint/progress sizes and digest, and any further fail-closed mechanics
 boundary. This is a throughput and representation probe only: do not launch the
@@ -2600,6 +2600,25 @@ collected transitions, zero optimizer batches, and next episode indices
 `[8, 9, 10, 3, 4, 5, 6, 7]`. This is deterministic recovery of the existing
 checkpoint, not a newly completed episode; the bounded process then continued
 into episode 3.
+
+### Eight-episode probe six-episode checkpoint
+
+The durable replay subsequently completed episodes 3, 4, and 5 and atomically
+published a six-episode checkpoint before its execution session ended during
+episode 6 without a captured final traceback. The filesystem timestamps span
+**4 hours 33 minutes 8 seconds** from the recovered three-episode publication
+at 13:41:26 to the six-episode publication at 18:14:34 on 2026-09-25. This is
+timestamp evidence rather than the command's stopwatch output, which was lost
+with the execution session.
+
+The current checkpoint is **45,165,825 bytes** with a **573-byte** progress
+manifest and verified SHA-256 digest
+`0bf480eca099c55df8daeb07efd55c22dde49d09dfae5a1ac793890cf11cb3d4`.
+It records **46 collected transitions**, zero optimizer batches, and next
+episode indices `[8, 9, 10, 11, 12, 13, 6, 7]`. No `final.json` exists, so the
+campaign is incomplete and two episodes remain. The exact next task is the
+two-additional-episode resume above; its deterministic episode-6 replay must
+either publish episode 6 or expose the exact next fail-closed boundary.
 
 ### Horizon-five candidate sub-profile checkpoint
 
