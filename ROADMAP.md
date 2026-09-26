@@ -2430,10 +2430,10 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 ### Exact next task
 
 Resume the bounded eight-episode production PPO campaign-readiness probe from the
-intact six-episode checkpoint at
+intact seven-episode checkpoint at
 `D:\0.5 - Coding\0. game-ai\game-ai-framework\logs\balatro-eight-episode-probe-fa9daf6d`
 with
-root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 2`. Record exact additional
+root seed `RED-WHITE-PPO-V1` and `--maximum-episodes 1`. Record exact additional
 and total elapsed time, collected transitions, per-stream next episode indices,
 checkpoint/progress sizes and digest, and any further fail-closed mechanics
 boundary. This is a throughput and representation probe only: do not launch the
@@ -2644,9 +2644,25 @@ Boss name.
 Focused lifecycle, cleanup, scoring, and Play validation passed **79 tests**
 locally; the broader R4 Boss/Play/tactical slice passed **130 tests, 4483
 deselected** locally. GitHub Actions run `36242727532`, job `108406167943`,
-passed; the actual log reports **3006 passed, 1607 deselected in 138.47s**. The
-six-episode artifact remains unchanged, and the exact next task is still the
-two-additional-episode resume above.
+passed; the actual log reports **3006 passed, 1607 deselected in 138.47s**. At
+that checkpoint the six-episode artifact remained unchanged and two episodes
+remained.
+
+### Eight-episode probe seven-episode checkpoint
+
+The post-Head resume traversed the repaired static suit-debuff Play boundary and
+completed episode 6. The process started at 20:48:51 and atomically published
+the seven-episode checkpoint at 20:50:29 on 2026-09-26, an exact filesystem
+timestamp span of **1 minute 38 seconds**; the command remained active in episode
+7, so its final stopwatch output was not yet available at this checkpoint.
+
+The seven-episode checkpoint is **45,227,488 bytes** with a **574-byte** progress
+manifest and verified SHA-256 digest
+`5914e04a235e6a5d9d7ae5bb7710f030e46ec13868e6d990379b072bcd2e6da9`.
+It records **52 collected transitions**, zero optimizer batches, and next episode
+indices `[8, 9, 10, 11, 12, 13, 14, 7]`. No final manifest exists yet. The exact
+next task is the one-additional-episode resume above if the active process does
+not itself complete episode 7.
 
 ### Horizon-five candidate sub-profile checkpoint
 
