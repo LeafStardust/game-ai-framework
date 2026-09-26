@@ -2429,20 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add a deterministic initial-policy tactical-cost diagnostic for any exact first-
-wave episode index `0..7`, then use it to attribute episode 7 / stream 7 without
-replaying episodes 0..6. The diagnostic must use the frozen production environment,
-the exact `PPOTrainingRun.game_seed(episode_index)`, the unchanged initial learner
-model, and the canonical complete-episode collector. It must record ordered public
-input digests, selected actions/indices, search attempts, and disjoint per-decision
-timings, preserve decision semantics, support an injected clock, and reject every
-episode outside the pre-optimizer first wave. Add focused deterministic regression
-tests before running the real episode-7 diagnostic. This is attribution only: do
-not launch the full training schedule, inspect learned-policy results, tune
-hyperparameters, alter the frozen PPO/search contracts, add a wall-clock cutoff,
-or widen mechanics. Do not reapply any rejected projection-copy, evaluator,
-cache-reuse, manual reconstruction, or custom `BalatroCard.__deepcopy__`
-experiment recorded below.
+Run the green initial-policy tactical-cost diagnostic for exact episode 7 / stream
+7 with root seed `RED-WHITE-PPO-V1` and record its complete ordered per-decision
+public digests, actions/indices, search attempts, disjoint timings, total tactical
+time, and complete-episode time. Use the result to identify the first dominant
+canonical performance owner before making another code change. Do not replay
+episodes 0..6, launch the full training schedule, inspect learned-policy results,
+tune hyperparameters, alter the frozen PPO/search contracts, add a wall-clock
+cutoff, or widen mechanics. Do not reapply any rejected projection-copy,
+evaluator, cache-reuse, manual reconstruction, or custom
+`BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -2682,6 +2678,31 @@ indices `[8, 9, 10, 11, 12, 13, 14, 15]`. The progress manifest remains correctl
 `complete=false`, and no final manifest exists, because this was only the bounded
 one-episode-per-stream readiness probe and not the full frozen campaign. The exact
 next task is the episode-7 tactical attribution diagnostic above.
+
+### First-wave tactical-cost diagnostic checkpoint
+
+Commit `a09232bf7fc465ebfad9f52a68d826ad39811016` extends the existing
+production tactical-performance owner with the versioned
+`balatro-red-white-ppo-tactical-episode-cost-v1` report. It directly collects any
+exact first-wave episode `0..7` in its matching stream from the frozen initial
+learner model, exact derived game seed, production environment factory, and
+canonical complete-episode collector. It does not replay earlier streams. Every
+later episode rejects fail-closed because its policy parameters may depend on an
+optimizer batch.
+
+The report retains ordered public-input digests, actions, visible indices, and
+search attempts, and partitions every tactical decision into candidate generation,
+remaining search evaluation, policy arbitration, and other elapsed time under an
+injectable clock. A real episode-0 smoke reproduced the known ten-decision trace,
+four environment transitions, seed `7258FFDA`, and **36.07507619995158 seconds**
+of tactical work in **36.37876970000798 seconds** total under the current host
+load. Focused deterministic validation passed **12 tests** locally; the broader
+non-temp PPO slice passed **46 tests** locally. The campaign tests separately hit
+the already-known Windows pytest temp-directory access denial, with 47 tests
+passing and five setup errors rather than test failures. GitHub Actions run
+`36261823687`, job `108458997699`, is authoritative and passed with **3012 passed,
+1607 deselected in 133.14s**. The exact next task is the episode-7 diagnostic run
+above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
