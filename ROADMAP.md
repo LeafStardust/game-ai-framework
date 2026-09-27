@@ -2429,16 +2429,21 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the green initial-policy tactical-cost diagnostic for exact episode 7 / stream
-7 with root seed `RED-WHITE-PPO-V1` and record its complete ordered per-decision
-public digests, actions/indices, search attempts, disjoint timings, total tactical
-time, and complete-episode time. Use the result to identify the first dominant
-canonical performance owner before making another code change. Do not replay
-episodes 0..6, launch the full training schedule, inspect learned-policy results,
-tune hyperparameters, alter the frozen PPO/search contracts, add a wall-clock
-cutoff, or widen mechanics. Do not reapply any rejected projection-copy,
-evaluator, cache-reuse, manual reconstruction, or custom
-`BalatroCard.__deepcopy__` experiment recorded below.
+Add a focused deterministic sub-owner diagnostic for the exact episode-7 decision
+with public digest `f63c5da42cd96a7e9ecd9281dee0dd90666edf8722f618ee5857fddf8301a145`,
+the largest measured canonical `_candidate_actions` workload. It must replay only
+episode 7 / stream 7 from the unchanged initial policy, verify the ordered prefix
+and target digest/action/indices/search attempts fail-closed, stop after that one
+target decision, and partition candidate-generation time and call counts among
+the existing canonical planner helpers without changing search behavior. Add
+focused deterministic regression tests for the instrumentation before running
+the production diagnostic. Use the result to identify the first deeper dominant
+implementation owner before optimizing anything. Do not replay episodes 0..6,
+launch the full training schedule, inspect learned-policy results, tune
+hyperparameters, alter the frozen PPO/search contracts, add a wall-clock cutoff,
+or widen mechanics. Do not reapply any rejected projection-copy, evaluator,
+cache-reuse, manual reconstruction, or custom `BalatroCard.__deepcopy__`
+experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -2703,6 +2708,56 @@ passing and five setup errors rather than test failures. GitHub Actions run
 `36261823687`, job `108458997699`, is authoritative and passed with **3012 passed,
 1607 deselected in 133.14s**. The exact next task is the episode-7 diagnostic run
 above.
+
+### Episode-7 tactical attribution checkpoint
+
+The exact green diagnostic ran episode 7 / stream 7 directly from the unchanged
+initial learner model with root seed `RED-WHITE-PPO-V1` and derived game seed
+`3DEFB26A`; it did not replay episodes 0..6. It completed cleanly with **7
+environment transitions**, **17 tactical decisions**, **9613.855474400043
+seconds** of tactical work, and **9614.188212700014 seconds** of complete-episode
+work. The outer command reported **9620.3883223 seconds**. Complete ordered
+evidence follows. Attempt tuples are `(horizon,nodes,max_nodes,budget_exceeded)`;
+timings are `(candidate generation, remaining search evaluation, policy
+arbitration, other, total)` seconds.
+
+```text
+00 4a0542854bbb2308d64a0d3dbed557c81d846fe314ecbfe78b0bc253dc847ff2 PLAY_CARDS    [0,1,2,3]   [(2,18,2000,false),(3,183,2000,false)]                              (0.5178086000378244,0.4186890000128187,0.02453359996434301,0.0017635999829508364,0.9627947999979369)
+01 19f3c1857846f11b54219c9879bca59e62985ba615d1090d2d0f5cefac7f6fc2 PLAY_CARDS    [0,1]       [(2,18,2000,false),(3,63,2000,false)]                               (0.22472919983556494,0.14961800019955263,0.0245918000000529,0.001885299920104444,0.4008242999552749)
+02 142d9f84e3dffefcae262869bf45c528512d07485ad5dd65a9e68a36e2683e49 PLAY_CARDS    [0,1,6,7]   [(2,15,2000,false)]                                                (0.03395379998255521,0.03079069999512285,0.021372499992139637,0.0011348000261932611,0.08725179999601096)
+03 ccdaf04a97754f506cfadf4766b192b1a3e863708c3cf1f9c7bd4fee08426372 PLAY_CARDS    [0,1,2,3,4] [(2,3,2000,false)]                                                 (0.004409699991811067,0.0050826999940909445,0.015544700028840452,0.0011857000063173473,0.02622280002105981)
+04 b24654edbeefb4c3ae62d391a5f1a8d109055d4621f3f0185b1f3a26323e9fda DISCARD_CARDS [0,1,4,5,6] [(2,18,2000,false),(3,81,2000,false),(4,254,2000,false),(5,562,3000,false)] (3.2749806994688697,1.5009827004978433,0.04771640000399202,0.02068030007649213,4.844360100047197)
+05 bf661a1b04e2c84019e55d4e2716abc3450a8956ff666e787f6a42c3465ccd0c DISCARD_CARDS [2,3,4,6,7] [(2,18,2000,false),(3,79,2000,false),(4,220,2000,false),(4,570,1000,false),(5,392,3000,false),(5,956,1000,false)] (6.026224401255604,3.6238067987724207,0.046962300024461,0.020790799986571074,9.717784300039057)
+06 e7e679b56595ebab6691b3723f3a85b2747dbbcd06f7ed9fb5be84df003e01c9 PLAY_CARDS    [0,1,2,3,5] [(2,15,2000,false)]                                                (0.028956599941011518,0.025256300054024905,0.02280179999070242,0.0013481000205501914,0.07836280000628904)
+07 7ba8ed02c8b736e7222f85fc0726d35711465a4519f6e7850a36a92e9d020784 PLAY_CARDS    [3,4]       [(2,18,2000,false),(3,58,2000,false)]                               (0.15356329985661432,0.12220290018012747,0.0218122000223957,0.0011812999146059155,0.2987596999737434)
+08 a63e3298ce4b73019dc17a6e3f6dbe9f42babdb22acfbc508c3626b51699c2c2 DISCARD_CARDS [0,3,4,5,6] [(2,18,2000,false),(3,51,2000,false),(3,51,1000,false)]             (0.23927970026852563,0.19881259970134124,0.025259400019422174,0.001193900010548532,0.4645455999998376)
+09 a9794ce7394796bc117fb3c635a487cc04f9288746a2beaba8f4158f2406579f PLAY_CARDS    [0,1,4,5]   [(2,3,2000,false)]                                                 (0.004271999991033226,0.004719999968074262,0.015200300025753677,0.0011008000001311302,0.025293099984992296)
+10 85496a49e6df7095bf3f9ef59d6132d9e309e5ba8ac769f7b5e86f470163bc7a DISCARD_CARDS [0,2,3,6,7] [(2,292,2000,false),(3,2000,2000,true),(4,2000,2000,true),(5,3000,3000,true)] (3022.959371697798,63.96661840216257,2.229939699987881,0.12344140006462112,3089.279371200013)
+11 f63c5da42cd96a7e9ecd9281dee0dd90666edf8722f618ee5857fddf8301a145 DISCARD_CARDS [0,2,3,6,7] [(2,292,2000,false),(3,2000,2000,true),(4,2000,2000,true),(5,3000,3000,true)] (3685.981177198526,86.84178910136689,2.0285677000065334,0.12421300006099045,3774.9757469999604)
+12 f2c2461b4199196d5fb9b798c08796968a9dca649693f831d4abca25f6301ce4 DISCARD_CARDS [2,3,4,5,6] [(2,108,2000,false),(3,834,2000,false),(4,2000,2000,true),(5,3000,3000,true)] (2522.118437297584,45.46193860238418,2.0483600000152364,0.07312310003908351,2569.7018590000225)
+13 56d9da551c326822fd1da9cc89d6e7fadca83a6766bd086fa5be1bc921e5e61b PLAY_CARDS    [0,1,2,3,4] [(2,99,2000,false),(3,624,2000,false),(4,2000,2000,true)]          (45.819963000540156,23.704383399512153,1.0261831999523565,0.05211499996948987,70.60264459997416)
+14 b7f5c3b6bbbe3bf5f1ee5c4f86ec7beab7d79c3df11e83daa5f586f922983aec PLAY_CARDS    [6,7]       [(2,283,2000,false),(3,2000,2000,true)]                             (58.200837997253984,27.17443170270417,1.0231344000203535,0.11254840000765398,86.51095249998616)
+15 deb3f7b818b9e4c0aeb67832e3c8dd2effa1d0b38caf827894479eab29998b5a PLAY_CARDS    [0,3,5,6,7] [(2,99,2000,false),(2,94,1000,false)]                               (3.410852199885994,1.2660487001412548,0.019264200003817677,0.0011844999971799552,4.697349600028247)
+16 cc3698ef18426d6e79f471fe7c320c4351300566b0b81df81ac281e26d1dc4ce PLAY_CARDS    [0,1,2,4,5] [(1,3,2000,false)]                                                 (0.009129300015047193,0.017322400002740324,1.1133270999998786,0.04157240001950413,1.1813512000371702)
+```
+
+The disjoint totals are **9349.007946692233 seconds candidate generation
+(97.24514760583773%)**, **254.51249400764937 seconds remaining search evaluation
+(2.647350947654352%)**, **9.75457130005816 seconds policy arbitration
+(0.10146367735642395%)**, and **0.5804624001029879 seconds other
+(0.006037769151498628%)**. Decisions 10..12 alone account for
+**9231.058986193908 candidate seconds (98.73837993110214% of candidate time)**
+and **9433.956977199996 total seconds (98.12875804427179% of all tactical
+time)**. All three reach hard node ceilings at deeper horizons. Decision 11,
+digest `f63c5da4...`, is the largest at **3685.981177198526 candidate seconds**
+and **3774.9757469999604 total seconds**.
+
+This identifies the first dominant canonical performance owner as planner
+`_candidate_actions`, not policy arbitration, environment transitions, or the
+remaining ranked-search reducer. The report does not distinguish which existing
+helper below `_candidate_actions` owns the cost, so no optimization is yet
+justified. The exact next task is the focused target-decision sub-owner
+diagnostic above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
