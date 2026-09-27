@@ -2816,7 +2816,10 @@ stable-tie, and Purple reservation validation passed **11 tests** locally. The
 broader legacy `-k "d1 or purple_seal"` selection also exposed unrelated stale
 root-admission expectations plus the known Windows pytest temp-root denial; the
 focused owner tests have no failures. GitHub Actions remains authoritative. The
-exact next task is CI followed by the target-only diagnostic above.
+call-local repair is commit `edb75fc97a59603f8b7abbefbe32fcdf41ebbd69`.
+GitHub Actions run `36325266292`, job `108636705316`, passed; the actual log
+reports **3016 passed, 1609 deselected in 134.77s**. The exact next task is the
+target-only diagnostic above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
