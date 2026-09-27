@@ -2429,17 +2429,20 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the green focused candidate-sub-owner diagnostic with
-`python -m games.balatro.env.ppo_tactical_performance --root-seed
-RED-WHITE-PPO-V1 --episode-seven-candidate-subowners`. Record the exact target
-decision timing, exclusive helper timings/call counts, residual candidate time,
-and command elapsed time. Use the result to identify the first deeper dominant
-canonical implementation owner before optimizing anything. Do not replay
-episodes 0..6, complete episode 7 after the target, launch the full training
-schedule, inspect learned-policy results, tune hyperparameters, alter the frozen
-PPO/search contracts, add a wall-clock cutoff, or widen mechanics. Do not reapply
-any rejected projection-copy, evaluator, cache-reuse, manual reconstruction, or
-custom `BalatroCard.__deepcopy__` experiment recorded below.
+At the canonical D1 `_diverse_discard_beam` owner, compute each input action's
+existing `_discard_priority` exactly once into an ordered call-local record and
+reuse that value for overall ranking, per-size selection/ranking, and optional
+Purple-Seal selection. Preserve stable tie order and every existing priority,
+beam, search, and policy contract; add focused deterministic regressions for
+single evaluation, size diversity, tie order, and Purple-Seal reservation. Do
+not add a cross-call/object-ID cache or change candidate admission. After CI is
+green, rerun the exact target-only candidate-sub-owner diagnostic and require the
+complete frozen prefix/action/index/search-attempt trace before assessing
+materiality. Do not replay episodes 0..6, complete episode 7 after the target,
+launch full training, inspect learned-policy results, tune hyperparameters, add a
+wall-clock cutoff, or widen mechanics. Do not reapply any rejected projection-
+copy, evaluator, cache-reuse, manual reconstruction, or custom
+`BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -2777,6 +2780,37 @@ search, learner, environment, or frozen contracts. Focused validation passed
 `36305973439`, job `108582600806`; the actual log reports **3016 passed, 1607
 deselected in 97.32s**. The exact next task is the production diagnostic run
 above; no performance repair is yet authorized.
+
+The production run then reached and stopped after the exact target as designed.
+It verified all **12** ordered prefix decisions and retained target digest
+`f63c5da42cd96a7e9ecd9281dee0dd90666edf8722f618ee5857fddf8301a145`,
+`DISCARD_CARDS (0,2,3,6,7)`, and attempts `2/292`, `3/2000` exhausted,
+`4/2000` exhausted, and `5/3000` exhausted. The target took
+**3267.6566995000467 seconds**, including **3194.5645492986077 seconds** in
+candidate generation (**97.76316311892182%**). The complete command took
+**6615.3374447 seconds** and intentionally did not finish episode 7.
+
+Exclusive helper attribution was:
+
+```text
+_root_play_candidates              5 calls       0.02038829994853586 s
+_guaranteed_sun_action              5 calls       0.000005599926225841045 s
+_child_play_candidates           6171 calls       1.1034579994156957 s
+_child_discard_candidates        1126 calls       0.014047599514015019 s
+_diverse_play_beam               5698 calls       0.0734054988133721 s
+_diverse_discard_beam            1126 calls    3045.845964599983 s
+_projection_free_discard_reserve    5 calls       0.009516999940387905 s
+residual candidate work                              147.49776270106668 s
+```
+
+`_diverse_discard_beam` therefore owns **95.34463672893142%** of candidate
+generation and **93.21193273044867%** of the complete target decision, averaging
+**2.7050141781527377 seconds** per call. Residual candidate work is only
+**4.617147671454972%**. Inspection of that canonical owner shows it recomputes
+the same expensive `_discard_priority` for overall sorting, per-size maxima,
+per-size sorting, and optional Purple selection during one invocation. The exact
+next task is the ordered call-local priority-record repair above; no broader
+cache or search-contract change is authorized.
 
 ### Horizon-five candidate sub-profile checkpoint
 
