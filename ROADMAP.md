@@ -2772,7 +2772,10 @@ from skipping instrumentation. The report also publishes nonnegative residual
 candidate time and rejects invalid timing. It does not change the planner,
 search, learner, environment, or frozen contracts. Focused validation passed
 **16 tests** locally; the broader non-campaign PPO selection passed **104 tests,
-4519 deselected** locally. The exact next task is the production diagnostic run
+4519 deselected** locally. Commit
+`3fa65d15dd46a0cc19434e9f8e14ebaee1664336` passed GitHub Actions run
+`36305973439`, job `108582600806`; the actual log reports **3016 passed, 1607
+deselected in 97.32s**. The exact next task is the production diagnostic run
 above; no performance repair is yet authorized.
 
 ### Horizon-five candidate sub-profile checkpoint
