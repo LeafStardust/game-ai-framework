@@ -45,3 +45,42 @@ def test_wider_discard_beam_preserves_distinct_redraw_sizes_from_priority_order(
     selected = planner._diverse_discard_beam(state, discards, 3)
 
     assert [len(action.cards) for action in selected] == [5, 4, 3]
+
+
+def test_discard_beam_evaluates_each_action_priority_once():
+    state = _state()
+    planner = D1LiveBlindClearPlanner()
+    discards = [
+        BalatroAction(DISCARD_CARDS, cards=state.hand[:amount])
+        for amount in range(1, 6)
+    ]
+    calls = []
+
+    def priority(current_state, action):
+        assert current_state is state
+        calls.append(action)
+        return float(len(action.cards))
+
+    planner._discard_priority = priority
+
+    selected = planner._diverse_discard_beam(state, discards, 3)
+
+    assert [len(action.cards) for action in selected] == [5, 4, 3]
+    assert calls == discards
+
+
+def test_discard_beam_preserves_input_order_for_equal_priority_ties():
+    state = _state()
+    planner = D1LiveBlindClearPlanner()
+    first_single = BalatroAction(DISCARD_CARDS, cards=[state.hand[0]])
+    second_single = BalatroAction(DISCARD_CARDS, cards=[state.hand[1]])
+    double = BalatroAction(DISCARD_CARDS, cards=state.hand[:2])
+    planner._discard_priority = lambda current_state, action: 1.0
+
+    selected = planner._diverse_discard_beam(
+        state,
+        [first_single, second_single, double],
+        2,
+    )
+
+    assert selected == [first_single, double]

@@ -2429,20 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-At the canonical D1 `_diverse_discard_beam` owner, compute each input action's
-existing `_discard_priority` exactly once into an ordered call-local record and
-reuse that value for overall ranking, per-size selection/ranking, and optional
-Purple-Seal selection. Preserve stable tie order and every existing priority,
-beam, search, and policy contract; add focused deterministic regressions for
-single evaluation, size diversity, tie order, and Purple-Seal reservation. Do
-not add a cross-call/object-ID cache or change candidate admission. After CI is
-green, rerun the exact target-only candidate-sub-owner diagnostic and require the
+Gate the ordered call-local `_discard_priority` reuse through GitHub Actions,
+then rerun the exact target-only candidate-sub-owner diagnostic and require the
 complete frozen prefix/action/index/search-attempt trace before assessing
-materiality. Do not replay episodes 0..6, complete episode 7 after the target,
-launch full training, inspect learned-policy results, tune hyperparameters, add a
-wall-clock cutoff, or widen mechanics. Do not reapply any rejected projection-
-copy, evaluator, cache-reuse, manual reconstruction, or custom
-`BalatroCard.__deepcopy__` experiment recorded below.
+materiality. Record exact helper, candidate, target, and command timings. Do not
+replay episodes 0..6, complete episode 7 after the target, launch full training,
+inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
+or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
+rejected projection-copy, evaluator, cache-reuse, manual reconstruction, or
+custom `BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -2811,6 +2806,17 @@ the same expensive `_discard_priority` for overall sorting, per-size maxima,
 per-size sorting, and optional Purple selection during one invocation. The exact
 next task is the ordered call-local priority-record repair above; no broader
 cache or search-contract change is authorized.
+
+The canonical D1 `_diverse_discard_beam` now computes every input action's
+unchanged `_discard_priority` exactly once into an ordered call-local record and
+reuses it for overall ranking, per-size maxima/ranking, and optional Purple-Seal
+selection. No value, stable tie order, beam width, candidate admission, or
+persistent identity cache changed. Focused single-evaluation, redraw-size,
+stable-tie, and Purple reservation validation passed **11 tests** locally. The
+broader legacy `-k "d1 or purple_seal"` selection also exposed unrelated stale
+root-admission expectations plus the known Windows pytest temp-root denial; the
+focused owner tests have no failures. GitHub Actions remains authoritative. The
+exact next task is CI followed by the target-only diagnostic above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
