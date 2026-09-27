@@ -2429,21 +2429,17 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add a focused deterministic sub-owner diagnostic for the exact episode-7 decision
-with public digest `f63c5da42cd96a7e9ecd9281dee0dd90666edf8722f618ee5857fddf8301a145`,
-the largest measured canonical `_candidate_actions` workload. It must replay only
-episode 7 / stream 7 from the unchanged initial policy, verify the ordered prefix
-and target digest/action/indices/search attempts fail-closed, stop after that one
-target decision, and partition candidate-generation time and call counts among
-the existing canonical planner helpers without changing search behavior. Add
-focused deterministic regression tests for the instrumentation before running
-the production diagnostic. Use the result to identify the first deeper dominant
-implementation owner before optimizing anything. Do not replay episodes 0..6,
-launch the full training schedule, inspect learned-policy results, tune
-hyperparameters, alter the frozen PPO/search contracts, add a wall-clock cutoff,
-or widen mechanics. Do not reapply any rejected projection-copy, evaluator,
-cache-reuse, manual reconstruction, or custom `BalatroCard.__deepcopy__`
-experiment recorded below.
+Run the green focused candidate-sub-owner diagnostic with
+`python -m games.balatro.env.ppo_tactical_performance --root-seed
+RED-WHITE-PPO-V1 --episode-seven-candidate-subowners`. Record the exact target
+decision timing, exclusive helper timings/call counts, residual candidate time,
+and command elapsed time. Use the result to identify the first deeper dominant
+canonical implementation owner before optimizing anything. Do not replay
+episodes 0..6, complete episode 7 after the target, launch the full training
+schedule, inspect learned-policy results, tune hyperparameters, alter the frozen
+PPO/search contracts, add a wall-clock cutoff, or widen mechanics. Do not reapply
+any rejected projection-copy, evaluator, cache-reuse, manual reconstruction, or
+custom `BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -2758,6 +2754,26 @@ remaining ranked-search reducer. The report does not distinguish which existing
 helper below `_candidate_actions` owns the cost, so no optimization is yet
 justified. The exact next task is the focused target-decision sub-owner
 diagnostic above.
+
+### Episode-7 candidate-sub-owner diagnostic checkpoint
+
+The production tactical-performance owner now provides the versioned
+`balatro-red-white-ppo-tactical-candidate-subowner-v1` diagnostic. It constructs
+only episode 7 / stream 7 from the unchanged initial model, validates every
+ordered digest/action/index/search-attempt tuple through the exact target at
+decision 11, and raises an internal terminal signal immediately after that
+decision instead of completing the episode. Prefix or target drift fails closed.
+
+Only while the target decision is active, the diagnostic records candidate time
+and exclusive timings plus call counts for the existing root-play, Sun,
+child-play, child-discard, diverse-play, diverse-discard, and root-discard-reserve
+helpers. Strong object references prevent transient adaptive-planner ID reuse
+from skipping instrumentation. The report also publishes nonnegative residual
+candidate time and rejects invalid timing. It does not change the planner,
+search, learner, environment, or frozen contracts. Focused validation passed
+**16 tests** locally; the broader non-campaign PPO selection passed **104 tests,
+4519 deselected** locally. The exact next task is the production diagnostic run
+above; no performance repair is yet authorized.
 
 ### Horizon-five candidate sub-profile checkpoint
 

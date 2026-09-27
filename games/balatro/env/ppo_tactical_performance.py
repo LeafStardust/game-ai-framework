@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from hashlib import sha256
 import json
 import math
@@ -28,6 +28,34 @@ from games.balatro.env.select_blind import select_blind_exact
 PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
+PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
+    "balatro-red-white-ppo-tactical-candidate-subowner-v1"
+)
+
+_EPISODE_7_EXPECTED_PREFIX = (
+    ("4a0542854bbb2308d64a0d3dbed557c81d846fe314ecbfe78b0bc253dc847ff2", "PLAY_CARDS", (0, 1, 2, 3), ((2, 18, 2000, False), (3, 183, 2000, False))),
+    ("19f3c1857846f11b54219c9879bca59e62985ba615d1090d2d0f5cefac7f6fc2", "PLAY_CARDS", (0, 1), ((2, 18, 2000, False), (3, 63, 2000, False))),
+    ("142d9f84e3dffefcae262869bf45c528512d07485ad5dd65a9e68a36e2683e49", "PLAY_CARDS", (0, 1, 6, 7), ((2, 15, 2000, False),)),
+    ("ccdaf04a97754f506cfadf4766b192b1a3e863708c3cf1f9c7bd4fee08426372", "PLAY_CARDS", (0, 1, 2, 3, 4), ((2, 3, 2000, False),)),
+    ("b24654edbeefb4c3ae62d391a5f1a8d109055d4621f3f0185b1f3a26323e9fda", "DISCARD_CARDS", (0, 1, 4, 5, 6), ((2, 18, 2000, False), (3, 81, 2000, False), (4, 254, 2000, False), (5, 562, 3000, False))),
+    ("bf661a1b04e2c84019e55d4e2716abc3450a8956ff666e787f6a42c3465ccd0c", "DISCARD_CARDS", (2, 3, 4, 6, 7), ((2, 18, 2000, False), (3, 79, 2000, False), (4, 220, 2000, False), (4, 570, 1000, False), (5, 392, 3000, False), (5, 956, 1000, False))),
+    ("e7e679b56595ebab6691b3723f3a85b2747dbbcd06f7ed9fb5be84df003e01c9", "PLAY_CARDS", (0, 1, 2, 3, 5), ((2, 15, 2000, False),)),
+    ("7ba8ed02c8b736e7222f85fc0726d35711465a4519f6e7850a36a92e9d020784", "PLAY_CARDS", (3, 4), ((2, 18, 2000, False), (3, 58, 2000, False))),
+    ("a63e3298ce4b73019dc17a6e3f6dbe9f42babdb22acfbc508c3626b51699c2c2", "DISCARD_CARDS", (0, 3, 4, 5, 6), ((2, 18, 2000, False), (3, 51, 2000, False), (3, 51, 1000, False))),
+    ("a9794ce7394796bc117fb3c635a487cc04f9288746a2beaba8f4158f2406579f", "PLAY_CARDS", (0, 1, 4, 5), ((2, 3, 2000, False),)),
+    ("85496a49e6df7095bf3f9ef59d6132d9e309e5ba8ac769f7b5e86f470163bc7a", "DISCARD_CARDS", (0, 2, 3, 6, 7), ((2, 292, 2000, False), (3, 2000, 2000, True), (4, 2000, 2000, True), (5, 3000, 3000, True))),
+    ("f63c5da42cd96a7e9ecd9281dee0dd90666edf8722f618ee5857fddf8301a145", "DISCARD_CARDS", (0, 2, 3, 6, 7), ((2, 292, 2000, False), (3, 2000, 2000, True), (4, 2000, 2000, True), (5, 3000, 3000, True))),
+)
+
+_CANDIDATE_HELPER_NAMES = (
+    "_root_play_candidates",
+    "_guaranteed_sun_action",
+    "_child_play_candidates",
+    "_child_discard_candidates",
+    "_diverse_play_beam",
+    "_diverse_discard_beam",
+    "_projection_free_discard_reserve",
+)
 
 
 @dataclass(frozen=True)
@@ -84,11 +112,78 @@ class PPOTacticalEpisodeCostReport:
         return json.dumps(self.as_dict(), sort_keys=True)
 
 
+@dataclass(frozen=True)
+class PPOTacticalCandidateHelperCost:
+    name: str
+    calls: int
+    exclusive_elapsed_seconds: float
+
+
+@dataclass(frozen=True)
+class PPOTacticalCandidateSubownerReport:
+    schema: str
+    root_seed: str
+    episode_index: int
+    stream_index: int
+    game_seed: str
+    verified_prefix_decisions: int
+    target_decision_index: int
+    public_input_sha256: str
+    action: str
+    selected_hand_indices: tuple[int, ...]
+    search_attempts: tuple[tuple[int, int, int, bool], ...]
+    total_elapsed_seconds: float
+    candidate_generation_elapsed_seconds: float
+    helper_costs: tuple[PPOTacticalCandidateHelperCost, ...]
+    residual_candidate_elapsed_seconds: float
+
+    def as_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
+
+
 @dataclass
 class _CostAccumulator:
     candidate_generation: float = 0.0
     ranked_search: float = 0.0
     policy_arbitration: float = 0.0
+
+
+@dataclass
+class _ExclusiveHelperAccumulator:
+    clock: Callable[[], float]
+    enabled: bool = False
+    calls: dict[str, int] = field(default_factory=dict)
+    elapsed: dict[str, float] = field(default_factory=dict)
+    stack: list[list[object]] = field(default_factory=list)
+
+    def wrap(self, name: str, function):
+        def timed(*args, **kwargs):
+            if not self.enabled:
+                return function(*args, **kwargs)
+            frame: list[object] = [name, float(self.clock()), 0.0]
+            self.stack.append(frame)
+            try:
+                return function(*args, **kwargs)
+            finally:
+                total = max(0.0, float(self.clock()) - float(frame[1]))
+                if not self.stack or self.stack.pop() is not frame:
+                    raise RuntimeError("candidate helper timing stack drifted")
+                exclusive = max(0.0, total - float(frame[2]))
+                self.calls[name] = self.calls.get(name, 0) + 1
+                self.elapsed[name] = self.elapsed.get(name, 0.0) + exclusive
+                if self.stack:
+                    self.stack[-1][2] = float(self.stack[-1][2]) + total
+
+        return timed
+
+
+class _TargetDecisionReached(Exception):
+    def __init__(self, report: PPOTacticalCandidateSubownerReport):
+        super().__init__("target tactical decision reached")
+        self.report = report
 
 
 def _timed_call(clock, accumulator: _CostAccumulator, field: str, function):
@@ -274,6 +369,160 @@ def trace_initial_policy_ppo_episode_tactical_costs(
     )
 
 
+def trace_episode_seven_candidate_subowners(
+    *,
+    root_seed: str = "RED-WHITE-PPO-V1",
+    clock: Callable[[], float] = perf_counter,
+) -> PPOTacticalCandidateSubownerReport:
+    """Stop after the frozen episode-seven target and time its planner helpers."""
+    if root_seed != "RED-WHITE-PPO-V1":
+        raise PPOContractError(
+            "candidate sub-owner diagnostic requires root seed RED-WHITE-PPO-V1"
+        )
+    if not callable(clock):
+        raise TypeError("clock must be callable")
+
+    episode_index = 7
+    target_index = len(_EPISODE_7_EXPECTED_PREFIX) - 1
+    training_run = PPOTrainingRun.from_seed(root_seed)
+    environment = make_ppo_training_environment(episode_index)
+    learner = PPOLearner(training_run)
+    engine = environment._backend._tactical_decision_engine
+    helper_accumulator = _ExclusiveHelperAccumulator(clock)
+    candidate_elapsed = {"seconds": 0.0}
+    instrumented_planners: list[object] = []
+
+    def instrument_planner(planner) -> None:
+        if any(existing is planner for existing in instrumented_planners):
+            return
+        instrumented_planners.append(planner)
+        for name in _CANDIDATE_HELPER_NAMES:
+            function = getattr(planner, name, None)
+            if callable(function):
+                setattr(planner, name, helper_accumulator.wrap(name, function))
+        original_candidates = planner._candidate_actions
+
+        def timed_candidates(*args, **kwargs):
+            if not helper_accumulator.enabled:
+                return original_candidates(*args, **kwargs)
+            started = float(clock())
+            try:
+                return original_candidates(*args, **kwargs)
+            finally:
+                candidate_elapsed["seconds"] += max(
+                    0.0,
+                    float(clock()) - started,
+                )
+
+        planner._candidate_actions = timed_candidates
+
+    instrument_planner(engine.planner)
+    original_adaptive_planner = engine._adaptive_planner
+
+    def adaptive_planner(config):
+        planner = original_adaptive_planner(config)
+        instrument_planner(planner)
+        return planner
+
+    engine._adaptive_planner = adaptive_planner
+    original_decide = engine.decide
+    verified = {"count": 0}
+
+    def decide(state):
+        decision_index = verified["count"]
+        if decision_index >= len(_EPISODE_7_EXPECTED_PREFIX):
+            raise PPOContractError("episode-seven tactical prefix exceeded target")
+        expected = _EPISODE_7_EXPECTED_PREFIX[decision_index]
+        digest = _public_input_sha256(state)
+        if digest != expected[0]:
+            raise PPOContractError(
+                f"episode-seven tactical digest drifted at decision {decision_index}"
+            )
+
+        is_target = decision_index == target_index
+        helper_accumulator.enabled = is_target
+        started = float(clock())
+        try:
+            decision = original_decide(state)
+        finally:
+            total = max(0.0, float(clock()) - started)
+            helper_accumulator.enabled = False
+
+        action = decision.action.name
+        indices = tuple(state.hand.index(card) for card in decision.action.cards)
+        attempts = tuple(
+            (
+                attempt.horizon,
+                attempt.nodes_evaluated,
+                attempt.max_nodes,
+                attempt.budget_exceeded,
+            )
+            for attempt in decision.search_attempts
+        )
+        if (action, indices, attempts) != expected[1:]:
+            raise PPOContractError(
+                f"episode-seven tactical decision drifted at decision {decision_index}"
+            )
+        verified["count"] += 1
+        if not is_target:
+            return decision
+
+        helper_costs = tuple(
+            PPOTacticalCandidateHelperCost(
+                name=name,
+                calls=helper_accumulator.calls.get(name, 0),
+                exclusive_elapsed_seconds=helper_accumulator.elapsed.get(name, 0.0),
+            )
+            for name in _CANDIDATE_HELPER_NAMES
+            if helper_accumulator.calls.get(name, 0)
+        )
+        candidate = candidate_elapsed["seconds"]
+        residual = max(
+            0.0,
+            candidate - sum(item.exclusive_elapsed_seconds for item in helper_costs),
+        )
+        timings = (
+            total,
+            candidate,
+            residual,
+            *(item.exclusive_elapsed_seconds for item in helper_costs),
+        )
+        if any(not math.isfinite(value) or value < 0.0 for value in timings):
+            raise RuntimeError(
+                "candidate sub-owner diagnostic produced invalid timing"
+            )
+        report = PPOTacticalCandidateSubownerReport(
+            schema=PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA,
+            root_seed=root_seed,
+            episode_index=episode_index,
+            stream_index=episode_index,
+            game_seed=training_run.game_seed(episode_index),
+            verified_prefix_decisions=verified["count"],
+            target_decision_index=target_index,
+            public_input_sha256=digest,
+            action=action,
+            selected_hand_indices=indices,
+            search_attempts=attempts,
+            total_elapsed_seconds=total,
+            candidate_generation_elapsed_seconds=candidate,
+            helper_costs=helper_costs,
+            residual_candidate_elapsed_seconds=residual,
+        )
+        raise _TargetDecisionReached(report)
+
+    engine.decide = decide
+    try:
+        collect_complete_ppo_episode(
+            environment,
+            training_run,
+            episode_index=episode_index,
+            policy=learner.model.infer,
+        )
+    except _TargetDecisionReached as reached:
+        return reached.report
+    raise PPOContractError("episode-seven candidate sub-owner target was not reached")
+
+
 def measure_ppo_tactical_cost(
     *,
     root_seed: str = "RED-WHITE-PPO-V1",
@@ -368,10 +617,14 @@ def measure_ppo_tactical_cost(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root-seed", default="RED-WHITE-PPO-V1")
-    parser.add_argument("--episode-index", type=int)
+    target = parser.add_mutually_exclusive_group()
+    target.add_argument("--episode-index", type=int)
+    target.add_argument("--episode-seven-candidate-subowners", action="store_true")
     arguments = parser.parse_args(argv)
     report = (
-        measure_ppo_tactical_cost(root_seed=arguments.root_seed)
+        trace_episode_seven_candidate_subowners(root_seed=arguments.root_seed)
+        if arguments.episode_seven_candidate_subowners
+        else measure_ppo_tactical_cost(root_seed=arguments.root_seed)
         if arguments.episode_index is None
         else trace_initial_policy_ppo_episode_tactical_costs(
             episode_index=arguments.episode_index,

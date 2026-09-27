@@ -1,4 +1,5 @@
 import json
+from itertools import count
 from types import SimpleNamespace
 
 import pytest
@@ -8,8 +9,10 @@ from games.balatro.env.ppo_contract import PPOContractError
 from games.balatro.env.ppo_tactical_performance import (
     PPO_TACTICAL_COST_SCHEMA,
     PPO_TACTICAL_COST_WORKLOAD,
+    PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA,
     PPO_TACTICAL_EPISODE_COST_SCHEMA,
     measure_ppo_tactical_cost,
+    trace_episode_seven_candidate_subowners,
     trace_initial_policy_ppo_episode_tactical_costs,
     _instrument_episode_engine,
 )
@@ -29,8 +32,11 @@ class _FakeDecision:
 
 
 class _FakePlanner:
+    def _child_play_candidates(self, state, play_limit=1):
+        return (state.hand[0],)
+
     def _candidate_actions(self, state, **kwargs):
-        return ()
+        return self._child_play_candidates(state)
 
 
 class _FakePolicy:
@@ -180,6 +186,106 @@ def test_env_ppo_initial_policy_episode_trace_targets_only_requested_first_wave(
     payload = json.loads(report.to_json())
     assert payload["episode_index"] == 7
     assert len(payload["decisions"]) == 2
+
+
+def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
+    from games.balatro.card import BalatroCard
+    from games.balatro.state import BalatroState
+
+    state = BalatroState()
+    state.hand = [BalatroCard("A", "Spades")]
+    digest = tactical_performance._public_input_sha256(state)
+    monkeypatch.setattr(
+        tactical_performance,
+        "_EPISODE_7_EXPECTED_PREFIX",
+        ((digest, "PLAY_CARDS", (0,), ()),),
+    )
+    engine = _FakeEngine()
+    environment = SimpleNamespace(
+        _backend=SimpleNamespace(_tactical_decision_engine=engine)
+    )
+    requested_streams = []
+
+    def environment_factory(stream_index):
+        requested_streams.append(stream_index)
+        return environment
+
+    class FakeLearner:
+        def __init__(self, training_run):
+            self.model = SimpleNamespace(infer=lambda observation, mask: None)
+
+    def collector(target, training_run, *, episode_index, policy):
+        engine.decide(state)
+        raise AssertionError("target decision must stop collection")
+
+    monkeypatch.setattr(
+        tactical_performance,
+        "make_ppo_training_environment",
+        environment_factory,
+    )
+    monkeypatch.setattr(tactical_performance, "PPOLearner", FakeLearner)
+    monkeypatch.setattr(
+        tactical_performance,
+        "collect_complete_ppo_episode",
+        collector,
+    )
+    ticks = count()
+
+    report = trace_episode_seven_candidate_subowners(
+        clock=lambda: float(next(ticks)),
+    )
+
+    assert requested_streams == [7]
+    assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
+    assert report.game_seed == "3DEFB26A"
+    assert report.verified_prefix_decisions == 1
+    assert report.target_decision_index == 0
+    assert report.public_input_sha256 == digest
+    assert report.action == "PLAY_CARDS"
+    assert report.selected_hand_indices == (0,)
+    assert report.search_attempts == ()
+    assert report.candidate_generation_elapsed_seconds > 0.0
+    assert report.helper_costs[0].name == "_child_play_candidates"
+    assert report.helper_costs[0].calls == 1
+    assert json.loads(report.to_json())["target_decision_index"] == 0
+
+
+@pytest.mark.parametrize("root_seed", ["", "OTHER"])
+def test_env_ppo_candidate_subowner_rejects_noncanonical_root_seed(root_seed):
+    with pytest.raises(PPOContractError, match="root seed RED-WHITE-PPO-V1"):
+        trace_episode_seven_candidate_subowners(root_seed=root_seed)
+
+
+def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
+    from games.balatro.card import BalatroCard
+    from games.balatro.state import BalatroState
+
+    state = BalatroState()
+    state.hand = [BalatroCard("A", "Spades")]
+    engine = _FakeEngine()
+    environment = SimpleNamespace(
+        _backend=SimpleNamespace(_tactical_decision_engine=engine)
+    )
+    monkeypatch.setattr(
+        tactical_performance,
+        "make_ppo_training_environment",
+        lambda stream_index: environment,
+    )
+    monkeypatch.setattr(
+        tactical_performance,
+        "PPOLearner",
+        lambda training_run: SimpleNamespace(
+            model=SimpleNamespace(infer=lambda observation, mask: None)
+        ),
+    )
+    monkeypatch.setattr(
+        tactical_performance,
+        "collect_complete_ppo_episode",
+        lambda target, training_run, *, episode_index, policy: engine.decide(state),
+    )
+
+    with pytest.raises(PPOContractError, match="digest drifted at decision 0"):
+        trace_episode_seven_candidate_subowners()
 
 
 @pytest.mark.parametrize("episode_index", [-1, 8, True, 1.0, None])
