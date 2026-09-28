@@ -2429,9 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Gate the exact discard-priority-reuse reversion through GitHub Actions, then
-verify the remote branch and select the next bounded `_diverse_discard_beam`
-attribution task from the restored baseline. Do not
+Extend the frozen episode-7 target-only candidate diagnostic so
+`_discard_priority` is timed as a nested exclusive helper beneath
+`_diverse_discard_beam`, with deterministic call-count/timing regression
+coverage, then gate that diagnostic through GitHub Actions. Do not optimize
+planner behavior before the resulting production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2834,8 +2836,15 @@ be fully reverted. The exact next task is the scoped reversion above.
 The rejected planner implementation and its dedicated single-evaluation/tie
 tests are now restored byte-for-byte to their state before commit `edb75fc9`;
 roadmap history and the measured rejection remain retained. Focused discard-beam
-and Purple-Seal validation passed **9 tests** locally. The exact next task is the
-CI reversion gate above.
+and Purple-Seal validation passed **9 tests** locally. Reversion commit
+`f44c87ae67088884622c21a443ef5ae4b2634e86` passed GitHub Actions run
+`36402387434`, job `108863057570`; the actual log reports **3016 passed, 1607
+deselected in 112.66s**. The remote branch and local branch both resolve to that
+commit with a clean worktree. The restored owner shows that every expensive
+discard rank enters through `_discard_priority`, whose only substantive call is
+the canonical evaluator; timing that method nested beneath the already measured
+beam owner is therefore the next bounded attribution above. No performance
+repair is authorized yet.
 
 ### Horizon-five candidate sub-profile checkpoint
 
