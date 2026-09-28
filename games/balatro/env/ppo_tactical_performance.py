@@ -29,7 +29,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v1"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v2"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -55,6 +55,7 @@ _CANDIDATE_HELPER_NAMES = (
     "_diverse_play_beam",
     "_diverse_discard_beam",
     "_projection_free_discard_reserve",
+    "_discard_priority",
 )
 
 

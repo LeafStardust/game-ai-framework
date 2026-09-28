@@ -35,7 +35,18 @@ class _FakePlanner:
     def _child_play_candidates(self, state, play_limit=1):
         return (state.hand[0],)
 
+    def _discard_priority(self, state, action):
+        return (1.0, len(action.cards))
+
+    def _diverse_discard_beam(self, state, discards, limit=1):
+        return sorted(
+            discards,
+            key=lambda action: self._discard_priority(state, action),
+            reverse=True,
+        )[:limit]
+
     def _candidate_actions(self, state, **kwargs):
+        self._diverse_discard_beam(state, (_FakeAction([state.hand[0]]),))
         return self._child_play_candidates(state)
 
 
@@ -237,6 +248,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v2"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -247,6 +259,14 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert report.candidate_generation_elapsed_seconds > 0.0
     assert report.helper_costs[0].name == "_child_play_candidates"
     assert report.helper_costs[0].calls == 1
+    helper_costs = {cost.name: cost for cost in report.helper_costs}
+    assert helper_costs["_diverse_discard_beam"].calls == 1
+    assert helper_costs["_discard_priority"].calls == 1
+    assert helper_costs["_diverse_discard_beam"].exclusive_elapsed_seconds > 0.0
+    assert helper_costs["_discard_priority"].exclusive_elapsed_seconds > 0.0
+    assert sum(
+        cost.exclusive_elapsed_seconds for cost in report.helper_costs
+    ) <= report.candidate_generation_elapsed_seconds
     assert json.loads(report.to_json())["target_decision_index"] == 0
 
 
