@@ -2429,11 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only candidate diagnostic so
-`_discard_priority` is timed as a nested exclusive helper beneath
-`_diverse_discard_beam`, with deterministic call-count/timing regression
-coverage, then gate that diagnostic through GitHub Actions. Do not optimize
-planner behavior before the resulting production attribution exists. Do not
+Run the frozen episode-7 target-only candidate-sub-owner v2 diagnostic once and
+record `_discard_priority` call count and exclusive time beneath
+`_diverse_discard_beam`. Stop at the verified target decision and select the
+next bounded owner only from that evidence. Do not optimize planner behavior
+before the resulting production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2845,6 +2845,17 @@ discard rank enters through `_discard_priority`, whose only substantive call is
 the canonical evaluator; timing that method nested beneath the already measured
 beam owner is therefore the next bounded attribution above. No performance
 repair is authorized yet.
+
+Commit `57dd4d642468fe0790436faf79285a4373674707` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v2`. It times
+`_discard_priority` as a nested exclusive helper, so its time is removed from
+the parent beam's exclusive control/sorting cost while all helper totals remain
+disjoint. Planner mechanics, candidate admission, search, and decisions are
+unchanged. Focused deterministic validation passed **16 tests** locally. GitHub
+Actions run `36403124711`, job `108865436967`, passed; the actual log reports
+**3016 passed, 1607 deselected in 135.24s**. The exact next task is the single
+production diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
