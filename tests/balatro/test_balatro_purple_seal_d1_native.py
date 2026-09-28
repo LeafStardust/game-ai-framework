@@ -59,13 +59,7 @@ def test_native_discard_beam_keeps_purple_seal_when_generic_slots_fill_first():
         id(two_cards): 90.0,
         id(purple_discard): 1.0,
     }
-    priority_calls = []
-
-    def priority(_state, action):
-        priority_calls.append(action)
-        return priorities[id(action)]
-
-    planner._discard_priority = priority
+    planner._discard_priority = lambda _state, action: priorities[id(action)]
 
     chosen = planner._diverse_discard_beam(
         state,
@@ -75,7 +69,6 @@ def test_native_discard_beam_keeps_purple_seal_when_generic_slots_fill_first():
 
     assert purple_discard in chosen
     assert len(chosen) == 2
-    assert priority_calls == [one_card, two_cards, purple_discard]
 
 
 def test_production_stack_does_not_install_purple_seal_overlay():

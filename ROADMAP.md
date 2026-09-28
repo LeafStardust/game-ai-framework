@@ -2429,11 +2429,9 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Fully revert the ordered call-local `_discard_priority` reuse and its dedicated
-tests because the exact target diagnostic proved a material performance
-regression despite preserving behavior. Restore the prior canonical beam without
-changing any other owner, then gate the reversion through focused tests and CI.
-Do not
+Gate the exact discard-priority-reuse reversion through GitHub Actions, then
+verify the remote branch and select the next bounded `_diverse_discard_beam`
+attribution task from the restored baseline. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2832,6 +2830,12 @@ Candidate time regressed from **3194.5645492986077** to
 **3045.845964599983** to **6576.124652600022 seconds** across the unchanged
 1126 calls. The optimization is not material in the required direction and must
 be fully reverted. The exact next task is the scoped reversion above.
+
+The rejected planner implementation and its dedicated single-evaluation/tie
+tests are now restored byte-for-byte to their state before commit `edb75fc9`;
+roadmap history and the measured rejection remain retained. Focused discard-beam
+and Purple-Seal validation passed **9 tests** locally. The exact next task is the
+CI reversion gate above.
 
 ### Horizon-five candidate sub-profile checkpoint
 

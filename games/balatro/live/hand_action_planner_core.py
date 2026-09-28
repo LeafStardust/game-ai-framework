@@ -545,17 +545,11 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         if limit <= 0 or not discards:
             return []
 
-        priority_records = [
-            (action, self._discard_priority(state, action)) for action in discards
-        ]
-        ranked = [
-            action
-            for action, _ in sorted(
-                priority_records,
-                key=lambda item: item[1],
-                reverse=True,
-            )
-        ]
+        ranked = sorted(
+            discards,
+            key=lambda action: self._discard_priority(state, action),
+            reverse=True,
+        )
         max_cards = min(
             self.action_generator.MAX_SELECTED_CARDS,
             len(getattr(state, "hand", [])),
@@ -563,19 +557,20 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
 
         per_size = []
         for amount in range(1, max_cards + 1):
-            same_size = [
-                record
-                for record in priority_records
-                if len(record[0].cards) == amount
-            ]
+            same_size = [action for action in discards if len(action.cards) == amount]
             if not same_size:
                 continue
-            per_size.append(max(same_size, key=lambda item: item[1]))
+            per_size.append(
+                max(
+                    same_size,
+                    key=lambda action: self._discard_priority(state, action),
+                )
+            )
         per_size.sort(
-            key=lambda item: item[1],
+            key=lambda action: self._discard_priority(state, action),
             reverse=True,
         )
-        chosen = [action for action, _ in per_size[:limit]]
+        chosen = per_size[:limit]
         chosen_keys = {self._action_identity(action) for action in chosen}
 
         if (
@@ -583,20 +578,20 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             and _open_consumable_slots(state) > 0
             and not any(_purple_generation_count(state, action) > 0 for action in chosen)
         ):
-            purple_records = [
-                record
-                for record in priority_records
-                if _purple_generation_count(state, record[0]) > 0
+            purple = [
+                action
+                for action in discards
+                if _purple_generation_count(state, action) > 0
             ]
-            if purple_records:
+            if purple:
                 candidate = max(
-                    purple_records,
-                    key=lambda item: (
-                        _purple_generation_count(state, item[0]),
-                        item[1],
-                        -len(getattr(item[0], "cards", ()) or ()),
+                    purple,
+                    key=lambda action: (
+                        _purple_generation_count(state, action),
+                        self._discard_priority(state, action),
+                        -len(getattr(action, "cards", ()) or ()),
                     ),
-                )[0]
+                )
                 key = self._action_identity(candidate)
                 if key not in chosen_keys:
                     if len(chosen) < limit:
