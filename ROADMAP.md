@@ -2429,11 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the frozen episode-7 target-only candidate-sub-owner v2 diagnostic once and
-record `_discard_priority` call count and exclusive time beneath
-`_diverse_discard_beam`. Stop at the verified target decision and select the
-next bounded owner only from that evidence. Do not optimize planner behavior
-before the resulting production attribution exists. Do not
+Extend the frozen episode-7 target-only diagnostic to split the canonical
+evaluator work beneath `_discard_priority`: record evaluation-cache hit/miss
+counts and disjoint `_context` versus `_discard_value` costs, with focused
+deterministic coverage, then gate it through GitHub Actions. Do not optimize
+planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2856,6 +2856,24 @@ unchanged. Focused deterministic validation passed **16 tests** locally. GitHub
 Actions run `36403124711`, job `108865436967`, passed; the actual log reports
 **3016 passed, 1607 deselected in 135.24s**. The exact next task is the single
 production diagnostic run above.
+
+The single production v2 diagnostic completed cleanly and stopped at the
+verified target. It preserved all **12** ordered prefix decisions, digest
+`f63c5da42cd96a7e9ecd9281dee0dd90666edf8722f618ee5857fddf8301a145`,
+`DISCARD_CARDS (0,2,3,6,7)`, and attempts `2/292`, `3/2000` exhausted,
+`4/2000` exhausted, and `5/3000` exhausted. Target candidate generation took
+**6415.5635664000365 seconds** and the complete target decision took
+**6552.297850300001 seconds**.
+
+`_discard_priority` made **16890 calls** and exclusively consumed
+**6121.7025600000525 seconds**: **95.41956052093366%** of candidate time and
+**93.42833155424653%** of the complete target, averaging
+**0.36244538543517185 seconds** per call. Once that nested cost is removed,
+`_diverse_discard_beam` itself owns only **0.05224899996755994 seconds** across
+1126 calls; residual candidate work is **291.4796981999243 seconds**
+(**4.543321801477875%**). Sorting/control is therefore exonerated. The exact
+next bounded task is the evaluator cache/context/discard-value attribution
+above; no optimization is authorized yet.
 
 ### Horizon-five candidate sub-profile checkpoint
 
