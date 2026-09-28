@@ -2429,10 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Gate the ordered call-local `_discard_priority` reuse through GitHub Actions,
-then rerun the exact target-only candidate-sub-owner diagnostic and require the
-complete frozen prefix/action/index/search-attempt trace before assessing
-materiality. Record exact helper, candidate, target, and command timings. Do not
+Fully revert the ordered call-local `_discard_priority` reuse and its dedicated
+tests because the exact target diagnostic proved a material performance
+regression despite preserving behavior. Restore the prior canonical beam without
+changing any other owner, then gate the reversion through focused tests and CI.
+Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2820,6 +2821,17 @@ call-local repair is commit `edb75fc97a59603f8b7abbefbe32fcdf41ebbd69`.
 GitHub Actions run `36325266292`, job `108636705316`, passed; the actual log
 reports **3016 passed, 1609 deselected in 134.77s**. The exact next task is the
 target-only diagnostic above.
+
+The exact post-repair diagnostic verified all **12** frozen prefix decisions,
+the target digest/action/indices, and attempts `2/292`, `3/2000` exhausted,
+`4/2000` exhausted, `5/3000` exhausted, but decisively rejected the repair.
+Candidate time regressed from **3194.5645492986077** to
+**6898.258604200007 seconds**, target time from **3267.6566995000467** to
+**7052.4449855 seconds**, and command time from **6615.3374447** to
+**10710.3239008 seconds**. `_diverse_discard_beam` itself regressed from
+**3045.845964599983** to **6576.124652600022 seconds** across the unchanged
+1126 calls. The optimization is not material in the required direction and must
+be fully reverted. The exact next task is the scoped reversion above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
