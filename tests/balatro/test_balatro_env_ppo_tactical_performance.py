@@ -41,10 +41,21 @@ class _FakeEvaluator:
         return action.name, tuple(id(card) for card in action.cards)
 
     def _context(self, state):
+        self._estimate_play(state, _FakeAction(state.hand))
         return state
 
     def _discard_value(self, state, action, context):
+        self._has_guaranteed_clearing_play(state)
+        return self._retained_structure_value(action.cards)
+
+    def _estimate_play(self, state, action):
         return float(len(action.cards))
+
+    def _has_guaranteed_clearing_play(self, state):
+        return False
+
+    def _retained_structure_value(self, cards):
+        return float(len(cards))
 
     def evaluate(self, state, action):
         if self._outer_d1_cache_state is not state:
@@ -281,7 +292,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v3"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v4"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -298,6 +309,9 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert helper_costs["_evaluator_evaluate"].calls == 2
     assert helper_costs["_evaluator_context"].calls == 1
     assert helper_costs["_evaluator_discard_value"].calls == 1
+    assert helper_costs["_evaluator_estimate_play"].calls == 1
+    assert helper_costs["_evaluator_guaranteed_clear"].calls == 1
+    assert helper_costs["_evaluator_retained_structure"].calls == 1
     assert report.evaluation_cache_hits == 1
     assert report.evaluation_cache_misses == 1
     assert helper_costs["_diverse_discard_beam"].exclusive_elapsed_seconds > 0.0

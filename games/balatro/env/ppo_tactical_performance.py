@@ -29,7 +29,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v3"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v4"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -59,6 +59,9 @@ _CANDIDATE_HELPER_NAMES = (
     "_evaluator_evaluate",
     "_evaluator_context",
     "_evaluator_discard_value",
+    "_evaluator_estimate_play",
+    "_evaluator_guaranteed_clear",
+    "_evaluator_retained_structure",
 )
 
 
@@ -407,6 +410,9 @@ def trace_episode_seven_candidate_subowners(
         for source_name, report_name in (
             ("_context", "_evaluator_context"),
             ("_discard_value", "_evaluator_discard_value"),
+            ("_estimate_play", "_evaluator_estimate_play"),
+            ("_has_guaranteed_clearing_play", "_evaluator_guaranteed_clear"),
+            ("_retained_structure_value", "_evaluator_retained_structure"),
         ):
             function = getattr(evaluator, source_name, None)
             if callable(function):
