@@ -292,6 +292,28 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
         _backend=SimpleNamespace(_tactical_decision_engine=engine)
     )
     requested_streams = []
+    generated_transition_class = (
+        tactical_performance.LiveGeneratedConsumableScoreOutcomeModel
+    )
+
+    def generated_transition(self, *args, **kwargs):
+        return SimpleNamespace(expected=1.0, minimum=0.0)
+
+    monkeypatch.setattr(
+        generated_transition_class,
+        "project_transition",
+        generated_transition,
+    )
+    score_outcomes = engine.planner.evaluator.score_outcomes
+
+    def non_hook_transition(*args, **kwargs):
+        return generated_transition_class.project_transition(
+            score_outcomes,
+            *args,
+            **kwargs,
+        )
+
+    score_outcomes._project_non_hook_transition = non_hook_transition
 
     def environment_factory(stream_index):
         requested_streams.append(stream_index)
@@ -324,7 +346,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v7"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v8"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -349,10 +371,12 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert helper_costs["_score_outcomes_project_transition"].calls == 2
     assert helper_costs["_score_outcomes_hook_transition"].calls == 2
     assert helper_costs["_score_outcomes_non_hook_transition"].calls == 2
+    assert helper_costs["_generated_consumable_project_transition"].calls == 2
     assert helper_costs["_score_outcomes_scorer_score"].calls == 2
     assert helper_costs["_generate_play_actions"].calls == 1
     assert report.evaluation_cache_hits == 1
     assert report.evaluation_cache_misses == 1
+    assert generated_transition_class.project_transition is generated_transition
     assert helper_costs["_diverse_discard_beam"].exclusive_elapsed_seconds > 0.0
     assert helper_costs["_discard_priority"].exclusive_elapsed_seconds > 0.0
     assert sum(

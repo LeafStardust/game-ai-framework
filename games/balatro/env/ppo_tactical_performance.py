@@ -23,13 +23,16 @@ from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.parity import canonical_public_state_signature
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.select_blind import select_blind_exact
+from games.balatro.live.generated_consumable_outcomes import (
+    LiveGeneratedConsumableScoreOutcomeModel,
+)
 
 
 PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v7"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v8"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -67,6 +70,7 @@ _CANDIDATE_HELPER_NAMES = (
     "_score_outcomes_project_transition",
     "_score_outcomes_hook_transition",
     "_score_outcomes_non_hook_transition",
+    "_generated_consumable_project_transition",
     "_score_outcomes_scorer_score",
     "_generate_play_actions",
 )
@@ -644,15 +648,29 @@ def trace_episode_seven_candidate_subowners(
         raise _TargetDecisionReached(report)
 
     engine.decide = decide
-    try:
-        collect_complete_ppo_episode(
-            environment,
-            training_run,
-            episode_index=episode_index,
-            policy=learner.model.infer,
+    original_generated_transition = (
+        LiveGeneratedConsumableScoreOutcomeModel.project_transition
+    )
+    LiveGeneratedConsumableScoreOutcomeModel.project_transition = (
+        helper_accumulator.wrap(
+            "_generated_consumable_project_transition",
+            original_generated_transition,
         )
-    except _TargetDecisionReached as reached:
-        return reached.report
+    )
+    try:
+        try:
+            collect_complete_ppo_episode(
+                environment,
+                training_run,
+                episode_index=episode_index,
+                policy=learner.model.infer,
+            )
+        except _TargetDecisionReached as reached:
+            return reached.report
+    finally:
+        LiveGeneratedConsumableScoreOutcomeModel.project_transition = (
+            original_generated_transition
+        )
     raise PPOContractError("episode-seven candidate sub-owner target was not reached")
 
 
