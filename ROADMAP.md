@@ -2429,10 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the frozen episode-7 target-only candidate-sub-owner v8 diagnostic once and
-record the inherited generated-consumable transition call count and exclusive
-cost versus final non-Hook Boss pre/post work. Stop at the verified target and
-select the next bounded owner only from that evidence. Do not
+Extend the frozen episode-7 target-only diagnostic to split the generated-
+consumable transition into `joker_projector.score`, inherited
+`LiveVisibleCardScoreOutcomeModel.project_transition`, and
+`BalatroState.copy_for_tactical_projection` work, with focused deterministic
+coverage and unconditional restoration of class-level instrumentation, then
+gate it through GitHub Actions. Do not
 optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -3014,6 +3016,18 @@ coverage verifies both attribution and restoration. Focused validation passed
 **16 tests** locally. GitHub Actions run `36584045856`, job `109459469007`,
 passed; the actual log reports **3016 passed, 1607 deselected in 84.71s**. The
 exact next task is the single production v8 diagnostic run above.
+
+The production v8 diagnostic completed with all **12** frozen decisions and the
+target evidence unchanged. Candidate generation took **6549.310226900649s**;
+the complete target took **6698.783777599994s**. The inherited generated-
+consumable transition made **4099771 calls** and consumed
+**5293.3898092896125s (80.82362303662963% of candidate time and
+79.02016224184058% of the complete target)**. Final non-Hook Boss pre/post work
+fell to **99.02879481621494s (1.5120492293900492%)** after subtraction, while
+Hook branching overhead consumed **651.8949798701069s**. Inspection of the
+canonical inherited owner identifies its isolated Joker probe, inherited
+visible-card transition, and per-outcome tactical state copy as the next bounded
+split above. No optimization is authorized yet.
 
 ### Horizon-five candidate sub-profile checkpoint
 
