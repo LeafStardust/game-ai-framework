@@ -29,7 +29,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v4"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v5"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -62,6 +62,9 @@ _CANDIDATE_HELPER_NAMES = (
     "_evaluator_estimate_play",
     "_evaluator_guaranteed_clear",
     "_evaluator_retained_structure",
+    "_evaluator_hand_for_cards",
+    "_score_outcomes_project",
+    "_generate_play_actions",
 )
 
 
@@ -402,6 +405,8 @@ def trace_episode_seven_candidate_subowners(
     evaluation_cache = {"hits": 0, "misses": 0}
     instrumented_planners: list[object] = []
     instrumented_evaluators: list[object] = []
+    instrumented_score_outcomes: list[object] = []
+    instrumented_action_generators: list[object] = []
 
     def instrument_evaluator(evaluator) -> None:
         if any(existing is evaluator for existing in instrumented_evaluators):
@@ -413,6 +418,7 @@ def trace_episode_seven_candidate_subowners(
             ("_estimate_play", "_evaluator_estimate_play"),
             ("_has_guaranteed_clearing_play", "_evaluator_guaranteed_clear"),
             ("_retained_structure_value", "_evaluator_retained_structure"),
+            ("_hand_for_cards", "_evaluator_hand_for_cards"),
         ):
             function = getattr(evaluator, source_name, None)
             if callable(function):
@@ -420,6 +426,35 @@ def trace_episode_seven_candidate_subowners(
                     evaluator,
                     source_name,
                     helper_accumulator.wrap(report_name, function),
+                )
+
+        score_outcomes = getattr(evaluator, "score_outcomes", None)
+        if (
+            score_outcomes is not None
+            and not any(existing is score_outcomes for existing in instrumented_score_outcomes)
+        ):
+            instrumented_score_outcomes.append(score_outcomes)
+            project = getattr(score_outcomes, "project", None)
+            if callable(project):
+                score_outcomes.project = helper_accumulator.wrap(
+                    "_score_outcomes_project",
+                    project,
+                )
+
+        action_generator = getattr(evaluator, "action_generator", None)
+        if (
+            action_generator is not None
+            and not any(
+                existing is action_generator
+                for existing in instrumented_action_generators
+            )
+        ):
+            instrumented_action_generators.append(action_generator)
+            generate = getattr(action_generator, "generate_play_actions", None)
+            if callable(generate):
+                action_generator.generate_play_actions = helper_accumulator.wrap(
+                    "_generate_play_actions",
+                    generate,
                 )
 
         original_evaluate = evaluator.evaluate

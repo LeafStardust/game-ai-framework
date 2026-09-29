@@ -35,6 +35,12 @@ class _FakeEvaluator:
     def __init__(self):
         self._outer_d1_cache_state = None
         self._outer_d1_evaluation_cache = {}
+        self.score_outcomes = SimpleNamespace(
+            project=lambda *args, **kwargs: SimpleNamespace(expected=1.0, minimum=0.0)
+        )
+        self.action_generator = SimpleNamespace(
+            generate_play_actions=lambda state: (_FakeAction(state.hand),)
+        )
 
     @staticmethod
     def _action_key(action):
@@ -49,13 +55,21 @@ class _FakeEvaluator:
         return self._retained_structure_value(action.cards)
 
     def _estimate_play(self, state, action):
-        return float(len(action.cards))
+        hand = self._hand_for_cards(state, action.cards)
+        return self.score_outcomes.project(hand, state, action.cards).expected
 
     def _has_guaranteed_clearing_play(self, state):
+        for action in self.action_generator.generate_play_actions(state):
+            hand = self._hand_for_cards(state, action.cards)
+            if self.score_outcomes.project(hand, state, action.cards).minimum > 0:
+                return True
         return False
 
     def _retained_structure_value(self, cards):
         return float(len(cards))
+
+    def _hand_for_cards(self, state, cards):
+        return "HIGH_CARD"
 
     def evaluate(self, state, action):
         if self._outer_d1_cache_state is not state:
@@ -292,7 +306,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v4"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v5"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -312,6 +326,9 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert helper_costs["_evaluator_estimate_play"].calls == 1
     assert helper_costs["_evaluator_guaranteed_clear"].calls == 1
     assert helper_costs["_evaluator_retained_structure"].calls == 1
+    assert helper_costs["_evaluator_hand_for_cards"].calls == 2
+    assert helper_costs["_score_outcomes_project"].calls == 2
+    assert helper_costs["_generate_play_actions"].calls == 1
     assert report.evaluation_cache_hits == 1
     assert report.evaluation_cache_misses == 1
     assert helper_costs["_diverse_discard_beam"].exclusive_elapsed_seconds > 0.0
