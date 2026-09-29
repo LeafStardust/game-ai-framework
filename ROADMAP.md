@@ -2429,12 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to split the common children
-of `_estimate_play` and `_has_guaranteed_clearing_play`: time
-`_hand_for_cards`, the score-outcome model's `project`, and play-action
-generation, with focused deterministic coverage, then gate it through GitHub
-Actions. Do not optimize planner behavior before that deeper production
-attribution exists. Do not
+Run the frozen episode-7 target-only candidate-sub-owner v5 diagnostic once and
+record `_hand_for_cards`, score-outcome `project`, and play-action-generation
+call counts and exclusive costs. Stop at the verified target decision and
+select the next bounded owner only from that evidence. Do not optimize planner
+behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2939,6 +2938,18 @@ candidate work is **134.62663510159473 seconds (4.453718956170687%)**. Both
 dominant owners converge on hand classification and score-outcome projection;
 the exact next bounded task is the common-child attribution above. No
 optimization is authorized yet.
+
+Commit `7acc116291b928f76d4e6d360fdad1f92b00ad1e` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v5`. Nested exclusive timing
+now separates `_hand_for_cards`, score-outcome `project`, and
+`generate_play_actions` beneath the already measured context/guaranteed-clear
+owners. It retains strong references and instruments shared evaluator children
+only once; no canonical scoring, generation, cache, or planner behavior changes.
+Focused deterministic validation passed **16 tests** locally. GitHub Actions run
+`36521430925`, job `109254945774`, passed; the actual log reports **3016 passed,
+1607 deselected in 95.46s**. The exact next task is the single production v5
+diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
