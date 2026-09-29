@@ -2429,11 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the frozen episode-7 target-only candidate-sub-owner v3 diagnostic once and
-record evaluator cache hits/misses plus disjoint evaluator, `_context`, and
-`_discard_value` costs. Stop at the verified target decision and select the next
-bounded owner only from that evidence. Do not optimize planner behavior before
-that deeper production attribution exists. Do not
+Extend the frozen episode-7 target-only diagnostic to split the two dominant
+evaluator miss owners: time `_estimate_play` beneath `_context`, and
+`_has_guaranteed_clearing_play` plus `_retained_structure_value` beneath
+`_discard_value`, with focused deterministic coverage, then gate it through
+GitHub Actions. Do not optimize planner behavior before that deeper production
+attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2887,6 +2888,27 @@ including an exact miss-then-hit sequence. GitHub Actions run `36501564511`,
 job `109193359969`, passed; the actual log reports **3016 passed, 1607
 deselected in 99.91s**. The exact next task is the single production v3
 diagnostic run above.
+
+The single production v3 diagnostic completed cleanly and stopped at the
+verified target. It preserved all **12** ordered prefix decisions, digest
+`f63c5da42cd96a7e9ecd9281dee0dd90666edf8722f618ee5857fddf8301a145`,
+`DISCARD_CARDS (0,2,3,6,7)`, and attempts `2/292`, `3/2000` exhausted,
+`4/2000` exhausted, and `5/3000` exhausted. Target candidate generation took
+**4015.952657499918 seconds** and the complete target decision took
+**4112.886817100007 seconds**.
+
+The evaluator recorded **16905 calls**, comprising **11265 cache hits
+(66.63708961845607%)** and **5640 misses (33.36291038154392%)**. Its exclusive
+dispatch/cache overhead was only **0.1025567000178853 seconds**. Every miss
+entered `_context`, which consumed **1882.4509400997485 seconds**
+(**46.874330965635565%** of candidate time); **5634** discard misses entered
+`_discard_value`, which consumed **1935.5949840001995 seconds**
+(**48.19765443164313%**). Together those two owners account for
+**95.0719853972787%** of candidate time and **92.83129086426086%** of the
+complete target. The six remaining misses are non-discard evaluations. Residual
+candidate work is **196.10165029999916 seconds (4.883066784509353%)**. The exact
+next bounded task is the child-owner attribution above; no optimization is
+authorized yet.
 
 ### Horizon-five candidate sub-profile checkpoint
 
