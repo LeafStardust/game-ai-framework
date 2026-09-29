@@ -2429,11 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to split the final score
-outcome transition dispatcher into `_project_hook_transition` and
-`_project_non_hook_transition`, with focused deterministic coverage, then gate
-it through GitHub Actions. Do not optimize planner behavior before that deeper
-production attribution exists. Do not
+Run the frozen episode-7 target-only candidate-sub-owner v7 diagnostic once and
+record Hook and non-Hook transition call counts and exclusive costs. Stop at the
+verified target decision and select the next bounded owner only from that
+evidence. Do not optimize planner behavior before that deeper production
+attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2981,6 +2981,16 @@ made **8199542 calls** but consumed only **137.8548390805372s
 candidate time; residual was only **1.2976260000286857s**. The final transition
 dispatcher selects only Hook versus non-Hook owners, so the exact next bounded
 task is that branch split above. No optimization is authorized yet.
+
+Commit `825aabd9696b6aeb8eb00628da79a5ccd8fd7ccd` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v7`. Nested exclusive timing
+now separates `_project_hook_transition` and `_project_non_hook_transition`
+beneath the final transition dispatcher, without changing branch selection or
+transition behavior. Focused deterministic validation passed **16 tests**
+locally. GitHub Actions run `36562992581`, job `109388072098`, passed; the
+actual log reports **3016 passed, 1607 deselected in 130.51s**. The exact next
+task is the single production v7 diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
