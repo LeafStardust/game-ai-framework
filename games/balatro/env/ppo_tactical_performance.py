@@ -29,7 +29,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v5"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v6"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -64,6 +64,8 @@ _CANDIDATE_HELPER_NAMES = (
     "_evaluator_retained_structure",
     "_evaluator_hand_for_cards",
     "_score_outcomes_project",
+    "_score_outcomes_project_transition",
+    "_score_outcomes_scorer_score",
     "_generate_play_actions",
 )
 
@@ -406,6 +408,7 @@ def trace_episode_seven_candidate_subowners(
     instrumented_planners: list[object] = []
     instrumented_evaluators: list[object] = []
     instrumented_score_outcomes: list[object] = []
+    instrumented_score_outcome_scorers: list[object] = []
     instrumented_action_generators: list[object] = []
 
     def instrument_evaluator(evaluator) -> None:
@@ -440,6 +443,27 @@ def trace_episode_seven_candidate_subowners(
                     "_score_outcomes_project",
                     project,
                 )
+            project_transition = getattr(score_outcomes, "project_transition", None)
+            if callable(project_transition):
+                score_outcomes.project_transition = helper_accumulator.wrap(
+                    "_score_outcomes_project_transition",
+                    project_transition,
+                )
+            scorer = getattr(score_outcomes, "scorer", None)
+            if (
+                scorer is not None
+                and not any(
+                    existing is scorer
+                    for existing in instrumented_score_outcome_scorers
+                )
+            ):
+                instrumented_score_outcome_scorers.append(scorer)
+                score = getattr(scorer, "score", None)
+                if callable(score):
+                    scorer.score = helper_accumulator.wrap(
+                        "_score_outcomes_scorer_score",
+                        score,
+                    )
 
         action_generator = getattr(evaluator, "action_generator", None)
         if (

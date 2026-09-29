@@ -31,13 +31,24 @@ class _FakeDecision:
         self.search_attempts = ()
 
 
+class _FakeScoreOutcomes:
+    def __init__(self):
+        self.scorer = SimpleNamespace(score=lambda *args, **kwargs: 1.0)
+
+    def project_transition(self, *args, **kwargs):
+        return SimpleNamespace(expected=1.0, minimum=0.0)
+
+    def project(self, *args, **kwargs):
+        result = self.project_transition(*args, **kwargs)
+        self.scorer.score(*args, **kwargs)
+        return result
+
+
 class _FakeEvaluator:
     def __init__(self):
         self._outer_d1_cache_state = None
         self._outer_d1_evaluation_cache = {}
-        self.score_outcomes = SimpleNamespace(
-            project=lambda *args, **kwargs: SimpleNamespace(expected=1.0, minimum=0.0)
-        )
+        self.score_outcomes = _FakeScoreOutcomes()
         self.action_generator = SimpleNamespace(
             generate_play_actions=lambda state: (_FakeAction(state.hand),)
         )
@@ -306,7 +317,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v5"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v6"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -328,6 +339,8 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert helper_costs["_evaluator_retained_structure"].calls == 1
     assert helper_costs["_evaluator_hand_for_cards"].calls == 2
     assert helper_costs["_score_outcomes_project"].calls == 2
+    assert helper_costs["_score_outcomes_project_transition"].calls == 2
+    assert helper_costs["_score_outcomes_scorer_score"].calls == 2
     assert helper_costs["_generate_play_actions"].calls == 1
     assert report.evaluation_cache_hits == 1
     assert report.evaluation_cache_misses == 1
