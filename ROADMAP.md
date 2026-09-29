@@ -2429,11 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the frozen episode-7 target-only candidate-sub-owner v6 diagnostic once and
-record score-outcome `project_transition` and scorer `score` call counts and
-exclusive costs. Stop at the verified target decision and select the next
-bounded owner only from that evidence. Do not optimize planner behavior before
-that deeper production attribution exists. Do not
+Extend the frozen episode-7 target-only diagnostic to split the final score
+outcome transition dispatcher into `_project_hook_transition` and
+`_project_non_hook_transition`, with focused deterministic coverage, then gate
+it through GitHub Actions. Do not optimize planner behavior before that deeper
+production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2970,6 +2970,17 @@ Focused deterministic validation passed **16 tests** locally. GitHub Actions run
 `36551182721`, job `109349467814`, passed; the actual log reports **3016 passed,
 1607 deselected in 135.13s**. The exact next task is the single production v6
 diagnostic run above.
+
+The production v6 diagnostic completed with all **12** frozen decisions and the
+target evidence unchanged. Candidate generation took **3115.146790500541s**;
+the complete target took **3187.3885490999965s**. `project_transition` made
+**509883 calls** and consumed **2915.5975319186546s** (**93.59422614721076%**
+of candidate time and **91.47292484130666%** of the complete target). The scorer
+made **8199542 calls** but consumed only **137.8548390805372s
+(4.425307966254351%)**. Together they explain **98.01953411346513%** of
+candidate time; residual was only **1.2976260000286857s**. The final transition
+dispatcher selects only Hook versus non-Hook owners, so the exact next bounded
+task is that branch split above. No optimization is authorized yet.
 
 ### Horizon-five candidate sub-profile checkpoint
 
