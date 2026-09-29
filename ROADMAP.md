@@ -2429,11 +2429,10 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to split
-`_project_non_hook_transition` into the inherited
-`LiveGeneratedConsumableScoreOutcomeModel.project_transition` stage versus
-final Boss pre/post work, with focused deterministic coverage and restoration
-of any class-level instrumentation, then gate it through GitHub Actions. Do not
+Run the frozen episode-7 target-only candidate-sub-owner v8 diagnostic once and
+record the inherited generated-consumable transition call count and exclusive
+cost versus final non-Hook Boss pre/post work. Stop at the verified target and
+select the next bounded owner only from that evidence. Do not
 optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -3004,6 +3003,17 @@ Those calls expanded into **4099771** non-Hook branch transitions, averaging
 **92.31095901338662%** of candidate time. The exact next bounded task is the
 inherited generated-consumable transition split above; no optimization is
 authorized yet.
+
+Commit `f88ed34cf32fb3498493a035126b7e8ca9dbaa80` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v8`. It times the inherited
+`LiveGeneratedConsumableScoreOutcomeModel.project_transition` stage beneath the
+final non-Hook owner. The temporary class-level wrapper is installed only around
+collection and restored unconditionally in `finally`; focused deterministic
+coverage verifies both attribution and restoration. Focused validation passed
+**16 tests** locally. GitHub Actions run `36584045856`, job `109459469007`,
+passed; the actual log reports **3016 passed, 1607 deselected in 84.71s**. The
+exact next task is the single production v8 diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
