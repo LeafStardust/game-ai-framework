@@ -2429,11 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the frozen episode-7 target-only candidate-sub-owner v4 diagnostic once and
-record `_estimate_play`, `_has_guaranteed_clearing_play`, and
-`_retained_structure_value` call counts and exclusive costs. Stop at the
-verified target decision and select the next bounded owner only from that
-evidence. Do not optimize planner behavior before that deeper production
+Extend the frozen episode-7 target-only diagnostic to split the common children
+of `_estimate_play` and `_has_guaranteed_clearing_play`: time
+`_hand_for_cards`, the score-outcome model's `project`, and play-action
+generation, with focused deterministic coverage, then gate it through GitHub
+Actions. Do not optimize planner behavior before that deeper production
 attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -2920,6 +2920,25 @@ deterministic validation passed **16 tests** locally. GitHub Actions run
 `36513243815`, job `109229799413`, passed; the actual log reports **3016 passed,
 1607 deselected in 83.44s**. The exact next task is the single production v4
 diagnostic run above.
+
+The single production v4 diagnostic completed cleanly and stopped at the
+verified target with all **12** ordered decisions, the target digest/action, and
+the four frozen attempt tuples unchanged. Candidate generation took
+**3022.791434000741 seconds** and the complete target took
+**3091.4015725000063 seconds**. Cache counts remained exactly **11265 hits / 5640
+misses**.
+
+`_estimate_play` made **245686 calls** and consumed **1427.5432817028923
+seconds** (**47.225993353219955%** of candidate time). The **5634**
+`_has_guaranteed_clearing_play` calls consumed **1458.236967200064 seconds**
+(**48.241401996764644%**). Together they own **95.46739534998461%** of
+candidate time and **93.34860519493219%** of the complete target.
+`_retained_structure_value` consumed only **0.06076470093103126 seconds**;
+exclusive parent context/discard-value work was likewise negligible. Residual
+candidate work is **134.62663510159473 seconds (4.453718956170687%)**. Both
+dominant owners converge on hand classification and score-outcome projection;
+the exact next bounded task is the common-child attribution above. No
+optimization is authorized yet.
 
 ### Horizon-five candidate sub-profile checkpoint
 
