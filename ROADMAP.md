@@ -2429,11 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the frozen episode-7 target-only candidate-sub-owner v7 diagnostic once and
-record Hook and non-Hook transition call counts and exclusive costs. Stop at the
-verified target decision and select the next bounded owner only from that
-evidence. Do not optimize planner behavior before that deeper production
-attribution exists. Do not
+Extend the frozen episode-7 target-only diagnostic to split
+`_project_non_hook_transition` into the inherited
+`LiveGeneratedConsumableScoreOutcomeModel.project_transition` stage versus
+final Boss pre/post work, with focused deterministic coverage and restoration
+of any class-level instrumentation, then gate it through GitHub Actions. Do not
+optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2991,6 +2992,18 @@ transition behavior. Focused deterministic validation passed **16 tests**
 locally. GitHub Actions run `36562992581`, job `109388072098`, passed; the
 actual log reports **3016 passed, 1607 deselected in 130.51s**. The exact next
 task is the single production v7 diagnostic run above.
+
+The production v7 diagnostic completed with all **12** frozen decisions and the
+target evidence unchanged. Candidate generation took **6314.475906899737s**;
+the complete target took **6435.742201000001s**. The active Hook path made
+**509883 calls** and consumed **619.228562786142s (9.806491812084037%)**.
+Those calls expanded into **4099771** non-Hook branch transitions, averaging
+**8.04061127748915 branches per Hook call**; non-Hook work consumed
+**5209.724703542248s (82.50446720130259% of candidate time and
+80.94986624437425% of the complete target)**. The two branches together explain
+**92.31095901338662%** of candidate time. The exact next bounded task is the
+inherited generated-consumable transition split above; no optimization is
+authorized yet.
 
 ### Horizon-five candidate sub-profile checkpoint
 
