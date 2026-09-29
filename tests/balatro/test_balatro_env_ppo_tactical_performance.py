@@ -31,19 +31,52 @@ class _FakeDecision:
         self.search_attempts = ()
 
 
+class _FakeEvaluator:
+    def __init__(self):
+        self._outer_d1_cache_state = None
+        self._outer_d1_evaluation_cache = {}
+
+    @staticmethod
+    def _action_key(action):
+        return action.name, tuple(id(card) for card in action.cards)
+
+    def _context(self, state):
+        return state
+
+    def _discard_value(self, state, action, context):
+        return float(len(action.cards))
+
+    def evaluate(self, state, action):
+        if self._outer_d1_cache_state is not state:
+            self._outer_d1_cache_state = state
+            self._outer_d1_evaluation_cache = {}
+        key = self._action_key(action)
+        cached = self._outer_d1_evaluation_cache.get(key)
+        if cached is not None:
+            return cached
+        value = self._discard_value(state, action, self._context(state))
+        self._outer_d1_evaluation_cache[key] = value
+        return value
+
+
 class _FakePlanner:
+    def __init__(self):
+        self.evaluator = _FakeEvaluator()
+
     def _child_play_candidates(self, state, play_limit=1):
         return (state.hand[0],)
 
     def _discard_priority(self, state, action):
-        return (1.0, len(action.cards))
+        return (self.evaluator.evaluate(state, action), len(action.cards))
 
     def _diverse_discard_beam(self, state, discards, limit=1):
-        return sorted(
+        ranked = sorted(
             discards,
             key=lambda action: self._discard_priority(state, action),
             reverse=True,
-        )[:limit]
+        )
+        self._discard_priority(state, ranked[0])
+        return ranked[:limit]
 
     def _candidate_actions(self, state, **kwargs):
         self._diverse_discard_beam(state, (_FakeAction([state.hand[0]]),))
@@ -248,7 +281,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v2"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v3"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -261,7 +294,12 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert report.helper_costs[0].calls == 1
     helper_costs = {cost.name: cost for cost in report.helper_costs}
     assert helper_costs["_diverse_discard_beam"].calls == 1
-    assert helper_costs["_discard_priority"].calls == 1
+    assert helper_costs["_discard_priority"].calls == 2
+    assert helper_costs["_evaluator_evaluate"].calls == 2
+    assert helper_costs["_evaluator_context"].calls == 1
+    assert helper_costs["_evaluator_discard_value"].calls == 1
+    assert report.evaluation_cache_hits == 1
+    assert report.evaluation_cache_misses == 1
     assert helper_costs["_diverse_discard_beam"].exclusive_elapsed_seconds > 0.0
     assert helper_costs["_discard_priority"].exclusive_elapsed_seconds > 0.0
     assert sum(

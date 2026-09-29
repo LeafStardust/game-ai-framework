@@ -29,7 +29,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v2"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v3"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -56,6 +56,9 @@ _CANDIDATE_HELPER_NAMES = (
     "_diverse_discard_beam",
     "_projection_free_discard_reserve",
     "_discard_priority",
+    "_evaluator_evaluate",
+    "_evaluator_context",
+    "_evaluator_discard_value",
 )
 
 
@@ -133,6 +136,8 @@ class PPOTacticalCandidateSubownerReport:
     action: str
     selected_hand_indices: tuple[int, ...]
     search_attempts: tuple[tuple[int, int, int, bool], ...]
+    evaluation_cache_hits: int
+    evaluation_cache_misses: int
     total_elapsed_seconds: float
     candidate_generation_elapsed_seconds: float
     helper_costs: tuple[PPOTacticalCandidateHelperCost, ...]
@@ -391,12 +396,53 @@ def trace_episode_seven_candidate_subowners(
     engine = environment._backend._tactical_decision_engine
     helper_accumulator = _ExclusiveHelperAccumulator(clock)
     candidate_elapsed = {"seconds": 0.0}
+    evaluation_cache = {"hits": 0, "misses": 0}
     instrumented_planners: list[object] = []
+    instrumented_evaluators: list[object] = []
+
+    def instrument_evaluator(evaluator) -> None:
+        if any(existing is evaluator for existing in instrumented_evaluators):
+            return
+        instrumented_evaluators.append(evaluator)
+        for source_name, report_name in (
+            ("_context", "_evaluator_context"),
+            ("_discard_value", "_evaluator_discard_value"),
+        ):
+            function = getattr(evaluator, source_name, None)
+            if callable(function):
+                setattr(
+                    evaluator,
+                    source_name,
+                    helper_accumulator.wrap(report_name, function),
+                )
+
+        original_evaluate = evaluator.evaluate
+
+        def counted_evaluate(state, action, *args, **kwargs):
+            if helper_accumulator.enabled:
+                action_key = getattr(evaluator, "_action_key", None)
+                cache = getattr(evaluator, "_outer_d1_evaluation_cache", None)
+                if not callable(action_key) or not isinstance(cache, dict):
+                    raise RuntimeError("candidate evaluator cache contract drifted")
+                hit = (
+                    getattr(evaluator, "_outer_d1_cache_state", None) is state
+                    and cache.get(action_key(action)) is not None
+                )
+                evaluation_cache["hits" if hit else "misses"] += 1
+            return original_evaluate(state, action, *args, **kwargs)
+
+        evaluator.evaluate = helper_accumulator.wrap(
+            "_evaluator_evaluate",
+            counted_evaluate,
+        )
 
     def instrument_planner(planner) -> None:
         if any(existing is planner for existing in instrumented_planners):
             return
         instrumented_planners.append(planner)
+        evaluator = getattr(planner, "evaluator", None)
+        if evaluator is not None:
+            instrument_evaluator(evaluator)
         for name in _CANDIDATE_HELPER_NAMES:
             function = getattr(planner, name, None)
             if callable(function):
@@ -478,6 +524,9 @@ def trace_episode_seven_candidate_subowners(
             if helper_accumulator.calls.get(name, 0)
         )
         candidate = candidate_elapsed["seconds"]
+        evaluation_calls = helper_accumulator.calls.get("_evaluator_evaluate", 0)
+        if evaluation_cache["hits"] + evaluation_cache["misses"] != evaluation_calls:
+            raise RuntimeError("candidate evaluator cache accounting drifted")
         residual = max(
             0.0,
             candidate - sum(item.exclusive_elapsed_seconds for item in helper_costs),
@@ -504,6 +553,8 @@ def trace_episode_seven_candidate_subowners(
             action=action,
             selected_hand_indices=indices,
             search_attempts=attempts,
+            evaluation_cache_hits=evaluation_cache["hits"],
+            evaluation_cache_misses=evaluation_cache["misses"],
             total_elapsed_seconds=total,
             candidate_generation_elapsed_seconds=candidate,
             helper_costs=helper_costs,
