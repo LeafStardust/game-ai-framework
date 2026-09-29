@@ -2429,11 +2429,10 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the frozen episode-7 target-only candidate-sub-owner v5 diagnostic once and
-record `_hand_for_cards`, score-outcome `project`, and play-action-generation
-call counts and exclusive costs. Stop at the verified target decision and
-select the next bounded owner only from that evidence. Do not optimize planner
-behavior before that deeper production attribution exists. Do not
+Extend the frozen episode-7 target-only diagnostic to split score-outcome
+`project` into canonical `project_transition` and scorer `score` work, with
+focused deterministic coverage, then gate it through GitHub Actions. Do not
+optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2950,6 +2949,15 @@ Focused deterministic validation passed **16 tests** locally. GitHub Actions run
 `36521430925`, job `109254945774`, passed; the actual log reports **3016 passed,
 1607 deselected in 95.46s**. The exact next task is the single production v5
 diagnostic run above.
+
+The production v5 diagnostic completed with all **12** frozen decisions and the
+target evidence unchanged. Candidate generation took **2850.6478016998008s**;
+the complete target took **2917.254566100004s**. Score-outcome `project` made
+**491372 calls** and consumed **2671.6785463971755s**, while `_hand_for_cards`
+made 515227 calls for only **5.905288897527498s** and play generation made 2254
+calls for **0.3153278002719162s**. Residual candidate work was
+**129.111160800574s**. The exact next task is the `project_transition` versus
+scorer split above; no optimization is authorized yet.
 
 ### Horizon-five candidate sub-profile checkpoint
 
