@@ -2429,11 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to split the two dominant
-evaluator miss owners: time `_estimate_play` beneath `_context`, and
-`_has_guaranteed_clearing_play` plus `_retained_structure_value` beneath
-`_discard_value`, with focused deterministic coverage, then gate it through
-GitHub Actions. Do not optimize planner behavior before that deeper production
+Run the frozen episode-7 target-only candidate-sub-owner v4 diagnostic once and
+record `_estimate_play`, `_has_guaranteed_clearing_play`, and
+`_retained_structure_value` call counts and exclusive costs. Stop at the
+verified target decision and select the next bounded owner only from that
+evidence. Do not optimize planner behavior before that deeper production
 attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -2909,6 +2909,17 @@ complete target. The six remaining misses are non-discard evaluations. Residual
 candidate work is **196.10165029999916 seconds (4.883066784509353%)**. The exact
 next bounded task is the child-owner attribution above; no optimization is
 authorized yet.
+
+Commit `a7ff7971cc857a6ce5ff87580b75a6a6bf9d7f57` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v4`. Nested exclusive timing
+now separates `_estimate_play` from `_context`, and separates
+`_has_guaranteed_clearing_play` plus `_retained_structure_value` from
+`_discard_value`; no evaluator, cache, or planner behavior changes. Focused
+deterministic validation passed **16 tests** locally. GitHub Actions run
+`36513243815`, job `109229799413`, passed; the actual log reports **3016 passed,
+1607 deselected in 83.44s**. The exact next task is the single production v4
+diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
