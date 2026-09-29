@@ -2429,11 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to split the canonical
-evaluator work beneath `_discard_priority`: record evaluation-cache hit/miss
-counts and disjoint `_context` versus `_discard_value` costs, with focused
-deterministic coverage, then gate it through GitHub Actions. Do not optimize
-planner behavior before that deeper production attribution exists. Do not
+Run the frozen episode-7 target-only candidate-sub-owner v3 diagnostic once and
+record evaluator cache hits/misses plus disjoint evaluator, `_context`, and
+`_discard_value` costs. Stop at the verified target decision and select the next
+bounded owner only from that evidence. Do not optimize planner behavior before
+that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2874,6 +2874,19 @@ verified target. It preserved all **12** ordered prefix decisions, digest
 (**4.543321801477875%**). Sorting/control is therefore exonerated. The exact
 next bounded task is the evaluator cache/context/discard-value attribution
 above; no optimization is authorized yet.
+
+Commit `502fe0c999c1d451a94af24104b591bfe06caa5b` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v3`. Without prewarming or
+resetting canonical cache state, it classifies each evaluator call using the
+same state/action/value-presence conditions as the owner and records cache hits
+and misses. Nested exclusive timing now separates evaluator dispatch/cache
+overhead, `_context`, and `_discard_value` while retaining the existing planner
+partition. Focused deterministic validation passed **16 tests** locally,
+including an exact miss-then-hit sequence. GitHub Actions run `36501564511`,
+job `109193359969`, passed; the actual log reports **3016 passed, 1607
+deselected in 99.91s**. The exact next task is the single production v3
+diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
