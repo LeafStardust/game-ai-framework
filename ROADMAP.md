@@ -2429,10 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to split score-outcome
-`project` into canonical `project_transition` and scorer `score` work, with
-focused deterministic coverage, then gate it through GitHub Actions. Do not
-optimize planner behavior before that deeper production attribution exists. Do not
+Run the frozen episode-7 target-only candidate-sub-owner v6 diagnostic once and
+record score-outcome `project_transition` and scorer `score` call counts and
+exclusive costs. Stop at the verified target decision and select the next
+bounded owner only from that evidence. Do not optimize planner behavior before
+that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -2958,6 +2959,17 @@ made 515227 calls for only **5.905288897527498s** and play generation made 2254
 calls for **0.3153278002719162s**. Residual candidate work was
 **129.111160800574s**. The exact next task is the `project_transition` versus
 scorer split above; no optimization is authorized yet.
+
+Commit `f19b68db0aadd835f7b1e01b3736edb7c06ec244` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v6`. Nested exclusive timing
+now separates score-outcome `project_transition` and the outcome model's scorer
+`score` beneath `project`, retaining strong references and instrumenting shared
+scorers only once. No canonical score, transition, or planner behavior changes.
+Focused deterministic validation passed **16 tests** locally. GitHub Actions run
+`36551182721`, job `109349467814`, passed; the actual log reports **3016 passed,
+1607 deselected in 135.13s**. The exact next task is the single production v6
+diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
