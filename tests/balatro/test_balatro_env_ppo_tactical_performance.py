@@ -36,6 +36,13 @@ class _FakeScoreOutcomes:
         self.scorer = SimpleNamespace(score=lambda *args, **kwargs: 1.0)
 
     def project_transition(self, *args, **kwargs):
+        self._project_hook_transition(*args, **kwargs)
+        return self._project_non_hook_transition(*args, **kwargs)
+
+    def _project_hook_transition(self, *args, **kwargs):
+        return SimpleNamespace(expected=1.0, minimum=0.0)
+
+    def _project_non_hook_transition(self, *args, **kwargs):
         return SimpleNamespace(expected=1.0, minimum=0.0)
 
     def project(self, *args, **kwargs):
@@ -317,7 +324,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v6"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v7"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -340,6 +347,8 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert helper_costs["_evaluator_hand_for_cards"].calls == 2
     assert helper_costs["_score_outcomes_project"].calls == 2
     assert helper_costs["_score_outcomes_project_transition"].calls == 2
+    assert helper_costs["_score_outcomes_hook_transition"].calls == 2
+    assert helper_costs["_score_outcomes_non_hook_transition"].calls == 2
     assert helper_costs["_score_outcomes_scorer_score"].calls == 2
     assert helper_costs["_generate_play_actions"].calls == 1
     assert report.evaluation_cache_hits == 1

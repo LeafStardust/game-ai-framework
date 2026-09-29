@@ -29,7 +29,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v6"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v7"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -65,6 +65,8 @@ _CANDIDATE_HELPER_NAMES = (
     "_evaluator_hand_for_cards",
     "_score_outcomes_project",
     "_score_outcomes_project_transition",
+    "_score_outcomes_hook_transition",
+    "_score_outcomes_non_hook_transition",
     "_score_outcomes_scorer_score",
     "_generate_play_actions",
 )
@@ -449,6 +451,20 @@ def trace_episode_seven_candidate_subowners(
                     "_score_outcomes_project_transition",
                     project_transition,
                 )
+            for source_name, report_name in (
+                ("_project_hook_transition", "_score_outcomes_hook_transition"),
+                (
+                    "_project_non_hook_transition",
+                    "_score_outcomes_non_hook_transition",
+                ),
+            ):
+                function = getattr(score_outcomes, source_name, None)
+                if callable(function):
+                    setattr(
+                        score_outcomes,
+                        source_name,
+                        helper_accumulator.wrap(report_name, function),
+                    )
             scorer = getattr(score_outcomes, "scorer", None)
             if (
                 scorer is not None
