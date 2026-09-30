@@ -309,6 +309,14 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
         return tactical_performance.balatro_state.deepcopy(self)
 
     def state_deepcopy(value, memo=None):
+        tactical_performance.copy_module._deepcopy_dispatch[dict]({}, {})
+        tactical_performance.copy_module._deepcopy_dispatch[list]([], {})
+        tactical_performance.copy_module._reconstruct(
+            value,
+            {},
+            SimpleNamespace,
+            (),
+        )
         return value
 
     def generated_transition(self, *args, **kwargs):
@@ -364,6 +372,9 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
         "collect_complete_ppo_episode",
         collector,
     )
+    reconstruct = tactical_performance.copy_module._reconstruct
+    dict_deepcopy = tactical_performance.copy_module._deepcopy_dispatch[dict]
+    list_deepcopy = tactical_performance.copy_module._deepcopy_dispatch[list]
     ticks = count()
 
     report = trace_episode_seven_candidate_subowners(
@@ -372,7 +383,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v10"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v11"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -402,6 +413,9 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert helper_costs["_visible_card_project_transition"].calls == 2
     assert helper_costs["_state_copy_for_tactical_projection"].calls == 2
     assert helper_costs["_state_projection_deepcopy"].calls == 2
+    assert helper_costs["_state_deepcopy_reconstruct"].calls == 2
+    assert helper_costs["_state_deepcopy_dict"].calls == 2
+    assert helper_costs["_state_deepcopy_list"].calls == 2
     assert helper_costs["_score_outcomes_scorer_score"].calls == 2
     assert helper_costs["_generate_play_actions"].calls == 1
     assert report.evaluation_cache_hits == 1
@@ -410,6 +424,9 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert visible_transition_class.project_transition is visible_transition
     assert BalatroState.copy_for_tactical_projection is tactical_copy
     assert tactical_performance.balatro_state.deepcopy is state_deepcopy
+    assert tactical_performance.copy_module._reconstruct is reconstruct
+    assert tactical_performance.copy_module._deepcopy_dispatch[dict] is dict_deepcopy
+    assert tactical_performance.copy_module._deepcopy_dispatch[list] is list_deepcopy
     assert helper_costs["_diverse_discard_beam"].exclusive_elapsed_seconds > 0.0
     assert helper_costs["_discard_priority"].exclusive_elapsed_seconds > 0.0
     assert sum(
@@ -442,6 +459,9 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
     )
     tactical_copy = BalatroState.copy_for_tactical_projection
     state_deepcopy = tactical_performance.balatro_state.deepcopy
+    reconstruct = tactical_performance.copy_module._reconstruct
+    dict_deepcopy = tactical_performance.copy_module._deepcopy_dispatch[dict]
+    list_deepcopy = tactical_performance.copy_module._deepcopy_dispatch[list]
     monkeypatch.setattr(
         tactical_performance,
         "make_ppo_training_environment",
@@ -473,6 +493,9 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
     )
     assert BalatroState.copy_for_tactical_projection is tactical_copy
     assert tactical_performance.balatro_state.deepcopy is state_deepcopy
+    assert tactical_performance.copy_module._reconstruct is reconstruct
+    assert tactical_performance.copy_module._deepcopy_dispatch[dict] is dict_deepcopy
+    assert tactical_performance.copy_module._deepcopy_dispatch[list] is list_deepcopy
 
 
 @pytest.mark.parametrize("episode_index", [-1, 8, True, 1.0, None])

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy as copy_module
 from dataclasses import asdict, dataclass, field
 from hashlib import sha256
 import json
@@ -35,7 +36,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v10"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v11"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -78,6 +79,9 @@ _CANDIDATE_HELPER_NAMES = (
     "_visible_card_project_transition",
     "_state_copy_for_tactical_projection",
     "_state_projection_deepcopy",
+    "_state_deepcopy_reconstruct",
+    "_state_deepcopy_dict",
+    "_state_deepcopy_list",
     "_score_outcomes_scorer_score",
     "_generate_play_actions",
 )
@@ -693,16 +697,37 @@ def trace_episode_seven_candidate_subowners(
         "_state_projection_deepcopy",
         original_state_deepcopy,
     )
+    state_deepcopy_depth = {"value": 0}
 
     def nested_state_deepcopy(*args, **kwargs):
         if helper_accumulator.enabled and any(
             frame[0] == "_state_copy_for_tactical_projection"
             for frame in helper_accumulator.stack
         ):
-            return timed_state_deepcopy(*args, **kwargs)
+            state_deepcopy_depth["value"] += 1
+            try:
+                return timed_state_deepcopy(*args, **kwargs)
+            finally:
+                state_deepcopy_depth["value"] -= 1
         return original_state_deepcopy(*args, **kwargs)
 
+    def nested_copy_internal(report_name, function):
+        timed = helper_accumulator.wrap(report_name, function)
+
+        def nested(*args, **kwargs):
+            if state_deepcopy_depth["value"]:
+                return timed(*args, **kwargs)
+            return function(*args, **kwargs)
+
+        return nested
+
+    original_reconstruct = copy_module._reconstruct
+    original_copy_dispatch = {
+        dict: copy_module._deepcopy_dispatch[dict],
+        list: copy_module._deepcopy_dispatch[list],
+    }
     installed_class_instrumentation = []
+    installed_copy_dispatch = []
     try:
         for owner, name, report_name in class_instrumentation:
             original = getattr(owner, name)
@@ -712,6 +737,23 @@ def trace_episode_seven_candidate_subowners(
         installed_class_instrumentation.append(
             (balatro_state, "deepcopy", original_state_deepcopy)
         )
+        copy_module._reconstruct = nested_copy_internal(
+            "_state_deepcopy_reconstruct",
+            original_reconstruct,
+        )
+        installed_class_instrumentation.append(
+            (copy_module, "_reconstruct", original_reconstruct)
+        )
+        for value_type, report_name in (
+            (dict, "_state_deepcopy_dict"),
+            (list, "_state_deepcopy_list"),
+        ):
+            original = original_copy_dispatch[value_type]
+            copy_module._deepcopy_dispatch[value_type] = nested_copy_internal(
+                report_name,
+                original,
+            )
+            installed_copy_dispatch.append((value_type, original))
         try:
             collect_complete_ppo_episode(
                 environment,
@@ -722,6 +764,8 @@ def trace_episode_seven_candidate_subowners(
         except _TargetDecisionReached as reached:
             return reached.report
     finally:
+        for value_type, original in reversed(installed_copy_dispatch):
+            copy_module._deepcopy_dispatch[value_type] = original
         for owner, name, original in reversed(installed_class_instrumentation):
             setattr(owner, name, original)
     raise PPOContractError("episode-seven candidate sub-owner target was not reached")
