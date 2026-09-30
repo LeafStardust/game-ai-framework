@@ -2429,12 +2429,9 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to split
-`BalatroState.copy_for_tactical_projection` into its underlying state-module
-`deepcopy` work and exclusive immutable-evidence/card-memo preparation. Attribute
-only `deepcopy` calls nested beneath the tactical-copy owner, restore all
-temporary class/module instrumentation unconditionally, add focused deterministic
-coverage, and gate the change through GitHub Actions. Do not
+Run the single frozen episode-7 target-only v10 production diagnostic and record
+the measured state-module `deepcopy` work versus exclusive immutable-evidence/
+card-memo preparation before selecting any optimization. Do not
 optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -3059,6 +3056,18 @@ time)**. Exclusive generated-consumable control work was
 manually reconstructing the required stateful branch copy. The exact next
 bounded task is therefore the nested state-copy/deepcopy attribution above, not
 another projection-copy optimization.
+
+Commit `dc404436580e75269ccb34ea6650344821640fec` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v10`. It times the state
+module's `deepcopy` only while a `_state_copy_for_tactical_projection` frame is
+active, leaving unrelated deepcopy calls outside the attribution. Temporary
+class and module instrumentation is restored unconditionally in reverse order.
+Focused deterministic coverage proves the nesting filter and restoration after
+both successful target termination and fail-closed prefix drift; **16 tests**
+passed locally. GitHub Actions run `36700103034`, job `109837283547`, passed;
+the actual job log reports **3016 passed, 1607 deselected in 137.04s**. The
+exact next task is the single production v10 diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
