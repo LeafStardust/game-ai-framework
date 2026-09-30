@@ -2429,11 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only v9 production diagnostic and record
-the measured `joker_projector.score`, inherited
-`LiveVisibleCardScoreOutcomeModel.project_transition`, and
-`BalatroState.copy_for_tactical_projection` attribution before selecting any
-optimization. Do not
+Extend the frozen episode-7 target-only diagnostic to split
+`BalatroState.copy_for_tactical_projection` into its underlying state-module
+`deepcopy` work and exclusive immutable-evidence/card-memo preparation. Attribute
+only `deepcopy` calls nested beneath the tactical-copy owner, restore all
+temporary class/module instrumentation unconditionally, add focused deterministic
+coverage, and gate the change through GitHub Actions. Do not
 optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -3039,6 +3040,25 @@ order on both success and failure. Focused deterministic validation passed **16
 tests** locally. GitHub Actions run `36684514161`, job `109787173809`, passed;
 the actual job log reports **3016 passed, 1607 deselected in 135.93s**. The
 exact next task is the single production v9 diagnostic run above.
+
+The production v9 diagnostic completed with all **12** frozen decisions, target
+digest/action/indices, four frozen search attempts, and **11265 cache hits /
+5640 misses** unchanged. Candidate generation took **4104.315961099375s** and
+the complete target took **4194.967228499998s**. The generated transition made
+**4099771** calls. Its per-outcome
+`BalatroState.copy_for_tactical_projection` owner made the same **4099771** calls
+and consumed **2610.337708310137s (63.5998235284726% of candidate time and
+62.22546127597569% of total target time)**. `joker_projector.score` made
+**8199542** calls for **547.4013024691958s (13.337211551387721% of candidate
+time)**, while inherited visible-card transition work consumed
+**102.07823986498988s (2.4870950685201967%)**. Those three requested owners
+together explain **3259.8172506443225s (79.42413014838051% of candidate
+time)**. Exclusive generated-consumable control work was
+**178.6554557645286s** and final residual candidate work was only
+**3.082920202461537s**. Existing roadmap evidence rejects removing, sharing, or
+manually reconstructing the required stateful branch copy. The exact next
+bounded task is therefore the nested state-copy/deepcopy attribution above, not
+another projection-copy optimization.
 
 ### Horizon-five candidate sub-profile checkpoint
 
