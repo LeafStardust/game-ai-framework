@@ -2429,9 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only v11 production diagnostic and record
-the measured `copy._reconstruct`, dictionary-copy, and list-copy attribution
-before selecting any optimization. Do not
+Extend the frozen episode-7 target-only diagnostic to record deterministic
+reconstruction call counts by exact Python input type while the scoped
+`copy._reconstruct` owner is active. Keep type accounting out of candidate-cost
+residual subtraction, restore all temporary instrumentation unconditionally, add
+focused deterministic coverage, and gate the change through GitHub Actions. Do not
 optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -3097,6 +3099,23 @@ success and fail-closed drift; **16 tests** passed locally. GitHub Actions run
 `36714952235`, job `109885481545`, passed; the actual job log reports **3016
 passed, 1607 deselected in 136.82s**. The exact next task is the single
 production v11 diagnostic run above.
+
+The production v11 diagnostic completed with all **12** frozen decisions,
+target evidence, and **11265 cache hits / 5640 misses** unchanged. Candidate
+generation took **4933.257001501828s** and the complete target took
+**5032.7857078999805s**. Beneath **4099771** tactical copies, generic deepcopy
+made **426234731** reconstruction calls (**103.96549734119296 per copy**) for
+**1086.2562153461913s (22.019047761255962% of candidate time)**,
+**53297023** list-copy calls for **891.1960585257912s
+(18.06506448487247%)**, and **28698397** dictionary-copy calls for
+**377.4872392047837s (7.651886757366695%)**. Residual generic-deepcopy
+dispatcher work was only **25.633004935341887s (0.5195959774148894%)**.
+Those four disjoint owners total **2380.572518012108s (48.25559498091002% of
+candidate time)**, while exclusive memo/card preparation consumed another
+**980.4471714058309s (19.87423665759465%)**. Reconstruction is the largest
+remaining generic owner, but its input types are not yet known. The exact next
+bounded task is therefore the scoped reconstruction-type count above, not a
+generic or manual copy replacement.
 
 ### Horizon-five candidate sub-profile checkpoint
 
