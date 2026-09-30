@@ -10,6 +10,7 @@ import math
 from time import perf_counter
 from typing import Callable
 
+import games.balatro.state as balatro_state
 from games.balatro.env.blind_progression import activate_selected_blind_progression
 from games.balatro.env.episode_backend import pristine_red_white_reset
 from games.balatro.env.ppo_campaign import make_ppo_training_environment
@@ -34,7 +35,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v9"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v10"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -76,6 +77,7 @@ _CANDIDATE_HELPER_NAMES = (
     "_generated_joker_projector_score",
     "_visible_card_project_transition",
     "_state_copy_for_tactical_projection",
+    "_state_projection_deepcopy",
     "_score_outcomes_scorer_score",
     "_generate_play_actions",
 )
@@ -686,12 +688,30 @@ def trace_episode_seven_candidate_subowners(
             "_state_copy_for_tactical_projection",
         ),
     )
+    original_state_deepcopy = balatro_state.deepcopy
+    timed_state_deepcopy = helper_accumulator.wrap(
+        "_state_projection_deepcopy",
+        original_state_deepcopy,
+    )
+
+    def nested_state_deepcopy(*args, **kwargs):
+        if helper_accumulator.enabled and any(
+            frame[0] == "_state_copy_for_tactical_projection"
+            for frame in helper_accumulator.stack
+        ):
+            return timed_state_deepcopy(*args, **kwargs)
+        return original_state_deepcopy(*args, **kwargs)
+
     installed_class_instrumentation = []
     try:
         for owner, name, report_name in class_instrumentation:
             original = getattr(owner, name)
             setattr(owner, name, helper_accumulator.wrap(report_name, original))
             installed_class_instrumentation.append((owner, name, original))
+        balatro_state.deepcopy = nested_state_deepcopy
+        installed_class_instrumentation.append(
+            (balatro_state, "deepcopy", original_state_deepcopy)
+        )
         try:
             collect_complete_ppo_episode(
                 environment,

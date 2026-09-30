@@ -306,11 +306,15 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
         return SimpleNamespace(expected=1.0, minimum=0.0)
 
     def tactical_copy(self):
-        return self
+        return tactical_performance.balatro_state.deepcopy(self)
+
+    def state_deepcopy(value, memo=None):
+        return value
 
     def generated_transition(self, *args, **kwargs):
         self.joker_projector.score(*args, **kwargs)
         visible_transition_class.project_transition(self, *args, **kwargs)
+        tactical_performance.balatro_state.deepcopy(self)
         args[1].copy_for_tactical_projection()
         return SimpleNamespace(expected=1.0, minimum=0.0)
 
@@ -320,6 +324,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
         visible_transition,
     )
     monkeypatch.setattr(BalatroState, "copy_for_tactical_projection", tactical_copy)
+    monkeypatch.setattr(tactical_performance.balatro_state, "deepcopy", state_deepcopy)
     monkeypatch.setattr(
         generated_transition_class,
         "project_transition",
@@ -367,7 +372,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v9"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v10"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -396,6 +401,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert helper_costs["_generated_joker_projector_score"].calls == 2
     assert helper_costs["_visible_card_project_transition"].calls == 2
     assert helper_costs["_state_copy_for_tactical_projection"].calls == 2
+    assert helper_costs["_state_projection_deepcopy"].calls == 2
     assert helper_costs["_score_outcomes_scorer_score"].calls == 2
     assert helper_costs["_generate_play_actions"].calls == 1
     assert report.evaluation_cache_hits == 1
@@ -403,6 +409,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert generated_transition_class.project_transition is generated_transition
     assert visible_transition_class.project_transition is visible_transition
     assert BalatroState.copy_for_tactical_projection is tactical_copy
+    assert tactical_performance.balatro_state.deepcopy is state_deepcopy
     assert helper_costs["_diverse_discard_beam"].exclusive_elapsed_seconds > 0.0
     assert helper_costs["_discard_priority"].exclusive_elapsed_seconds > 0.0
     assert sum(
@@ -434,6 +441,7 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
         tactical_performance.LiveVisibleCardScoreOutcomeModel.project_transition
     )
     tactical_copy = BalatroState.copy_for_tactical_projection
+    state_deepcopy = tactical_performance.balatro_state.deepcopy
     monkeypatch.setattr(
         tactical_performance,
         "make_ppo_training_environment",
@@ -464,6 +472,7 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
         is visible_transition
     )
     assert BalatroState.copy_for_tactical_projection is tactical_copy
+    assert tactical_performance.balatro_state.deepcopy is state_deepcopy
 
 
 @pytest.mark.parametrize("episode_index", [-1, 8, True, 1.0, None])
