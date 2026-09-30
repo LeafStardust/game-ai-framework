@@ -2429,11 +2429,9 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to split the nested generic
-state deepcopy into `copy._reconstruct`, dictionary-copy, and list-copy work,
-attributing those internals only beneath `_state_projection_deepcopy`. Restore
-all temporary copy-dispatch/module/class instrumentation unconditionally, add
-focused deterministic coverage, and gate the change through GitHub Actions. Do not
+Run the single frozen episode-7 target-only v11 production diagnostic and record
+the measured `copy._reconstruct`, dictionary-copy, and list-copy attribution
+before selecting any optimization. Do not
 optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -3085,6 +3083,20 @@ cost. Residual candidate work was only **1.7870295021275524s**. Because the
 roadmap already rejects direct copy removal/sharing, manual reconstruction,
 custom card deepcopy, and an earlier validation-loop micro-optimization, the
 exact next bounded task is the nested generic-deepcopy dispatch split above.
+
+Commit `c1e90b4c2e5b68fd7431f2f7db40a3f165e9defa` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v11`. While the state-module
+deepcopy owner is active, it measures Python copy reconstruction plus dictionary
+and list dispatch as nested exclusive owners; the same operations outside that
+frame remain unmeasured. The active-depth guard avoids repeated timing-stack
+searches inside recursive dispatch. All temporary dispatch entries and module/
+class functions restore unconditionally in reverse order. Focused deterministic
+coverage proves nested attribution, out-of-scope exclusion, and restoration on
+success and fail-closed drift; **16 tests** passed locally. GitHub Actions run
+`36714952235`, job `109885481545`, passed; the actual job log reports **3016
+passed, 1607 deselected in 136.82s**. The exact next task is the single
+production v11 diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
