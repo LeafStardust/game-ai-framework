@@ -2429,12 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to split the generated-
-consumable transition into `joker_projector.score`, inherited
+Run the single frozen episode-7 target-only v9 production diagnostic and record
+the measured `joker_projector.score`, inherited
 `LiveVisibleCardScoreOutcomeModel.project_transition`, and
-`BalatroState.copy_for_tactical_projection` work, with focused deterministic
-coverage and unconditional restoration of class-level instrumentation, then
-gate it through GitHub Actions. Do not
+`BalatroState.copy_for_tactical_projection` attribution before selecting any
+optimization. Do not
 optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -3028,6 +3027,18 @@ Hook branching overhead consumed **651.8949798701069s**. Inspection of the
 canonical inherited owner identifies its isolated Joker probe, inherited
 visible-card transition, and per-outcome tactical state copy as the next bounded
 split above. No optimization is authorized yet.
+
+Commit `5195c9aebed370fda8fcd926beea01d1f88644ca` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v9`. It measures the generated
+transition's Joker-projector scoring, inherited visible-card transition, and
+per-outcome tactical state-copy owners with nested exclusive timing. Shared
+Joker projectors are instrumented once, while all temporary class-level wrappers
+are installed only around collection and restored unconditionally in reverse
+order on both success and failure. Focused deterministic validation passed **16
+tests** locally. GitHub Actions run `36684514161`, job `109787173809`, passed;
+the actual job log reports **3016 passed, 1607 deselected in 135.93s**. The
+exact next task is the single production v9 diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
