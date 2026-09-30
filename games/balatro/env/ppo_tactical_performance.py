@@ -26,13 +26,15 @@ from games.balatro.env.select_blind import select_blind_exact
 from games.balatro.live.generated_consumable_outcomes import (
     LiveGeneratedConsumableScoreOutcomeModel,
 )
+from games.balatro.live.post_hand_outcomes import LiveVisibleCardScoreOutcomeModel
+from games.balatro.state import BalatroState
 
 
 PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v8"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v9"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -71,6 +73,9 @@ _CANDIDATE_HELPER_NAMES = (
     "_score_outcomes_hook_transition",
     "_score_outcomes_non_hook_transition",
     "_generated_consumable_project_transition",
+    "_generated_joker_projector_score",
+    "_visible_card_project_transition",
+    "_state_copy_for_tactical_projection",
     "_score_outcomes_scorer_score",
     "_generate_play_actions",
 )
@@ -415,6 +420,7 @@ def trace_episode_seven_candidate_subowners(
     instrumented_evaluators: list[object] = []
     instrumented_score_outcomes: list[object] = []
     instrumented_score_outcome_scorers: list[object] = []
+    instrumented_joker_projectors: list[object] = []
     instrumented_action_generators: list[object] = []
 
     def instrument_evaluator(evaluator) -> None:
@@ -468,6 +474,21 @@ def trace_episode_seven_candidate_subowners(
                         score_outcomes,
                         source_name,
                         helper_accumulator.wrap(report_name, function),
+                    )
+            joker_projector = getattr(score_outcomes, "joker_projector", None)
+            if (
+                joker_projector is not None
+                and not any(
+                    existing is joker_projector
+                    for existing in instrumented_joker_projectors
+                )
+            ):
+                instrumented_joker_projectors.append(joker_projector)
+                score = getattr(joker_projector, "score", None)
+                if callable(score):
+                    joker_projector.score = helper_accumulator.wrap(
+                        "_generated_joker_projector_score",
+                        score,
                     )
             scorer = getattr(score_outcomes, "scorer", None)
             if (
@@ -648,16 +669,29 @@ def trace_episode_seven_candidate_subowners(
         raise _TargetDecisionReached(report)
 
     engine.decide = decide
-    original_generated_transition = (
-        LiveGeneratedConsumableScoreOutcomeModel.project_transition
-    )
-    LiveGeneratedConsumableScoreOutcomeModel.project_transition = (
-        helper_accumulator.wrap(
+    class_instrumentation = (
+        (
+            LiveGeneratedConsumableScoreOutcomeModel,
+            "project_transition",
             "_generated_consumable_project_transition",
-            original_generated_transition,
-        )
+        ),
+        (
+            LiveVisibleCardScoreOutcomeModel,
+            "project_transition",
+            "_visible_card_project_transition",
+        ),
+        (
+            BalatroState,
+            "copy_for_tactical_projection",
+            "_state_copy_for_tactical_projection",
+        ),
     )
+    installed_class_instrumentation = []
     try:
+        for owner, name, report_name in class_instrumentation:
+            original = getattr(owner, name)
+            setattr(owner, name, helper_accumulator.wrap(report_name, original))
+            installed_class_instrumentation.append((owner, name, original))
         try:
             collect_complete_ppo_episode(
                 environment,
@@ -668,9 +702,8 @@ def trace_episode_seven_candidate_subowners(
         except _TargetDecisionReached as reached:
             return reached.report
     finally:
-        LiveGeneratedConsumableScoreOutcomeModel.project_transition = (
-            original_generated_transition
-        )
+        for owner, name, original in reversed(installed_class_instrumentation):
+            setattr(owner, name, original)
     raise PPOContractError("episode-seven candidate sub-owner target was not reached")
 
 

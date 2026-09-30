@@ -34,6 +34,9 @@ class _FakeDecision:
 class _FakeScoreOutcomes:
     def __init__(self):
         self.scorer = SimpleNamespace(score=lambda *args, **kwargs: 1.0)
+        self.joker_projector = SimpleNamespace(
+            score=lambda *args, **kwargs: SimpleNamespace()
+        )
 
     def project_transition(self, *args, **kwargs):
         self._project_hook_transition(*args, **kwargs)
@@ -295,10 +298,28 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     generated_transition_class = (
         tactical_performance.LiveGeneratedConsumableScoreOutcomeModel
     )
+    visible_transition_class = (
+        tactical_performance.LiveVisibleCardScoreOutcomeModel
+    )
 
-    def generated_transition(self, *args, **kwargs):
+    def visible_transition(self, *args, **kwargs):
         return SimpleNamespace(expected=1.0, minimum=0.0)
 
+    def tactical_copy(self):
+        return self
+
+    def generated_transition(self, *args, **kwargs):
+        self.joker_projector.score(*args, **kwargs)
+        visible_transition_class.project_transition(self, *args, **kwargs)
+        args[1].copy_for_tactical_projection()
+        return SimpleNamespace(expected=1.0, minimum=0.0)
+
+    monkeypatch.setattr(
+        visible_transition_class,
+        "project_transition",
+        visible_transition,
+    )
+    monkeypatch.setattr(BalatroState, "copy_for_tactical_projection", tactical_copy)
     monkeypatch.setattr(
         generated_transition_class,
         "project_transition",
@@ -346,7 +367,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v8"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v9"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -372,11 +393,16 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert helper_costs["_score_outcomes_hook_transition"].calls == 2
     assert helper_costs["_score_outcomes_non_hook_transition"].calls == 2
     assert helper_costs["_generated_consumable_project_transition"].calls == 2
+    assert helper_costs["_generated_joker_projector_score"].calls == 2
+    assert helper_costs["_visible_card_project_transition"].calls == 2
+    assert helper_costs["_state_copy_for_tactical_projection"].calls == 2
     assert helper_costs["_score_outcomes_scorer_score"].calls == 2
     assert helper_costs["_generate_play_actions"].calls == 1
     assert report.evaluation_cache_hits == 1
     assert report.evaluation_cache_misses == 1
     assert generated_transition_class.project_transition is generated_transition
+    assert visible_transition_class.project_transition is visible_transition
+    assert BalatroState.copy_for_tactical_projection is tactical_copy
     assert helper_costs["_diverse_discard_beam"].exclusive_elapsed_seconds > 0.0
     assert helper_costs["_discard_priority"].exclusive_elapsed_seconds > 0.0
     assert sum(
@@ -401,6 +427,13 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
     environment = SimpleNamespace(
         _backend=SimpleNamespace(_tactical_decision_engine=engine)
     )
+    generated_transition = (
+        tactical_performance.LiveGeneratedConsumableScoreOutcomeModel.project_transition
+    )
+    visible_transition = (
+        tactical_performance.LiveVisibleCardScoreOutcomeModel.project_transition
+    )
+    tactical_copy = BalatroState.copy_for_tactical_projection
     monkeypatch.setattr(
         tactical_performance,
         "make_ppo_training_environment",
@@ -421,6 +454,16 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
 
     with pytest.raises(PPOContractError, match="digest drifted at decision 0"):
         trace_episode_seven_candidate_subowners()
+
+    assert (
+        tactical_performance.LiveGeneratedConsumableScoreOutcomeModel.project_transition
+        is generated_transition
+    )
+    assert (
+        tactical_performance.LiveVisibleCardScoreOutcomeModel.project_transition
+        is visible_transition
+    )
+    assert BalatroState.copy_for_tactical_projection is tactical_copy
 
 
 @pytest.mark.parametrize("episode_index", [-1, 8, True, 1.0, None])
