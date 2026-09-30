@@ -2429,9 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only v10 production diagnostic and record
-the measured state-module `deepcopy` work versus exclusive immutable-evidence/
-card-memo preparation before selecting any optimization. Do not
+Extend the frozen episode-7 target-only diagnostic to split the nested generic
+state deepcopy into `copy._reconstruct`, dictionary-copy, and list-copy work,
+attributing those internals only beneath `_state_projection_deepcopy`. Restore
+all temporary copy-dispatch/module/class instrumentation unconditionally, add
+focused deterministic coverage, and gate the change through GitHub Actions. Do not
 optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -3068,6 +3070,21 @@ both successful target termination and fail-closed prefix drift; **16 tests**
 passed locally. GitHub Actions run `36700103034`, job `109837283547`, passed;
 the actual job log reports **3016 passed, 1607 deselected in 137.04s**. The
 exact next task is the single production v10 diagnostic run above.
+
+The production v10 diagnostic completed with all **12** frozen decisions,
+target evidence, and **11265 cache hits / 5640 misses** unchanged. Candidate
+generation took **3831.925359499146s** and the complete target took
+**3920.587692500005s**. The **4099771** tactical copies split into
+**1557.7036583049048s** of nested state-module `deepcopy` work
+(**40.65067850143368% of candidate time**) and **929.4010197666939s** of
+exclusive immutable-evidence/card-memo preparation (**24.25415248401842%**).
+Together those two disjoint owners consumed **2487.1046780715988s
+(64.90483098545211% of candidate time and 63.43703733063728% of total target
+time)**; generic deepcopy owns **62.63120615866823%** of that combined copy
+cost. Residual candidate work was only **1.7870295021275524s**. Because the
+roadmap already rejects direct copy removal/sharing, manual reconstruction,
+custom card deepcopy, and an earlier validation-loop micro-optimization, the
+exact next bounded task is the nested generic-deepcopy dispatch split above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
