@@ -36,7 +36,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v11"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v12"
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
@@ -149,6 +149,12 @@ class PPOTacticalCandidateHelperCost:
 
 
 @dataclass(frozen=True)
+class PPOTacticalCandidateReconstructTypeCount:
+    type_name: str
+    calls: int
+
+
+@dataclass(frozen=True)
 class PPOTacticalCandidateSubownerReport:
     schema: str
     root_seed: str
@@ -166,6 +172,7 @@ class PPOTacticalCandidateSubownerReport:
     total_elapsed_seconds: float
     candidate_generation_elapsed_seconds: float
     helper_costs: tuple[PPOTacticalCandidateHelperCost, ...]
+    reconstruct_type_counts: tuple[PPOTacticalCandidateReconstructTypeCount, ...]
     residual_candidate_elapsed_seconds: float
 
     def as_dict(self) -> dict[str, object]:
@@ -422,6 +429,7 @@ def trace_episode_seven_candidate_subowners(
     helper_accumulator = _ExclusiveHelperAccumulator(clock)
     candidate_elapsed = {"seconds": 0.0}
     evaluation_cache = {"hits": 0, "misses": 0}
+    reconstruct_type_calls: dict[type, int] = {}
     instrumented_planners: list[object] = []
     instrumented_evaluators: list[object] = []
     instrumented_score_outcomes: list[object] = []
@@ -635,6 +643,19 @@ def trace_episode_seven_candidate_subowners(
             for name in _CANDIDATE_HELPER_NAMES
             if helper_accumulator.calls.get(name, 0)
         )
+        reconstruct_type_counts = tuple(
+            PPOTacticalCandidateReconstructTypeCount(
+                type_name=f"{value_type.__module__}.{value_type.__qualname__}",
+                calls=calls,
+            )
+            for value_type, calls in sorted(
+                reconstruct_type_calls.items(),
+                key=lambda item: (
+                    item[0].__module__,
+                    item[0].__qualname__,
+                ),
+            )
+        )
         candidate = candidate_elapsed["seconds"]
         evaluation_calls = helper_accumulator.calls.get("_evaluator_evaluate", 0)
         if evaluation_cache["hits"] + evaluation_cache["misses"] != evaluation_calls:
@@ -670,6 +691,7 @@ def trace_episode_seven_candidate_subowners(
             total_elapsed_seconds=total,
             candidate_generation_elapsed_seconds=candidate,
             helper_costs=helper_costs,
+            reconstruct_type_counts=reconstruct_type_counts,
             residual_candidate_elapsed_seconds=residual,
         )
         raise _TargetDecisionReached(report)
@@ -737,10 +759,20 @@ def trace_episode_seven_candidate_subowners(
         installed_class_instrumentation.append(
             (balatro_state, "deepcopy", original_state_deepcopy)
         )
-        copy_module._reconstruct = nested_copy_internal(
+        timed_reconstruct = nested_copy_internal(
             "_state_deepcopy_reconstruct",
             original_reconstruct,
         )
+
+        def counted_reconstruct(value, *args, **kwargs):
+            if state_deepcopy_depth["value"]:
+                value_type = type(value)
+                reconstruct_type_calls[value_type] = (
+                    reconstruct_type_calls.get(value_type, 0) + 1
+                )
+            return timed_reconstruct(value, *args, **kwargs)
+
+        copy_module._reconstruct = counted_reconstruct
         installed_class_instrumentation.append(
             (copy_module, "_reconstruct", original_reconstruct)
         )
