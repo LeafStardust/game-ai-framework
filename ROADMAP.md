@@ -2429,11 +2429,9 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to record deterministic
-reconstruction call counts by exact Python input type while the scoped
-`copy._reconstruct` owner is active. Keep type accounting out of candidate-cost
-residual subtraction, restore all temporary instrumentation unconditionally, add
-focused deterministic coverage, and gate the change through GitHub Actions. Do not
+Run the single frozen episode-7 target-only v12 production diagnostic and record
+the exact reconstruction call-count distribution by qualified Python input type
+before selecting any optimization. Do not
 optimize planner behavior before that deeper production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
@@ -3116,6 +3114,18 @@ candidate time)**, while exclusive memo/card preparation consumed another
 remaining generic owner, but its input types are not yet known. The exact next
 bounded task is therefore the scoped reconstruction-type count above, not a
 generic or manual copy replacement.
+
+Commit `d6d46fc30be9744525f3dd9abca15594a7af09dc` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v12`. It counts scoped
+reconstruction inputs by actual Python type object and converts them to stable,
+sorted module-qualified names only when building the report. These counts are a
+separate report field and do not enter helper-time totals or candidate residual
+subtraction. Focused deterministic coverage proves stable JSON publication and
+exclusion of reconstruction outside tactical state deepcopy; **16 tests** passed
+locally. GitHub Actions run `36734611885`, job `109952912524`, passed; the
+actual job log reports **3016 passed, 1607 deselected in 136.92s**. The exact
+next task is the single production v12 diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
