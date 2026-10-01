@@ -2429,19 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Replace only the exact-card validation predicate's per-card `set` construction
-with an allocation-free exact-key check at its canonical state owner, retaining
-the same exact-type, exact-field-set, and scalar-value requirements. Add focused
-deterministic regressions for missing, extra, mutable, subclass, and ordinary
-scalar card state; then use the single frozen episode-7 target-only production
-diagnostic to retain the change only if all frozen evidence is unchanged and the
-state-copy/candidate timings materially improve. Do not optimize shallow-copy
-construction in the same experiment, replay episodes 0..6, complete episode 7
-after the target, launch full training, inspect learned-policy results, tune
-hyperparameters, add a wall-clock cutoff, or widen mechanics. Do not add a
-cross-call/object-ID cache or reapply any rejected projection-copy, evaluator,
-cache-reuse, manual reconstruction, or custom `BalatroCard.__deepcopy__`
-experiment recorded below.
+Run the single frozen episode-7 target-only production diagnostic for the
+validation-only experiment and retain the change only if all frozen evidence is
+unchanged and the state-copy/candidate timings materially improve. Do not
+optimize shallow-copy construction in the same experiment, replay episodes
+0..6, complete episode 7 after the target, launch full training, inspect
+learned-policy results, tune hyperparameters, add a wall-clock cutoff, or widen
+mechanics. Do not add a cross-call/object-ID cache or reapply any rejected
+projection-copy, evaluator, cache-reuse, manual reconstruction, or custom
+`BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3254,6 +3250,18 @@ that both per-card operations are material and that the allocating validation
 predicate alone is the next separable canonical target. The next bounded task is
 the validation-only experiment above; shallow-copy construction remains fixed so
 its effect is not conflated.
+
+Commit `afc37d56135bae48d0b09501f19a12002992cc2a` implements that isolated
+experiment at the canonical state owner. Exact-card validation now compares the
+existing `dict_keys` view directly with the frozen dataclass field set, removing
+only the per-card temporary `set` allocation. Exact type, complete field-set, and
+scalar-value requirements are unchanged; subclasses, missing or extra fields,
+and mutable values still fall back to generic deepcopy. Standard-library
+shallow-copy construction is untouched. Focused projection/diagnostic validation
+passed **43 tests** locally. GitHub Actions run `36848590282`, job
+`110324603781`, passed; the actual job log reports **3019 passed, 1607
+deselected in 101.03s**. The exact next task is the single production comparison
+above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
