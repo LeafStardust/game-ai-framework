@@ -5,12 +5,15 @@ from framework.core.state import GameState
 from games.balatro.card import BalatroCard
 
 
+_EXACT_SCALAR_CARD_VALUE_TYPES = frozenset((bool, int, float, str))
+
+
 def _has_exact_scalar_card_state(card, card_fields) -> bool:
     if type(card) is not BalatroCard:
         return False
     attributes = vars(card)
     return set(attributes) == card_fields and all(
-        value is None or type(value) in {bool, int, float, str}
+        value is None or type(value) in _EXACT_SCALAR_CARD_VALUE_TYPES
         for value in attributes.values()
     )
 
