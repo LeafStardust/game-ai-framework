@@ -5,6 +5,20 @@ from framework.core.state import GameState
 from games.balatro.card import BalatroCard
 
 
+def _has_exact_scalar_card_state(card, card_fields) -> bool:
+    if type(card) is not BalatroCard:
+        return False
+    attributes = vars(card)
+    return set(attributes) == card_fields and all(
+        value is None or type(value) in {bool, int, float, str}
+        for value in attributes.values()
+    )
+
+
+def _copy_exact_scalar_card(card: BalatroCard) -> BalatroCard:
+    return shallow_copy(card)
+
+
 class BalatroState(GameState):
 
     def __init__(self):
@@ -212,15 +226,11 @@ class BalatroState(GameState):
             self.discard_pile,
         ):
             for card in collection:
-                if type(card) is not BalatroCard or id(card) in seen_cards:
+                if id(card) in seen_cards:
                     continue
                 seen_cards.add(id(card))
-                attributes = vars(card)
-                if set(attributes) == card_fields and all(
-                    value is None or type(value) in {bool, int, float, str}
-                    for value in attributes.values()
-                ):
-                    memo[id(card)] = shallow_copy(card)
+                if _has_exact_scalar_card_state(card, card_fields):
+                    memo[id(card)] = _copy_exact_scalar_card(card)
         return deepcopy(self, memo)
 
     def add_consumable(self, consumable) -> bool:

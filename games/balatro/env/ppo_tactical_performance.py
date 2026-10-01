@@ -36,9 +36,10 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v13"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v14"
 )
 _RECONSTRUCT_TYPE_SAMPLE_LIMIT = 100_000
+_STATE_CARD_SAMPLE_LIMIT = 100_000
 
 _EPISODE_7_EXPECTED_PREFIX = (
     ("4a0542854bbb2308d64a0d3dbed557c81d846fe314ecbfe78b0bc253dc847ff2", "PLAY_CARDS", (0, 1, 2, 3), ((2, 18, 2000, False), (3, 183, 2000, False))),
@@ -177,6 +178,11 @@ class PPOTacticalCandidateSubownerReport:
     reconstruct_type_sample_limit: int
     reconstruct_type_sampled_calls: int
     reconstruct_type_samples: tuple[PPOTacticalCandidateReconstructTypeSample, ...]
+    state_card_sample_limit: int
+    state_card_validation_sampled_calls: int
+    state_card_validation_elapsed_seconds: float
+    state_card_shallow_copy_sampled_calls: int
+    state_card_shallow_copy_elapsed_seconds: float
     residual_candidate_elapsed_seconds: float
 
     def as_dict(self) -> dict[str, object]:
@@ -496,6 +502,12 @@ def trace_episode_seven_candidate_subowners(
     helper_accumulator = _ExclusiveHelperAccumulator(clock)
     candidate_elapsed = {"seconds": 0.0}
     evaluation_cache = {"hits": 0, "misses": 0}
+    state_card_samples = {
+        "validation_calls": 0,
+        "validation_seconds": 0.0,
+        "shallow_copy_calls": 0,
+        "shallow_copy_seconds": 0.0,
+    }
     reconstruct_type_sampler = _ReconstructTypeSampler(
         clock=clock,
         limit=_RECONSTRUCT_TYPE_SAMPLE_LIMIT,
@@ -746,6 +758,8 @@ def trace_episode_seven_candidate_subowners(
                 item.exclusive_elapsed_seconds
                 for item in reconstruct_type_samples
             ),
+            state_card_samples["validation_seconds"],
+            state_card_samples["shallow_copy_seconds"],
         )
         if any(not math.isfinite(value) or value < 0.0 for value in timings):
             raise RuntimeError(
@@ -771,6 +785,19 @@ def trace_episode_seven_candidate_subowners(
             reconstruct_type_sample_limit=_RECONSTRUCT_TYPE_SAMPLE_LIMIT,
             reconstruct_type_sampled_calls=reconstruct_type_sampler.sampled_calls,
             reconstruct_type_samples=reconstruct_type_samples,
+            state_card_sample_limit=_STATE_CARD_SAMPLE_LIMIT,
+            state_card_validation_sampled_calls=state_card_samples[
+                "validation_calls"
+            ],
+            state_card_validation_elapsed_seconds=state_card_samples[
+                "validation_seconds"
+            ],
+            state_card_shallow_copy_sampled_calls=state_card_samples[
+                "shallow_copy_calls"
+            ],
+            state_card_shallow_copy_elapsed_seconds=state_card_samples[
+                "shallow_copy_seconds"
+            ],
             residual_candidate_elapsed_seconds=residual,
         )
         raise _TargetDecisionReached(report)
@@ -794,6 +821,8 @@ def trace_episode_seven_candidate_subowners(
         ),
     )
     original_state_deepcopy = balatro_state.deepcopy
+    original_state_card_validation = balatro_state._has_exact_scalar_card_state
+    original_state_card_shallow_copy = balatro_state._copy_exact_scalar_card
     timed_state_deepcopy = helper_accumulator.wrap(
         "_state_projection_deepcopy",
         original_state_deepcopy,
@@ -837,6 +866,68 @@ def trace_episode_seven_candidate_subowners(
         balatro_state.deepcopy = nested_state_deepcopy
         installed_class_instrumentation.append(
             (balatro_state, "deepcopy", original_state_deepcopy)
+        )
+
+        def sampled_state_card_call(kind, function, *args, **kwargs):
+            calls_key = f"{kind}_calls"
+            seconds_key = f"{kind}_seconds"
+            if (
+                not helper_accumulator.enabled
+                or state_card_samples[calls_key] >= _STATE_CARD_SAMPLE_LIMIT
+            ):
+                return function(*args, **kwargs)
+            started = float(clock())
+            try:
+                return function(*args, **kwargs)
+            finally:
+                state_card_samples[calls_key] += 1
+                state_card_samples[seconds_key] += max(
+                    0.0,
+                    float(clock()) - started,
+                )
+                if all(
+                    state_card_samples[f"{sample_kind}_calls"]
+                    >= _STATE_CARD_SAMPLE_LIMIT
+                    for sample_kind in ("validation", "shallow_copy")
+                ):
+                    balatro_state._has_exact_scalar_card_state = (
+                        original_state_card_validation
+                    )
+                    balatro_state._copy_exact_scalar_card = (
+                        original_state_card_shallow_copy
+                    )
+
+        def sampled_state_card_validation(*args, **kwargs):
+            return sampled_state_card_call(
+                "validation",
+                original_state_card_validation,
+                *args,
+                **kwargs,
+            )
+
+        def sampled_state_card_shallow_copy(*args, **kwargs):
+            return sampled_state_card_call(
+                "shallow_copy",
+                original_state_card_shallow_copy,
+                *args,
+                **kwargs,
+            )
+
+        balatro_state._has_exact_scalar_card_state = sampled_state_card_validation
+        installed_class_instrumentation.append(
+            (
+                balatro_state,
+                "_has_exact_scalar_card_state",
+                original_state_card_validation,
+            )
+        )
+        balatro_state._copy_exact_scalar_card = sampled_state_card_shallow_copy
+        installed_class_instrumentation.append(
+            (
+                balatro_state,
+                "_copy_exact_scalar_card",
+                original_state_card_shallow_copy,
+            )
         )
         timed_reconstruct = nested_copy_internal(
             "_state_deepcopy_reconstruct",

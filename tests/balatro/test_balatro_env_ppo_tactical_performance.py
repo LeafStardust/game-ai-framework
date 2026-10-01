@@ -332,6 +332,12 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
         return SimpleNamespace(expected=1.0, minimum=0.0)
 
     def tactical_copy(self):
+        card = self.hand[0]
+        if tactical_performance.balatro_state._has_exact_scalar_card_state(
+            card,
+            frozenset(BalatroCard.__dataclass_fields__),
+        ):
+            tactical_performance.balatro_state._copy_exact_scalar_card(card)
         return tactical_performance.balatro_state.deepcopy(self)
 
     def state_deepcopy(value, memo=None):
@@ -401,6 +407,12 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     reconstruct = tactical_performance.copy_module._reconstruct
     dict_deepcopy = tactical_performance.copy_module._deepcopy_dispatch[dict]
     list_deepcopy = tactical_performance.copy_module._deepcopy_dispatch[list]
+    state_card_validation = (
+        tactical_performance.balatro_state._has_exact_scalar_card_state
+    )
+    state_card_shallow_copy = (
+        tactical_performance.balatro_state._copy_exact_scalar_card
+    )
     ticks = count()
 
     report = trace_episode_seven_candidate_subowners(
@@ -409,7 +421,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v13"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v14"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -449,6 +461,11 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
         for sample in report.reconstruct_type_samples
     ] == [("games.balatro.state.BalatroState", 2)]
     assert report.reconstruct_type_samples[0].exclusive_elapsed_seconds >= 0.0
+    assert report.state_card_sample_limit == 100_000
+    assert report.state_card_validation_sampled_calls == 2
+    assert report.state_card_validation_elapsed_seconds > 0.0
+    assert report.state_card_shallow_copy_sampled_calls == 2
+    assert report.state_card_shallow_copy_elapsed_seconds > 0.0
     assert helper_costs["_score_outcomes_scorer_score"].calls == 2
     assert helper_costs["_generate_play_actions"].calls == 1
     assert report.evaluation_cache_hits == 1
@@ -460,6 +477,14 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert tactical_performance.copy_module._reconstruct is reconstruct
     assert tactical_performance.copy_module._deepcopy_dispatch[dict] is dict_deepcopy
     assert tactical_performance.copy_module._deepcopy_dispatch[list] is list_deepcopy
+    assert (
+        tactical_performance.balatro_state._has_exact_scalar_card_state
+        is state_card_validation
+    )
+    assert (
+        tactical_performance.balatro_state._copy_exact_scalar_card
+        is state_card_shallow_copy
+    )
     assert helper_costs["_diverse_discard_beam"].exclusive_elapsed_seconds > 0.0
     assert helper_costs["_discard_priority"].exclusive_elapsed_seconds > 0.0
     assert sum(
@@ -504,6 +529,12 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
     reconstruct = tactical_performance.copy_module._reconstruct
     dict_deepcopy = tactical_performance.copy_module._deepcopy_dispatch[dict]
     list_deepcopy = tactical_performance.copy_module._deepcopy_dispatch[list]
+    state_card_validation = (
+        tactical_performance.balatro_state._has_exact_scalar_card_state
+    )
+    state_card_shallow_copy = (
+        tactical_performance.balatro_state._copy_exact_scalar_card
+    )
     monkeypatch.setattr(
         tactical_performance,
         "make_ppo_training_environment",
@@ -538,6 +569,14 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
     assert tactical_performance.copy_module._reconstruct is reconstruct
     assert tactical_performance.copy_module._deepcopy_dispatch[dict] is dict_deepcopy
     assert tactical_performance.copy_module._deepcopy_dispatch[list] is list_deepcopy
+    assert (
+        tactical_performance.balatro_state._has_exact_scalar_card_state
+        is state_card_validation
+    )
+    assert (
+        tactical_performance.balatro_state._copy_exact_scalar_card
+        is state_card_shallow_copy
+    )
 
 
 @pytest.mark.parametrize("episode_index", [-1, 8, True, 1.0, None])
