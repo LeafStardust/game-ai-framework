@@ -1,3 +1,6 @@
+from copy import copy as standard_shallow_copy
+
+import games.balatro.state as state_module
 from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
@@ -105,6 +108,39 @@ def test_tactical_projection_copy_deep_copies_extended_card_state():
         branch.hand[0].projection_metadata["history"]
         is not card.projection_metadata["history"]
     )
+
+
+def test_tactical_projection_shallow_copies_only_exact_scalar_cards(monkeypatch):
+    class CardSubclass(BalatroCard):
+        pass
+
+    scalar = BalatroCard("A", "Spades")
+    extended = BalatroCard("K", "Hearts")
+    extended.projection_metadata = {"history": ["played"]}
+    subclass = CardSubclass("Q", "Clubs")
+    state = _state([scalar, extended, subclass], [])
+    state.deck = [scalar, extended, subclass]
+    copied = []
+
+    def observed_shallow_copy(card):
+        copied.append(card)
+        return standard_shallow_copy(card)
+
+    monkeypatch.setattr(state_module, "shallow_copy", observed_shallow_copy)
+
+    branch = state.copy_for_tactical_projection()
+
+    assert copied == [scalar]
+    assert branch.hand[0] is branch.deck[0]
+    assert branch.hand[1] is branch.deck[1]
+    assert branch.hand[2] is branch.deck[2]
+    assert all(
+        projected is not source
+        for projected, source in zip(branch.hand, state.hand)
+    )
+    assert branch.hand[1].projection_metadata == extended.projection_metadata
+    assert branch.hand[1].projection_metadata is not extended.projection_metadata
+    assert type(branch.hand[2]) is CardSubclass
 
 
 def test_seance_creates_abstract_spectral_without_sampling_identity():

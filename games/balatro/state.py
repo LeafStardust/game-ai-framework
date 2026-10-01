@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import copy as shallow_copy, deepcopy
 
 from framework.core.state import GameState
 
@@ -220,7 +220,7 @@ class BalatroState(GameState):
                     value is None or type(value) in {bool, int, float, str}
                     for value in attributes.values()
                 ):
-                    memo[id(attributes)] = attributes
+                    memo[id(card)] = shallow_copy(card)
         return deepcopy(self, memo)
 
     def add_consumable(self, consumable) -> bool:
