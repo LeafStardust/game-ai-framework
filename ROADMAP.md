@@ -2429,15 +2429,20 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only production diagnostic for the
-validation-only experiment and retain the change only if all frozen evidence is
-unchanged and the state-copy/candidate timings materially improve. Do not
-optimize shallow-copy construction in the same experiment, replay episodes
-0..6, complete episode 7 after the target, launch full training, inspect
-learned-policy results, tune hyperparameters, add a wall-clock cutoff, or widen
-mechanics. Do not add a cross-call/object-ID cache or reapply any rejected
-projection-copy, evaluator, cache-reuse, manual reconstruction, or custom
-`BalatroCard.__deepcopy__` experiment recorded below.
+Replace only the exact-card validation predicate's per-value scalar-type set
+literal with one immutable module-level type set, retaining the original exact
+field-set check and all exact-type/scalar-value requirements. Add focused
+deterministic regressions for all admitted scalar types, `None`, type subclasses,
+mutable values, extra/missing fields, and card subclasses; then use the single
+frozen episode-7 target-only production diagnostic to retain the change only if
+all frozen evidence is unchanged and state-copy/candidate timings materially
+improve. Do not combine this with the rejected key-check experiment, optimize
+shallow-copy construction, replay episodes 0..6, complete episode 7 after the
+target, launch full training, inspect learned-policy results, tune
+hyperparameters, add a wall-clock cutoff, or widen mechanics. Do not add a
+cross-call/object-ID cache or reapply any rejected projection-copy, evaluator,
+cache-reuse, manual reconstruction, or custom `BalatroCard.__deepcopy__`
+experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3262,6 +3267,29 @@ passed **43 tests** locally. GitHub Actions run `36848590282`, job
 `110324603781`, passed; the actual job log reports **3019 passed, 1607
 deselected in 101.03s**. The exact next task is the single production comparison
 above.
+
+That production comparison preserved all **12** frozen decisions, target
+digest/action/indices, four search attempts, and **11265 cache hits / 5640
+misses**. The bounded validation sample fell only from **0.20274580654222518s**
+to **0.189423099742271s** (**6.57%**) while shallow-copy sampling remained
+comparable at **0.18363990559009835s**. It did not produce a production win:
+state-copy exclusive time rose from **1557.1273084792192s** to
+**1946.674783356022s**, candidate time from **3113.857138097752s** to
+**4043.9707376027945s**, and total time from **3189.2530351000023s** to
+**4137.381265999982s**. Broad unrelated-helper inflation indicates substantial
+host variance, but the required metric still supplies no material improvement.
+The experiment was therefore rejected and fully reverted by commit
+`d40679469efb146ec95e1f14ab5b64eb80171573`. GitHub Actions run
+`36861788583`, job `110367512473`, passed on the restored baseline; the actual
+job log reports **3018 passed, 1607 deselected in 134.90s**.
+
+Python 3.13 disassembly of the restored predicate shows a distinct remaining
+allocation owner: `BUILD_SET 4` executes inside the generator for every
+non-`None` field value. This is many scalar-type set allocations per validated
+card rather than the rejected experiment's single key-set allocation. The next
+bounded task is therefore the scalar-type-set hoist above, with the original
+`set(attributes)` exact-field check deliberately unchanged so the experiments
+remain isolated.
 
 ### Horizon-five candidate sub-profile checkpoint
 
