@@ -2429,10 +2429,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only v13 production diagnostic and record
-the exact 100000-call reconstruction sample's exclusive elapsed-time distribution
-by qualified Python input type before selecting any optimization. Do not optimize
-planner behavior before that final production attribution exists. Do not
+At canonical owner `BalatroState.copy_for_tactical_projection`, prepopulate the
+deepcopy memo with a standard-library shallow copy of each exact `BalatroCard`
+whose complete declared state has already passed the retained scalar-field
+validation. Preserve distinct mutable card objects and cross-zone aliases; any
+subclass, extra/missing field, or mutable field value must continue through generic
+deepcopy. Add focused deterministic regressions, pass the authoritative CI gate,
+then run the single frozen episode-7 target-only comparison before retaining the
+optimization. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -3159,6 +3163,29 @@ and restoration on success and fail-closed drift; **17 tests** passed locally.
 GitHub Actions run `36806424642`, job `110191667540`, passed; the actual job log
 reports **3017 passed, 1607 deselected in 131.31s**. The exact next task is the
 single production v13 diagnostic run above.
+
+The production v13 diagnostic completed with all **12** frozen decisions,
+target digest/action/indices, four frozen search attempts, and **11265 cache hits /
+5640 misses** unchanged. Candidate generation took **5466.1592109997s** and the
+complete target took **5569.687732199993s**. The exact **100000-call** bounded
+sample contained **95162 BalatroCard**, **1934 GeneratedShopConsumableItem**, and
+**968 each** of state, Blind, and set reconstructions. Their exclusive sampled
+reconstruction times were respectively **0.2982123967667576s (91.91830649967167%)**,
+**0.007469900621799752s (2.3024549694146614%)**,
+**0.009136000939179212s (2.8159987432231848%)**,
+**0.005531999369850382s (1.705133720619963%)**, and
+**0.004081698629306629s (1.2581060670705122%)**, totaling
+**0.32443199632689357s**. The full aggregate reconstruction owner made the same
+**426234731** calls as v11/v12 and consumed **1147.0862824343494s**; card object
+reconstruction is therefore both the frequency and exclusive-time owner.
+
+A bounded local mechanism check found standard `copy.copy` of the already-
+validated exact scalar card materially faster than generic deepcopy with its
+attribute mapping memo, while remaining a distinct object with a distinct
+attribute dictionary; changing the dataclass to slots was substantially slower.
+The roadmap's rejected custom `BalatroCard.__deepcopy__`, manual per-field
+reconstruction, cross-call cache, and shared mutable-card paths remain prohibited.
+The exact next bounded task is the state-owner memo prepopulation above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
