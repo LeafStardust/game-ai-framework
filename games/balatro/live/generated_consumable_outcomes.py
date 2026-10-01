@@ -197,22 +197,25 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
             money_at_hand_play=money_at_hand_play,
         )
 
-        # Probe once on an isolated projector branch to recover exact scoring-card
-        # membership and retrigger counts for 8 Ball. No generated identity or
-        # Python RNG is consumed by the Joker models themselves.
-        probe = self.joker_projector.score(
-            hand,
-            state,
-            played_cards,
-            include_card_chips=include_card_chips,
-            resolve_random_effects=False,
-        )
-        eight_ball_attempts = self._eight_ball_attempts(
-            hand,
-            state,
-            probe.cards_after_copy,
-            extra_retriggers=probe.played_card_retriggers,
-        )
+        eight_ball_attempts = 0
+        if self._activation_count(state, "EightBallJoker") > 0:
+            # Probe once on an isolated projector branch to recover exact
+            # scoring-card membership and retrigger counts for 8 Ball. No
+            # generated identity or Python RNG is consumed by the Joker models
+            # themselves.
+            probe = self.joker_projector.score(
+                hand,
+                state,
+                played_cards,
+                include_card_chips=include_card_chips,
+                resolve_random_effects=False,
+            )
+            eight_ball_attempts = self._eight_ball_attempts(
+                hand,
+                state,
+                probe.cards_after_copy,
+                extra_retriggers=probe.played_card_retriggers,
+            )
 
         previous_suppression = self._suppress_single_glass_break
         self._suppress_single_glass_break = suppress_glass_break
