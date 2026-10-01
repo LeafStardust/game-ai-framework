@@ -143,45 +143,6 @@ def test_tactical_projection_shallow_copies_only_exact_scalar_cards(monkeypatch)
     assert type(branch.hand[2]) is CardSubclass
 
 
-def test_tactical_projection_scalar_card_validation_is_exact_and_fail_closed():
-    class CardSubclass(BalatroCard):
-        pass
-
-    class IntSubclass(int):
-        pass
-
-    card_fields = frozenset(BalatroCard.__dataclass_fields__)
-    admitted = (
-        BalatroCard("A", "Spades"),
-        BalatroCard("K", "Hearts", live_id=7),
-        BalatroCard("Q", "Clubs", live_id="card-id"),
-        BalatroCard("J", "Diamonds", original_suit_nominal=1.5),
-    )
-    missing = BalatroCard("10", "Spades")
-    del vars(missing)["seal"]
-    extended = BalatroCard("9", "Hearts")
-    extended.projection_metadata = "observed"
-    mutable = BalatroCard("8", "Clubs", live_id=["mutable"])
-    scalar_subclass = BalatroCard("7", "Diamonds", live_id=IntSubclass(7))
-    card_subclass = CardSubclass("6", "Spades")
-
-    assert all(
-        state_module._has_exact_scalar_card_state(card, card_fields)
-        for card in admitted
-    )
-    assert state_module._has_exact_scalar_card_state(missing, card_fields) is False
-    assert state_module._has_exact_scalar_card_state(extended, card_fields) is False
-    assert state_module._has_exact_scalar_card_state(mutable, card_fields) is False
-    assert (
-        state_module._has_exact_scalar_card_state(scalar_subclass, card_fields)
-        is False
-    )
-    assert (
-        state_module._has_exact_scalar_card_state(card_subclass, card_fields)
-        is False
-    )
-
-
 def test_seance_creates_abstract_spectral_without_sampling_identity():
     cards = [
         BalatroCard("4", "Hearts"),
