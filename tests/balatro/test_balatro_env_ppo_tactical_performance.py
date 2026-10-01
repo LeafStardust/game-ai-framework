@@ -14,6 +14,7 @@ from games.balatro.env.ppo_tactical_performance import (
     measure_ppo_tactical_cost,
     trace_episode_seven_candidate_subowners,
     trace_initial_policy_ppo_episode_tactical_costs,
+    _ReconstructTypeSampler,
     _instrument_episode_engine,
 )
 
@@ -150,6 +151,31 @@ class _FakeEngine:
         self.rank_plans(state)
         self.policy.decide(state, ())
         return _FakeDecision([state.hand[0]])
+
+
+def test_reconstruct_type_sampler_uses_exact_bounded_exclusive_sample():
+    ticks = count()
+    sampler = _ReconstructTypeSampler(
+        clock=lambda: float(next(ticks)),
+        limit=2,
+    )
+    sampled_child = sampler.wrap_child(lambda: None)
+    sampled_reconstruct = None
+
+    def reconstruct(value):
+        if value == "outer":
+            sampled_reconstruct("inner")
+            sampled_child()
+        return value
+
+    sampled_reconstruct = sampler.wrap_reconstruct(reconstruct)
+
+    assert sampled_reconstruct("outer") == "outer"
+    assert sampled_reconstruct("after-limit") == "after-limit"
+    assert sampler.sampled_calls == 2
+    assert sampler.calls_by_type == {str: 2}
+    assert sampler.elapsed_by_type == {str: 4.0}
+    assert next(ticks) == 6
 
 
 def test_env_ppo_tactical_cost_pins_first_production_decision_and_search_trace():
@@ -383,7 +409,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v12"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v13"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -416,10 +442,13 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert helper_costs["_state_deepcopy_reconstruct"].calls == 2
     assert helper_costs["_state_deepcopy_dict"].calls == 2
     assert helper_costs["_state_deepcopy_list"].calls == 2
+    assert report.reconstruct_type_sample_limit == 100_000
+    assert report.reconstruct_type_sampled_calls == 2
     assert [
-        (type_count.type_name, type_count.calls)
-        for type_count in report.reconstruct_type_counts
+        (sample.type_name, sample.sampled_calls)
+        for sample in report.reconstruct_type_samples
     ] == [("games.balatro.state.BalatroState", 2)]
+    assert report.reconstruct_type_samples[0].exclusive_elapsed_seconds >= 0.0
     assert helper_costs["_score_outcomes_scorer_score"].calls == 2
     assert helper_costs["_generate_play_actions"].calls == 1
     assert report.evaluation_cache_hits == 1
@@ -437,8 +466,14 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
         cost.exclusive_elapsed_seconds for cost in report.helper_costs
     ) <= report.candidate_generation_elapsed_seconds
     assert json.loads(report.to_json())["target_decision_index"] == 0
-    assert json.loads(report.to_json())["reconstruct_type_counts"] == [
-        {"calls": 2, "type_name": "games.balatro.state.BalatroState"}
+    assert json.loads(report.to_json())["reconstruct_type_samples"] == [
+        {
+            "exclusive_elapsed_seconds": (
+                report.reconstruct_type_samples[0].exclusive_elapsed_seconds
+            ),
+            "sampled_calls": 2,
+            "type_name": "games.balatro.state.BalatroState",
+        }
     ]
 
 

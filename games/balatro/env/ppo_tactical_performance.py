@@ -36,8 +36,9 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v12"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v13"
 )
+_RECONSTRUCT_TYPE_SAMPLE_LIMIT = 100_000
 
 _EPISODE_7_EXPECTED_PREFIX = (
     ("4a0542854bbb2308d64a0d3dbed557c81d846fe314ecbfe78b0bc253dc847ff2", "PLAY_CARDS", (0, 1, 2, 3), ((2, 18, 2000, False), (3, 183, 2000, False))),
@@ -149,9 +150,10 @@ class PPOTacticalCandidateHelperCost:
 
 
 @dataclass(frozen=True)
-class PPOTacticalCandidateReconstructTypeCount:
+class PPOTacticalCandidateReconstructTypeSample:
     type_name: str
-    calls: int
+    sampled_calls: int
+    exclusive_elapsed_seconds: float
 
 
 @dataclass(frozen=True)
@@ -172,7 +174,9 @@ class PPOTacticalCandidateSubownerReport:
     total_elapsed_seconds: float
     candidate_generation_elapsed_seconds: float
     helper_costs: tuple[PPOTacticalCandidateHelperCost, ...]
-    reconstruct_type_counts: tuple[PPOTacticalCandidateReconstructTypeCount, ...]
+    reconstruct_type_sample_limit: int
+    reconstruct_type_sampled_calls: int
+    reconstruct_type_samples: tuple[PPOTacticalCandidateReconstructTypeSample, ...]
     residual_candidate_elapsed_seconds: float
 
     def as_dict(self) -> dict[str, object]:
@@ -216,6 +220,69 @@ class _ExclusiveHelperAccumulator:
                     self.stack[-1][2] = float(self.stack[-1][2]) + total
 
         return timed
+
+
+@dataclass
+class _ReconstructTypeSampler:
+    clock: Callable[[], float]
+    limit: int
+    sampled_calls: int = 0
+    calls_by_type: dict[type, int] = field(default_factory=dict)
+    elapsed_by_type: dict[type, float] = field(default_factory=dict)
+    stack: list[list[object]] = field(default_factory=list)
+
+    @property
+    def active(self) -> bool:
+        return self.sampled_calls < self.limit or bool(self.stack)
+
+    def wrap_reconstruct(self, function):
+        def sampled(value, *args, **kwargs):
+            if not self.active:
+                return function(value, *args, **kwargs)
+            value_type = type(value)
+            record = self.sampled_calls < self.limit
+            if record:
+                self.sampled_calls += 1
+                self.calls_by_type[value_type] = (
+                    self.calls_by_type.get(value_type, 0) + 1
+                )
+            frame: list[object] = [
+                value_type if record else None,
+                float(self.clock()),
+                0.0,
+            ]
+            self.stack.append(frame)
+            try:
+                return function(value, *args, **kwargs)
+            finally:
+                total = max(0.0, float(self.clock()) - float(frame[1]))
+                if not self.stack or self.stack.pop() is not frame:
+                    raise RuntimeError("reconstruction type timing stack drifted")
+                if record:
+                    exclusive = max(0.0, total - float(frame[2]))
+                    self.elapsed_by_type[value_type] = (
+                        self.elapsed_by_type.get(value_type, 0.0) + exclusive
+                    )
+                if self.stack:
+                    self.stack[-1][2] = float(self.stack[-1][2]) + total
+
+        return sampled
+
+    def wrap_child(self, function):
+        def sampled(*args, **kwargs):
+            if not self.stack:
+                return function(*args, **kwargs)
+            frame: list[object] = [None, float(self.clock()), 0.0]
+            self.stack.append(frame)
+            try:
+                return function(*args, **kwargs)
+            finally:
+                total = max(0.0, float(self.clock()) - float(frame[1]))
+                if not self.stack or self.stack.pop() is not frame:
+                    raise RuntimeError("reconstruction child timing stack drifted")
+                self.stack[-1][2] = float(self.stack[-1][2]) + total
+
+        return sampled
 
 
 class _TargetDecisionReached(Exception):
@@ -429,7 +496,10 @@ def trace_episode_seven_candidate_subowners(
     helper_accumulator = _ExclusiveHelperAccumulator(clock)
     candidate_elapsed = {"seconds": 0.0}
     evaluation_cache = {"hits": 0, "misses": 0}
-    reconstruct_type_calls: dict[type, int] = {}
+    reconstruct_type_sampler = _ReconstructTypeSampler(
+        clock=clock,
+        limit=_RECONSTRUCT_TYPE_SAMPLE_LIMIT,
+    )
     instrumented_planners: list[object] = []
     instrumented_evaluators: list[object] = []
     instrumented_score_outcomes: list[object] = []
@@ -643,13 +713,16 @@ def trace_episode_seven_candidate_subowners(
             for name in _CANDIDATE_HELPER_NAMES
             if helper_accumulator.calls.get(name, 0)
         )
-        reconstruct_type_counts = tuple(
-            PPOTacticalCandidateReconstructTypeCount(
+        reconstruct_type_samples = tuple(
+            PPOTacticalCandidateReconstructTypeSample(
                 type_name=f"{value_type.__module__}.{value_type.__qualname__}",
-                calls=calls,
+                sampled_calls=calls,
+                exclusive_elapsed_seconds=(
+                    reconstruct_type_sampler.elapsed_by_type[value_type]
+                ),
             )
             for value_type, calls in sorted(
-                reconstruct_type_calls.items(),
+                reconstruct_type_sampler.calls_by_type.items(),
                 key=lambda item: (
                     item[0].__module__,
                     item[0].__qualname__,
@@ -669,6 +742,10 @@ def trace_episode_seven_candidate_subowners(
             candidate,
             residual,
             *(item.exclusive_elapsed_seconds for item in helper_costs),
+            *(
+                item.exclusive_elapsed_seconds
+                for item in reconstruct_type_samples
+            ),
         )
         if any(not math.isfinite(value) or value < 0.0 for value in timings):
             raise RuntimeError(
@@ -691,7 +768,9 @@ def trace_episode_seven_candidate_subowners(
             total_elapsed_seconds=total,
             candidate_generation_elapsed_seconds=candidate,
             helper_costs=helper_costs,
-            reconstruct_type_counts=reconstruct_type_counts,
+            reconstruct_type_sample_limit=_RECONSTRUCT_TYPE_SAMPLE_LIMIT,
+            reconstruct_type_sampled_calls=reconstruct_type_sampler.sampled_calls,
+            reconstruct_type_samples=reconstruct_type_samples,
             residual_candidate_elapsed_seconds=residual,
         )
         raise _TargetDecisionReached(report)
@@ -764,12 +843,13 @@ def trace_episode_seven_candidate_subowners(
             original_reconstruct,
         )
 
+        sampled_reconstruct = reconstruct_type_sampler.wrap_reconstruct(
+            timed_reconstruct,
+        )
+
         def counted_reconstruct(value, *args, **kwargs):
             if state_deepcopy_depth["value"]:
-                value_type = type(value)
-                reconstruct_type_calls[value_type] = (
-                    reconstruct_type_calls.get(value_type, 0) + 1
-                )
+                return sampled_reconstruct(value, *args, **kwargs)
             return timed_reconstruct(value, *args, **kwargs)
 
         copy_module._reconstruct = counted_reconstruct
@@ -781,10 +861,20 @@ def trace_episode_seven_candidate_subowners(
             (list, "_state_deepcopy_list"),
         ):
             original = original_copy_dispatch[value_type]
-            copy_module._deepcopy_dispatch[value_type] = nested_copy_internal(
-                report_name,
-                original,
-            )
+            timed_internal = nested_copy_internal(report_name, original)
+            sampled_child = reconstruct_type_sampler.wrap_child(timed_internal)
+
+            def sampled_internal(
+                *args,
+                _timed=timed_internal,
+                _sampled=sampled_child,
+                **kwargs,
+            ):
+                if state_deepcopy_depth["value"]:
+                    return _sampled(*args, **kwargs)
+                return _timed(*args, **kwargs)
+
+            copy_module._deepcopy_dispatch[value_type] = sampled_internal
             installed_copy_dispatch.append((value_type, original))
         try:
             collect_complete_ppo_episode(
