@@ -2429,14 +2429,10 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic with a bounded reconstruction-
-time split by exact Python input type, then run its single production target and
-record the elapsed-time distribution before selecting any optimization. The v12
-call counts establish frequency, but its per-call counter instrumentation inflated
-the target by more than sevenfold and does not establish which type owns elapsed
-reconstruction cost. Keep the timing split separate from helper residual accounting
-and restore all temporary copy instrumentation on success and failure. Do not
-optimize planner behavior before that final production attribution exists. Do not
+Run the single frozen episode-7 target-only v13 production diagnostic and record
+the exact 100000-call reconstruction sample's exclusive elapsed-time distribution
+by qualified Python input type before selecting any optimization. Do not optimize
+planner behavior before that final production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -3148,6 +3144,21 @@ inflated candidate time from the v11 run's **4933.257001501828s** by more than
 sevenfold, so call frequency alone is not accepted as elapsed-cost attribution.
 The exact next bounded task is the reconstruction-time type split above; no card
 copy optimization is authorized yet.
+
+Commit `88119f1fcb55e2d6a4eec8edd0c3687e10c10220` extends the frozen
+target-only diagnostic as schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v13`. It reserves the first
+exact **100000** scoped reconstruction calls and records exclusive reconstruction
+time by actual Python type, subtracting nested reconstruction plus dictionary/list
+dispatch through a dedicated stack. Once that fixed sample and its enclosing call
+have unwound, the sampler becomes a constant fast path; it neither repeats v12's
+full-run type counters nor enters helper residual subtraction. The report publishes
+both the configured limit and actual sampled count. Focused deterministic coverage
+proves exact sample bounding, nested-child subtraction, stable JSON publication,
+and restoration on success and fail-closed drift; **17 tests** passed locally.
+GitHub Actions run `36806424642`, job `110191667540`, passed; the actual job log
+reports **3017 passed, 1607 deselected in 131.31s**. The exact next task is the
+single production v13 diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
