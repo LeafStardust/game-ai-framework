@@ -2429,14 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-At canonical owner `BalatroState.copy_for_tactical_projection`, prepopulate the
-deepcopy memo with a standard-library shallow copy of each exact `BalatroCard`
-whose complete declared state has already passed the retained scalar-field
-validation. Preserve distinct mutable card objects and cross-zone aliases; any
-subclass, extra/missing field, or mutable field value must continue through generic
-deepcopy. Add focused deterministic regressions, pass the authoritative CI gate,
-then run the single frozen episode-7 target-only comparison before retaining the
-optimization. Do not
+Run the single frozen episode-7 target-only v13 production comparison for commit
+`78d78d5bef5792ba1276505a3ae33aff2f72d095`. Retain the tactical-card memo
+optimization only if all 12 decisions, target evidence, cache counts, and search
+attempts remain exact and the measured candidate/target cost improves materially;
+otherwise revert it while retaining the evidence. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -3186,6 +3183,19 @@ attribute dictionary; changing the dataclass to slots was substantially slower.
 The roadmap's rejected custom `BalatroCard.__deepcopy__`, manual per-field
 reconstruction, cross-call cache, and shared mutable-card paths remain prohibited.
 The exact next bounded task is the state-owner memo prepopulation above.
+
+Commit `78d78d5bef5792ba1276505a3ae33aff2f72d095` implements that bounded
+optimization at the canonical state-copy owner. After validating an exact
+`BalatroCard` has precisely the declared fields and only scalar/None values, the
+owner creates a standard-library shallow copy and inserts that distinct card into
+the one-call deepcopy memo. Generic deepcopy then preserves cross-zone aliases
+without reconstructing that card again. Exact subclasses, extra or missing fields,
+and mutable field values remain on the existing generic recursive path; no global
+copy hook, shared mutable card, manual per-field reconstruction, or cross-call
+cache was added. Focused projection/diagnostic validation passed **42 tests**
+locally. GitHub Actions run `36821076561`, job `110236566920`, passed; the
+actual job log reports **3018 passed, 1607 deselected in 135.15s**. The exact
+next task is the single frozen production comparison above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
