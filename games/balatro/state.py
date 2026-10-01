@@ -9,7 +9,7 @@ def _has_exact_scalar_card_state(card, card_fields) -> bool:
     if type(card) is not BalatroCard:
         return False
     attributes = vars(card)
-    return set(attributes) == card_fields and all(
+    return attributes.keys() == card_fields and all(
         value is None or type(value) in {bool, int, float, str}
         for value in attributes.values()
     )
