@@ -2429,10 +2429,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only v12 production diagnostic and record
-the exact reconstruction call-count distribution by qualified Python input type
-before selecting any optimization. Do not
-optimize planner behavior before that deeper production attribution exists. Do not
+Extend the frozen episode-7 target-only diagnostic with a bounded reconstruction-
+time split by exact Python input type, then run its single production target and
+record the elapsed-time distribution before selecting any optimization. The v12
+call counts establish frequency, but its per-call counter instrumentation inflated
+the target by more than sevenfold and does not establish which type owns elapsed
+reconstruction cost. Keep the timing split separate from helper residual accounting
+and restore all temporary copy instrumentation on success and failure. Do not
+optimize planner behavior before that final production attribution exists. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -3126,6 +3130,24 @@ exclusion of reconstruction outside tactical state deepcopy; **16 tests** passed
 locally. GitHub Actions run `36734611885`, job `109952912524`, passed; the
 actual job log reports **3016 passed, 1607 deselected in 136.92s**. The exact
 next task is the single production v12 diagnostic run above.
+
+The production v12 diagnostic completed with all **12** frozen decisions,
+target digest/action/indices, four frozen search attempts, and **11265 cache hits /
+5640 misses** unchanged. Candidate generation took **36582.85732339919s** and
+the complete target took **36668.1187358s**. The scoped generic deepcopy made
+**426234731** reconstruction calls. Exact qualified-type counts were
+**405735876 `games.balatro.card.BalatroCard` (95.1907121806083%)**,
+**8199542 `games.balatro.env.shop_consumable_items.GeneratedShopConsumableItem`
+(1.9237151277566822%)**, and **4099771 each (0.9618575638783411%)** for
+`games.balatro.state.BalatroState`, `games.balatro.blinds.blind.Blind`, and
+`builtins.set`. Each tactical copy therefore reconstructs exactly one state, one
+Blind, one set, two generated-consumable descriptors, and an average
+**98.96549734119296 BalatroCard objects**. The aggregate reconstruction timer
+reported **861.6807543534669s**, but the per-call type-counter instrumentation
+inflated candidate time from the v11 run's **4933.257001501828s** by more than
+sevenfold, so call frequency alone is not accepted as elapsed-cost attribution.
+The exact next bounded task is the reconstruction-time type split above; no card
+copy optimization is authorized yet.
 
 ### Horizon-five candidate sub-profile checkpoint
 
