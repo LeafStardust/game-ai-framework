@@ -2429,12 +2429,9 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic with a bounded state-copy
-sub-profile that separates exact-card validation from standard shallow-copy
-construction inside `BalatroState.copy_for_tactical_projection`, then run its
-single production target before selecting another optimization. The retained
-card memo moved the dominant exclusive owner into the canonical state-copy method;
-do not infer whether validation or construction dominates from aggregate time. Do not
+Run the single frozen episode-7 target-only v14 production diagnostic and record
+the exact 100000-call validation and shallow-copy construction samples before
+selecting another optimization. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -3217,6 +3214,18 @@ validation now appear inside the state-copy owner's exclusive
 **48.29582512857928%** of total target time. That aggregate does not identify its
 dominant child. The exact next bounded task is therefore the state-copy sub-profile
 above, not another copy mechanism change.
+
+Commit `c4eff12de24e45316cb4f68e8d3d9fe904686368` adds schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v14`. The canonical state owner
+now exposes private exact-card validation and shallow-copy helpers without changing
+their behavior. During the target only, the diagnostic times the first **100000**
+calls of each helper and restores both originals immediately once both samples
+close; unconditional final restoration still covers success and fail-closed drift.
+The sample times remain separate from helper residual accounting. Focused
+projection/diagnostic validation passed **42 tests** locally. GitHub Actions run
+`36833347191`, job `110274796584`, passed; the actual job log reports **3018
+passed, 1607 deselected in 136.81s**. The exact next task is the single production
+v14 diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
