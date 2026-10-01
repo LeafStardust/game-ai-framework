@@ -2429,20 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-At the canonical generated-consumable transition owner, skip its preliminary
-Joker scoring probe only when the existing exact `_activation_count` reports no
-active 8 Ball ability. Preserve the complete probe and retrigger calculation for
-Eight Ball, Blueprint/Brainstorm copies, and every positive activation count.
-Add focused deterministic call-count and mechanics-parity regressions, then use
-the single frozen episode-7 target-only production diagnostic to retain the
-change only if all frozen evidence is unchanged and Joker-projector/candidate
-timings materially improve. Do not alter the main scoring projection or tactical
-state copies, replay episodes 0..6, complete episode 7 after the target, launch
-full training, inspect learned-policy results, tune hyperparameters, add a
-wall-clock cutoff, or widen mechanics. Do not add a cross-call/object-ID cache or
-reapply any rejected projection-copy, evaluator, cache-reuse, manual
-reconstruction, card-validation, or custom `BalatroCard.__deepcopy__` experiment
-recorded below.
+Run the single frozen episode-7 target-only production diagnostic for the
+no-active-8-Ball probe gate and retain the change only if all frozen evidence is
+unchanged and Joker-projector/candidate timings materially improve. Do not alter
+the main scoring projection or tactical state copies, replay episodes 0..6,
+complete episode 7 after the target, launch full training, inspect learned-policy
+results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
+not add a cross-call/object-ID cache or reapply any rejected projection-copy,
+evaluator, cache-reuse, manual reconstruction, card-validation, or custom
+`BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3325,6 +3320,17 @@ then immediately returns zero when the existing exact activation count is zero.
 The second call belongs to the required inherited scoring transition. The next
 bounded task is therefore the no-active-8-Ball probe gate above, not another
 card-copy or validation experiment.
+
+Commit `c03bc9511c3f90aa073acd2321d62982e2e793eb` implements that exact gate
+at the canonical generated-consumable transition owner. It initializes attempts
+to zero and performs the isolated Joker scoring probe only after the existing
+exact activation counter reports a positive 8 Ball ability count. The inherited
+main scoring projection remains unchanged. Focused regressions prove one
+projector call without an activation and the full two-call path plus exact
+`8 Ball x2` probability distribution when Blueprint copies Eight Ball; **44
+tests** passed locally. GitHub Actions run `36879316355`, job `110426726627`,
+passed; the actual job log reports **3020 passed, 1607 deselected in 139.83s**.
+The exact next task is the single production comparison above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
