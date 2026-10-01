@@ -2429,14 +2429,19 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only v14 production diagnostic and record
-the exact 100000-call validation and shallow-copy construction samples before
-selecting another optimization. Do not
-replay episodes 0..6, complete episode 7 after the target, launch full training,
-inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
-or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
-rejected projection-copy, evaluator, cache-reuse, manual reconstruction, or
-custom `BalatroCard.__deepcopy__` experiment recorded below.
+Replace only the exact-card validation predicate's per-card `set` construction
+with an allocation-free exact-key check at its canonical state owner, retaining
+the same exact-type, exact-field-set, and scalar-value requirements. Add focused
+deterministic regressions for missing, extra, mutable, subclass, and ordinary
+scalar card state; then use the single frozen episode-7 target-only production
+diagnostic to retain the change only if all frozen evidence is unchanged and the
+state-copy/candidate timings materially improve. Do not optimize shallow-copy
+construction in the same experiment, replay episodes 0..6, complete episode 7
+after the target, launch full training, inspect learned-policy results, tune
+hyperparameters, add a wall-clock cutoff, or widen mechanics. Do not add a
+cross-call/object-ID cache or reapply any rejected projection-copy, evaluator,
+cache-reuse, manual reconstruction, or custom `BalatroCard.__deepcopy__`
+experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3226,6 +3231,29 @@ projection/diagnostic validation passed **42 tests** locally. GitHub Actions run
 `36833347191`, job `110274796584`, passed; the actual job log reports **3018
 passed, 1607 deselected in 136.81s**. The exact next task is the single production
 v14 diagnostic run above.
+
+The production v14 diagnostic completed with all **12** frozen decisions,
+target digest `f63c5da...`, discard indices `(0, 2, 3, 6, 7)`, four frozen
+attempts `2/292`, `3/2000 exhausted`, `4/2000 exhausted`, and `5/3000
+exhausted`, plus **11265 cache hits / 5640 misses**, unchanged. Candidate
+generation took **3113.857138097752s** and the complete target took
+**3189.2530351000023s**. The state-copy owner made **4099771** calls and consumed
+**1557.1273084792192s** exclusively. Its exact bounded **100000-call** samples
+measured **0.20274580654222518s** for exact-card validation
+(**2.02745806542225 microseconds/call**) and **0.19118910521501675s** for
+standard-library shallow-copy construction (**1.91189105215017
+microseconds/call**).
+
+The retained v13 reconstruction evidence implies **405735876** exact card
+objects across those same copies. Straight sample extrapolation is therefore
+about **822.61s** of validation and **775.72s** of construction. Their sum
+slightly exceeds the aggregate owner because separately timed microbenchmarks
+and full-run exclusive accounting carry instrumentation and host variance; it is
+directional attribution, not an additive timing identity. It nevertheless shows
+that both per-card operations are material and that the allocating validation
+predicate alone is the next separable canonical target. The next bounded task is
+the validation-only experiment above; shallow-copy construction remains fixed so
+its effect is not conflated.
 
 ### Horizon-five candidate sub-profile checkpoint
 
