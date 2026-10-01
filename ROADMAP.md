@@ -2429,11 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only v13 production comparison for commit
-`78d78d5bef5792ba1276505a3ae33aff2f72d095`. Retain the tactical-card memo
-optimization only if all 12 decisions, target evidence, cache counts, and search
-attempts remain exact and the measured candidate/target cost improves materially;
-otherwise revert it while retaining the evidence. Do not
+Extend the frozen episode-7 target-only diagnostic with a bounded state-copy
+sub-profile that separates exact-card validation from standard shallow-copy
+construction inside `BalatroState.copy_for_tactical_projection`, then run its
+single production target before selecting another optimization. The retained
+card memo moved the dominant exclusive owner into the canonical state-copy method;
+do not infer whether validation or construction dominates from aggregate time. Do not
 replay episodes 0..6, complete episode 7 after the target, launch full training,
 inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
 or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
@@ -3196,6 +3197,26 @@ cache was added. Focused projection/diagnostic validation passed **42 tests**
 locally. GitHub Actions run `36821076561`, job `110236566920`, passed; the
 actual job log reports **3018 passed, 1607 deselected in 135.15s**. The exact
 next task is the single frozen production comparison above.
+
+The optimized production comparison completed with all **12** frozen decisions,
+target digest/action/indices, four frozen search attempts, and **11265 cache hits /
+5640 misses** unchanged. Candidate generation fell from the direct v13 baseline's
+**5466.1592109997s** to **3200.169953500619s**, a reduction of
+**2265.989257499081s (41.45487114497451%)**. Complete target time fell from
+**5569.687732199993s** to **3277.9868857000256s**, a reduction of
+**2291.700846499967s (41.1459485107392%)**. The change is retained.
+
+Generic deepcopy reconstruction fell from **426234731** calls /
+**1147.0862824343494s** to **20498855** calls / **89.0473336619907s**; the
+bounded reconstruction sample correspondingly contains only the state, Blind,
+set, and two generated-consumable descriptors per tactical copy, with no
+`BalatroCard`. List dispatch also fell from **1194.5015748273s** to
+**87.47668536327546s**. The standard shallow-card construction and retained
+validation now appear inside the state-copy owner's exclusive
+**1583.1308140554465s**, which is **49.470210553151496%** of candidate time and
+**48.29582512857928%** of total target time. That aggregate does not identify its
+dominant child. The exact next bounded task is therefore the state-copy sub-profile
+above, not another copy mechanism change.
 
 ### Horizon-five candidate sub-profile checkpoint
 
