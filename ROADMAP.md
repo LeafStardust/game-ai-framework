@@ -2429,15 +2429,20 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only production diagnostic for the
-scalar-type-set experiment and retain the change only if all frozen evidence is
-unchanged and state-copy/candidate timings materially improve. Do not combine
-this with the rejected key-check experiment, optimize shallow-copy construction,
-replay episodes 0..6, complete episode 7 after the target, launch full training,
-inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
-or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
-rejected projection-copy, evaluator, cache-reuse, manual reconstruction, or
-custom `BalatroCard.__deepcopy__` experiment recorded below.
+At the canonical generated-consumable transition owner, skip its preliminary
+Joker scoring probe only when the existing exact `_activation_count` reports no
+active 8 Ball ability. Preserve the complete probe and retrigger calculation for
+Eight Ball, Blueprint/Brainstorm copies, and every positive activation count.
+Add focused deterministic call-count and mechanics-parity regressions, then use
+the single frozen episode-7 target-only production diagnostic to retain the
+change only if all frozen evidence is unchanged and Joker-projector/candidate
+timings materially improve. Do not alter the main scoring projection or tactical
+state copies, replay episodes 0..6, complete episode 7 after the target, launch
+full training, inspect learned-policy results, tune hyperparameters, add a
+wall-clock cutoff, or widen mechanics. Do not add a cross-call/object-ID cache or
+reapply any rejected projection-copy, evaluator, cache-reuse, manual
+reconstruction, card-validation, or custom `BalatroCard.__deepcopy__` experiment
+recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3298,6 +3303,28 @@ projection/diagnostic validation passed **43 tests** locally. GitHub Actions run
 `36862462321`, job `110369737350`, passed; the actual job log reports **3019
 passed, 1607 deselected in 73.51s**. The exact next task is the single production
 comparison above.
+
+That production comparison again preserved all **12** frozen decisions, target
+digest/action/indices, four search attempts, and **11265 cache hits / 5640
+misses**. State-copy exclusive time improved only from
+**1557.1273084792192s** to **1523.3316632118658s** (**2.17%**), while candidate
+time regressed to **3320.7283563982346s** (**+6.64%**) and total time to
+**3414.6022288000095s** (**+7.07%**). The bounded validation sample itself rose
+to **0.22784139425493777s**. The local mechanism win therefore did not translate
+into a material production win. The experiment was rejected and fully reverted
+by commit `09e393bd003c077a7d77c443ae3ed7c4d0fa7872`. GitHub Actions run
+`36878407083`, job `110423658108`, passed on the restored baseline; the actual
+job log reports **3018 passed, 1607 deselected in 136.14s**. Both validation
+micro-optimization paths are now closed.
+
+The production diagnostics consistently report exactly **8199542**
+`joker_projector.score` calls for **4099771** generated-consumable transitions.
+Inspection of the canonical owner shows that one call is an unconditional probe
+used only to derive 8 Ball scoring-card/retrigger attempts; `_eight_ball_attempts`
+then immediately returns zero when the existing exact activation count is zero.
+The second call belongs to the required inherited scoring transition. The next
+bounded task is therefore the no-active-8-Ball probe gate above, not another
+card-copy or validation experiment.
 
 ### Horizon-five candidate sub-profile checkpoint
 
