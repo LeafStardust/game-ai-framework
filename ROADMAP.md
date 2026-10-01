@@ -2429,20 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Replace only the exact-card validation predicate's per-value scalar-type set
-literal with one immutable module-level type set, retaining the original exact
-field-set check and all exact-type/scalar-value requirements. Add focused
-deterministic regressions for all admitted scalar types, `None`, type subclasses,
-mutable values, extra/missing fields, and card subclasses; then use the single
-frozen episode-7 target-only production diagnostic to retain the change only if
-all frozen evidence is unchanged and state-copy/candidate timings materially
-improve. Do not combine this with the rejected key-check experiment, optimize
-shallow-copy construction, replay episodes 0..6, complete episode 7 after the
-target, launch full training, inspect learned-policy results, tune
-hyperparameters, add a wall-clock cutoff, or widen mechanics. Do not add a
-cross-call/object-ID cache or reapply any rejected projection-copy, evaluator,
-cache-reuse, manual reconstruction, or custom `BalatroCard.__deepcopy__`
-experiment recorded below.
+Run the single frozen episode-7 target-only production diagnostic for the
+scalar-type-set experiment and retain the change only if all frozen evidence is
+unchanged and state-copy/candidate timings materially improve. Do not combine
+this with the rejected key-check experiment, optimize shallow-copy construction,
+replay episodes 0..6, complete episode 7 after the target, launch full training,
+inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
+or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
+rejected projection-copy, evaluator, cache-reuse, manual reconstruction, or
+custom `BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3290,6 +3285,19 @@ card rather than the rejected experiment's single key-set allocation. The next
 bounded task is therefore the scalar-type-set hoist above, with the original
 `set(attributes)` exact-field check deliberately unchanged so the experiments
 remain isolated.
+
+Commit `42a45d6366c7360f0ec6d2929e93bd9f94326de2` implements that isolated
+experiment at the canonical state owner. The admitted exact types now live in a
+single immutable module-level `frozenset`; the original exact-field-set check,
+per-value `type(...)` equality, and generic-deepcopy fallback are unchanged.
+Focused regressions cover all admitted scalar/`None` values plus scalar
+subclasses, mutable values, missing/extra fields, and card subclasses. A bounded
+same-process 200000-call mechanism check reduced valid-card predicate time from
+**0.3347676999983378s** to **0.23307519999798387s** (**30.377%**). Focused
+projection/diagnostic validation passed **43 tests** locally. GitHub Actions run
+`36862462321`, job `110369737350`, passed; the actual job log reports **3019
+passed, 1607 deselected in 73.51s**. The exact next task is the single production
+comparison above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
