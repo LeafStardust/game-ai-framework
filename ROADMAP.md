@@ -2429,12 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add a behavior-neutral canonical projection-state copy hook to
-`LiveJokerScoreProjector`, defaulting exactly to the current `state.copy()`.
-Route `score` through that hook and add focused regressions proving the default
-copy/alias contract and identical scoring output. Do not override the hook for
-generated-consumable projection or remove its post-scoring tactical copy yet.
-Do not otherwise alter the main scoring projection or tactical state copies,
+Use the new canonical projector copy hook for an isolated inert-generated
+transition experiment. Only when no generated-consumable capability is active,
+have the generated projector create the required tactically isolated state and
+return the inherited transition without the later duplicate wrapper branch.
+Preserve the existing capable path unchanged. Retain only if the frozen opening
+decision/action/search trace and the alias diagnostic remain exact. Do not
+otherwise alter the main scoring projection or tactical state copies,
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
@@ -3401,6 +3402,17 @@ Actions run `37134747066`, job `111236886042`, passed; the actual job log report
 **3020 passed, 1607 deselected in 135.78s**. The exact next task is the
 behavior-neutral canonical copy hook above; no isolation relocation is yet
 authorized.
+
+Commit `ff9a309befbd2ec78be2d09a3b0a7c6567ffbc8c` adds
+`LiveJokerScoreProjector._copy_projection_state` at the canonical owner and
+routes `score` through it. Its default remains exactly `state.copy()`; focused
+coverage proves the hook is invoked once, scoring output is unchanged, the
+projected state/list is distinct, and the existing default card alias remains.
+Focused Joker/generated/diagnostic validation passed **63 tests** locally.
+GitHub Actions run `37135048529`, job `111237775605`, passed; the actual job log
+reports **3021 passed, 1607 deselected in 135.41s**. The exact next bounded task
+is the isolated inert-generated experiment above; the capable path and default
+projectors must not change.
 
 ### Horizon-five candidate sub-profile checkpoint
 
