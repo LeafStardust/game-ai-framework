@@ -3443,6 +3443,17 @@ The projection/copy mechanisms measured above are now closed. The exact next
 bounded task is the target schedule probe above, which may assess policy-cost
 tradeoffs but must not silently change the frozen production authority.
 
+Commit `5cbf78bd9d6ca75ab21b9fea0557c776ea856ea5` adds the versioned
+`balatro-red-white-ppo-schedule-probe-v1` diagnostic. It verifies the frozen
+episode-7 prefix, intercepts the unchanged target state, runs explicit
+`max_horizon=2` and `max_horizon=3` configurations with a 2000-node ceiling,
+records action/indices/attempts/timing, rejects target-state mutation, and
+restores the production engine limits unconditionally. The campaign factory and
+production schedule remain unchanged. Focused diagnostic validation passed **20
+tests** locally. GitHub Actions run `37147885830`, job `111275479001`, passed;
+the actual job log reports **3022 passed, 1607 deselected in 138.28s**. The exact
+next task is the single headless schedule-probe run above.
+
 ### Horizon-five candidate sub-profile checkpoint
 
 The exact `657e5ffd...` state was captured inside the ordered episode diagnostic
