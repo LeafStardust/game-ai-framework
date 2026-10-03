@@ -39,6 +39,7 @@ PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
     "balatro-red-white-ppo-tactical-candidate-subowner-v15"
 )
 PPO_TACTICAL_INERT_ALIAS_SCHEMA = "balatro-red-white-ppo-inert-alias-v1"
+PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA = "balatro-red-white-ppo-schedule-probe-v1"
 _RECONSTRUCT_TYPE_SAMPLE_LIMIT = 100_000
 _STATE_CARD_SAMPLE_LIMIT = 100_000
 
@@ -136,6 +137,32 @@ class PPOTacticalEpisodeCostReport:
     total_elapsed_seconds: float
     tactical_elapsed_seconds: float
     decisions: tuple[PPOTacticalEpisodeDecisionCost, ...]
+
+    def as_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
+
+
+@dataclass(frozen=True)
+class PPOTacticalScheduleProbeResult:
+    max_horizon: int
+    max_nodes: int
+    action: str
+    selected_hand_indices: tuple[int, ...]
+    search_attempts: tuple[tuple[int, int, int, bool], ...]
+    elapsed_seconds: float
+
+
+@dataclass(frozen=True)
+class PPOTacticalScheduleProbeReport:
+    schema: str
+    root_seed: str
+    game_seed: str
+    verified_prefix_decisions: int
+    public_input_sha256: str
+    results: tuple[PPOTacticalScheduleProbeResult, ...]
 
     def as_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -365,6 +392,112 @@ class _TargetDecisionReached(Exception):
     def __init__(self, report: PPOTacticalCandidateSubownerReport):
         super().__init__("target tactical decision reached")
         self.report = report
+
+
+class _ScheduleProbeReached(Exception):
+    def __init__(self, report: PPOTacticalScheduleProbeReport):
+        super().__init__("target tactical schedule probe reached")
+        self.report = report
+
+
+def probe_episode_seven_bounded_schedules(
+    *,
+    root_seed: str = "RED-WHITE-PPO-V1",
+    clock: Callable[[], float] = perf_counter,
+) -> PPOTacticalScheduleProbeReport:
+    if root_seed != "RED-WHITE-PPO-V1":
+        raise PPOContractError("schedule probe requires root seed RED-WHITE-PPO-V1")
+    if not callable(clock):
+        raise TypeError("clock must be callable")
+
+    episode_index = 7
+    target_index = len(_EPISODE_7_EXPECTED_PREFIX) - 1
+    training_run = PPOTrainingRun.from_seed(root_seed)
+    environment = make_ppo_training_environment(episode_index)
+    learner = PPOLearner(training_run)
+    engine = environment._backend._tactical_decision_engine
+    original_decide = engine.decide
+    original_horizon = engine.max_horizon
+    original_nodes = engine.max_search_nodes
+    verified = {"count": 0}
+
+    def decide(state):
+        decision_index = verified["count"]
+        expected = _EPISODE_7_EXPECTED_PREFIX[decision_index]
+        digest = _public_input_sha256(state)
+        if digest != expected[0]:
+            raise PPOContractError(
+                f"schedule probe digest drifted at decision {decision_index}"
+            )
+        if decision_index < target_index:
+            decision = original_decide(state)
+            action = decision.action.name
+            indices = tuple(state.hand.index(card) for card in decision.action.cards)
+            attempts = tuple(
+                (a.horizon, a.nodes_evaluated, a.max_nodes, a.budget_exceeded)
+                for a in decision.search_attempts
+            )
+            if (action, indices, attempts) != expected[1:]:
+                raise PPOContractError(
+                    f"schedule probe prefix drifted at decision {decision_index}"
+                )
+            verified["count"] += 1
+            return decision
+
+        results = []
+        for max_horizon in (2, 3):
+            engine.max_horizon = max_horizon
+            engine.max_search_nodes = 2000
+            started = float(clock())
+            decision = original_decide(state)
+            elapsed = max(0.0, float(clock()) - started)
+            results.append(
+                PPOTacticalScheduleProbeResult(
+                    max_horizon=max_horizon,
+                    max_nodes=2000,
+                    action=decision.action.name,
+                    selected_hand_indices=tuple(
+                        state.hand.index(card) for card in decision.action.cards
+                    ),
+                    search_attempts=tuple(
+                        (
+                            attempt.horizon,
+                            attempt.nodes_evaluated,
+                            attempt.max_nodes,
+                            attempt.budget_exceeded,
+                        )
+                        for attempt in decision.search_attempts
+                    ),
+                    elapsed_seconds=elapsed,
+                )
+            )
+            if _public_input_sha256(state) != digest:
+                raise RuntimeError("schedule probe mutated the frozen target state")
+        raise _ScheduleProbeReached(
+            PPOTacticalScheduleProbeReport(
+                schema=PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA,
+                root_seed=root_seed,
+                game_seed=training_run.game_seed(episode_index),
+                verified_prefix_decisions=verified["count"],
+                public_input_sha256=digest,
+                results=tuple(results),
+            )
+        )
+
+    engine.decide = decide
+    try:
+        collect_complete_ppo_episode(
+            environment,
+            training_run,
+            episode_index=episode_index,
+            policy=learner.model.infer,
+        )
+    except _ScheduleProbeReached as reached:
+        return reached.report
+    finally:
+        engine.max_horizon = original_horizon
+        engine.max_search_nodes = original_nodes
+    raise PPOContractError("episode-seven schedule-probe target was not reached")
 
 
 def _timed_call(clock, accumulator: _CostAccumulator, field: str, function):
@@ -1210,9 +1343,12 @@ def main(argv: list[str] | None = None) -> int:
     target = parser.add_mutually_exclusive_group()
     target.add_argument("--episode-index", type=int)
     target.add_argument("--episode-seven-candidate-subowners", action="store_true")
+    target.add_argument("--episode-seven-schedule-probe", action="store_true")
     arguments = parser.parse_args(argv)
     report = (
-        trace_episode_seven_candidate_subowners(root_seed=arguments.root_seed)
+        probe_episode_seven_bounded_schedules(root_seed=arguments.root_seed)
+        if arguments.episode_seven_schedule_probe
+        else trace_episode_seven_candidate_subowners(root_seed=arguments.root_seed)
         if arguments.episode_seven_candidate_subowners
         else measure_ppo_tactical_cost(root_seed=arguments.root_seed)
         if arguments.episode_index is None

@@ -11,8 +11,10 @@ from games.balatro.env.ppo_tactical_performance import (
     PPO_TACTICAL_COST_WORKLOAD,
     PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA,
     PPO_TACTICAL_EPISODE_COST_SCHEMA,
+    PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA,
     measure_ppo_tactical_cost,
     compare_first_production_inert_transition_aliases,
+    probe_episode_seven_bounded_schedules,
     trace_episode_seven_candidate_subowners,
     trace_initial_policy_ppo_episode_tactical_costs,
     _ReconstructTypeSampler,
@@ -161,6 +163,8 @@ class _FakeEngine:
     def __init__(self):
         self.planner = _FakePlanner()
         self.policy = _FakePolicy()
+        self.max_horizon = 8
+        self.max_search_nodes = 5000
 
     def _adaptive_planner(self, config):
         return _FakePlanner()
@@ -345,6 +349,63 @@ def test_env_ppo_generated_consumable_capability_classification_is_exact():
     assert tactical_performance._generated_consumable_capabilities(
         model, state
     ) == (False, False, False)
+
+
+def test_env_ppo_schedule_probe_is_bounded_and_restores_engine(monkeypatch):
+    from games.balatro.card import BalatroCard
+    from games.balatro.state import BalatroState
+
+    state = BalatroState()
+    state.hand = [BalatroCard("A", "Spades")]
+    digest = tactical_performance._public_input_sha256(state)
+    monkeypatch.setattr(
+        tactical_performance,
+        "_EPISODE_7_EXPECTED_PREFIX",
+        ((digest, "PLAY_CARDS", (0,), ()),),
+    )
+    engine = _FakeEngine()
+    environment = SimpleNamespace(
+        _backend=SimpleNamespace(_tactical_decision_engine=engine)
+    )
+
+    monkeypatch.setattr(
+        tactical_performance,
+        "make_ppo_training_environment",
+        lambda stream_index: environment,
+    )
+    monkeypatch.setattr(
+        tactical_performance,
+        "PPOLearner",
+        lambda training_run: SimpleNamespace(
+            model=SimpleNamespace(infer=lambda observation, mask: None)
+        ),
+    )
+
+    def collector(target, training_run, *, episode_index, policy):
+        target._backend._tactical_decision_engine.decide(state)
+        raise AssertionError("schedule probe must stop at target")
+
+    monkeypatch.setattr(
+        tactical_performance,
+        "collect_complete_ppo_episode",
+        collector,
+    )
+    ticks = count()
+
+    report = probe_episode_seven_bounded_schedules(
+        clock=lambda: float(next(ticks))
+    )
+
+    assert report.schema == PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA
+    assert report.public_input_sha256 == digest
+    assert report.verified_prefix_decisions == 0
+    assert [result.max_horizon for result in report.results] == [2, 3]
+    assert all(result.max_nodes == 2000 for result in report.results)
+    assert all(result.action == "PLAY_CARDS" for result in report.results)
+    assert all(result.selected_hand_indices == (0,) for result in report.results)
+    assert all(result.elapsed_seconds == 1.0 for result in report.results)
+    assert engine.max_horizon == 8
+    assert engine.max_search_nodes == 5000
 
 
 def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
