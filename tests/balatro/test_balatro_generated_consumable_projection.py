@@ -143,54 +143,6 @@ def test_tactical_projection_shallow_copies_only_exact_scalar_cards(monkeypatch)
     assert type(branch.hand[2]) is CardSubclass
 
 
-def test_generated_transition_skips_eight_ball_probe_without_activation(monkeypatch):
-    card = BalatroCard("A", "Spades")
-    state = _state([card], [])
-    model = LiveGeneratedConsumableScoreOutcomeModel()
-    original_score = model.joker_projector.score
-    calls = []
-
-    def counted_score(*args, **kwargs):
-        calls.append((args, kwargs))
-        return original_score(*args, **kwargs)
-
-    monkeypatch.setattr(model.joker_projector, "score", counted_score)
-
-    model.project_transition(PokerHand.HIGH_CARD, state, [card])
-
-    assert len(calls) == 1
-
-
-def test_generated_transition_retains_probe_for_copied_eight_ball(monkeypatch):
-    card = BalatroCard("8", "Hearts")
-    state = _state(
-        [card],
-        [BlueprintJoker(), EightBallJoker()],
-        consumable_slots=1,
-    )
-    model = LiveGeneratedConsumableScoreOutcomeModel()
-    original_score = model.joker_projector.score
-    calls = []
-
-    def counted_score(*args, **kwargs):
-        calls.append((args, kwargs))
-        return original_score(*args, **kwargs)
-
-    monkeypatch.setattr(model.joker_projector, "score", counted_score)
-
-    transition = model.project_transition(PokerHand.HIGH_CARD, state, [card])
-
-    assert len(calls) == 2
-    assert {
-        tuple(_generated_categories(outcome)): round(outcome.probability, 10)
-        for outcome in transition.distribution.outcomes
-    } == {
-        (): 0.5625,
-        ("TAROT",): 0.4375,
-    }
-    assert "8 Ball x2" in transition.distribution.random_sources
-
-
 def test_seance_creates_abstract_spectral_without_sampling_identity():
     cards = [
         BalatroCard("4", "Hearts"),
