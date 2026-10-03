@@ -2429,9 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only production diagnostic for the
-no-active-8-Ball probe gate and retain the change only if all frozen evidence is
-unchanged and Joker-projector/candidate timings materially improve. Do not alter
+Extend the frozen episode-7 target-only diagnostic to v15 with exact counts of
+generated-consumable transitions whose input state has no active 8 Ball, no
+effective main generator, and no active Sixth Sense. Separate those inert calls
+from calls with each capability and do not change transition behavior yet. This
+is the evidence gate for a possible canonical inert-wrapper bypass; do not alter
 the main scoring projection or tactical state copies, replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
@@ -3330,7 +3332,28 @@ projector call without an activation and the full two-call path plus exact
 `8 Ball x2` probability distribution when Blueprint copies Eight Ball; **44
 tests** passed locally. GitHub Actions run `36879316355`, job `110426726627`,
 passed; the actual job log reports **3020 passed, 1607 deselected in 139.83s**.
-The exact next task is the single production comparison above.
+The production comparison preserved all **12** frozen decisions, target digest
+`f63c5da...`, discard indices `(0, 2, 3, 6, 7)`, four frozen attempts, and
+**11265 cache hits / 5640 misses**. It halved `joker_projector.score` from
+**8199542** to **4099771** calls and reduced its exclusive time from
+**404.59839413291775s** to **274.97340189981696s**. The required aggregate
+candidate metric did not improve: candidate generation rose from
+**3113.857138097752s** to **4069.9337587000973s** (**+30.70%**) and total time
+rose from **3189.2530351000023s** to **4186.3305034s**. Broad host inflation was
+visible in state-copy time (**1557.1273084792192s** to
+**2174.6955165009713s**), but the predeclared gate required a material candidate
+win rather than a normalized counterfactual. The experiment was therefore
+rejected and fully reverted by commit
+`9a79f4c7e68a04b862ddca7c458706c8a0b565de`. GitHub Actions run
+`37104992900`, job `111151642750`, passed on the restored baseline; the actual
+job log reports **3018 passed, 1607 deselected in 80.47s**.
+
+The same comparison confirms that every generated-consumable transition still
+performs one tactical state copy: **4099771** calls to each owner. Before any
+copy can be bypassed, the diagnostic must prove how many transition inputs have
+no active generated-consumable capability at all. The exact next bounded task is
+therefore the v15 inert/capability count above, not another timing-only or copy
+mechanism experiment.
 
 ### Horizon-five candidate sub-profile checkpoint
 
