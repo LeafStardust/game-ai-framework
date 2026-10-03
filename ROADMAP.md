@@ -2429,12 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add a bounded deterministic alias/state comparison for one inert
-generated-consumable projection at the frozen first production decision. Locate
-the exact state or identity boundary that differs between the inherited
-visible-card transition and the current copied wrapper before another
-optimization. Do not change transition behavior yet. Do not otherwise alter the
-main scoring projection or tactical state copies, replay episodes 0..6,
+Add a behavior-neutral canonical projection-state copy hook to
+`LiveJokerScoreProjector`, defaulting exactly to the current `state.copy()`.
+Route `score` through that hook and add focused regressions proving the default
+copy/alias contract and identical scoring output. Do not override the hook for
+generated-consumable projection or remove its post-scoring tactical copy yet.
+Do not otherwise alter the main scoring projection or tactical state copies,
+replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
 not add a cross-call/object-ID cache or reapply any rejected projection-copy,
@@ -3386,6 +3387,20 @@ passed **26 tests**. The copy therefore owns an observable branch-isolation or
 state-identity contract even when no generator can activate, so the optimization
 is not behaviorally equivalent. The exact next bounded task is the inert
 transition alias/state comparison above, not another bypass or copy change.
+
+Commit `8b66f100e870c141cc11618aefe95fbcbcdb9289` adds the bounded
+`balatro-red-white-ppo-inert-alias-v1` comparison at the frozen opening public
+state. The inherited visible-card and copied generated-consumable results have
+the identical public-state digest
+`78325d4056e2c5215fc9bf3890ffa9fdbed0a68cc2c468e875a89e76aac04a35`,
+but the inherited result aliases **60** input card objects while the current
+wrapper aliases **0**. This proves the post-scoring tactical copy is presently
+the owner of required card isolation, not a semantically empty wrapper.
+Focused diagnostic/projection validation passed **44 tests** locally. GitHub
+Actions run `37134747066`, job `111236886042`, passed; the actual job log reports
+**3020 passed, 1607 deselected in 135.78s**. The exact next task is the
+behavior-neutral canonical copy hook above; no isolation relocation is yet
+authorized.
 
 ### Horizon-five candidate sub-profile checkpoint
 
