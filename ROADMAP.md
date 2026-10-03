@@ -2429,12 +2429,10 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Use the new canonical projector copy hook for an isolated inert-generated
-transition experiment. Only when no generated-consumable capability is active,
-have the generated projector create the required tactically isolated state and
-return the inherited transition without the later duplicate wrapper branch.
-Preserve the existing capable path unchanged. Retain only if the frozen opening
-decision/action/search trace and the alias diagnostic remain exact. Do not
+Run the single frozen episode-7 target-only production diagnostic for the
+isolated inert-generated transition. Retain only if all frozen evidence remains
+exact and candidate generation materially improves against the v14 baseline.
+Record projector and tactical-copy call counts/timings. Do not
 otherwise alter the main scoring projection or tactical state copies,
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
@@ -3413,6 +3411,17 @@ GitHub Actions run `37135048529`, job `111237775605`, passed; the actual job log
 reports **3021 passed, 1607 deselected in 135.41s**. The exact next bounded task
 is the isolated inert-generated experiment above; the capable path and default
 projectors must not change.
+
+Commit `03758fe68c360aa242da379eb2ec0abd669dbfff` relocates required
+tactical isolation to the generated projector only for inputs with no active
+generated-consumable capability, then returns the inherited transition. The
+capable path retains its existing probe and post-scoring branch copies. The
+frozen opening action remains `DISCARD_CARDS (3,4,5,6,7)` with exact trace
+`2/18, 3/79, 3c/38`; the alias comparison retains the identical public digest
+and zero wrapped input-card aliases. Focused validation passed **65 tests**
+locally. GitHub Actions run `37135329369`, job `111238589633`, passed; the
+actual job log reports **3023 passed, 1607 deselected in 72.88s**. The exact next
+task is the single production comparison above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
