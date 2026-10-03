@@ -303,7 +303,7 @@ class LiveJokerScoreProjector:
                 cards_after_copy=tuple(cards or ()),
             )
 
-        safe_state = state.copy()
+        safe_state = self._copy_projection_state(state)
         safe_state.jokers = deepcopy(list(getattr(state, "jokers", [])))
 
         all_jokers = list(getattr(safe_state, "jokers", []))
@@ -402,6 +402,9 @@ class LiveJokerScoreProjector:
             unsupported_jokers=unsupported,
             played_card_retriggers=played_card_retriggers,
         )
+
+    def _copy_projection_state(self, state):
+        return state.copy()
 
     def _prepare_hand_play(
         self,

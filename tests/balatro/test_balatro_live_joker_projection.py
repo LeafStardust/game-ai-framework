@@ -23,6 +23,7 @@ from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.external.save_observer import _normalize_item
 from games.balatro.live.joker_factory import LiveJokerFactory
+from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.live.score_outcomes import VisibleCardScoreOutcomeModel
 from games.balatro.state import BalatroState
 
@@ -70,6 +71,30 @@ def test_ice_cream_projection_scores_and_decays_only_copied_joker():
     assert transition.state_after_scoring.hand[1] is cards[1]
     assert transition.state_after_scoring.jokers[0] is not ice_cream
     assert transition.state_after_scoring.jokers[0].chips == 95
+
+
+def test_joker_projector_routes_default_state_copy_through_canonical_hook():
+    card = BalatroCard("A", "Spades")
+    state = _state([card])
+    copied = []
+
+    class ObservedProjector(LiveJokerScoreProjector):
+        def _copy_projection_state(self, source):
+            copied.append(source)
+            return super()._copy_projection_state(source)
+
+    baseline = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD, state, [card]
+    )
+    observed = VisibleCardScoreOutcomeModel(
+        joker_projector=ObservedProjector()
+    ).project_transition(PokerHand.HIGH_CARD, state, [card])
+
+    assert copied == [state]
+    assert observed.distribution == baseline.distribution
+    assert observed.state_after_scoring is not state
+    assert observed.state_after_scoring.hand is not state.hand
+    assert observed.state_after_scoring.hand[0] is card
 
 
 def test_green_joker_projection_starts_from_hydrated_mult_and_updates_only_copy():
