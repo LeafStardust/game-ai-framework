@@ -2429,11 +2429,10 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Extend the frozen episode-7 target-only diagnostic to v15 with exact counts of
-generated-consumable transitions whose input state has no active 8 Ball, no
-effective main generator, and no active Sixth Sense. Separate those inert calls
-from calls with each capability and do not change transition behavior yet. This
-is the evidence gate for a possible canonical inert-wrapper bypass; do not alter
+Run the single frozen episode-7 target-only production v15 diagnostic and record
+the exact inert/8-Ball/main-generator/Sixth-Sense capability counts. Do not
+change transition behavior until that evidence is known. This is the evidence
+gate for a possible canonical inert-wrapper bypass; do not alter
 the main scoring projection or tactical state copies, replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
@@ -3354,6 +3353,17 @@ copy can be bypassed, the diagnostic must prove how many transition inputs have
 no active generated-consumable capability at all. The exact next bounded task is
 therefore the v15 inert/capability count above, not another timing-only or copy
 mechanism experiment.
+
+Commit `cd1bb8741886701f1f74da09d716bcf78c89acab` adds schema
+`balatro-red-white-ppo-tactical-candidate-subowner-v15`. During the frozen target
+only, it counts all generated-consumable transition inputs and separately counts
+fully inert inputs plus inputs capable of 8 Ball, a main generator, or Sixth
+Sense. Capability categories may overlap and use the canonical activation/copy
+resolution owners; gameplay and tactical copies are unchanged. Focused
+diagnostic/projection validation passed **43 tests** locally. GitHub Actions run
+`37105337674`, job `111152606681`, passed; the actual job log reports **3019
+passed, 1607 deselected in 75.82s**. The exact next task is the single production
+v15 diagnostic run above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
