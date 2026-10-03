@@ -39,6 +39,18 @@ class _FakeScoreOutcomes:
             score=lambda *args, **kwargs: SimpleNamespace()
         )
 
+    @staticmethod
+    def _activation_count(state, class_name):
+        return 0
+
+    @staticmethod
+    def _effective_main_abilities(state):
+        return ()
+
+    @staticmethod
+    def _joker_active(joker):
+        return True
+
     def project_transition(self, *args, **kwargs):
         self._project_hook_transition(*args, **kwargs)
         return self._project_non_hook_transition(*args, **kwargs)
@@ -304,6 +316,27 @@ def test_env_ppo_initial_policy_episode_trace_targets_only_requested_first_wave(
     assert len(payload["decisions"]) == 2
 
 
+def test_env_ppo_generated_consumable_capability_classification_is_exact():
+    sixth_sense = type("SixthSenseJoker", (), {})()
+    state = SimpleNamespace(jokers=[sixth_sense])
+    model = SimpleNamespace(
+        _activation_count=lambda observed, name: 2,
+        _effective_main_abilities=lambda observed: ("VagabondJoker",),
+        _joker_active=lambda joker: True,
+    )
+
+    assert tactical_performance._generated_consumable_capabilities(
+        model, state
+    ) == (True, True, True)
+
+    model._activation_count = lambda observed, name: 0
+    model._effective_main_abilities = lambda observed: ()
+    model._joker_active = lambda joker: False
+    assert tactical_performance._generated_consumable_capabilities(
+        model, state
+    ) == (False, False, False)
+
+
 def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     from games.balatro.card import BalatroCard
     from games.balatro.state import BalatroState
@@ -421,7 +454,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
 
     assert requested_streams == [7]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v14"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v15"
     assert report.game_seed == "3DEFB26A"
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
@@ -447,6 +480,11 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     assert helper_costs["_score_outcomes_hook_transition"].calls == 2
     assert helper_costs["_score_outcomes_non_hook_transition"].calls == 2
     assert helper_costs["_generated_consumable_project_transition"].calls == 2
+    assert report.generated_consumable_transition_calls == 2
+    assert report.generated_consumable_inert_calls == 2
+    assert report.generated_consumable_eight_ball_capable_calls == 0
+    assert report.generated_consumable_main_generator_capable_calls == 0
+    assert report.generated_consumable_sixth_sense_capable_calls == 0
     assert helper_costs["_generated_joker_projector_score"].calls == 2
     assert helper_costs["_visible_card_project_transition"].calls == 2
     assert helper_costs["_state_copy_for_tactical_projection"].calls == 2

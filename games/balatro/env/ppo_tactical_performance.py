@@ -36,7 +36,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v14"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v15"
 )
 _RECONSTRUCT_TYPE_SAMPLE_LIMIT = 100_000
 _STATE_CARD_SAMPLE_LIMIT = 100_000
@@ -172,6 +172,11 @@ class PPOTacticalCandidateSubownerReport:
     search_attempts: tuple[tuple[int, int, int, bool], ...]
     evaluation_cache_hits: int
     evaluation_cache_misses: int
+    generated_consumable_transition_calls: int
+    generated_consumable_inert_calls: int
+    generated_consumable_eight_ball_capable_calls: int
+    generated_consumable_main_generator_capable_calls: int
+    generated_consumable_sixth_sense_capable_calls: int
     total_elapsed_seconds: float
     candidate_generation_elapsed_seconds: float
     helper_costs: tuple[PPOTacticalCandidateHelperCost, ...]
@@ -325,6 +330,16 @@ def _public_input_sha256(state) -> str:
     signature = canonical_public_state_signature(state)
     content = json.dumps(signature, separators=(",", ":"), ensure_ascii=True)
     return sha256(content.encode("ascii")).hexdigest()
+
+
+def _generated_consumable_capabilities(model, state) -> tuple[bool, bool, bool]:
+    eight_ball = model._activation_count(state, "EightBallJoker") > 0
+    main_generator = bool(model._effective_main_abilities(state))
+    sixth_sense = any(
+        type(joker).__name__ == "SixthSenseJoker" and model._joker_active(joker)
+        for joker in getattr(state, "jokers", []) or []
+    )
+    return eight_ball, main_generator, sixth_sense
 
 
 def _instrument_episode_engine(engine, clock, records) -> None:
@@ -502,6 +517,13 @@ def trace_episode_seven_candidate_subowners(
     helper_accumulator = _ExclusiveHelperAccumulator(clock)
     candidate_elapsed = {"seconds": 0.0}
     evaluation_cache = {"hits": 0, "misses": 0}
+    generated_capabilities = {
+        "calls": 0,
+        "inert": 0,
+        "eight_ball": 0,
+        "main_generator": 0,
+        "sixth_sense": 0,
+    }
     state_card_samples = {
         "validation_calls": 0,
         "validation_seconds": 0.0,
@@ -779,6 +801,17 @@ def trace_episode_seven_candidate_subowners(
             search_attempts=attempts,
             evaluation_cache_hits=evaluation_cache["hits"],
             evaluation_cache_misses=evaluation_cache["misses"],
+            generated_consumable_transition_calls=generated_capabilities["calls"],
+            generated_consumable_inert_calls=generated_capabilities["inert"],
+            generated_consumable_eight_ball_capable_calls=generated_capabilities[
+                "eight_ball"
+            ],
+            generated_consumable_main_generator_capable_calls=generated_capabilities[
+                "main_generator"
+            ],
+            generated_consumable_sixth_sense_capable_calls=generated_capabilities[
+                "sixth_sense"
+            ],
             total_elapsed_seconds=total,
             candidate_generation_elapsed_seconds=candidate,
             helper_costs=helper_costs,
@@ -861,7 +894,38 @@ def trace_episode_seven_candidate_subowners(
     try:
         for owner, name, report_name in class_instrumentation:
             original = getattr(owner, name)
-            setattr(owner, name, helper_accumulator.wrap(report_name, original))
+            instrumented = original
+            if owner is LiveGeneratedConsumableScoreOutcomeModel:
+                def counted_generated_transition(
+                    model,
+                    hand,
+                    state,
+                    cards,
+                    *args,
+                    _original=original,
+                    **kwargs,
+                ):
+                    if helper_accumulator.enabled:
+                        eight_ball, main_generator, sixth_sense = (
+                            _generated_consumable_capabilities(model, state)
+                        )
+                        generated_capabilities["calls"] += 1
+                        generated_capabilities["eight_ball"] += int(eight_ball)
+                        generated_capabilities["main_generator"] += int(
+                            main_generator
+                        )
+                        generated_capabilities["sixth_sense"] += int(sixth_sense)
+                        generated_capabilities["inert"] += int(
+                            not (eight_ball or main_generator or sixth_sense)
+                        )
+                    return _original(model, hand, state, cards, *args, **kwargs)
+
+                instrumented = counted_generated_transition
+            setattr(
+                owner,
+                name,
+                helper_accumulator.wrap(report_name, instrumented),
+            )
             installed_class_instrumentation.append((owner, name, original))
         balatro_state.deepcopy = nested_state_deepcopy
         installed_class_instrumentation.append(
