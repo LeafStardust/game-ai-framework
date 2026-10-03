@@ -143,36 +143,6 @@ def test_tactical_projection_shallow_copies_only_exact_scalar_cards(monkeypatch)
     assert type(branch.hand[2]) is CardSubclass
 
 
-def test_inert_generated_projection_isolates_cards_in_projector_copy():
-    card = BalatroCard("A", "Spades")
-    state = _state([card], [])
-
-    transition = _project(state, PokerHand.HIGH_CARD, [card])
-
-    projected = transition.state_after_scoring
-    assert projected.hand[0] is projected.owned_deck[0]
-    assert projected.hand[0] is not card
-    assert projected.consumables is not state.consumables
-
-
-def test_capable_generated_projection_retains_post_scoring_branch_copy(monkeypatch):
-    card = BalatroCard("A", "Spades")
-    state = _state([card], [VagabondJoker()], money=4)
-    original_copy = BalatroState.copy_for_tactical_projection
-    copied = []
-
-    def observed_copy(self):
-        copied.append(self)
-        return original_copy(self)
-
-    monkeypatch.setattr(BalatroState, "copy_for_tactical_projection", observed_copy)
-
-    transition = _project(state, PokerHand.HIGH_CARD, [card])
-
-    assert len(copied) == 1
-    assert _generated_categories(transition.distribution.outcomes[0]) == ["TAROT"]
-
-
 def test_seance_creates_abstract_spectral_without_sampling_identity():
     cards = [
         BalatroCard("4", "Hearts"),

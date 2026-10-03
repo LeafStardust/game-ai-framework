@@ -59,15 +59,6 @@ class _GeneratedConsumableOutcomeJokerProjector(_LiveOutcomeJokerProjector):
         | GENERATED_CLASS_NAMES
     )
 
-    def __init__(self, scorer) -> None:
-        super().__init__(scorer)
-        self._isolate_projection_state = False
-
-    def _copy_projection_state(self, state):
-        if self._isolate_projection_state:
-            return state.copy_for_tactical_projection()
-        return super()._copy_projection_state(state)
-
     @classmethod
     def supports_in_state(cls, joker, state) -> bool:
         class_name = type(joker).__name__
@@ -190,25 +181,6 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
                 cards,
                 include_card_chips=include_card_chips,
             )
-
-        if (
-            isinstance(
-                self.joker_projector,
-                _GeneratedConsumableOutcomeJokerProjector,
-            )
-            and not self._has_active_generated_consumable_capability(state)
-        ):
-            previous_isolation = self.joker_projector._isolate_projection_state
-            self.joker_projector._isolate_projection_state = True
-            try:
-                return super().project_transition(
-                    hand,
-                    state,
-                    cards,
-                    include_card_chips=include_card_chips,
-                )
-            finally:
-                self.joker_projector._isolate_projection_state = previous_isolation
 
         played_cards = list(cards or [])
         money_at_hand_play = int(getattr(state, "money", 0) or 0)
@@ -491,17 +463,6 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
             ):
                 activations += 1
         return activations
-
-    def _has_active_generated_consumable_capability(self, state) -> bool:
-        return bool(
-            self._activation_count(state, "EightBallJoker") > 0
-            or self._effective_main_abilities(state)
-            or any(
-                type(joker).__name__ == "SixthSenseJoker"
-                and self._joker_active(joker)
-                for joker in getattr(state, "jokers", []) or []
-            )
-        )
 
     @staticmethod
     def _joker_active(joker) -> bool:
