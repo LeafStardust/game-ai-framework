@@ -2429,12 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Implement a canonical early return in the generated-consumable outcome owner
-when the input has no active 8 Ball, no effective main generator, and no active
-Sixth Sense. Return the inherited visible-card transition unchanged in that
-case; preserve the complete existing path for every capable state. Add focused
-deterministic regressions for both boundaries. Do not otherwise alter the main
-scoring projection or tactical state copies, replay episodes 0..6,
+Add a bounded deterministic alias/state comparison for one inert
+generated-consumable projection at the frozen first production decision. Locate
+the exact state or identity boundary that differs between the inherited
+visible-card transition and the current copied wrapper before another
+optimization. Do not change transition behavior yet. Do not otherwise alter the
+main scoring projection or tactical state copies, replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
 not add a cross-call/object-ID cache or reapply any rejected projection-copy,
@@ -3376,6 +3376,16 @@ frozen attempts, and **11265 cache hits / 5640 misses** unchanged. All
 target time **7811.009261899999s**; broad instrumentation/host inflation does not
 affect the exact capability counts. This evidence authorizes only the canonical
 inert-wrapper early return above; capable states must retain the complete path.
+
+The direct inert-wrapper early return was tested locally and rejected before
+commit. Although it preserved the selected opening action, it changed the frozen
+first-decision search trace from `2/18, 3/79, 3c/38` to a much larger path
+beginning `2/144` and continuing into exhausted higher horizons. Restoring the
+existing copied wrapper restored the exact trace; focused restored validation
+passed **26 tests**. The copy therefore owns an observable branch-isolation or
+state-identity contract even when no generator can activate, so the optimization
+is not behaviorally equivalent. The exact next bounded task is the inert
+transition alias/state comparison above, not another bypass or copy change.
 
 ### Horizon-five candidate sub-profile checkpoint
 
