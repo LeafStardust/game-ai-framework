@@ -38,6 +38,7 @@ PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
     "balatro-red-white-ppo-tactical-candidate-subowner-v15"
 )
+PPO_TACTICAL_INERT_ALIAS_SCHEMA = "balatro-red-white-ppo-inert-alias-v1"
 _RECONSTRUCT_TYPE_SAMPLE_LIMIT = 100_000
 _STATE_CARD_SAMPLE_LIMIT = 100_000
 
@@ -148,6 +149,70 @@ class PPOTacticalCandidateHelperCost:
     name: str
     calls: int
     exclusive_elapsed_seconds: float
+
+
+@dataclass(frozen=True)
+class PPOTacticalInertAliasReport:
+    schema: str
+    public_input_sha256: str
+    selected_hand_indices: tuple[int, ...]
+    inherited_public_state_sha256: str
+    wrapped_public_state_sha256: str
+    inherited_input_card_aliases: int
+    wrapped_input_card_aliases: int
+
+
+def _state_card_ids(state) -> set[int]:
+    return {
+        id(card)
+        for collection in (
+            getattr(state, "deck", ()),
+            getattr(state, "owned_deck", ()) or (),
+            getattr(state, "hand", ()),
+            getattr(state, "discard_pile", ()),
+        )
+        for card in collection
+    }
+
+
+def compare_first_production_inert_transition_aliases(
+    *, root_seed: str = "RED-WHITE-PPO-V1"
+) -> PPOTacticalInertAliasReport:
+    training_run = PPOTrainingRun.from_seed(root_seed)
+    run = pristine_red_white_reset(training_run.game_seed(0))
+    run = activate_selected_blind_progression(run)
+    run = select_blind_exact(run)
+    state = public_observation_state(run.public)
+    environment = make_ppo_training_environment(0)
+    evaluator = environment._backend._tactical_decision_engine.planner.evaluator
+    action = evaluator.action_generator.generate_play_actions(state)[0]
+    hand = evaluator._hand_for_cards(state, action.cards)
+    model = evaluator.score_outcomes
+
+    inherited = super(
+        LiveGeneratedConsumableScoreOutcomeModel, model
+    ).project_transition(hand, state, action.cards)
+    wrapped = LiveGeneratedConsumableScoreOutcomeModel.project_transition(
+        model, hand, state, action.cards
+    )
+    inherited_state = inherited.state_after_scoring
+    wrapped_state = wrapped.state_after_scoring
+    input_ids = _state_card_ids(state)
+    inherited_signature = canonical_public_state_signature(inherited_state)
+    wrapped_signature = canonical_public_state_signature(wrapped_state)
+    return PPOTacticalInertAliasReport(
+        schema=PPO_TACTICAL_INERT_ALIAS_SCHEMA,
+        public_input_sha256=_public_input_sha256(state),
+        selected_hand_indices=tuple(state.hand.index(card) for card in action.cards),
+        inherited_public_state_sha256=sha256(
+            json.dumps(inherited_signature, separators=(",", ":")).encode("ascii")
+        ).hexdigest(),
+        wrapped_public_state_sha256=sha256(
+            json.dumps(wrapped_signature, separators=(",", ":")).encode("ascii")
+        ).hexdigest(),
+        inherited_input_card_aliases=len(input_ids & _state_card_ids(inherited_state)),
+        wrapped_input_card_aliases=len(input_ids & _state_card_ids(wrapped_state)),
+    )
 
 
 @dataclass(frozen=True)

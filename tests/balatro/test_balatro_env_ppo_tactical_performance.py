@@ -12,11 +12,21 @@ from games.balatro.env.ppo_tactical_performance import (
     PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA,
     PPO_TACTICAL_EPISODE_COST_SCHEMA,
     measure_ppo_tactical_cost,
+    compare_first_production_inert_transition_aliases,
     trace_episode_seven_candidate_subowners,
     trace_initial_policy_ppo_episode_tactical_costs,
     _ReconstructTypeSampler,
     _instrument_episode_engine,
 )
+
+
+def test_env_ppo_inert_generated_transition_alias_contract():
+    report = compare_first_production_inert_transition_aliases()
+
+    assert report.schema == "balatro-red-white-ppo-inert-alias-v1"
+    assert report.inherited_public_state_sha256 == report.wrapped_public_state_sha256
+    assert report.inherited_input_card_aliases > 0
+    assert report.wrapped_input_card_aliases == 0
 
 
 class _FakeAction:
