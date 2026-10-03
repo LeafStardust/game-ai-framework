@@ -2429,11 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only production v15 diagnostic and record
-the exact inert/8-Ball/main-generator/Sixth-Sense capability counts. Do not
-change transition behavior until that evidence is known. This is the evidence
-gate for a possible canonical inert-wrapper bypass; do not alter
-the main scoring projection or tactical state copies, replay episodes 0..6,
+Implement a canonical early return in the generated-consumable outcome owner
+when the input has no active 8 Ball, no effective main generator, and no active
+Sixth Sense. Return the inherited visible-card transition unchanged in that
+case; preserve the complete existing path for every capable state. Add focused
+deterministic regressions for both boundaries. Do not otherwise alter the main
+scoring projection or tactical state copies, replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
 not add a cross-call/object-ID cache or reapply any rejected projection-copy,
@@ -3364,6 +3365,17 @@ diagnostic/projection validation passed **43 tests** locally. GitHub Actions run
 `37105337674`, job `111152606681`, passed; the actual job log reports **3019
 passed, 1607 deselected in 75.82s**. The exact next task is the single production
 v15 diagnostic run above.
+
+The production v15 diagnostic completed successfully with all **12** frozen
+decisions, target digest `f63c5da...`, discard indices `(0, 2, 3, 6, 7)`, four
+frozen attempts, and **11265 cache hits / 5640 misses** unchanged. All
+**4099771 / 4099771** generated-consumable transition inputs were fully inert:
+8 Ball-capable **0**, main-generator-capable **0**, and Sixth-Sense-capable
+**0**. Each inert wrapper call still made one tactical state copy, for the same
+**4099771** copies. Candidate generation took **7653.764551000026s** and total
+target time **7811.009261899999s**; broad instrumentation/host inflation does not
+affect the exact capability counts. This evidence authorizes only the canonical
+inert-wrapper early return above; capable states must retain the complete path.
 
 ### Horizon-five candidate sub-profile checkpoint
 
