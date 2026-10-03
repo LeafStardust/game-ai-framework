@@ -2429,11 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the single frozen episode-7 target-only production diagnostic for the
-isolated inert-generated transition. Retain only if all frozen evidence remains
-exact and candidate generation materially improves against the v14 baseline.
-Record projector and tactical-copy call counts/timings. Do not
-otherwise alter the main scoring projection or tactical state copies,
+Add an evidence-only frozen episode-7 target schedule probe. Replay and verify
+the existing 11-decision prefix, then evaluate explicitly bounded horizon-2 and
+horizon-3 tactical configurations at target digest `f63c5da...`; record each
+action, visible indices, attempts/nodes, and elapsed time against the frozen full
+schedule result. Do not change the PPO tactical factory, policy, mechanics,
+projection, or production schedule yet. Do not
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
@@ -3422,6 +3423,25 @@ and zero wrapped input-card aliases. Focused validation passed **65 tests**
 locally. GitHub Actions run `37135329369`, job `111238589633`, passed; the
 actual job log reports **3023 passed, 1607 deselected in 72.88s**. The exact next
 task is the single production comparison above.
+
+The production comparison preserved all **12** frozen decisions, target digest,
+discard indices `(0, 2, 3, 6, 7)`, four frozen attempts, and **11265 cache hits /
+5640 misses**. It halved generated projector and scorer calls to **4099771**
+each; projector exclusive time fell from the v14 baseline's
+**404.59839413291775s** to **171.657102816549s**. The required aggregate metric
+failed: candidate generation rose from **3113.857138097752s** to
+**4095.9052136999453s** (**+31.54%**) and total target time rose from
+**3189.2530351000023s** to **4209.359136300001s**. State-copy time also inflated
+from **1557.1273084792192s** to **2329.1847108996517s**. The experiment was
+therefore rejected under its predeclared gate and reverted by commit
+`4806c81f24ea35b8adf0be01c8ddcbed6affaab3`; the behavior-neutral projector
+copy hook remains. GitHub Actions run `37147519057`, job `111274419616`, passed
+on the restored baseline; the actual job log reports **3021 passed, 1607
+deselected in 72.43s**.
+
+The projection/copy mechanisms measured above are now closed. The exact next
+bounded task is the target schedule probe above, which may assess policy-cost
+tradeoffs but must not silently change the frozen production authority.
 
 ### Horizon-five candidate sub-profile checkpoint
 
