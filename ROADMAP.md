@@ -2429,13 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add an evidence-only paired episode-0 horizon-2 parity diagnostic. At every
-tactical state, evaluate a separate horizon-2/2000-node engine, record both its
-result and the current production result/digest, and keep the full production
-engine authoritative for advancing and completing the canonical episode. This
-widens schedule evidence before designing any selective deeper-search trigger.
-Do not change the PPO
-tactical factory, policy, mechanics, projection, or production schedule yet. Do not
+Add evidence-only decision-signal fields to the paired horizon-2 diagnostics.
+Record the shallow and production decision modes, confidence, setup-discard
+consensus, clear-path count, pace ratio, and fallback value needed to compare the
+sole episode-7 mismatch against the 21 matching episode-0/episode-7 states. Use
+that comparison to define a deterministic selective deeper-search trigger; do
+not change the PPO tactical factory, policy, mechanics, projection, or production
+schedule yet. Do not
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
@@ -3499,6 +3499,16 @@ probe mutation and episode-index drift fail closed. Focused diagnostic validatio
 passed **22 tests** locally. GitHub Actions run `37188871826`, job
 `111396631320`, passed; the actual job log reports **3024 passed, 1607 deselected
 in 100.97s**. The exact next task is the single paired episode-0 run above.
+
+The paired episode-0 run completed all **4** environment transitions and **10**
+tactical decisions. Horizon 2 matched every production action and visible index
+set (**10/10**) in **1.3191203999886056s** total probe time, versus
+**23.448302199991303s** for the unchanged production decisions. Together with
+episode 7, the bounded evidence now covers **22** tactical states with **21/22**
+exact action/index matches. The single known mismatch remains `a63e3298...`;
+therefore a global horizon-2 schedule remains rejected. The exact next bounded
+task is the decision-signal diagnostic above, which must identify an evidenced
+selective escalation condition before any production schedule change.
 
 ### Horizon-five candidate sub-profile checkpoint
 
