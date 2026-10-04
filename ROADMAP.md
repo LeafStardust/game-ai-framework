@@ -2429,15 +2429,17 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Restart the clean one-new-batch production gate from root seed
-`RED-WHITE-PPO-V1` with eight workers, `--maximum-episodes 2048`, and
-`--maximum-batches 1`; do not resume the pre-repair checkpoint. Verify the first
-real 2,048-transition optimizer update, checkpoint/resume state, parameter digest
-change, carryover accounting, exact stop boundary, and end-to-end throughput. Do
-not continue into a second batch or full training. Keep the default/live schedule
-unchanged. Do not change policy, mechanics, projection, the selective predicate,
-or its schedule; do not inspect promotion results, tune hyperparameters, add a
-wall-clock cutoff, or widen mechanics.
+Repair only the exact episode-39 Overstock Boss-cash-out boundary recorded below.
+Admit Overstock/Overstock Plus at Boss cash-out only as audited no-ops whose
+persistent shop-size consequence remains owned by canonical shop generation;
+preserve strict ownership validation and add focused cash-out, generated-shop,
+and complete production episode-39 regressions. Advance campaign/parallel
+collection provenance so the failed pre-repair checkpoint cannot resume. Do not
+widen support to another Voucher family or alter policy, projection, the
+selective predicate, or its schedule. After the repair is green, restart the clean
+one-new-batch production gate from root seed `RED-WHITE-PPO-V1` with eight
+workers, `--maximum-episodes 2048`, and `--maximum-batches 1`; do not continue
+into a second batch or full training.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3751,6 +3753,25 @@ Focused rollout/backend/Voucher validation passed **51 tests** locally; expanded
 PPO/Voucher validation passed **104 tests**. GitHub Actions run `37199843264`,
 job `111429089341`, passed; the actual log reports **3050 passed, 1613 deselected
 in 76.43s**. The exact next task is the clean one-new-batch restart above.
+
+The clean campaign-v4 restart then atomically committed episodes 0..31 with
+**198 transitions** before speculative episodes 32..39 failed closed after
+**130.2217148 seconds**. Its checkpoint had digest `e9cfc3af...`, zero optimizer
+batches, and next episode indices `[32, 33, 34, 35, 36, 37, 38, 39]`.
+Single-worker resume committed episodes 32..38 and raised the checkpoint to
+**233 transitions**, isolating the earliest failure to episode **39**, stream 7,
+derived game seed `B19790C4`. At decision 6, the agent has `$2`, owns exactly
+`v_overstock_norm`, and clears Ante-1 Boss The Pillar; the subsequent exact Boss
+cash-out rejects the Voucher history before entering the next shop.
+
+Pinned vanilla source applies Overstock and Overstock Plus only when their cards
+are redeemed through `change_shop_size(1)`. Round evaluation and Boss cash-out do
+not invoke a Voucher callback. The headless canonical redemption and shop-
+generation owners already preserve the used-Voucher history and derive exact
+main-shop capacities 2/3/4. Therefore this is a narrow missing cash-out no-op
+capability, not permission to approximate shop size or admit other Voucher
+families. The failed checkpoint must not resume after mechanics provenance
+changes. The exact next task is the narrow repair above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
