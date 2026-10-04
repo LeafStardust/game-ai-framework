@@ -111,6 +111,36 @@ def test_env_r2_boss_cashout_preserves_exact_overstock_noop(vouchers):
 
 
 @pytest.mark.parametrize(
+    ("vouchers", "tarot_rate", "planet_rate"),
+    [
+        (["v_tarot_merchant"], 9.6, 4.0),
+        (["v_tarot_merchant", "v_tarot_tycoon"], 32.0, 4.0),
+        (["v_planet_merchant"], 4.0, 9.6),
+        (["v_planet_merchant", "v_planet_tycoon"], 4.0, 32.0),
+    ],
+)
+def test_env_r2_boss_cashout_preserves_exact_shop_type_rate_noop(
+    vouchers,
+    tarot_rate,
+    planet_rate,
+):
+    run = _finish(_boss_round("The Pillar", money=3, reward=5), hands=1)
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+    run.public.tarot_rate = tarot_rate
+    run.public.planet_rate = planet_rate
+    before_rng = run.rng_snapshot()
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 9
+    assert result.public.vouchers == vouchers
+    assert result.public.tarot_rate == tarot_rate
+    assert result.public.planet_rate == planet_rate
+    assert result.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize(
     ("vouchers", "consumable_slots", "edition_rate"),
     [
         (["v_hone"], 2, 2.0),
@@ -149,6 +179,8 @@ def test_env_r2_boss_cashout_preserves_exact_hone_noop(
         (["v_crystal_ball"], False),
         (["v_crystal_ball", "v_crystal_ball"], True),
         (["v_overstock_plus"], True),
+        (["v_tarot_tycoon"], True),
+        (["v_planet_tycoon"], True),
         (["v_seed_money"], True),
         (["v_unknown"], True),
     ],
@@ -190,6 +222,32 @@ def test_env_r2_boss_cashout_rejects_inexact_persisted_voucher_effects(
     run.public.vouchers_observed = True
     run.public.consumable_slots = consumable_slots
     run.public.joker_generation_edition_rate = edition_rate
+
+    with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
+        cash_out_supported_boss(run)
+
+
+@pytest.mark.parametrize(
+    ("vouchers", "tarot_rate", "planet_rate"),
+    [
+        (["v_tarot_merchant"], 4.0, 4.0),
+        (["v_tarot_merchant"], 32.0, 4.0),
+        (["v_tarot_merchant", "v_tarot_tycoon"], 9.6, 4.0),
+        (["v_planet_merchant"], 4.0, 4.0),
+        (["v_planet_merchant"], 4.0, 32.0),
+        (["v_planet_merchant", "v_planet_tycoon"], 4.0, 9.6),
+    ],
+)
+def test_env_r2_boss_cashout_rejects_inexact_shop_type_rate_state(
+    vouchers,
+    tarot_rate,
+    planet_rate,
+):
+    run = _finish(_boss_round("The Psychic"))
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+    run.public.tarot_rate = tarot_rate
+    run.public.planet_rate = planet_rate
 
     with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
         cash_out_supported_boss(run)

@@ -156,6 +156,56 @@ def test_env_ppo_rollout_crosses_exact_overstock_boss_cashout(
     ) == 1.0
 
 
+@pytest.fixture(scope="module")
+def episode_41_with_tarot_merchant():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(1),
+        run,
+        episode_index=41,
+        policy=PPOActorCritic(run).infer,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_tarot_merchant_boss_cashout(
+    episode_41_with_tarot_merchant,
+):
+    episode = episode_41_with_tarot_merchant
+
+    assert episode.game_seed == "20C74BCD"
+    assert episode.action_count == 12
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [decision.action.alias for decision in episode.decisions] == [
+        "SELECT_BLIND",
+        "BUY_CONSUMABLE",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_CONSUMABLE",
+        "END_SHOP",
+        "SELECT_BLIND",
+    ]
+
+    before = episode.boundaries[6]
+    after = episode.boundaries[7]
+    assert (before.ante, before.phase, before.money) == (1, "BLIND_SELECT", 3)
+    assert (after.ante, after.phase, after.money) == (2, "SHOP", 9)
+    for boundary in (before, after):
+        assert _observation_feature(
+            boundary.observation,
+            "vouchers.owned.v_tarot_merchant",
+        ) == 1.0
+        assert _observation_feature(
+            boundary.observation,
+            "state.tarot_rate",
+        ) == 9.6
+
+
 def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
     episode_25_with_hieroglyph,
 ):

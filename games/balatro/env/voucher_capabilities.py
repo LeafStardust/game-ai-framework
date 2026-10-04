@@ -36,7 +36,7 @@ EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 # transition.
 EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset(
     {"v_crystal_ball", "v_hone"}
-) | EXACT_SHOP_SIZE_VOUCHER_KEYS
+) | EXACT_SHOP_SIZE_VOUCHER_KEYS | EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS
 
 # These Vouchers have no effect on ordinary base-shop generation. They are
 # nevertheless admitted explicitly at this boundary so authoritative ownership
@@ -120,14 +120,26 @@ def boss_cash_out_vouchers_are_exact(state: BalatroState) -> bool:
 
     expected_consumable_slots = 3 if "v_crystal_ball" in owned else 2
     expected_edition_rate = 2.0 if "v_hone" in owned else 1.0
+    expected_tarot_rate = expected_tarot_rate_for_vouchers(state)
+    expected_planet_rate = expected_planet_rate_for_vouchers(state)
+    if expected_tarot_rate is None or expected_planet_rate is None:
+        return False
     slots = state.consumable_slots
     edition = state.joker_generation_edition_rate
+    tarot = state.tarot_rate
+    planet = state.planet_rate
     return (
         type(slots) is int
         and slots == expected_consumable_slots
         and not isinstance(edition, bool)
         and isinstance(edition, (int, float))
         and float(edition) == expected_edition_rate
+        and not isinstance(tarot, bool)
+        and isinstance(tarot, (int, float))
+        and float(tarot) == expected_tarot_rate
+        and not isinstance(planet, bool)
+        and isinstance(planet, (int, float))
+        and float(planet) == expected_planet_rate
     )
 
 
