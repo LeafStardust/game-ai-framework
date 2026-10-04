@@ -3489,6 +3489,17 @@ horizon-3 plus confirmation sequence. A global horizon-2 schedule is therefore
 rejected; the exact next evidence gate is the paired episode-0 diagnostic above,
 not a production schedule change.
 
+Commit `5a3e4efb7dcf74b634909853579c7d1c01dc9631` adds the versioned
+`balatro-red-white-ppo-episode-paired-parity-v1` diagnostic for episode 0. A
+separate horizon-2/2000-node engine is evaluated first on each unchanged tactical
+state; the production engine then makes the sole authoritative decision and
+advances the episode. The report binds every input digest, both actions/indices,
+both attempt traces and timings, terminal transition count, and overall parity;
+probe mutation and episode-index drift fail closed. Focused diagnostic validation
+passed **22 tests** locally. GitHub Actions run `37188871826`, job
+`111396631320`, passed; the actual job log reports **3024 passed, 1607 deselected
+in 100.97s**. The exact next task is the single paired episode-0 run above.
+
 ### Horizon-five candidate sub-profile checkpoint
 
 The exact `657e5ffd...` state was captured inside the ordered episode diagnostic
