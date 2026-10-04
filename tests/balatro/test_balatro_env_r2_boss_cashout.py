@@ -141,6 +141,34 @@ def test_env_r2_boss_cashout_preserves_exact_shop_type_rate_noop(
 
 
 @pytest.mark.parametrize(
+    ("vouchers", "base_reroll_cost"),
+    [
+        (["v_reroll_surplus"], 3),
+        (["v_reroll_surplus", "v_reroll_glut"], 1),
+    ],
+)
+def test_env_r2_boss_cashout_preserves_exact_reroll_voucher_noop(
+    vouchers,
+    base_reroll_cost,
+):
+    run = _finish(_boss_round("The Psychic", money=5, reward=5), hands=1)
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+    run.base_reroll_cost = base_reroll_cost
+    run.reroll_cost = base_reroll_cost + 2
+    before_rng = run.rng_snapshot()
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 12
+    assert result.public.vouchers == vouchers
+    assert result.base_reroll_cost == base_reroll_cost
+    assert result.reroll_cost == base_reroll_cost
+    assert result.rng_snapshot() == before_rng
+    assert run.reroll_cost == base_reroll_cost + 2
+
+
+@pytest.mark.parametrize(
     ("vouchers", "consumable_slots", "edition_rate"),
     [
         (["v_hone"], 2, 2.0),
@@ -181,6 +209,7 @@ def test_env_r2_boss_cashout_preserves_exact_hone_noop(
         (["v_overstock_plus"], True),
         (["v_tarot_tycoon"], True),
         (["v_planet_tycoon"], True),
+        (["v_reroll_glut"], True),
         (["v_seed_money"], True),
         (["v_unknown"], True),
     ],
@@ -251,6 +280,36 @@ def test_env_r2_boss_cashout_rejects_inexact_shop_type_rate_state(
 
     with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
         cash_out_supported_boss(run)
+
+
+@pytest.mark.parametrize(
+    ("base_reroll_cost", "reroll_cost"),
+    [
+        (5, 5),
+        (1, 3),
+        (3, 2),
+        (3.0, 3),
+        (3, 3.0),
+    ],
+)
+def test_env_r2_boss_cashout_rejects_inexact_reroll_voucher_costs_atomically(
+    base_reroll_cost,
+    reroll_cost,
+):
+    run = _finish(_boss_round("The Psychic"))
+    run.public.vouchers = ["v_reroll_surplus"]
+    run.public.vouchers_observed = True
+    run.base_reroll_cost = base_reroll_cost
+    run.reroll_cost = reroll_cost
+    before_rng = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
+        cash_out_supported_boss(run)
+
+    assert run.public.phase == "ROUND_EVAL"
+    assert run.base_reroll_cost == base_reroll_cost
+    assert run.reroll_cost == reroll_cost
+    assert run.rng_snapshot() == before_rng
 
 
 def test_env_r2_boss_cashout_rejects_unknown_ante_history_atomically():

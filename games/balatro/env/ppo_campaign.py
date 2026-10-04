@@ -33,11 +33,11 @@ from games.balatro.live.hand_action_policy import (
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
-PPO_CAMPAIGN_VERSION = "balatro-red-white-ppo-campaign-v6"
+PPO_CAMPAIGN_VERSION = "balatro-red-white-ppo-campaign-v7"
 PPO_TACTICAL_FACTORY_VERSION = "balatro-red-white-ppo-tactical-factory-v2"
-PPO_PARALLEL_COLLECTION_VERSION = "balatro-red-white-ppo-parallel-collection-v5"
-PPO_CAMPAIGN_PROGRESS_VERSION = "balatro-red-white-ppo-progress-v6"
-PPO_CAMPAIGN_FINAL_VERSION = "balatro-red-white-ppo-final-v6"
+PPO_PARALLEL_COLLECTION_VERSION = "balatro-red-white-ppo-parallel-collection-v6"
+PPO_CAMPAIGN_PROGRESS_VERSION = "balatro-red-white-ppo-progress-v7"
+PPO_CAMPAIGN_FINAL_VERSION = "balatro-red-white-ppo-final-v7"
 CHECKPOINT_NAME = "checkpoint.json"
 PROGRESS_NAME = "progress.json"
 FINAL_NAME = "final.json"

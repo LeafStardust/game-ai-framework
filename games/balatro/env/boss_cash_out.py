@@ -99,7 +99,11 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
             "Boss cash-out does not yet own end-of-round Joker effects: "
             + ", ".join(unsupported_jokers)
         )
-    if not boss_cash_out_vouchers_are_exact(state):
+    if not boss_cash_out_vouchers_are_exact(
+        state,
+        base_reroll_cost=run.base_reroll_cost,
+        reroll_cost=run.reroll_cost,
+    ):
         raise HeadlessTransitionError(
             "Boss cash-out does not yet own Voucher economy modifiers"
         )
@@ -137,6 +141,10 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
     next_state.shop_inflation = 0
     next_state.shop_discount_percent_observed = True
     next_state.shop_discount_percent = 0
+    # Entering the new shop resets the paid reroll cost to its persistent base.
+    # Reroll Surplus/Glut are redemption-time mutations only; cash-out validates
+    # their persisted base and does not apply either Voucher a second time.
+    next_run.reroll_cost = next_run.base_reroll_cost
     next_state.shop_jokers.clear()
     next_state.shop_consumables.clear()
     next_state.shop_boosters.clear()

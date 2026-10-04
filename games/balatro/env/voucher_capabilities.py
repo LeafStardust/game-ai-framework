@@ -27,16 +27,20 @@ EXACT_INTEREST_CAP_VOUCHER_KEYS = frozenset({"v_seed_money", "v_money_tree"})
 EXACT_SHOP_SIZE_VOUCHER_KEYS = frozenset({"v_overstock_norm", "v_overstock_plus"})
 EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 
-# Crystal Ball's capacity change, Hone's Joker-edition generation rate, and the
-# Overstock family's main-shop capacity changes are persisted when redeemed;
-# none has a callback during Boss cash-out. Overstock history is consumed later
-# by the exact main-shop generation owner. Keep this boundary deliberately
-# narrower than general Voucher support: payout/interest/pricing modifiers
-# require their own exact Boss cash-out ownership before they may cross that
-# transition.
+# Crystal Ball's capacity change, Hone's Joker-edition generation rate, the
+# Overstock family's main-shop capacity changes, and the reroll-cost family's
+# reset-cost changes are persisted when redeemed; none has a callback during
+# Boss cash-out. Their histories are consumed later by the exact shop owners.
+# Keep this boundary deliberately narrower than general Voucher support:
+# payout/interest/pricing modifiers require their own exact Boss cash-out
+# ownership before they may cross that transition.
 EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset(
     {"v_crystal_ball", "v_hone"}
-) | EXACT_SHOP_SIZE_VOUCHER_KEYS | EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS
+) | (
+    EXACT_SHOP_SIZE_VOUCHER_KEYS
+    | EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS
+    | EXACT_REROLL_COST_VOUCHER_KEYS
+)
 
 # These Vouchers have no effect on ordinary base-shop generation. They are
 # nevertheless admitted explicitly at this boundary so authoritative ownership
@@ -105,8 +109,13 @@ def blind_start_vouchers_are_exact(state: BalatroState) -> bool:
     return _owned_supported_vouchers(state) is not None
 
 
-def boss_cash_out_vouchers_are_exact(state: BalatroState) -> bool:
-    """Return whether owned Vouchers are exact no-ops at Boss cash-out."""
+def boss_cash_out_vouchers_are_exact(
+    state: BalatroState,
+    *,
+    base_reroll_cost: object,
+    reroll_cost: object,
+) -> bool:
+    """Return whether owned Vouchers are exact at Boss cash-out/shop entry."""
     if not isinstance(state, BalatroState):
         raise TypeError("state must be BalatroState")
     owned = _owned_supported_vouchers(
@@ -122,7 +131,12 @@ def boss_cash_out_vouchers_are_exact(state: BalatroState) -> bool:
     expected_edition_rate = 2.0 if "v_hone" in owned else 1.0
     expected_tarot_rate = expected_tarot_rate_for_vouchers(state)
     expected_planet_rate = expected_planet_rate_for_vouchers(state)
-    if expected_tarot_rate is None or expected_planet_rate is None:
+    expected_reroll_cost = expected_base_reroll_cost_for_vouchers(state)
+    if (
+        expected_tarot_rate is None
+        or expected_planet_rate is None
+        or expected_reroll_cost is None
+    ):
         return False
     slots = state.consumable_slots
     edition = state.joker_generation_edition_rate
@@ -140,6 +154,10 @@ def boss_cash_out_vouchers_are_exact(state: BalatroState) -> bool:
         and not isinstance(planet, bool)
         and isinstance(planet, (int, float))
         and float(planet) == expected_planet_rate
+        and type(base_reroll_cost) is int
+        and base_reroll_cost == expected_reroll_cost
+        and type(reroll_cost) is int
+        and reroll_cost >= base_reroll_cost
     )
 
 
