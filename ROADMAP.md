@@ -2429,20 +2429,17 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Correct the production tactical-factory provenance for the already-authorized
-selective schedule: bump `PPO_TACTICAL_FACTORY_VERSION`, add a focused regression
-that rejects a pre-selective factory checkpoint, and keep the campaign/session/
-learner contracts otherwise unchanged. After that correction is green, run one
-clean-directory `--maximum-episodes 8` production campaign smoke with root seed
-`RED-WHITE-PPO-V1`. Verify the real checkpoint/progress artifacts, collected
-transition and per-stream counts, and end-to-end elapsed throughput against the
-independent first-wave diagnostic below. This is a bounded campaign/checkpoint
-gate, not full training. Keep the default/live schedule unchanged. Do not change
-policy, mechanics, projection, the selective predicate, or its schedule; do not
-inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
-or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
-rejected projection-copy, evaluator, cache-reuse, manual reconstruction,
-card-validation, or custom `BalatroCard.__deepcopy__` experiment recorded below.
+Run one clean-directory `--maximum-episodes 8` production campaign smoke with
+root seed `RED-WHITE-PPO-V1`. Verify the real checkpoint/progress artifacts,
+collected transition and per-stream counts, and end-to-end elapsed throughput
+against the independent first-wave diagnostic below. This is a bounded campaign/
+checkpoint gate, not full training. Keep the default/live schedule unchanged.
+Do not change policy, mechanics, projection, the selective predicate, or its
+schedule; do not inspect learned-policy results, tune hyperparameters, add a
+wall-clock cutoff, or widen mechanics. Do not add a cross-call/object-ID cache or
+reapply any rejected projection-copy, evaluator, cache-reuse, manual
+reconstruction, card-validation, or custom `BalatroCard.__deepcopy__` experiment
+recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3629,8 +3626,17 @@ full training.
 Inspection after the gate found that commit `7b4d40e2` changed the production PPO
 tactical factory from the full schedule to the selective schedule without
 changing `PPO_TACTICAL_FACTORY_VERSION`. That leaves pre-selective checkpoints
-incorrectly acceptable to the changed factory. The exact next task is the
-factory-provenance correction and clean eight-episode campaign smoke above.
+incorrectly acceptable to the changed factory.
+
+Commit `fa2d14dca07b2d5702022f69b1f8671fc5d1e869` corrects that
+provenance boundary by advancing only the canonical tactical-factory version to
+`balatro-red-white-ppo-tactical-factory-v2`. A focused regression proves that a
+pre-selective v1 factory checkpoint now fails closed while current checkpoints
+retain the existing campaign/session/learner contracts. Focused campaign/session
+validation passed **12 tests** locally. GitHub Actions run `37195049993`, job
+`111415067354`, passed; the actual log reports **3027 passed, 1613 deselected in
+138.51s**. The exact next task is the clean eight-episode production campaign
+smoke above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
