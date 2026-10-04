@@ -2429,16 +2429,17 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Restart the clean one-new-batch production gate from root seed
-`RED-WHITE-PPO-V1` with campaign-v7 provenance, eight workers,
-`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
-pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
-checkpoint/resume state, parameter digest change, carryover accounting, exact
-stop boundary, and end-to-end throughput. Do not continue into a second batch or
-full training. Keep the default/live schedule unchanged. Do not change policy,
-mechanics, projection, the selective predicate, or its schedule; do not inspect
-promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
-mechanics.
+Repair only the exact episode-46 Paint Brush hand-size boundary recorded below.
+Make the canonical tactical Play/Discard resource validators derive the expected
+Red Deck hand size from authoritative Voucher history, including exact Paint
+Brush/Palette upgrade ancestry and Manacle's separate active reduction. Add
+focused atomic validation and a complete production episode-46 regression.
+Advance campaign/parallel-collection provenance so the failed campaign-v7
+checkpoint cannot resume. Do not widen another mechanic or alter policy,
+projection, the selective predicate, or its schedule. After the repair is green,
+restart the clean one-new-batch gate from root seed `RED-WHITE-PPO-V1` with eight
+workers, `--maximum-episodes 2048`, and `--maximum-batches 1`; do not continue
+into a second batch or full training.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3856,8 +3857,27 @@ The complete episode-45 regression uses root seed `RED-WHITE-PPO-V1`, stream 5,
 game seed `F41B6F3A`, crosses the repaired Ante-1 Boss boundary, and reaches its
 unchanged loss in **11 actions**. GitHub Actions run `37219154988`, job
 `111485764748`, passed; the actual log reports **3078 passed, 1613 deselected in
-160.63s**. The exact next task is the clean campaign-v7 one-new-batch restart
-above.
+160.63s**. At that checkpoint, the clean campaign-v7 one-new-batch restart was
+the exact next task.
+
+The clean campaign-v7 restart atomically committed episodes 0..39 with **242
+transitions** and then ran the 40..47 wave. All eight workers remained healthy;
+the known expensive episode 43 again consumed roughly 16 CPU-minutes before the
+wave exposed the next fail-closed boundary. Because parallel waves commit only
+after ordered completion, the checkpoint correctly remains at 242 transitions
+with next indices 40..47 and zero optimizer batches.
+
+Direct ordered isolation identifies episode **46**, stream 6, derived game seed
+`9AC8FAC6`, as the earliest new failure. Its exact six-decision prefix clears
+Small and Big, buys `v_paint_brush` in the Ante-1 Big-Blind shop, persists hand
+size 9, and selects Ante-1 Boss The Goad at `$4`. The tactical policy then chooses
+an ordinary discard, but the discard validator still hard-codes base Red Deck
+hand size 8. Paint Brush is already redeemed canonically as a persistent +1 hand
+size and has no Play/Discard callback; the matching tactical Play validator and
+Manacle validator contain the same baseline assumption. The next task is the
+narrow canonical resource-validation repair above, not a policy or rescue-layer
+change. The campaign-v7 checkpoint must not resume after mechanics provenance
+changes.
 
 ### Horizon-five candidate sub-profile checkpoint
 
