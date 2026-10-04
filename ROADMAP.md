@@ -2429,16 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Repair only the exact episode-45 reroll-cost Voucher Boss-cash-out boundary
-recorded below. Admit the already-owned Reroll Surplus/Glut family at Boss
-cash-out only as audited persisted-cost no-ops; validate exact reset/current cost
-and upgrade ancestry through the canonical owner, and add focused cash-out plus
-complete production episode-45 regressions. Advance campaign/parallel-collection
-provenance so the failed campaign-v6 checkpoint cannot resume. Do not widen
-another Voucher family or alter policy, projection, the selective predicate, or
-its schedule. After the repair is green, restart the clean one-new-batch gate
-from root seed `RED-WHITE-PPO-V1` with eight workers, `--maximum-episodes 2048`,
-and `--maximum-batches 1`; do not continue into a second batch or full training.
+Restart the clean one-new-batch production gate from root seed
+`RED-WHITE-PPO-V1` with campaign-v7 provenance, eight workers,
+`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
+pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
+checkpoint/resume state, parameter digest change, carryover accounting, exact
+stop boundary, and end-to-end throughput. Do not continue into a second batch or
+full training. Keep the default/live schedule unchanged. Do not change policy,
+mechanics, projection, the selective predicate, or its schedule; do not inspect
+promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
+mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3837,7 +3837,27 @@ reset/current reroll cost. Boss cash-out has no Voucher callback, while the
 headless redemption and later shop/reroll owners already validate and consume
 that persistent cost plus upgrade ancestry. This is the next narrow missing
 cash-out capability. The campaign-v6 checkpoint must not resume after mechanics
-provenance changes. The exact next task is the narrow repair above.
+provenance changes. At that checkpoint, the narrow repair above was the exact
+next task.
+
+The episode-45 repair is **COMPLETE / GREEN** at commit `7df4a21e`. Boss
+cash-out now admits only the already-owned Reroll Surplus/Glut family as an
+audited redemption-time no-op, validates exact Voucher ancestry plus the private
+persistent/current reroll costs, and resets the entering shop's current reroll
+cost to the validated persistent base without reapplying the Voucher. Mismatched
+base/current costs, malformed numeric types, and Glut without Surplus remain
+atomic fail-closed boundaries. Campaign/progress/final provenance advanced to
+v7 and parallel collection to v6, so the failed campaign-v6 checkpoint cannot
+resume.
+
+Focused cash-out, reroll-redemption, and complete production-rollout validation
+passed **84 tests** locally; campaign provenance passed **13 tests** locally.
+The complete episode-45 regression uses root seed `RED-WHITE-PPO-V1`, stream 5,
+game seed `F41B6F3A`, crosses the repaired Ante-1 Boss boundary, and reaches its
+unchanged loss in **11 actions**. GitHub Actions run `37219154988`, job
+`111485764748`, passed; the actual log reports **3078 passed, 1613 deselected in
+160.63s**. The exact next task is the clean campaign-v7 one-new-batch restart
+above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
