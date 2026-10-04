@@ -2429,12 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Implement the validated selective schedule at the canonical tactical engine and
-enable it only in the PPO environment factory. The selective mode must return
-the horizon-2 decision unless the existing fail-closed predicate fires; only
-then may it rerun the bounded schedule through horizon 3. Keep the default/live
-full schedule unchanged. Add focused deterministic regressions for both paths
-and for PPO-factory ownership. Do not change policy, mechanics, or projection. Do not
+Run complete selective-schedule production cost diagnostics for episode 0 and
+episode 7, directly by first-wave index. Verify their ordered action/index
+trajectories against the frozen evidence and record complete episode/tactical
+timing. Do not alter the selective predicate or schedule until both complete
+episodes are measured. Keep the default/live schedule unchanged. Do not change
+policy, mechanics, or projection. Do not
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
@@ -3566,6 +3566,23 @@ The isolated horizon-3/2000-node escalation recovered the authoritative
 diagnostic stopped before the later expensive states. This result authorizes the
 PPO-only selective schedule implementation above; it does not authorize changing
 the default/live schedule or widening mechanics.
+
+Commit `7b4d40e20147e9c2a28ee3ff686491e46d1ff741` adds the validated
+`selective` schedule mode to the canonical tactical engine and enables it only in
+the PPO environment factory. Selective mode shares one decision deadline, runs
+the horizon-2 configuration, returns it immediately when the predicate is false,
+and otherwise reruns only the horizon-2/horizon-3 schedule. The default `full`
+and live `probe-deepest` modes are unchanged. Focused engine/campaign/diagnostic
+validation passed **40 tests** locally. GitHub Actions run `37194424227`, job
+`111413208500`, passed; the actual job log reports **3026 passed, 1613
+deselected in 129.77s**.
+
+The post-change selective-escalation diagnostic completed in **4.45 wall-clock
+seconds**, down from about 23 seconds before production wiring. It again verified
+all **9** authoritative prefix decisions, fired only at `a63e3298...`, and
+recovered the exact `DISCARD_CARDS (0,3,4,5,6)` action with trace
+`2/18, 3/51, 3c/51`. The exact next task is the complete episode-0 and episode-7
+production timing/parity gate above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
