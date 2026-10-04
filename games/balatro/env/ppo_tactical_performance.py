@@ -46,8 +46,14 @@ PPO_TACTICAL_HORIZON_TWO_PARITY_SCHEMA = (
 PPO_TACTICAL_EPISODE_PAIRED_PARITY_SCHEMA = (
     "balatro-red-white-ppo-episode-paired-parity-v2"
 )
+PPO_TACTICAL_SELECTIVE_ESCALATION_SCHEMA = (
+    "balatro-red-white-ppo-selective-escalation-v1"
+)
 _RECONSTRUCT_TYPE_SAMPLE_LIMIT = 100_000
 _STATE_CARD_SAMPLE_LIMIT = 100_000
+_SELECTIVE_ESCALATION_TARGET_DIGEST = (
+    "a63e3298ce4b73019dc17a6e3f6dbe9f42babdb22acfbc508c3626b51699c2c2"
+)
 
 _EPISODE_7_EXPECTED_PREFIX = (
     ("4a0542854bbb2308d64a0d3dbed557c81d846fe314ecbfe78b0bc253dc847ff2", "PLAY_CARDS", (0, 1, 2, 3), ((2, 18, 2000, False), (3, 183, 2000, False))),
@@ -243,6 +249,40 @@ class PPOTacticalEpisodePairedParityReport:
     environment_transitions: int
     all_actions_match: bool
     records: tuple[PPOTacticalEpisodePairedParityRecord, ...]
+
+    def as_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
+
+
+@dataclass(frozen=True)
+class PPOTacticalSelectiveEscalationRecord:
+    decision_index: int
+    public_input_sha256: str
+    shallow_action: str
+    shallow_hand_indices: tuple[int, ...]
+    shallow_signal: PPOTacticalDecisionSignal
+    triggered: bool
+    escalated_action: str | None
+    escalated_hand_indices: tuple[int, ...] | None
+    escalated_search_attempts: tuple[tuple[int, int, int, bool], ...] | None
+    production_action: str
+    production_hand_indices: tuple[int, ...]
+    matches_production: bool
+
+
+@dataclass(frozen=True)
+class PPOTacticalSelectiveEscalationReport:
+    schema: str
+    root_seed: str
+    episode_index: int
+    game_seed: str
+    verified_production_decisions: int
+    trigger_count: int
+    all_escalations_match: bool
+    records: tuple[PPOTacticalSelectiveEscalationRecord, ...]
 
     def as_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -486,6 +526,12 @@ class _HorizonTwoParityReached(Exception):
         self.report = report
 
 
+class _SelectiveEscalationReached(Exception):
+    def __init__(self, report: PPOTacticalSelectiveEscalationReport):
+        super().__init__("episode-seven selective-escalation target reached")
+        self.report = report
+
+
 def _decision_signal(decision) -> PPOTacticalDecisionSignal:
     optional_values = (
         decision.selected_pace_ratio,
@@ -515,6 +561,170 @@ def _decision_signal(decision) -> PPOTacticalDecisionSignal:
             else float(decision.selected_fallback_value)
         ),
     )
+
+
+def probe_episode_seven_selective_escalation(
+    *,
+    root_seed: str = "RED-WHITE-PPO-V1",
+) -> PPOTacticalSelectiveEscalationReport:
+    if root_seed != "RED-WHITE-PPO-V1":
+        raise PPOContractError(
+            "selective-escalation probe requires root seed RED-WHITE-PPO-V1"
+        )
+
+    episode_index = 7
+    target_index = next(
+        index
+        for index, expected in enumerate(_EPISODE_7_EXPECTED_PREFIX)
+        if expected[0] == _SELECTIVE_ESCALATION_TARGET_DIGEST
+    )
+    training_run = PPOTrainingRun.from_seed(root_seed)
+    environment = make_ppo_training_environment(episode_index)
+    shallow_environment = make_ppo_training_environment(episode_index)
+    escalation_environment = make_ppo_training_environment(episode_index)
+    learner = PPOLearner(training_run)
+    engine = environment._backend._tactical_decision_engine
+    shallow_engine = shallow_environment._backend._tactical_decision_engine
+    escalation_engine = escalation_environment._backend._tactical_decision_engine
+    original_decide = engine.decide
+    original_limits = (
+        shallow_engine.max_horizon,
+        shallow_engine.max_search_nodes,
+        escalation_engine.max_horizon,
+        escalation_engine.max_search_nodes,
+    )
+    shallow_engine.max_horizon = 2
+    shallow_engine.max_search_nodes = 2000
+    escalation_engine.max_horizon = 3
+    escalation_engine.max_search_nodes = 2000
+    records: list[PPOTacticalSelectiveEscalationRecord] = []
+
+    def attempt_tuples(decision):
+        return tuple(
+            (
+                attempt.horizon,
+                attempt.nodes_evaluated,
+                attempt.max_nodes,
+                attempt.budget_exceeded,
+            )
+            for attempt in decision.search_attempts
+        )
+
+    def decide(state):
+        decision_index = len(records)
+        if decision_index > target_index:
+            raise PPOContractError("selective-escalation probe exceeded target")
+        expected = _EPISODE_7_EXPECTED_PREFIX[decision_index]
+        digest = _public_input_sha256(state)
+        if digest != expected[0]:
+            raise PPOContractError(
+                f"selective-escalation digest drifted at decision {decision_index}"
+            )
+
+        shallow_decision = shallow_engine.decide(state)
+        shallow_indices = tuple(
+            state.hand.index(card) for card in shallow_decision.action.cards
+        )
+        triggered = shallow_engine._selective_deepening_candidate(shallow_decision)
+        if triggered != (decision_index == target_index):
+            raise PPOContractError(
+                f"selective-escalation trigger drifted at decision {decision_index}"
+            )
+        if _public_input_sha256(state) != digest:
+            raise RuntimeError("selective-escalation shallow probe mutated state")
+
+        escalated_decision = escalation_engine.decide(state) if triggered else None
+        escalated_indices = (
+            tuple(state.hand.index(card) for card in escalated_decision.action.cards)
+            if escalated_decision is not None
+            else None
+        )
+        if _public_input_sha256(state) != digest:
+            raise RuntimeError("selective-escalation deep probe mutated state")
+
+        production_decision = original_decide(state)
+        production_indices = tuple(
+            state.hand.index(card) for card in production_decision.action.cards
+        )
+        production_result = (
+            production_decision.action.name,
+            production_indices,
+            attempt_tuples(production_decision),
+        )
+        if production_result != expected[1:]:
+            raise PPOContractError(
+                f"selective-escalation production drifted at decision {decision_index}"
+            )
+        matches = (
+            escalated_decision is not None
+            and (escalated_decision.action.name, escalated_indices)
+            == (production_decision.action.name, production_indices)
+        )
+        records.append(
+            PPOTacticalSelectiveEscalationRecord(
+                decision_index=decision_index,
+                public_input_sha256=digest,
+                shallow_action=shallow_decision.action.name,
+                shallow_hand_indices=shallow_indices,
+                shallow_signal=_decision_signal(shallow_decision),
+                triggered=triggered,
+                escalated_action=(
+                    escalated_decision.action.name
+                    if escalated_decision is not None
+                    else None
+                ),
+                escalated_hand_indices=escalated_indices,
+                escalated_search_attempts=(
+                    attempt_tuples(escalated_decision)
+                    if escalated_decision is not None
+                    else None
+                ),
+                production_action=production_decision.action.name,
+                production_hand_indices=production_indices,
+                matches_production=matches,
+            )
+        )
+        if decision_index == target_index:
+            if not matches:
+                raise PPOContractError(
+                    "selective escalation did not recover production action"
+                )
+            raise _SelectiveEscalationReached(
+                PPOTacticalSelectiveEscalationReport(
+                    schema=PPO_TACTICAL_SELECTIVE_ESCALATION_SCHEMA,
+                    root_seed=root_seed,
+                    episode_index=episode_index,
+                    game_seed=training_run.game_seed(episode_index),
+                    verified_production_decisions=len(records),
+                    trigger_count=sum(record.triggered for record in records),
+                    all_escalations_match=all(
+                        record.matches_production
+                        for record in records
+                        if record.triggered
+                    ),
+                    records=tuple(records),
+                )
+            )
+        return production_decision
+
+    engine.decide = decide
+    try:
+        collect_complete_ppo_episode(
+            environment,
+            training_run,
+            episode_index=episode_index,
+            policy=learner.model.infer,
+        )
+    except _SelectiveEscalationReached as reached:
+        return reached.report
+    finally:
+        (
+            shallow_engine.max_horizon,
+            shallow_engine.max_search_nodes,
+            escalation_engine.max_horizon,
+            escalation_engine.max_search_nodes,
+        ) = original_limits
+    raise PPOContractError("episode-seven selective-escalation target was not reached")
 
 
 def probe_episode_seven_horizon_two_parity(
@@ -1690,9 +1900,12 @@ def main(argv: list[str] | None = None) -> int:
     target.add_argument("--episode-seven-schedule-probe", action="store_true")
     target.add_argument("--episode-seven-horizon-two-parity", action="store_true")
     target.add_argument("--episode-zero-horizon-two-parity", action="store_true")
+    target.add_argument("--episode-seven-selective-escalation", action="store_true")
     arguments = parser.parse_args(argv)
     report = (
-        probe_episode_zero_horizon_two_parity(root_seed=arguments.root_seed)
+        probe_episode_seven_selective_escalation(root_seed=arguments.root_seed)
+        if arguments.episode_seven_selective_escalation
+        else probe_episode_zero_horizon_two_parity(root_seed=arguments.root_seed)
         if arguments.episode_zero_horizon_two_parity
         else probe_episode_seven_horizon_two_parity(root_seed=arguments.root_seed)
         if arguments.episode_seven_horizon_two_parity

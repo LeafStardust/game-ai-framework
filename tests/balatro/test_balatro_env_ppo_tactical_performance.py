@@ -14,10 +14,12 @@ from games.balatro.env.ppo_tactical_performance import (
     PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA,
     PPO_TACTICAL_HORIZON_TWO_PARITY_SCHEMA,
     PPO_TACTICAL_EPISODE_PAIRED_PARITY_SCHEMA,
+    PPO_TACTICAL_SELECTIVE_ESCALATION_SCHEMA,
     measure_ppo_tactical_cost,
     compare_first_production_inert_transition_aliases,
     probe_episode_seven_bounded_schedules,
     probe_episode_seven_horizon_two_parity,
+    probe_episode_seven_selective_escalation,
     probe_episode_zero_horizon_two_parity,
     trace_episode_seven_candidate_subowners,
     trace_initial_policy_ppo_episode_tactical_costs,
@@ -572,6 +574,100 @@ def test_env_ppo_parity_decision_signal_rejects_nonfinite_evidence():
 
     with pytest.raises(RuntimeError, match="nonfinite"):
         tactical_performance._decision_signal(decision)
+
+
+def test_env_ppo_selective_escalation_recovers_frozen_target(monkeypatch):
+    from games.balatro.actions import DISCARD_CARDS, BalatroAction
+    from games.balatro.card import BalatroCard
+    from games.balatro.live.hand_action_policy import (
+        PACE_RECOVERY,
+        LiveHandActionDecisionEngine,
+    )
+    from games.balatro.state import BalatroState
+
+    state = BalatroState()
+    state.hand = [BalatroCard(rank, "Spades") for rank in ("A", "K", "Q", "J", "10")]
+    digest = tactical_performance._public_input_sha256(state)
+    monkeypatch.setattr(
+        tactical_performance,
+        "_EPISODE_7_EXPECTED_PREFIX",
+        ((digest, "DISCARD_CARDS", (0, 1, 2, 3, 4), ()),),
+    )
+    monkeypatch.setattr(
+        tactical_performance,
+        "_SELECTIVE_ESCALATION_TARGET_DIGEST",
+        digest,
+    )
+
+    class SelectiveEngine:
+        def __init__(self, card_count):
+            self.card_count = card_count
+            self.max_horizon = 8
+            self.max_search_nodes = 5000
+
+        def decide(self, observed):
+            return SimpleNamespace(
+                action=BalatroAction(
+                    DISCARD_CARDS,
+                    cards=list(observed.hand[: self.card_count]),
+                ),
+                search_attempts=(),
+                mode=PACE_RECOVERY,
+                confidence=0.6,
+                setup_discard_consensus=False,
+                clear_path_candidates=0,
+                best_play_pace_ratio=0.4,
+                selected_pace_ratio=None,
+                selected_fallback_value=100.0,
+            )
+
+        _selective_deepening_candidate = staticmethod(
+            LiveHandActionDecisionEngine._selective_deepening_candidate
+        )
+
+    production_engine = SelectiveEngine(5)
+    shallow_engine = SelectiveEngine(2)
+    escalation_engine = SelectiveEngine(5)
+    environments = iter(
+        SimpleNamespace(
+            _backend=SimpleNamespace(_tactical_decision_engine=engine)
+        )
+        for engine in (production_engine, shallow_engine, escalation_engine)
+    )
+    monkeypatch.setattr(
+        tactical_performance,
+        "make_ppo_training_environment",
+        lambda stream_index: next(environments),
+    )
+    monkeypatch.setattr(
+        tactical_performance,
+        "PPOLearner",
+        lambda training_run: SimpleNamespace(
+            model=SimpleNamespace(infer=lambda observation, mask: None)
+        ),
+    )
+
+    def collector(target, training_run, *, episode_index, policy):
+        target._backend._tactical_decision_engine.decide(state)
+        raise AssertionError("selective probe must stop at target")
+
+    monkeypatch.setattr(
+        tactical_performance,
+        "collect_complete_ppo_episode",
+        collector,
+    )
+
+    report = probe_episode_seven_selective_escalation()
+
+    assert report.schema == PPO_TACTICAL_SELECTIVE_ESCALATION_SCHEMA
+    assert report.verified_production_decisions == 1
+    assert report.trigger_count == 1
+    assert report.all_escalations_match is True
+    assert report.records[0].shallow_hand_indices == (0, 1)
+    assert report.records[0].escalated_hand_indices == (0, 1, 2, 3, 4)
+    assert report.records[0].matches_production is True
+    assert shallow_engine.max_horizon == 8
+    assert escalation_engine.max_horizon == 8
 
 
 def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):

@@ -575,6 +575,8 @@ class LiveHandActionDecisionEngine:
     CONFIRMATION_MIN_ROOT_SAMPLES = 32
     CONFIRMATION_MIN_CHILD_SAMPLES = 4
     CONFIRMATION_MAX_NODES = 1000
+    SELECTIVE_DEEPENING_PACE_RATIO_CEILING = 0.5
+    SELECTIVE_DEEPENING_FULL_DISCARD_SIZE = 5
 
     def __init__(
         self,
@@ -622,6 +624,18 @@ class LiveHandActionDecisionEngine:
             else None
         )
         self._search_deadline: float | None = None
+
+    @classmethod
+    def _selective_deepening_candidate(cls, decision: HandActionDecision) -> bool:
+        """Identify the bounded shallow-recovery shape authorized for probing."""
+        cards = tuple(getattr(decision.action, "cards", ()) or ())
+        return (
+            decision.mode == PACE_RECOVERY
+            and decision.action.name == DISCARD_CARDS
+            and 0 < len(cards) < cls.SELECTIVE_DEEPENING_FULL_DISCARD_SIZE
+            and float(decision.best_play_pace_ratio)
+            < cls.SELECTIVE_DEEPENING_PACE_RATIO_CEILING
+        )
 
     def rank_plans(
         self,

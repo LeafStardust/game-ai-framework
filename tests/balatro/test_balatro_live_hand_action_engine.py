@@ -1,14 +1,70 @@
 from types import SimpleNamespace
 
-from games.balatro.actions import PLAY_CARDS, BalatroAction
+import pytest
+
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.hand_action_policy import (
     CLEAR_PATH,
     PACE_PLAY,
+    PACE_RECOVERY,
     HandActionThresholds,
     LiveHandActionDecisionEngine,
     LiveHandActionPolicy,
 )
+
+
+def _selective_candidate(*, mode, action, card_count, pace_ratio):
+    return SimpleNamespace(
+        mode=mode,
+        action=BalatroAction(action, cards=[object()] * card_count),
+        best_play_pace_ratio=pace_ratio,
+    )
+
+
+@pytest.mark.parametrize(
+    ("decision", "expected"),
+    (
+        (
+            _selective_candidate(
+                mode=PACE_RECOVERY,
+                action=DISCARD_CARDS,
+                card_count=2,
+                pace_ratio=0.41025641025641024,
+            ),
+            True,
+        ),
+        (
+            _selective_candidate(
+                mode=PACE_RECOVERY,
+                action=DISCARD_CARDS,
+                card_count=5,
+                pace_ratio=0.26666666666666666,
+            ),
+            False,
+        ),
+        (
+            _selective_candidate(
+                mode=PACE_RECOVERY,
+                action=DISCARD_CARDS,
+                card_count=2,
+                pace_ratio=0.9629629629629629,
+            ),
+            False,
+        ),
+        (
+            _selective_candidate(
+                mode=PACE_RECOVERY,
+                action=PLAY_CARDS,
+                card_count=2,
+                pace_ratio=0.2692307692307692,
+            ),
+            False,
+        ),
+    ),
+)
+def test_selective_deepening_candidate_matches_bounded_evidence(decision, expected):
+    assert LiveHandActionDecisionEngine._selective_deepening_candidate(decision) is expected
 
 
 class _FakeEvaluator:
