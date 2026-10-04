@@ -29,6 +29,9 @@ class _AssemblerOwner(Protocol):
 
 
 class _ModelOwner(Protocol):
+    @property
+    def parameter_sha256(self) -> str: ...
+
     def infer(self, observation, action_mask): ...
 
 
@@ -48,6 +51,26 @@ class _LearnerOwner(Protocol):
 
 EnvironmentFactory = Callable[[int], BalatroHeadlessEnvironment]
 EpisodeCollector = Callable[..., PPORolloutEpisode]
+
+
+@dataclass(frozen=True)
+class PPOEpisodeRequest:
+    stream_index: int
+    episode_index: int
+
+
+@dataclass(frozen=True)
+class PPOCollectedEpisode:
+    request: PPOEpisodeRequest
+    policy_parameter_sha256: str
+    episode: PPORolloutEpisode
+
+
+EpisodeWaveCollector = Callable[
+    [tuple[PPOEpisodeRequest, ...], PPOTrainingRun, _ModelOwner],
+    tuple[PPOCollectedEpisode, ...],
+]
+EpisodeCommitCallback = Callable[["PPOTrainingSession", PPORolloutEpisode], None]
 
 
 def _exact_positive_int(value: object, name: str) -> int:
@@ -163,6 +186,37 @@ class PPOTrainingSession:
         ):
             raise PPOContractError("PPO session next episode indices are invalid")
 
+    def _policy_parameter_sha256(self) -> str:
+        value = getattr(self.learner.model, "parameter_sha256", None)
+        if (
+            not isinstance(value, str)
+            or len(value) != 64
+            or value != value.lower()
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            raise PPOContractError("PPO session policy parameter digest is invalid")
+        return value
+
+    def _commit_episode(self, episode: object, expected_index: int) -> int:
+        if not isinstance(episode, PPORolloutEpisode):
+            raise PPOContractError("PPO session collector returned an incomplete episode")
+        if episode.episode_index != expected_index:
+            raise PPOContractError("PPO session collector episode index drifted")
+        next_indices = self.learner.assembler.next_episode_indices
+        if expected_index != min(next_indices):
+            raise PPOContractError("PPO session episode commit order drifted")
+        stream_index = expected_index % PPO_TRAINING_CONTRACT.parallel_environments
+        if next_indices[stream_index] != expected_index:
+            raise PPOContractError("PPO session episode scheduling drifted")
+        self.learner.add_episode(episode)
+        batches_before = self.learner.completed_batch_count
+        while self.learner.assembler.ready and not self.complete:
+            before = self.learner.completed_batch_count
+            self.learner.update_ready_batch()
+            if self.learner.completed_batch_count != before + 1:
+                raise PPOContractError("PPO session learner batch counter drifted")
+        return self.learner.completed_batch_count - batches_before
+
     def advance(self, *, maximum_episodes: int) -> PPOTrainingAdvance:
         limit = _exact_positive_int(maximum_episodes, "maximum episodes")
         self._validate_learner()
@@ -182,19 +236,79 @@ class PPOTrainingSession:
                 episode_index=episode_index,
                 policy=self.learner.model.infer,
             )
-            if not isinstance(episode, PPORolloutEpisode):
-                raise PPOContractError("PPO session collector returned an incomplete episode")
-            if episode.episode_index != episode_index:
-                raise PPOContractError("PPO session collector episode index drifted")
-            self.learner.add_episode(episode)
+            self._commit_episode(episode, episode_index)
             episodes_collected += 1
             last_episode_index = episode_index
 
-            while self.learner.assembler.ready and not self.complete:
-                before = self.learner.completed_batch_count
-                self.learner.update_ready_batch()
-                if self.learner.completed_batch_count != before + 1:
-                    raise PPOContractError("PPO session learner batch counter drifted")
+        self._validate_learner()
+        return PPOTrainingAdvance(
+            episodes_collected=episodes_collected,
+            batches_completed=self.learner.completed_batch_count - batches_before,
+            last_episode_index=last_episode_index,
+            completed_batch_count=self.learner.completed_batch_count,
+            optimizer_consumed_transitions=self.optimizer_consumed_transitions,
+            collected_environment_transitions=(
+                self.learner.total_consumed_environment_transitions
+            ),
+            complete=self.complete,
+        )
+
+    def advance_parallel(
+        self,
+        *,
+        maximum_episodes: int,
+        wave_collector: EpisodeWaveCollector,
+        on_episode_committed: EpisodeCommitCallback | None = None,
+    ) -> PPOTrainingAdvance:
+        limit = _exact_positive_int(maximum_episodes, "maximum episodes")
+        if not callable(wave_collector):
+            raise TypeError("wave_collector must be callable")
+        if on_episode_committed is not None and not callable(on_episode_committed):
+            raise TypeError("on_episode_committed must be callable")
+        self._validate_learner()
+        episodes_collected = 0
+        batches_before = self.learner.completed_batch_count
+        last_episode_index: int | None = None
+        stream_count = PPO_TRAINING_CONTRACT.parallel_environments
+
+        while episodes_collected < limit and not self.complete:
+            wave_size = min(stream_count, limit - episodes_collected)
+            ordered_indices = sorted(self.learner.assembler.next_episode_indices)
+            requests = tuple(
+                PPOEpisodeRequest(index % stream_count, index)
+                for index in ordered_indices[:wave_size]
+            )
+            policy_sha256 = self._policy_parameter_sha256()
+            collected = wave_collector(requests, self.training_run, self.learner.model)
+            if self._policy_parameter_sha256() != policy_sha256:
+                raise PPOContractError("PPO session policy changed during parallel collection")
+            if not isinstance(collected, tuple) or len(collected) != len(requests):
+                raise PPOContractError("PPO parallel collection returned a partial wave")
+
+            for request, result in zip(requests, collected, strict=True):
+                if not isinstance(result, PPOCollectedEpisode):
+                    raise PPOContractError("PPO parallel collection result is malformed")
+                if result.request != request:
+                    raise PPOContractError("PPO parallel collection order drifted")
+                if result.policy_parameter_sha256 != policy_sha256:
+                    raise PPOContractError("PPO parallel collection policy version drifted")
+                if not isinstance(result.episode, PPORolloutEpisode):
+                    raise PPOContractError(
+                        "PPO parallel collector returned an incomplete episode"
+                    )
+                if result.episode.episode_index != request.episode_index:
+                    raise PPOContractError("PPO parallel collection episode index drifted")
+
+            for result in collected:
+                batch_count = self._commit_episode(
+                    result.episode, result.request.episode_index
+                )
+                episodes_collected += 1
+                last_episode_index = result.request.episode_index
+                if on_episode_committed is not None:
+                    on_episode_committed(self, result.episode)
+                if batch_count:
+                    break
 
         self._validate_learner()
         return PPOTrainingAdvance(

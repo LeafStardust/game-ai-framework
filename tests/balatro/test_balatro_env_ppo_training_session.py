@@ -24,6 +24,8 @@ from games.balatro.env.ppo_contract import (
 )
 from games.balatro.env.ppo_training_session import (
     PPO_TRAINING_SESSION_VERSION,
+    PPOCollectedEpisode,
+    PPOEpisodeRequest,
     PPOTrainingSession,
 )
 from games.balatro.env.seeded_evaluation import EVALUATION_MODE
@@ -144,7 +146,10 @@ class _FakeLearner:
     def __init__(self, run, *, completed=0, next_episode_index=0):
         self.training_run = run
         self.assembler = _FakeAssembler(next_episode_index)
-        self.model = SimpleNamespace(infer=lambda observation, mask: None)
+        self.model = SimpleNamespace(
+            infer=lambda observation, mask: None,
+            parameter_sha256="0" * 64,
+        )
         self.completed_batch_count = completed
         self.total_consumed_environment_transitions = (
             completed * PPO_TRAINING_CONTRACT.rollout_batch_size
@@ -164,6 +169,7 @@ class _FakeLearner:
         self.assembler.queued = [count - required for count in self.assembler.queued]
         self.completed_batch_count += 1
         self.updates += 1
+        self.model.parameter_sha256 = f"{self.updates:064x}"
         return ()
 
     def serialize(self):
@@ -268,6 +274,138 @@ def test_env_ppo_training_session_uses_exact_stream_order_and_bound():
     assert result.episodes_collected == 10
     assert result.batches_completed == 0
     assert result.last_episode_index == 25
+
+
+def test_env_ppo_training_session_parallel_wave_commits_exact_global_order():
+    run = PPOTrainingRun.from_seed("SESSION-PARALLEL-ORDER")
+    learner = _FakeLearner(run)
+    waves = []
+    committed = []
+
+    def collect_wave(requests, training_run, model):
+        waves.append(requests)
+        return tuple(
+            PPOCollectedEpisode(
+                request,
+                model.parameter_sha256,
+                _episode(training_run, request.episode_index),
+            )
+            for request in requests
+        )
+
+    session = PPOTrainingSession(run, _factory(), learner=learner)
+    result = session.advance_parallel(
+        maximum_episodes=8,
+        wave_collector=collect_wave,
+        on_episode_committed=lambda _session, episode: committed.append(
+            episode.episode_index
+        ),
+    )
+
+    assert waves == [tuple(PPOEpisodeRequest(index, index) for index in range(8))]
+    assert committed == list(range(8))
+    assert result.episodes_collected == 8
+    assert result.batches_completed == 0
+    assert result.last_episode_index == 7
+    assert learner.assembler.next_episode_indices == tuple(range(8, 16))
+
+
+def test_env_ppo_training_session_parallel_wave_recollects_suffix_after_update():
+    run = PPOTrainingRun.from_seed("SESSION-PARALLEL-BOUNDARY")
+    learner = _FakeLearner(run)
+    learner.assembler.queued = [255, 255, 256, 256, 256, 256, 256, 256]
+    learner.total_consumed_environment_transitions = sum(learner.assembler.queued)
+    waves = []
+    committed = []
+
+    def collect_wave(requests, training_run, model):
+        waves.append((requests, model.parameter_sha256))
+        return tuple(
+            PPOCollectedEpisode(
+                request,
+                model.parameter_sha256,
+                _episode(training_run, request.episode_index),
+            )
+            for request in requests
+        )
+
+    session = PPOTrainingSession(run, _factory(), learner=learner)
+    result = session.advance_parallel(
+        maximum_episodes=4,
+        wave_collector=collect_wave,
+        on_episode_committed=lambda _session, episode: committed.append(
+            episode.episode_index
+        ),
+    )
+
+    assert waves == [
+        (tuple(PPOEpisodeRequest(index, index) for index in range(4)), "0" * 64),
+        (tuple(PPOEpisodeRequest(index, index) for index in (2, 3)), f"{1:064x}"),
+    ]
+    assert committed == [0, 1, 2, 3]
+    assert result.episodes_collected == 4
+    assert result.batches_completed == 1
+    assert learner.updates == 1
+    assert learner.assembler.next_episode_indices == (8, 9, 10, 11, 4, 5, 6, 7)
+
+
+def test_env_ppo_training_session_parallel_wave_rejects_drift_before_commit():
+    run = PPOTrainingRun.from_seed("SESSION-PARALLEL-REJECT")
+    learner = _FakeLearner(run)
+    session = PPOTrainingSession(run, _factory(), learner=learner)
+
+    def misordered(requests, training_run, model):
+        results = [
+            PPOCollectedEpisode(
+                request,
+                model.parameter_sha256,
+                _episode(training_run, request.episode_index),
+            )
+            for request in requests
+        ]
+        results[0], results[1] = results[1], results[0]
+        return tuple(results)
+
+    with pytest.raises(PPOContractError, match="order drifted"):
+        session.advance_parallel(maximum_episodes=2, wave_collector=misordered)
+
+    assert learner.total_consumed_environment_transitions == 0
+    assert learner.assembler.next_episode_indices == tuple(range(8))
+
+
+@pytest.mark.parametrize(
+    ("collector_kind", "message"),
+    (
+        ("partial", "partial wave"),
+        ("policy", "policy version drifted"),
+        ("worker", "worker failed"),
+    ),
+)
+def test_env_ppo_training_session_parallel_wave_fails_atomically(
+    collector_kind, message
+):
+    run = PPOTrainingRun.from_seed(f"SESSION-PARALLEL-{collector_kind}")
+    learner = _FakeLearner(run)
+    session = PPOTrainingSession(run, _factory(), learner=learner)
+
+    def collect_wave(requests, training_run, model):
+        if collector_kind == "worker":
+            raise RuntimeError("worker failed")
+        results = tuple(
+            PPOCollectedEpisode(
+                request,
+                ("f" * 64 if collector_kind == "policy" else model.parameter_sha256),
+                _episode(training_run, request.episode_index),
+            )
+            for request in requests
+        )
+        return results[:1] if collector_kind == "partial" else results
+
+    with pytest.raises((PPOContractError, RuntimeError), match=message):
+        session.advance_parallel(maximum_episodes=2, wave_collector=collect_wave)
+
+    assert learner.total_consumed_environment_transitions == 0
+    assert learner.assembler.next_episode_indices == tuple(range(8))
 
 
 def test_env_ppo_training_session_rejects_incomplete_or_drifted_collection():

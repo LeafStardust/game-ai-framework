@@ -10,6 +10,7 @@ from games.balatro.env.ppo_campaign import (
     FINAL_NAME,
     PPO_CAMPAIGN_FINAL_VERSION,
     PPO_CAMPAIGN_VERSION,
+    PPO_PARALLEL_COLLECTION_VERSION,
     PPO_TACTICAL_FACTORY_VERSION,
     PROGRESS_NAME,
     _atomic_write,
@@ -57,6 +58,16 @@ class _FakeSession:
             self.episode_count * 8 + index for index in range(8)
         )
 
+    def advance_parallel(
+        self, *, maximum_episodes, wave_collector, on_episode_committed
+    ):
+        assert callable(wave_collector)
+        for _ in range(maximum_episodes):
+            if self.complete:
+                break
+            self.advance(maximum_episodes=1)
+            on_episode_committed(self, object())
+
     def serialize(self):
         return {"fake_episode_count": self.episode_count}
 
@@ -68,6 +79,7 @@ def _fake_opener(opened):
             return _FakeSession(run)
         assert payload["version"] == PPO_CAMPAIGN_VERSION
         assert payload["tactical_factory_version"] == PPO_TACTICAL_FACTORY_VERSION
+        assert payload["parallel_collection_version"] == PPO_PARALLEL_COLLECTION_VERSION
         assert payload["training_run"] == run.as_dict()
         return _FakeSession(run, payload["session"]["fake_episode_count"])
 
@@ -80,6 +92,7 @@ def test_env_ppo_campaign_starts_resumes_and_emits_final_manifest(tmp_path):
         "CAMPAIGN",
         tmp_path,
         maximum_episodes=2,
+        maximum_workers=2,
         session_opener=_fake_opener(opened),
     )
 
@@ -95,6 +108,7 @@ def test_env_ppo_campaign_starts_resumes_and_emits_final_manifest(tmp_path):
         "CAMPAIGN",
         tmp_path,
         maximum_episodes=10,
+        maximum_workers=2,
         session_opener=_fake_opener(opened),
     )
 
@@ -111,6 +125,7 @@ def test_env_ppo_campaign_rebuilds_progress_from_checkpoint_on_resume(tmp_path):
         "REBUILD",
         tmp_path,
         maximum_episodes=1,
+        maximum_workers=2,
         session_opener=_fake_opener([]),
     )
     (tmp_path / PROGRESS_NAME).unlink()
@@ -119,6 +134,7 @@ def test_env_ppo_campaign_rebuilds_progress_from_checkpoint_on_resume(tmp_path):
         "REBUILD",
         tmp_path,
         maximum_episodes=1,
+        maximum_workers=2,
         session_opener=_fake_opener([]),
     )
 
@@ -151,6 +167,7 @@ def test_env_ppo_campaign_rejects_stale_and_cross_run_artifacts(tmp_path):
             "STALE",
             tmp_path,
             maximum_episodes=1,
+            maximum_workers=2,
             session_opener=_fake_opener([]),
         )
 
@@ -158,6 +175,7 @@ def test_env_ppo_campaign_rejects_stale_and_cross_run_artifacts(tmp_path):
     payload = {
         "version": PPO_CAMPAIGN_VERSION,
         "tactical_factory_version": PPO_TACTICAL_FACTORY_VERSION,
+        "parallel_collection_version": PPO_PARALLEL_COLLECTION_VERSION,
         "training_run": run.as_dict(),
         "session": {},
     }
@@ -168,12 +186,23 @@ def test_env_ppo_campaign_rejects_stale_and_cross_run_artifacts(tmp_path):
     with pytest.raises(PPOContractError, match="tactical factory version"):
         _restore_session(run, payload, object())
 
+    payload["tactical_factory_version"] = PPO_TACTICAL_FACTORY_VERSION
+    payload["parallel_collection_version"] = "old"
+    with pytest.raises(PPOContractError, match="parallel collection version"):
+        _restore_session(run, payload, object())
+
+    payload["parallel_collection_version"] = PPO_PARALLEL_COLLECTION_VERSION
+    payload["version"] = "balatro-red-white-ppo-campaign-v1"
+    with pytest.raises(PPOContractError, match="campaign version"):
+        _restore_session(run, payload, object())
+
 
 def test_env_ppo_campaign_rejects_pre_selective_tactical_factory_checkpoint():
     run = PPOTrainingRun.from_seed("PRE-SELECTIVE")
     payload = {
         "version": PPO_CAMPAIGN_VERSION,
         "tactical_factory_version": "balatro-red-white-ppo-tactical-factory-v1",
+        "parallel_collection_version": PPO_PARALLEL_COLLECTION_VERSION,
         "training_run": run.as_dict(),
         "session": {},
     }
@@ -187,6 +216,7 @@ def test_env_ppo_campaign_rejects_final_artifact_for_incomplete_checkpoint(tmp_p
         "INCOMPLETE",
         tmp_path,
         maximum_episodes=1,
+        maximum_workers=2,
         session_opener=_fake_opener([]),
     )
     (tmp_path / FINAL_NAME).write_text("{}", encoding="utf-8")
@@ -196,6 +226,7 @@ def test_env_ppo_campaign_rejects_final_artifact_for_incomplete_checkpoint(tmp_p
             "INCOMPLETE",
             tmp_path,
             maximum_episodes=1,
+            maximum_workers=2,
             session_opener=_fake_opener([]),
         )
 
@@ -215,3 +246,15 @@ def test_env_ppo_campaign_factory_freezes_production_tactical_owner():
     assert engine.max_search_seconds is None
     with pytest.raises(PPOContractError, match="stream index"):
         make_ppo_training_environment(8)
+
+
+@pytest.mark.parametrize("maximum_workers", (0, 9, True))
+def test_env_ppo_campaign_rejects_invalid_worker_bounds(tmp_path, maximum_workers):
+    with pytest.raises(PPOContractError, match="maximum workers"):
+        run_ppo_campaign(
+            "WORKER-BOUND",
+            tmp_path,
+            maximum_episodes=1,
+            maximum_workers=maximum_workers,
+            session_opener=_fake_opener([]),
+        )
