@@ -41,10 +41,10 @@ PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
 PPO_TACTICAL_INERT_ALIAS_SCHEMA = "balatro-red-white-ppo-inert-alias-v1"
 PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA = "balatro-red-white-ppo-schedule-probe-v1"
 PPO_TACTICAL_HORIZON_TWO_PARITY_SCHEMA = (
-    "balatro-red-white-ppo-horizon-two-parity-v1"
+    "balatro-red-white-ppo-horizon-two-parity-v2"
 )
 PPO_TACTICAL_EPISODE_PAIRED_PARITY_SCHEMA = (
-    "balatro-red-white-ppo-episode-paired-parity-v1"
+    "balatro-red-white-ppo-episode-paired-parity-v2"
 )
 _RECONSTRUCT_TYPE_SAMPLE_LIMIT = 100_000
 _STATE_CARD_SAMPLE_LIMIT = 100_000
@@ -178,6 +178,17 @@ class PPOTacticalScheduleProbeReport:
 
 
 @dataclass(frozen=True)
+class PPOTacticalDecisionSignal:
+    mode: str
+    confidence: float
+    setup_discard_consensus: bool
+    clear_path_candidates: int
+    best_play_pace_ratio: float
+    selected_pace_ratio: float | None
+    selected_fallback_value: float | None
+
+
+@dataclass(frozen=True)
 class PPOTacticalHorizonTwoParityRecord:
     public_input_sha256: str
     expected_action: str
@@ -187,6 +198,8 @@ class PPOTacticalHorizonTwoParityRecord:
     search_attempts: tuple[tuple[int, int, int, bool], ...]
     elapsed_seconds: float
     matches_expected: bool
+    probe_signal: PPOTacticalDecisionSignal
+    production_signal: PPOTacticalDecisionSignal | None
 
 
 @dataclass(frozen=True)
@@ -217,6 +230,8 @@ class PPOTacticalEpisodePairedParityRecord:
     probe_search_attempts: tuple[tuple[int, int, int, bool], ...]
     probe_elapsed_seconds: float
     matches_production: bool
+    probe_signal: PPOTacticalDecisionSignal
+    production_signal: PPOTacticalDecisionSignal
 
 
 @dataclass(frozen=True)
@@ -471,6 +486,37 @@ class _HorizonTwoParityReached(Exception):
         self.report = report
 
 
+def _decision_signal(decision) -> PPOTacticalDecisionSignal:
+    optional_values = (
+        decision.selected_pace_ratio,
+        decision.selected_fallback_value,
+    )
+    values = (
+        decision.confidence,
+        decision.best_play_pace_ratio,
+        *(value for value in optional_values if value is not None),
+    )
+    if any(not math.isfinite(float(value)) for value in values):
+        raise RuntimeError("tactical decision signal contains a nonfinite value")
+    return PPOTacticalDecisionSignal(
+        mode=str(decision.mode),
+        confidence=float(decision.confidence),
+        setup_discard_consensus=bool(decision.setup_discard_consensus),
+        clear_path_candidates=int(decision.clear_path_candidates),
+        best_play_pace_ratio=float(decision.best_play_pace_ratio),
+        selected_pace_ratio=(
+            None
+            if decision.selected_pace_ratio is None
+            else float(decision.selected_pace_ratio)
+        ),
+        selected_fallback_value=(
+            None
+            if decision.selected_fallback_value is None
+            else float(decision.selected_fallback_value)
+        ),
+    )
+
+
 def probe_episode_seven_horizon_two_parity(
     *,
     root_seed: str = "RED-WHITE-PPO-V1",
@@ -511,29 +557,33 @@ def probe_episode_seven_horizon_two_parity(
         action = probe_decision.action.name
         indices = tuple(state.hand.index(card) for card in probe_decision.action.cards)
         matches = (action, indices) == expected[1:3]
-        records.append(
-            PPOTacticalHorizonTwoParityRecord(
-                public_input_sha256=digest,
-                expected_action=expected[1],
-                expected_hand_indices=expected[2],
-                action=action,
-                selected_hand_indices=indices,
-                search_attempts=tuple(
-                    (
-                        attempt.horizon,
-                        attempt.nodes_evaluated,
-                        attempt.max_nodes,
-                        attempt.budget_exceeded,
-                    )
-                    for attempt in probe_decision.search_attempts
-                ),
-                elapsed_seconds=elapsed,
-                matches_expected=matches,
+        probe_signal = _decision_signal(probe_decision)
+        probe_attempts = tuple(
+            (
+                attempt.horizon,
+                attempt.nodes_evaluated,
+                attempt.max_nodes,
+                attempt.budget_exceeded,
             )
+            for attempt in probe_decision.search_attempts
         )
         if _public_input_sha256(state) != digest:
             raise RuntimeError("horizon-two parity mutated the production state")
         if decision_index == target_index:
+            records.append(
+                PPOTacticalHorizonTwoParityRecord(
+                    public_input_sha256=digest,
+                    expected_action=expected[1],
+                    expected_hand_indices=expected[2],
+                    action=action,
+                    selected_hand_indices=indices,
+                    search_attempts=probe_attempts,
+                    elapsed_seconds=elapsed,
+                    matches_expected=matches,
+                    probe_signal=probe_signal,
+                    production_signal=None,
+                )
+            )
             raise _HorizonTwoParityReached(
                 PPOTacticalHorizonTwoParityReport(
                     schema=PPO_TACTICAL_HORIZON_TWO_PARITY_SCHEMA,
@@ -563,6 +613,20 @@ def probe_episode_seven_horizon_two_parity(
             raise PPOContractError(
                 f"horizon-two parity production drifted at decision {decision_index}"
             )
+        records.append(
+            PPOTacticalHorizonTwoParityRecord(
+                public_input_sha256=digest,
+                expected_action=expected[1],
+                expected_hand_indices=expected[2],
+                action=action,
+                selected_hand_indices=indices,
+                search_attempts=probe_attempts,
+                elapsed_seconds=elapsed,
+                matches_expected=matches,
+                probe_signal=probe_signal,
+                production_signal=_decision_signal(production_decision),
+            )
+        )
         verified["count"] += 1
         return production_decision
 
@@ -650,6 +714,8 @@ def probe_episode_zero_horizon_two_parity(
                     probe_indices,
                 )
                 == (production_decision.action.name, production_indices),
+                probe_signal=_decision_signal(probe_decision),
+                production_signal=_decision_signal(production_decision),
             )
         )
         return production_decision

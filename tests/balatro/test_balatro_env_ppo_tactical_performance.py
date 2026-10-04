@@ -46,6 +46,13 @@ class _FakeDecision:
     def __init__(self, cards):
         self.action = _FakeAction(cards)
         self.search_attempts = ()
+        self.mode = "PACE_RECOVERY"
+        self.confidence = 0.625
+        self.setup_discard_consensus = False
+        self.clear_path_candidates = 0
+        self.best_play_pace_ratio = 0.75
+        self.selected_pace_ratio = None
+        self.selected_fallback_value = 12.5
 
 
 class _FakeScoreOutcomes:
@@ -422,7 +429,10 @@ def test_env_ppo_horizon_two_parity_uses_separate_bounded_engine(monkeypatch):
     monkeypatch.setattr(
         tactical_performance,
         "_EPISODE_7_EXPECTED_PREFIX",
-        ((digest, "PLAY_CARDS", (0,), ()),),
+        (
+            (digest, "PLAY_CARDS", (0,), ()),
+            (digest, "PLAY_CARDS", (0,), ()),
+        ),
     )
     production_engine = _FakeEngine()
     probe_engine = _FakeEngine()
@@ -453,6 +463,7 @@ def test_env_ppo_horizon_two_parity_uses_separate_bounded_engine(monkeypatch):
 
     def collector(target, training_run, *, episode_index, policy):
         target._backend._tactical_decision_engine.decide(state)
+        target._backend._tactical_decision_engine.decide(state)
         raise AssertionError("parity probe must stop at target")
 
     monkeypatch.setattr(
@@ -467,11 +478,18 @@ def test_env_ppo_horizon_two_parity_uses_separate_bounded_engine(monkeypatch):
     )
 
     assert report.schema == PPO_TACTICAL_HORIZON_TWO_PARITY_SCHEMA
-    assert report.verified_production_decisions == 0
+    assert report.verified_production_decisions == 1
     assert report.all_actions_match is True
-    assert len(report.records) == 1
+    assert len(report.records) == 2
     assert report.records[0].matches_expected is True
     assert report.records[0].elapsed_seconds == 1.0
+    assert report.records[0].probe_signal.mode == "PACE_RECOVERY"
+    assert report.records[0].probe_signal.confidence == 0.625
+    assert report.records[0].probe_signal.best_play_pace_ratio == 0.75
+    assert report.records[0].probe_signal.selected_pace_ratio is None
+    assert report.records[0].probe_signal.selected_fallback_value == 12.5
+    assert report.records[0].production_signal == report.records[0].probe_signal
+    assert report.records[1].production_signal is None
     assert probe_engine.max_horizon == 8
     assert probe_engine.max_search_nodes == 5000
     assert production_engine.max_horizon == 8
@@ -532,8 +550,28 @@ def test_env_ppo_episode_zero_parity_keeps_production_authoritative(monkeypatch)
     assert report.records[0].probe_elapsed_seconds == 1.0
     assert report.records[0].production_elapsed_seconds == 1.0
     assert report.records[0].matches_production is True
+    assert report.records[0].probe_signal.setup_discard_consensus is False
+    assert report.records[0].probe_signal.clear_path_candidates == 0
+    assert report.records[0].production_signal == report.records[0].probe_signal
+    assert json.loads(report.to_json())["records"][0]["probe_signal"] == {
+        "best_play_pace_ratio": 0.75,
+        "clear_path_candidates": 0,
+        "confidence": 0.625,
+        "mode": "PACE_RECOVERY",
+        "selected_fallback_value": 12.5,
+        "selected_pace_ratio": None,
+        "setup_discard_consensus": False,
+    }
     assert probe_engine.max_horizon == 8
     assert probe_engine.max_search_nodes == 5000
+
+
+def test_env_ppo_parity_decision_signal_rejects_nonfinite_evidence():
+    decision = _FakeDecision(())
+    decision.confidence = float("nan")
+
+    with pytest.raises(RuntimeError, match="nonfinite"):
+        tactical_performance._decision_signal(decision)
 
 
 def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
