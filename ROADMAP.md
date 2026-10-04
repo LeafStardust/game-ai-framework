@@ -2429,17 +2429,20 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run complete selective-schedule production cost diagnostics directly for the
-remaining first-wave episode indices 1..6. Record each complete episode's
-transition count, tactical-decision count, total/tactical timing, and aggregate
-first-wave throughput with the already measured episodes 0 and 7. Do not alter
-the selective predicate or schedule until all eight independent first-wave seeds
-are measured. Keep the default/live schedule unchanged. Do not change policy,
-mechanics, or projection. Do not launch full training, inspect learned-policy
-results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
-not add a cross-call/object-ID cache or reapply any rejected projection-copy,
-evaluator, cache-reuse, manual reconstruction, card-validation, or custom
-`BalatroCard.__deepcopy__` experiment recorded below.
+Correct the production tactical-factory provenance for the already-authorized
+selective schedule: bump `PPO_TACTICAL_FACTORY_VERSION`, add a focused regression
+that rejects a pre-selective factory checkpoint, and keep the campaign/session/
+learner contracts otherwise unchanged. After that correction is green, run one
+clean-directory `--maximum-episodes 8` production campaign smoke with root seed
+`RED-WHITE-PPO-V1`. Verify the real checkpoint/progress artifacts, collected
+transition and per-stream counts, and end-to-end elapsed throughput against the
+independent first-wave diagnostic below. This is a bounded campaign/checkpoint
+gate, not full training. Keep the default/live schedule unchanged. Do not change
+policy, mechanics, projection, the selective predicate, or its schedule; do not
+inspect learned-policy results, tune hyperparameters, add a wall-clock cutoff,
+or widen mechanics. Do not add a cross-call/object-ID cache or reapply any
+rejected projection-copy, evaluator, cache-reuse, manual reconstruction,
+card-validation, or custom `BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3598,8 +3601,36 @@ selective escalation at `a63e3298...` retained trace `2/18, 3/51, 3c/51`; the
 formerly dominant `85496a49...` and `f63c5da...` decisions retained their exact
 five-card discards with only `2/292` attempts in **15.978443400003016s** and
 **15.065568999998504s**. The episode then completed five additional deterministic
-decisions. The exact next task is the independent episode-1..6 first-wave timing
-gate above, not full training yet.
+decisions.
+
+The remaining independent selective-schedule first-wave diagnostics then
+completed without a mechanics failure:
+
+| Episode | Environment transitions | Tactical decisions | Tactical seconds | Total seconds |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 4 | 10 | 1.0454286000313004 | 1.218825799995102 |
+| 1 | 11 | 27 | 5.965317100009997 | 6.493458400000236 |
+| 2 | 7 | 13 | 1.5724202999990666 | 1.8426470999984303 |
+| 3 | 10 | 21 | 2.3215833999420283 | 2.7702259000070626 |
+| 4 | 5 | 15 | 2.5433000000193715 | 2.823252500005765 |
+| 5 | 6 | 15 | 49.724798399969586 | 50.02630209999916 |
+| 6 | 6 | 16 | 2.327641300013056 | 2.674788600008469 |
+| 7 | 7 | 17 | 60.83904859999893 | 61.15775600000052 |
+
+Across all eight initial streams this is **56 environment transitions**, **134
+tactical decisions**, **126.33953769998334s** of tactical work, and
+**129.00725640001474s** total elapsed time: **3.7207209376785504 episodes/minute**
+and **0.43408410939583086 transitions/second**. Episodes 5 and 7 consume about
+**86.18%** of the total elapsed time. Holding this single-process transition rate
+would require about **55.9167960015302 days** for the frozen 2,097,152-transition
+schedule, so the first-wave gate is a large improvement but does not yet justify
+full training.
+
+Inspection after the gate found that commit `7b4d40e2` changed the production PPO
+tactical factory from the full schedule to the selective schedule without
+changing `PPO_TACTICAL_FACTORY_VERSION`. That leaves pre-selective checkpoints
+incorrectly acceptable to the changed factory. The exact next task is the
+factory-provenance correction and clean eight-episode campaign smoke above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
