@@ -25,7 +25,7 @@ from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionP
 
 
 PPO_CAMPAIGN_VERSION = "balatro-red-white-ppo-campaign-v1"
-PPO_TACTICAL_FACTORY_VERSION = "balatro-red-white-ppo-tactical-factory-v1"
+PPO_TACTICAL_FACTORY_VERSION = "balatro-red-white-ppo-tactical-factory-v2"
 PPO_CAMPAIGN_PROGRESS_VERSION = "balatro-red-white-ppo-progress-v1"
 PPO_CAMPAIGN_FINAL_VERSION = "balatro-red-white-ppo-final-v1"
 CHECKPOINT_NAME = "checkpoint.json"

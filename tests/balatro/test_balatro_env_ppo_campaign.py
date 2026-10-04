@@ -169,6 +169,19 @@ def test_env_ppo_campaign_rejects_stale_and_cross_run_artifacts(tmp_path):
         _restore_session(run, payload, object())
 
 
+def test_env_ppo_campaign_rejects_pre_selective_tactical_factory_checkpoint():
+    run = PPOTrainingRun.from_seed("PRE-SELECTIVE")
+    payload = {
+        "version": PPO_CAMPAIGN_VERSION,
+        "tactical_factory_version": "balatro-red-white-ppo-tactical-factory-v1",
+        "training_run": run.as_dict(),
+        "session": {},
+    }
+
+    with pytest.raises(PPOContractError, match="tactical factory version"):
+        _restore_session(run, payload, object())
+
+
 def test_env_ppo_campaign_rejects_final_artifact_for_incomplete_checkpoint(tmp_path):
     run_ppo_campaign(
         "INCOMPLETE",
