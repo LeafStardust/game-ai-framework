@@ -2429,13 +2429,18 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Measure bounded process-level parallel scaling for the same frozen first wave by
-running the existing production tactical episode-cost diagnostic concurrently
-for episode indices `0..7`, one process per stream. Record wall-clock time and
-verify every completed report's transition count, ordered public-input digests,
-actions, and visible indices against its independent sequential report. Do not
-change the training session or campaign yet; this gate determines whether a
-canonical deterministic parallel collector is worth designing. Do not launch
+Add a canonical batch-boundary-safe parallel episode-collection owner for the
+PPO training session and campaign. Each frozen-policy wave may speculatively
+collect at most the next episode for each stream in isolated worker environments;
+results must be committed in exact global episode-index order. If a committed
+episode makes a batch ready, perform the existing optimizer update at that exact
+boundary and discard/recollect every higher speculative result under the updated
+model. Preserve explicit episode/worker bounds, sequential behavior, complete-
+episode admission, and checkpoint accounting. Worker failure, missing/duplicate/
+misordered results, policy-version drift, and partial waves must fail closed
+before publication. Add focused deterministic regressions spanning both a wave
+without an update and a wave whose update invalidates its speculative suffix,
+then run a bounded eight-episode production parity/timing gate. Do not launch
 full training. Keep the default/live schedule unchanged. Do not change policy,
 mechanics, projection, the selective predicate, or its schedule; do not inspect
 learned-policy results, tune hyperparameters, add a wall-clock cutoff, or widen
@@ -3657,6 +3662,23 @@ publication and end-to-end collection, but its single-process rate is still only
 about **4.1696 episodes/minute** and **0.4864 transitions/second**, or roughly
 **49.9 days** for 2,097,152 transitions if sustained. The exact next task is the
 bounded process-level parallel-scaling gate above, not full training.
+
+The bounded process-level gate launched one isolated diagnostic worker for each
+first-wave stream. All eight workers exited zero with empty stderr in
+**56.1567134 wall-clock seconds**. A fresh sequential reference completed in
+**112.609658 seconds**, so the concurrent run achieved a **2.00527508078847x**
+wall-clock speedup on the current host. Normalized comparison removed timing
+fields only: all eight reports matched exactly in schema/run/seed identity,
+stream and episode index, **56 environment transitions**, all **134 ordered
+tactical decisions**, every public-input digest, selected action, visible index
+set, and complete search-attempt trace.
+
+The measured concurrent rate is **8.54750876499834 episodes/minute** and
+**0.997209355916474 transitions/second**. Even if sustained, the frozen schedule
+would still require about **24.3405183160212 days**. The scaling is material
+enough to justify a canonical parallel collector, but not permission to change
+learning semantics or begin full training. The exact next task is the batch-
+boundary-safe speculative/ordered-commit owner above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
