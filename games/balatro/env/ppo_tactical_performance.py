@@ -40,6 +40,9 @@ PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
 )
 PPO_TACTICAL_INERT_ALIAS_SCHEMA = "balatro-red-white-ppo-inert-alias-v1"
 PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA = "balatro-red-white-ppo-schedule-probe-v1"
+PPO_TACTICAL_HORIZON_TWO_PARITY_SCHEMA = (
+    "balatro-red-white-ppo-horizon-two-parity-v1"
+)
 _RECONSTRUCT_TYPE_SAMPLE_LIMIT = 100_000
 _STATE_CARD_SAMPLE_LIMIT = 100_000
 
@@ -163,6 +166,34 @@ class PPOTacticalScheduleProbeReport:
     verified_prefix_decisions: int
     public_input_sha256: str
     results: tuple[PPOTacticalScheduleProbeResult, ...]
+
+    def as_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
+
+
+@dataclass(frozen=True)
+class PPOTacticalHorizonTwoParityRecord:
+    public_input_sha256: str
+    expected_action: str
+    expected_hand_indices: tuple[int, ...]
+    action: str
+    selected_hand_indices: tuple[int, ...]
+    search_attempts: tuple[tuple[int, int, int, bool], ...]
+    elapsed_seconds: float
+    matches_expected: bool
+
+
+@dataclass(frozen=True)
+class PPOTacticalHorizonTwoParityReport:
+    schema: str
+    root_seed: str
+    game_seed: str
+    verified_production_decisions: int
+    all_actions_match: bool
+    records: tuple[PPOTacticalHorizonTwoParityRecord, ...]
 
     def as_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -398,6 +429,123 @@ class _ScheduleProbeReached(Exception):
     def __init__(self, report: PPOTacticalScheduleProbeReport):
         super().__init__("target tactical schedule probe reached")
         self.report = report
+
+
+class _HorizonTwoParityReached(Exception):
+    def __init__(self, report: PPOTacticalHorizonTwoParityReport):
+        super().__init__("episode-seven horizon-two parity target reached")
+        self.report = report
+
+
+def probe_episode_seven_horizon_two_parity(
+    *,
+    root_seed: str = "RED-WHITE-PPO-V1",
+    clock: Callable[[], float] = perf_counter,
+) -> PPOTacticalHorizonTwoParityReport:
+    if root_seed != "RED-WHITE-PPO-V1":
+        raise PPOContractError("horizon-two parity requires root seed RED-WHITE-PPO-V1")
+    if not callable(clock):
+        raise TypeError("clock must be callable")
+
+    episode_index = 7
+    target_index = len(_EPISODE_7_EXPECTED_PREFIX) - 1
+    training_run = PPOTrainingRun.from_seed(root_seed)
+    environment = make_ppo_training_environment(episode_index)
+    probe_environment = make_ppo_training_environment(episode_index)
+    learner = PPOLearner(training_run)
+    engine = environment._backend._tactical_decision_engine
+    probe_engine = probe_environment._backend._tactical_decision_engine
+    original_decide = engine.decide
+    original_probe_horizon = probe_engine.max_horizon
+    original_probe_nodes = probe_engine.max_search_nodes
+    probe_engine.max_horizon = 2
+    probe_engine.max_search_nodes = 2000
+    verified = {"count": 0}
+    records: list[PPOTacticalHorizonTwoParityRecord] = []
+
+    def decide(state):
+        decision_index = len(records)
+        expected = _EPISODE_7_EXPECTED_PREFIX[decision_index]
+        digest = _public_input_sha256(state)
+        if digest != expected[0]:
+            raise PPOContractError(
+                f"horizon-two parity digest drifted at decision {decision_index}"
+            )
+        started = float(clock())
+        probe_decision = probe_engine.decide(state)
+        elapsed = max(0.0, float(clock()) - started)
+        action = probe_decision.action.name
+        indices = tuple(state.hand.index(card) for card in probe_decision.action.cards)
+        matches = (action, indices) == expected[1:3]
+        records.append(
+            PPOTacticalHorizonTwoParityRecord(
+                public_input_sha256=digest,
+                expected_action=expected[1],
+                expected_hand_indices=expected[2],
+                action=action,
+                selected_hand_indices=indices,
+                search_attempts=tuple(
+                    (
+                        attempt.horizon,
+                        attempt.nodes_evaluated,
+                        attempt.max_nodes,
+                        attempt.budget_exceeded,
+                    )
+                    for attempt in probe_decision.search_attempts
+                ),
+                elapsed_seconds=elapsed,
+                matches_expected=matches,
+            )
+        )
+        if _public_input_sha256(state) != digest:
+            raise RuntimeError("horizon-two parity mutated the production state")
+        if decision_index == target_index:
+            raise _HorizonTwoParityReached(
+                PPOTacticalHorizonTwoParityReport(
+                    schema=PPO_TACTICAL_HORIZON_TWO_PARITY_SCHEMA,
+                    root_seed=root_seed,
+                    game_seed=training_run.game_seed(episode_index),
+                    verified_production_decisions=verified["count"],
+                    all_actions_match=all(record.matches_expected for record in records),
+                    records=tuple(records),
+                )
+            )
+
+        production_decision = original_decide(state)
+        production_action = production_decision.action.name
+        production_indices = tuple(
+            state.hand.index(card) for card in production_decision.action.cards
+        )
+        production_attempts = tuple(
+            (
+                attempt.horizon,
+                attempt.nodes_evaluated,
+                attempt.max_nodes,
+                attempt.budget_exceeded,
+            )
+            for attempt in production_decision.search_attempts
+        )
+        if (production_action, production_indices, production_attempts) != expected[1:]:
+            raise PPOContractError(
+                f"horizon-two parity production drifted at decision {decision_index}"
+            )
+        verified["count"] += 1
+        return production_decision
+
+    engine.decide = decide
+    try:
+        collect_complete_ppo_episode(
+            environment,
+            training_run,
+            episode_index=episode_index,
+            policy=learner.model.infer,
+        )
+    except _HorizonTwoParityReached as reached:
+        return reached.report
+    finally:
+        probe_engine.max_horizon = original_probe_horizon
+        probe_engine.max_search_nodes = original_probe_nodes
+    raise PPOContractError("episode-seven horizon-two parity target was not reached")
 
 
 def probe_episode_seven_bounded_schedules(
@@ -1344,9 +1492,12 @@ def main(argv: list[str] | None = None) -> int:
     target.add_argument("--episode-index", type=int)
     target.add_argument("--episode-seven-candidate-subowners", action="store_true")
     target.add_argument("--episode-seven-schedule-probe", action="store_true")
+    target.add_argument("--episode-seven-horizon-two-parity", action="store_true")
     arguments = parser.parse_args(argv)
     report = (
-        probe_episode_seven_bounded_schedules(root_seed=arguments.root_seed)
+        probe_episode_seven_horizon_two_parity(root_seed=arguments.root_seed)
+        if arguments.episode_seven_horizon_two_parity
+        else probe_episode_seven_bounded_schedules(root_seed=arguments.root_seed)
         if arguments.episode_seven_schedule_probe
         else trace_episode_seven_candidate_subowners(root_seed=arguments.root_seed)
         if arguments.episode_seven_candidate_subowners
