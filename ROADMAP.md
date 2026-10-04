@@ -2429,13 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run complete selective-schedule production cost diagnostics for episode 0 and
-episode 7, directly by first-wave index. Verify their ordered action/index
-trajectories against the frozen evidence and record complete episode/tactical
-timing. Do not alter the selective predicate or schedule until both complete
-episodes are measured. Keep the default/live schedule unchanged. Do not change
-policy, mechanics, or projection. Do not
-replay episodes 1..6, launch full training, inspect learned-policy
+Run complete selective-schedule production cost diagnostics directly for the
+remaining first-wave episode indices 1..6. Record each complete episode's
+transition count, tactical-decision count, total/tactical timing, and aggregate
+first-wave throughput with the already measured episodes 0 and 7. Do not alter
+the selective predicate or schedule until all eight independent first-wave seeds
+are measured. Keep the default/live schedule unchanged. Do not change policy,
+mechanics, or projection. Do not launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
 not add a cross-call/object-ID cache or reapply any rejected projection-copy,
 evaluator, cache-reuse, manual reconstruction, card-validation, or custom
@@ -3582,6 +3582,24 @@ all **9** authoritative prefix decisions, fired only at `a63e3298...`, and
 recovered the exact `DISCARD_CARDS (0,3,4,5,6)` action with trace
 `2/18, 3/51, 3c/51`. The exact next task is the complete episode-0 and episode-7
 production timing/parity gate above.
+
+The complete selective-schedule episode-0 production diagnostic finished with
+**4 environment transitions**, **10 tactical decisions**, **1.0454286000313004s**
+of tactical work, and **1.218825799995102s** total elapsed time. All ten ordered
+public-input digests, actions, and visible indices exactly match the frozen
+trajectory. Every decision used only its horizon-2 attempt (or horizon 1 when
+only one real action remained).
+
+The complete selective-schedule episode-7 production diagnostic finished with
+**7 environment transitions**, **17 tactical decisions**, **60.83904859999893s**
+of tactical work, and **61.15775600000052s** total elapsed time. All twelve
+previously frozen prefix digests/actions/indices remained exact. The sole
+selective escalation at `a63e3298...` retained trace `2/18, 3/51, 3c/51`; the
+formerly dominant `85496a49...` and `f63c5da...` decisions retained their exact
+five-card discards with only `2/292` attempts in **15.978443400003016s** and
+**15.065568999998504s**. The episode then completed five additional deterministic
+decisions. The exact next task is the independent episode-1..6 first-wave timing
+gate above, not full training yet.
 
 ### Horizon-five candidate sub-profile checkpoint
 
