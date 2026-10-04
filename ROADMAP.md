@@ -2432,8 +2432,10 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 Repair only the exact episode-46 Paint Brush hand-size boundary recorded below.
 Make the canonical tactical Play/Discard resource validators derive the expected
 Red Deck hand size from authoritative Voucher history, including exact Paint
-Brush/Palette upgrade ancestry and Manacle's separate active reduction. Add
-focused atomic validation and a complete production episode-46 regression.
+Brush/Palette upgrade ancestry and Manacle's separate active reduction. Admit
+that same persisted hand-size family through Boss cash-out as an audited no-op,
+validating the current size and any active Manacle reduction before teardown.
+Add focused atomic validation and a complete production episode-46 regression.
 Advance campaign/parallel-collection provenance so the failed campaign-v7
 checkpoint cannot resume. Do not widen another mechanic or alter policy,
 projection, the selective predicate, or its schedule. After the repair is green,
@@ -3878,6 +3880,16 @@ Manacle validator contain the same baseline assumption. The next task is the
 narrow canonical resource-validation repair above, not a policy or rescue-layer
 change. The campaign-v7 checkpoint must not resume after mechanics provenance
 changes.
+
+The first implementation pass crosses episode 46's Paint Brush tactical discard
+and subsequent Play actions exactly. The same episode then clears The Goad and
+fails closed at Boss cash-out because that boundary has not yet admitted the
+same already-persisted hand-size Voucher family. Pinned semantics still apply
+Paint Brush/Palette only at redemption; Boss cash-out has no Voucher callback.
+The active task therefore includes this immediately chained cash-out validation
+for Paint Brush/Palette, with current hand size reconstructed from authoritative
+Voucher ancestry and Manacle's active one-slot reduction handled explicitly. It
+does not admit any other Voucher family.
 
 ### Horizon-five candidate sub-profile checkpoint
 
