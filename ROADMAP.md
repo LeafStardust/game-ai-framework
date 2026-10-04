@@ -2429,12 +2429,11 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add an evidence-only selective-escalation diagnostic at the tactical schedule
-owner. Its candidate trigger is a shallow `PACE_RECOVERY` discard selecting
-fewer than five cards while `best_play_pace_ratio < 0.5`; on the frozen evidence
-this uniquely selects `a63e3298...`. Prove that a horizon-3/2000-node escalation
-at that state recovers the authoritative five-card discard, while the trigger
-stays false for the matching episode-0 and episode-7 states. Do not change the
+Run the evidence-only selective-escalation diagnostic once. Verify that its
+shallow `PACE_RECOVERY`/partial-discard/pace-below-0.5 trigger remains false on
+the frozen episode-7 prefix, fires only at `a63e3298...`, and that the bounded
+horizon-3/2000-node escalation recovers the authoritative five-card discard.
+Do not change the
 PPO tactical factory, policy, mechanics, projection, or production schedule yet. Do not
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
@@ -3542,6 +3541,21 @@ cards, best-play pace below 0.5” selects exactly this **1/22** observed state;
 it excludes the two expensive matching five-card discards. This is evidence for
 the bounded selective-escalation diagnostic above, not yet authority to change
 production.
+
+Commit `c43802e6e805ab490584b61f2fc00605f41435d6` adds the
+behavior-neutral selective-deepening predicate at
+`LiveHandActionDecisionEngine`, its tactical schedule owner, plus the versioned
+`balatro-red-white-ppo-selective-escalation-v1` diagnostic. The predicate is not
+used by production. The diagnostic verifies the frozen episode-7 prefix, runs a
+separate horizon-2 engine at every state, requires the trigger to remain false
+before `a63e3298...`, runs a separate horizon-3/2000-node engine only at that
+target, compares it with the unchanged authoritative production decision, and
+stops before the later expensive states. Probe mutation, prefix drift, trigger
+drift, and escalation mismatch fail closed. Focused engine/diagnostic validation
+passed **32 tests** locally. GitHub Actions run `37193956613`, job
+`111411821551`, passed; the actual job log reports **3026 passed, 1611
+deselected in 135.86s**. The exact next task is the single selective-escalation
+diagnostic run above; production behavior remains unchanged.
 
 ### Horizon-five candidate sub-profile checkpoint
 
