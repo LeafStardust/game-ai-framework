@@ -2429,15 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Restart the clean one-new-batch production gate from root seed
-`RED-WHITE-PPO-V1` with eight workers, `--maximum-episodes 2048`, and
-`--maximum-batches 1`; do not resume either pre-repair checkpoint. Verify the
-first real 2,048-transition optimizer update, checkpoint/resume state, parameter
-digest change, carryover accounting, exact stop boundary, and end-to-end
-throughput. Do not continue into a second batch or full training. Keep the
-default/live schedule unchanged. Do not change policy, mechanics, projection,
-the selective predicate, or its schedule; do not inspect promotion results, tune
-hyperparameters, add a wall-clock cutoff, or widen mechanics.
+Repair only the exact episode-41 shop-type-rate Voucher Boss-cash-out boundary
+recorded below. Admit the already-owned Tarot/Planet Merchant/Tycoon capability
+family at Boss cash-out only as audited persisted-rate no-ops; validate exact
+rates and upgrade ancestry, and add focused cash-out plus complete production
+episode-41 regressions. Advance campaign/parallel-collection provenance so the
+failed campaign-v5 checkpoint cannot resume. Do not widen another Voucher
+family or alter policy, projection, the selective predicate, or its schedule.
+After the repair is green, restart the clean one-new-batch production gate from
+root seed `RED-WHITE-PPO-V1` with eight workers, `--maximum-episodes 2048`, and
+`--maximum-batches 1`; do not continue into a second batch or full training.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3788,6 +3789,23 @@ Focused mechanics/rollout validation passed **63 tests** locally. GitHub Actions
 run `37200726612`, job `111431690927`, passed; the actual log reports **3056
 passed, 1613 deselected in 146.50s**. The exact next task is the clean one-new-
 batch restart above.
+
+The clean campaign-v5 restart crossed episode 39 in the real eight-worker path
+and atomically committed episodes 0..39 with **242 transitions** before the next
+speculative wave failed closed. Single-worker resume committed episode 40 with
+10 transitions and isolated the earliest failure to episode **41**, stream 1,
+derived game seed `20C74BCD`. Its exact seven-decision prefix buys
+`v_tarot_merchant` in the Ante-1 Big-Blind shop, retains the exact persisted
+`tarot_rate = 9.6`, and clears Ante-1 Boss The Pillar at `$3`; Boss cash-out then
+rejects the Voucher history before the next shop.
+
+Pinned vanilla source applies Tarot Merchant/Tycoon and Planet Merchant/Tycoon
+only at redemption by persisting the corresponding generation rate. Round
+evaluation and Boss cash-out do not invoke a Voucher callback, while the
+headless redemption and shop-generation owners already validate and consume the
+persisted rate plus upgrade ancestry. This is the next narrow missing cash-out
+capability. The campaign-v5 checkpoint must not resume after mechanics
+provenance changes. The exact next task is the narrow repair above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
