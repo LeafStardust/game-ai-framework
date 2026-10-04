@@ -87,6 +87,30 @@ def test_env_r2_boss_cashout_preserves_exact_crystal_ball_noop():
 
 
 @pytest.mark.parametrize(
+    "vouchers",
+    [
+        ["v_overstock_norm"],
+        ["v_overstock_norm", "v_overstock_plus"],
+    ],
+)
+def test_env_r2_boss_cashout_preserves_exact_overstock_noop(vouchers):
+    run = _finish(_boss_round("The Pillar", money=2, reward=5), hands=2)
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+    before_rng = run.rng_snapshot()
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 9
+    assert result.public.phase == "SHOP"
+    assert result.public.vouchers == vouchers
+    assert result.public.vouchers_observed is True
+    assert result.public.shop_jokers == []
+    assert result.public.shop_consumables == []
+    assert result.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize(
     ("vouchers", "consumable_slots", "edition_rate"),
     [
         (["v_hone"], 2, 2.0),
@@ -124,6 +148,7 @@ def test_env_r2_boss_cashout_preserves_exact_hone_noop(
     [
         (["v_crystal_ball"], False),
         (["v_crystal_ball", "v_crystal_ball"], True),
+        (["v_overstock_plus"], True),
         (["v_seed_money"], True),
         (["v_unknown"], True),
     ],

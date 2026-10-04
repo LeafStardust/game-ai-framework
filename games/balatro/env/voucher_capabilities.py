@@ -27,14 +27,16 @@ EXACT_INTEREST_CAP_VOUCHER_KEYS = frozenset({"v_seed_money", "v_money_tree"})
 EXACT_SHOP_SIZE_VOUCHER_KEYS = frozenset({"v_overstock_norm", "v_overstock_plus"})
 EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 
-# Crystal Ball's capacity change and Hone's Joker-edition generation rate are
-# persisted when redeemed; neither has a callback during Boss cash-out. Keep
-# this boundary deliberately narrower than general Voucher support:
-# payout/interest/pricing modifiers require their own exact Boss cash-out
-# ownership before they may cross that transition.
+# Crystal Ball's capacity change, Hone's Joker-edition generation rate, and the
+# Overstock family's main-shop capacity changes are persisted when redeemed;
+# none has a callback during Boss cash-out. Overstock history is consumed later
+# by the exact main-shop generation owner. Keep this boundary deliberately
+# narrower than general Voucher support: payout/interest/pricing modifiers
+# require their own exact Boss cash-out ownership before they may cross that
+# transition.
 EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset(
     {"v_crystal_ball", "v_hone"}
-)
+) | EXACT_SHOP_SIZE_VOUCHER_KEYS
 
 # These Vouchers have no effect on ordinary base-shop generation. They are
 # nevertheless admitted explicitly at this boundary so authoritative ownership
@@ -112,6 +114,8 @@ def boss_cash_out_vouchers_are_exact(state: BalatroState) -> bool:
         EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS,
     )
     if owned is None:
+        return False
+    if "v_overstock_plus" in owned and "v_overstock_norm" not in owned:
         return False
 
     expected_consumable_slots = 3 if "v_crystal_ball" in owned else 2

@@ -95,6 +95,10 @@ def _replace_observation_feature(observation, name, value):
     return replace(observation, values=tuple(values))
 
 
+def _observation_feature(observation, name):
+    return observation.values[PUBLIC_OBSERVATION_SCHEMA.feature_names.index(name)]
+
+
 @pytest.fixture(scope="module")
 def episode_25_with_hieroglyph():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
@@ -104,6 +108,52 @@ def episode_25_with_hieroglyph():
         episode_index=25,
         policy=PPOActorCritic(run).infer,
     )
+
+
+@pytest.fixture(scope="module")
+def episode_39_with_overstock():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(7),
+        run,
+        episode_index=39,
+        policy=PPOActorCritic(run).infer,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_overstock_boss_cashout(
+    episode_39_with_overstock,
+):
+    episode = episode_39_with_overstock
+
+    assert episode.game_seed == "B19790C4"
+    assert episode.action_count == 9
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [decision.action.alias for decision in episode.decisions] == [
+        "SELECT_BLIND",
+        "BUY_CONSUMABLE",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+    ]
+
+    before = episode.boundaries[6]
+    after = episode.boundaries[7]
+    assert (before.ante, before.phase, before.money) == (1, "BLIND_SELECT", 2)
+    assert (after.ante, after.phase, after.money) == (2, "SHOP", 8)
+    assert _observation_feature(
+        before.observation,
+        "vouchers.owned.v_overstock_norm",
+    ) == 1.0
+    assert _observation_feature(
+        after.observation,
+        "vouchers.owned.v_overstock_norm",
+    ) == 1.0
 
 
 def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(

@@ -69,6 +69,32 @@ def test_env_r2_main_shop_generates_exactly_two_items_and_keeps_input_isolated()
     assert generated.run.rng_snapshot() != before_rng
 
 
+@pytest.mark.parametrize(
+    ("vouchers", "expected_slots"),
+    [
+        (["v_overstock_norm"], 3),
+        (["v_overstock_norm", "v_overstock_plus"], 4),
+    ],
+)
+def test_env_r2_main_shop_consumes_preserved_overstock_history(
+    vouchers,
+    expected_slots,
+):
+    run = _run("OVERSTOCK-NEXT-SHOP")
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+
+    generated = generate_base_main_shop(run)
+
+    assert len(generated.items) == expected_slots
+    assert (
+        len(generated.run.public.shop_jokers)
+        + len(generated.run.public.shop_consumables)
+        == expected_slots
+    )
+    assert generated.run.public.vouchers == vouchers
+
+
 def test_env_r2_main_shop_is_replay_deterministic_for_same_seed_and_catalogues():
     first = generate_base_main_shop(_run("REPLAY-SHOP"))
     second = generate_base_main_shop(_run("REPLAY-SHOP"))
