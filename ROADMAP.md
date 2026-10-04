@@ -2429,17 +2429,19 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run one clean-directory `--maximum-episodes 8` production campaign smoke with
-root seed `RED-WHITE-PPO-V1`. Verify the real checkpoint/progress artifacts,
-collected transition and per-stream counts, and end-to-end elapsed throughput
-against the independent first-wave diagnostic below. This is a bounded campaign/
-checkpoint gate, not full training. Keep the default/live schedule unchanged.
-Do not change policy, mechanics, projection, the selective predicate, or its
-schedule; do not inspect learned-policy results, tune hyperparameters, add a
-wall-clock cutoff, or widen mechanics. Do not add a cross-call/object-ID cache or
-reapply any rejected projection-copy, evaluator, cache-reuse, manual
-reconstruction, card-validation, or custom `BalatroCard.__deepcopy__` experiment
-recorded below.
+Measure bounded process-level parallel scaling for the same frozen first wave by
+running the existing production tactical episode-cost diagnostic concurrently
+for episode indices `0..7`, one process per stream. Record wall-clock time and
+verify every completed report's transition count, ordered public-input digests,
+actions, and visible indices against its independent sequential report. Do not
+change the training session or campaign yet; this gate determines whether a
+canonical deterministic parallel collector is worth designing. Do not launch
+full training. Keep the default/live schedule unchanged. Do not change policy,
+mechanics, projection, the selective predicate, or its schedule; do not inspect
+learned-policy results, tune hyperparameters, add a wall-clock cutoff, or widen
+mechanics. Do not add a cross-call/object-ID cache or reapply any rejected
+projection-copy, evaluator, cache-reuse, manual reconstruction, card-validation,
+or custom `BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3637,6 +3639,24 @@ validation passed **12 tests** locally. GitHub Actions run `37195049993`, job
 `111415067354`, passed; the actual log reports **3027 passed, 1613 deselected in
 138.51s**. The exact next task is the clean eight-episode production campaign
 smoke above.
+
+The clean tactical-factory-v2 production campaign then completed all eight
+first-wave episodes in **115.1199245 wall-clock seconds**. Its canonical
+**45,268,542-byte** `checkpoint.json` has SHA-256
+`4b8d2acfbb4ff45da32e19397a8d07625b8d8d9d1d4009cda4399c3c50a9176e`;
+the **575-byte** `progress.json` binds that digest and factory v2. The checkpoint
+contains exact per-stream carryover counts `[4, 11, 7, 10, 5, 6, 6, 7]`, for
+**56 collected environment transitions**, zero optimizer batches, and next
+episode indices `[8, 9, 10, 11, 12, 13, 14, 15]`. `complete=false` and no
+`final.json` exists, as required before the first 2,048-transition batch.
+
+This real campaign result exactly matches the independent selective first-wave
+transition counts and improves on their separately timed 129.00725640001474s
+sum without changing the projected order. It proves factory-v2 checkpoint
+publication and end-to-end collection, but its single-process rate is still only
+about **4.1696 episodes/minute** and **0.4864 transitions/second**, or roughly
+**49.9 days** for 2,097,152 transitions if sustained. The exact next task is the
+bounded process-level parallel-scaling gate above, not full training.
 
 ### Horizon-five candidate sub-profile checkpoint
 
