@@ -2429,11 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add an evidence-only paired episode-7 horizon-2 parity diagnostic. At every
-frozen tactical state, evaluate a separate horizon-2/2000-node engine, record its
-action/indices/attempts/timing, and compare its action/indices with the frozen
-production decision. Keep the full production engine authoritative for advancing
-the canonical trajectory and stop at the existing target. Do not change the PPO
+Add an evidence-only paired episode-0 horizon-2 parity diagnostic. At every
+tactical state, evaluate a separate horizon-2/2000-node engine, record both its
+result and the current production result/digest, and keep the full production
+engine authoritative for advancing and completing the canonical episode. This
+widens schedule evidence before designing any selective deeper-search trigger.
+Do not change the PPO
 tactical factory, policy, mechanics, projection, or production schedule yet. Do not
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
@@ -3475,6 +3476,18 @@ Focused diagnostic validation passed **21 tests** locally. GitHub Actions run
 `37183499199`, job `111380603041`, passed; the actual job log reports **3023
 passed, 1607 deselected in 73.98s**. The exact next task is the single headless
 paired episode-7 parity run above.
+
+The paired episode-7 run completed with all **11** production prefix decisions
+verified and **12** horizon-2 records. Horizon 2 matched production action and
+visible indices on **11/12** states in **53.276482899978873s** total probe time.
+The two expensive target states `85496a49...` and `f63c5da...` both matched the
+exact five-card discard in **27.861559600001783s** and
+**23.79197170000407s** respectively. The sole mismatch was `a63e3298...`:
+horizon 2 chose `DISCARD_CARDS (3,4)` in **0.24506709999695886s**, while the
+frozen production result is `DISCARD_CARDS (0,3,4,5,6)` after its known
+horizon-3 plus confirmation sequence. A global horizon-2 schedule is therefore
+rejected; the exact next evidence gate is the paired episode-0 diagnostic above,
+not a production schedule change.
 
 ### Horizon-five candidate sub-profile checkpoint
 
