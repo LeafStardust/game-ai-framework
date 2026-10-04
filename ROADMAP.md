@@ -2429,12 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add an evidence-only frozen episode-7 target schedule probe. Replay and verify
-the existing 11-decision prefix, then evaluate explicitly bounded horizon-2 and
-horizon-3 tactical configurations at target digest `f63c5da...`; record each
-action, visible indices, attempts/nodes, and elapsed time against the frozen full
-schedule result. Do not change the PPO tactical factory, policy, mechanics,
-projection, or production schedule yet. Do not
+Add an evidence-only paired episode-7 horizon-2 parity diagnostic. At every
+frozen tactical state, evaluate a separate horizon-2/2000-node engine, record its
+action/indices/attempts/timing, and compare its action/indices with the frozen
+production decision. Keep the full production engine authoritative for advancing
+the canonical trajectory and stop at the existing target. Do not change the PPO
+tactical factory, policy, mechanics, projection, or production schedule yet. Do not
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
@@ -3453,6 +3453,16 @@ production schedule remain unchanged. Focused diagnostic validation passed **20
 tests** locally. GitHub Actions run `37147885830`, job `111275479001`, passed;
 the actual job log reports **3022 passed, 1607 deselected in 138.28s**. The exact
 next task is the single headless schedule-probe run above.
+
+The headless schedule probe completed after verifying the first **11** frozen
+decisions and reached target digest `f63c5da...`. Horizon 2 selected the exact
+frozen `DISCARD_CARDS (0,2,3,6,7)` action with one `2/292` attempt in
+**13.324117700001807s**. Horizon 3 selected the same action after `2/292` and an
+exhausted `3/2000` attempt in **764.8755508000031s**. The unchanged full schedule
+uses the same action but continues through exhausted horizon 4 and 5 attempts;
+its v14 target total was **3189.2530351000023s**. This single-state result is a
+large latency signal, not authority to change the campaign. The exact next gate
+is the paired all-episode-7-state horizon-2 parity diagnostic above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
