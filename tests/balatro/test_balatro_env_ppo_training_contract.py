@@ -6,7 +6,13 @@ import pytest
 from games.balatro.blinds.blind import create_small_blind
 from games.balatro.env.action_encoding import legal_action_mask
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.observation_encoding import (
+    PUBLIC_OBSERVATION_SCHEMA,
+    VOUCHER_KEYS,
+)
+from games.balatro.env.ppo_campaign import make_ppo_training_environment
 from games.balatro.env.ppo_contract import (
+    PPO_ACTION_SAMPLE_DOMAIN,
     PPO_POLICY_OUTPUT_SCHEMA,
     PPO_ROLLOUT_EPISODE_SCHEMA,
     PPO_TRAINING_CONTRACT,
@@ -17,6 +23,8 @@ from games.balatro.env.ppo_contract import (
     PPOTrainingRun,
     select_ppo_action,
 )
+from games.balatro.env.ppo_model import PPOActorCritic
+from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.seeded_evaluation import FIXED_SEEDED_EPISODES
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.state import BalatroState
@@ -69,6 +77,8 @@ def test_env_ppo_training_design_is_frozen_and_binds_every_input_contract():
     assert (contract.observation_size, contract.action_size) == (2456, 27)
     assert contract.reward_contract == "balatro-red-white-sparse-terminal-reward-v1"
     assert contract.training_seed_policy == "derived_non_holdout_game_seeds"
+    assert contract.rollout_episode_schema == PPO_ROLLOUT_EPISODE_SCHEMA
+    assert contract.action_sample_domain == PPO_ACTION_SAMPLE_DOMAIN
     assert contract.policy_hidden_sizes == (512, 256)
     assert contract.rollout_batch_size == 2048
     assert contract.total_environment_steps == 2_097_152
@@ -77,6 +87,134 @@ def test_env_ppo_training_design_is_frozen_and_binds_every_input_contract():
     assert len(contract.sha256) == 64
     with pytest.raises(FrozenInstanceError):
         contract.learning_rate = 1.0
+
+
+def _replace_observation_feature(observation, name, value):
+    values = list(observation.values)
+    values[PUBLIC_OBSERVATION_SCHEMA.feature_names.index(name)] = value
+    return replace(observation, values=tuple(values))
+
+
+@pytest.fixture(scope="module")
+def episode_25_with_hieroglyph():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(1),
+        run,
+        episode_index=25,
+        policy=PPOActorCritic(run).infer,
+    )
+
+
+def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
+    episode_25_with_hieroglyph,
+):
+    episode = episode_25_with_hieroglyph
+    decreases = [
+        (index, before.ante, after.ante, decision.action.alias)
+        for index, (before, after, decision) in enumerate(
+            zip(episode.boundaries[:-1], episode.boundaries[1:], episode.decisions)
+        )
+        if after.ante < before.ante
+    ]
+
+    assert episode.game_seed == "2C383F87"
+    assert episode.action_count == 12
+    assert decreases == [(5, 2, 1, "BUY_VOUCHER")]
+
+    after = episode.boundaries[6]
+    zero_observation = _replace_observation_feature(
+        after.observation, "state.ante", 0.0
+    )
+    assert replace(after, ante=0, observation=zero_observation).ante == 0
+    with pytest.raises(PPOContractError, match="at least 0"):
+        replace(after, ante=-1)
+
+
+def test_env_ppo_rollout_admits_exact_observed_petroglyph_ante_decrement(
+    episode_25_with_hieroglyph,
+):
+    episode = episode_25_with_hieroglyph
+    boundaries = list(episode.boundaries)
+    decisions = list(episode.decisions)
+    before = boundaries[5]
+    after = boundaries[6]
+    before_observation = _replace_observation_feature(
+        before.observation,
+        "shop.vouchers.0.center",
+        float(VOUCHER_KEYS.index("v_petroglyph") + 1),
+    )
+    before_observation = _replace_observation_feature(
+        before_observation, "vouchers.owned.v_hieroglyph", 1.0
+    )
+    after_observation = _replace_observation_feature(
+        after.observation, "vouchers.owned.v_petroglyph", 1.0
+    )
+    boundaries[5] = replace(before, observation=before_observation)
+    boundaries[6] = replace(after, observation=after_observation)
+    decisions[5] = replace(decisions[5], observation=before_observation)
+    decisions[6] = replace(decisions[6], observation=after_observation)
+
+    assert replace(
+        episode, boundaries=tuple(boundaries), decisions=tuple(decisions)
+    ).action_count == 12
+
+
+@pytest.mark.parametrize(
+    ("boundary_index", "feature", "value"),
+    (
+        (
+            5,
+            "shop.vouchers.0.center",
+            float(VOUCHER_KEYS.index("v_overstock_norm") + 1),
+        ),
+        (
+            5,
+            "shop.vouchers.0.center",
+            float(VOUCHER_KEYS.index("v_petroglyph") + 1),
+        ),
+        (6, "vouchers.owned.v_hieroglyph", 0.0),
+        (6, "shop.vouchers.0.present", 1.0),
+    ),
+)
+def test_env_ppo_rollout_rejects_unproven_ante_voucher_decrement(
+    episode_25_with_hieroglyph, boundary_index, feature, value
+):
+    episode = episode_25_with_hieroglyph
+    boundaries = list(episode.boundaries)
+    decisions = list(episode.decisions)
+    boundary = boundaries[boundary_index]
+    observation = _replace_observation_feature(boundary.observation, feature, value)
+    boundaries[boundary_index] = replace(boundary, observation=observation)
+    if boundary_index < len(decisions):
+        decisions[boundary_index] = replace(
+            decisions[boundary_index], observation=observation
+        )
+
+    with pytest.raises(PPOContractError, match="progression decrease is not exact"):
+        replace(
+            episode,
+            boundaries=tuple(boundaries),
+            decisions=tuple(decisions),
+        )
+
+
+def test_env_ppo_rollout_rejects_non_voucher_ante_decrement_action(
+    episode_25_with_hieroglyph,
+):
+    episode = episode_25_with_hieroglyph
+    decisions = list(episode.decisions)
+    decisions[5] = select_ppo_action(
+        episode.training_run,
+        episode_index=25,
+        decision_index=5,
+        observation=episode.boundaries[5].observation,
+        legal_actions=(EnvAction.from_alias("END_SHOP"),),
+        policy_output=_policy_output(),
+    )
+
+    with pytest.raises(PPOContractError, match="progression decrease is not exact"):
+        replace(episode, decisions=tuple(decisions))
 
 
 @pytest.mark.parametrize(

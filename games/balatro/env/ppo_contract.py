@@ -21,6 +21,7 @@ from games.balatro.env.actions import EnvAction
 from games.balatro.env.observation_encoding import (
     PUBLIC_OBSERVATION_SCHEMA,
     PUBLIC_OBSERVATION_VERSION,
+    VOUCHER_KEYS,
     EncodedPublicObservation,
 )
 from games.balatro.env.promotion_contract import B0_PROMOTION_CONTRACT_VERSION
@@ -33,10 +34,11 @@ from games.balatro.env.seeded_evaluation import (
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 
 
-PPO_TRAINING_CONTRACT_VERSION = "balatro-red-white-ppo-training-v3"
+PPO_TRAINING_CONTRACT_VERSION = "balatro-red-white-ppo-training-v4"
 PPO_TRAINING_RUN_SCHEMA = "balatro-red-white-ppo-run-v3"
 PPO_POLICY_OUTPUT_SCHEMA = "balatro-red-white-ppo-policy-output-v3"
-PPO_ROLLOUT_EPISODE_SCHEMA = "balatro-red-white-ppo-rollout-episode-v3"
+PPO_ROLLOUT_EPISODE_SCHEMA = "balatro-red-white-ppo-rollout-episode-v4"
+PPO_ACTION_SAMPLE_DOMAIN = "balatro-red-white-ppo-rollout-episode-v3"
 PPO_ALGORITHM = "clipped_ppo"
 PPO_REWARD_CONTRACT = "balatro-red-white-sparse-terminal-reward-v1"
 PPO_TRAINING_SEED_POLICY = "derived_non_holdout_game_seeds"
@@ -80,6 +82,8 @@ class PPOTrainingContract:
     observation_size: int = len(PUBLIC_OBSERVATION_SCHEMA.feature_names)
     action_version: str = PUBLIC_ACTION_VERSION
     action_size: int = len(PUBLIC_ACTION_SCHEMA.slots)
+    rollout_episode_schema: str = PPO_ROLLOUT_EPISODE_SCHEMA
+    action_sample_domain: str = PPO_ACTION_SAMPLE_DOMAIN
     promotion_contract_version: str = B0_PROMOTION_CONTRACT_VERSION
     reward_contract: str = PPO_REWARD_CONTRACT
     training_seed_policy: str = PPO_TRAINING_SEED_POLICY
@@ -101,7 +105,7 @@ class PPOTrainingContract:
     maximum_episode_actions: int = 4096
 
     def __post_init__(self) -> None:
-        # Keep v3 pre-registration immutable. A changed design requires a new version.
+        # Keep v4 pre-registration immutable. A changed design requires a new version.
         frozen = {
             "version": PPO_TRAINING_CONTRACT_VERSION,
             "algorithm": PPO_ALGORITHM,
@@ -109,6 +113,8 @@ class PPOTrainingContract:
             "observation_size": len(PUBLIC_OBSERVATION_SCHEMA.feature_names),
             "action_version": PUBLIC_ACTION_VERSION,
             "action_size": len(PUBLIC_ACTION_SCHEMA.slots),
+            "rollout_episode_schema": PPO_ROLLOUT_EPISODE_SCHEMA,
+            "action_sample_domain": PPO_ACTION_SAMPLE_DOMAIN,
             "promotion_contract_version": B0_PROMOTION_CONTRACT_VERSION,
             "reward_contract": PPO_REWARD_CONTRACT,
             "training_seed_policy": PPO_TRAINING_SEED_POLICY,
@@ -130,7 +136,7 @@ class PPOTrainingContract:
             "maximum_episode_actions": 4096,
         }
         if asdict(self) != frozen:
-            raise PPOContractError("PPO training contract v2 has drifted")
+            raise PPOContractError("PPO training contract v4 has drifted")
         batch_size = self.parallel_environments * self.rollout_steps_per_environment
         if batch_size % self.minibatch_size or self.total_environment_steps % batch_size:
             raise PPOContractError("PPO batch schedule must divide exactly")
@@ -351,7 +357,7 @@ def select_ppo_action(
     probabilities = apply_action_mask(policy_output.probabilities, mask)
     digest = sha256(
         (
-            f"{PPO_ROLLOUT_EPISODE_SCHEMA}\0{training_run.rollout_seed_hex}\0"
+            f"{PPO_ACTION_SAMPLE_DOMAIN}\0{training_run.rollout_seed_hex}\0"
             f"{episode}\0{decision}"
         ).encode("ascii")
     ).digest()
@@ -412,7 +418,7 @@ class PPORolloutBoundary:
             phase=state.phase,
             status=frame.status,
             owner=frame.owner,
-            ante=_exact_int(state.ante, "rollout Ante", minimum=1),
+            ante=_exact_int(state.ante, "rollout Ante", minimum=0),
             money=_exact_int(state.money, "rollout money", minimum=-10**9),
             score=_finite_number(state.score, "rollout score"),
             blind_requirement=requirement,
@@ -438,7 +444,7 @@ class PPORolloutBoundary:
             raise PPOContractError("rollout boundary is not Red Deck / White Stake / normal mode")
         if not isinstance(self.phase, str) or not self.phase:
             raise PPOContractError("rollout boundary phase is invalid")
-        _exact_int(self.ante, "rollout Ante", minimum=1)
+        _exact_int(self.ante, "rollout Ante", minimum=0)
         _exact_int(self.money, "rollout money", minimum=-10**9)
         _finite_number(self.score, "rollout score")
         if self.blind_requirement is not None:
@@ -467,6 +473,56 @@ class PPORolloutBoundary:
             "score": self.score,
             "blind_requirement": self.blind_requirement,
         }
+
+
+_OBSERVATION_FEATURE_INDEX = {
+    name: index for index, name in enumerate(PUBLIC_OBSERVATION_SCHEMA.feature_names)
+}
+_ANTE_VOUCHER_KEYS = ("v_hieroglyph", "v_petroglyph")
+
+
+def _observation_feature(boundary: PPORolloutBoundary, name: str) -> float | None:
+    if boundary.observation is None:
+        return None
+    return boundary.observation.values[_OBSERVATION_FEATURE_INDEX[name]]
+
+
+def _is_exact_ante_voucher_decrement(
+    before: PPORolloutBoundary,
+    after: PPORolloutBoundary,
+    decision: PPORolloutDecision,
+) -> bool:
+    if (
+        before.phase != "SHOP"
+        or after.phase != "SHOP"
+        or before.status is not RunStatus.RUNNING
+        or after.status is not RunStatus.RUNNING
+        or before.owner is not TurnOwner.AGENT
+        or after.owner is not TurnOwner.AGENT
+        or after.ante != before.ante - 1
+        or decision.action.alias != "BUY_VOUCHER"
+        or decision.action.payload() != {"slot": 0}
+        or _observation_feature(before, "state.ante") != float(before.ante)
+        or _observation_feature(after, "state.ante") != float(after.ante)
+        or _observation_feature(before, "shop.vouchers.0.present") != 1.0
+        or _observation_feature(after, "shop.vouchers.0.present") != 0.0
+        or _observation_feature(after, "shop.vouchers.0.center") != 0.0
+    ):
+        return False
+    center = _observation_feature(before, "shop.vouchers.0.center")
+    for key in _ANTE_VOUCHER_KEYS:
+        if center != float(VOUCHER_KEYS.index(key) + 1):
+            continue
+        if key == "v_petroglyph" and (
+            _observation_feature(before, "vouchers.owned.v_hieroglyph") != 1.0
+            or _observation_feature(after, "vouchers.owned.v_hieroglyph") != 1.0
+        ):
+            return False
+        return (
+            _observation_feature(before, f"vouchers.owned.{key}") == 0.0
+            and _observation_feature(after, f"vouchers.owned.{key}") == 1.0
+        )
+    return False
 
 
 @dataclass(frozen=True)
@@ -520,11 +576,16 @@ class PPORolloutEpisode:
             raise PPOContractError("PPO decision boundaries must be running and agent-owned")
         if not final.status.terminal or final.owner is not TurnOwner.TERMINAL:
             raise PPOContractError("PPO rollout must end at one complete terminal boundary")
-        if any(
-            after.ante < before.ante
-            for before, after in zip(self.boundaries, self.boundaries[1:], strict=False)
+        for before, after, decision in zip(
+            self.boundaries[:-1],
+            self.boundaries[1:],
+            self.decisions,
+            strict=True,
         ):
-            raise PPOContractError("PPO rollout Ante progression cannot decrease")
+            if after.ante < before.ante and not _is_exact_ante_voucher_decrement(
+                before, after, decision
+            ):
+                raise PPOContractError("PPO rollout Ante progression decrease is not exact")
         if final.blind_requirement is None:
             raise PPOContractError("PPO terminal boundary has no blind requirement")
         if final.status is RunStatus.LOSS and final.score >= final.blind_requirement:
