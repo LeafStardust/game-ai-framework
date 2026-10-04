@@ -43,6 +43,9 @@ PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA = "balatro-red-white-ppo-schedule-probe-v1"
 PPO_TACTICAL_HORIZON_TWO_PARITY_SCHEMA = (
     "balatro-red-white-ppo-horizon-two-parity-v1"
 )
+PPO_TACTICAL_EPISODE_PAIRED_PARITY_SCHEMA = (
+    "balatro-red-white-ppo-episode-paired-parity-v1"
+)
 _RECONSTRUCT_TYPE_SAMPLE_LIMIT = 100_000
 _STATE_CARD_SAMPLE_LIMIT = 100_000
 
@@ -194,6 +197,37 @@ class PPOTacticalHorizonTwoParityReport:
     verified_production_decisions: int
     all_actions_match: bool
     records: tuple[PPOTacticalHorizonTwoParityRecord, ...]
+
+    def as_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.as_dict(), sort_keys=True)
+
+
+@dataclass(frozen=True)
+class PPOTacticalEpisodePairedParityRecord:
+    public_input_sha256: str
+    production_action: str
+    production_hand_indices: tuple[int, ...]
+    production_search_attempts: tuple[tuple[int, int, int, bool], ...]
+    production_elapsed_seconds: float
+    probe_action: str
+    probe_hand_indices: tuple[int, ...]
+    probe_search_attempts: tuple[tuple[int, int, int, bool], ...]
+    probe_elapsed_seconds: float
+    matches_production: bool
+
+
+@dataclass(frozen=True)
+class PPOTacticalEpisodePairedParityReport:
+    schema: str
+    root_seed: str
+    episode_index: int
+    game_seed: str
+    environment_transitions: int
+    all_actions_match: bool
+    records: tuple[PPOTacticalEpisodePairedParityRecord, ...]
 
     def as_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -546,6 +580,102 @@ def probe_episode_seven_horizon_two_parity(
         probe_engine.max_horizon = original_probe_horizon
         probe_engine.max_search_nodes = original_probe_nodes
     raise PPOContractError("episode-seven horizon-two parity target was not reached")
+
+
+def probe_episode_zero_horizon_two_parity(
+    *,
+    root_seed: str = "RED-WHITE-PPO-V1",
+    clock: Callable[[], float] = perf_counter,
+) -> PPOTacticalEpisodePairedParityReport:
+    if root_seed != "RED-WHITE-PPO-V1":
+        raise PPOContractError("episode-zero parity requires root seed RED-WHITE-PPO-V1")
+    if not callable(clock):
+        raise TypeError("clock must be callable")
+
+    episode_index = 0
+    training_run = PPOTrainingRun.from_seed(root_seed)
+    environment = make_ppo_training_environment(episode_index)
+    probe_environment = make_ppo_training_environment(episode_index)
+    learner = PPOLearner(training_run)
+    engine = environment._backend._tactical_decision_engine
+    probe_engine = probe_environment._backend._tactical_decision_engine
+    original_decide = engine.decide
+    original_probe_horizon = probe_engine.max_horizon
+    original_probe_nodes = probe_engine.max_search_nodes
+    probe_engine.max_horizon = 2
+    probe_engine.max_search_nodes = 2000
+    records: list[PPOTacticalEpisodePairedParityRecord] = []
+
+    def attempt_tuples(decision):
+        return tuple(
+            (
+                attempt.horizon,
+                attempt.nodes_evaluated,
+                attempt.max_nodes,
+                attempt.budget_exceeded,
+            )
+            for attempt in decision.search_attempts
+        )
+
+    def decide(state):
+        digest = _public_input_sha256(state)
+        probe_started = float(clock())
+        probe_decision = probe_engine.decide(state)
+        probe_elapsed = max(0.0, float(clock()) - probe_started)
+        if _public_input_sha256(state) != digest:
+            raise RuntimeError("episode-zero parity probe mutated production state")
+
+        production_started = float(clock())
+        production_decision = original_decide(state)
+        production_elapsed = max(0.0, float(clock()) - production_started)
+        production_indices = tuple(
+            state.hand.index(card) for card in production_decision.action.cards
+        )
+        probe_indices = tuple(
+            state.hand.index(card) for card in probe_decision.action.cards
+        )
+        records.append(
+            PPOTacticalEpisodePairedParityRecord(
+                public_input_sha256=digest,
+                production_action=production_decision.action.name,
+                production_hand_indices=production_indices,
+                production_search_attempts=attempt_tuples(production_decision),
+                production_elapsed_seconds=production_elapsed,
+                probe_action=probe_decision.action.name,
+                probe_hand_indices=probe_indices,
+                probe_search_attempts=attempt_tuples(probe_decision),
+                probe_elapsed_seconds=probe_elapsed,
+                matches_production=(
+                    probe_decision.action.name,
+                    probe_indices,
+                )
+                == (production_decision.action.name, production_indices),
+            )
+        )
+        return production_decision
+
+    engine.decide = decide
+    try:
+        episode = collect_complete_ppo_episode(
+            environment,
+            training_run,
+            episode_index=episode_index,
+            policy=learner.model.infer,
+        )
+    finally:
+        probe_engine.max_horizon = original_probe_horizon
+        probe_engine.max_search_nodes = original_probe_nodes
+    if episode.episode_index != episode_index:
+        raise RuntimeError("episode-zero parity episode index drifted")
+    return PPOTacticalEpisodePairedParityReport(
+        schema=PPO_TACTICAL_EPISODE_PAIRED_PARITY_SCHEMA,
+        root_seed=root_seed,
+        episode_index=episode_index,
+        game_seed=training_run.game_seed(episode_index),
+        environment_transitions=len(episode.decisions),
+        all_actions_match=all(record.matches_production for record in records),
+        records=tuple(records),
+    )
 
 
 def probe_episode_seven_bounded_schedules(
@@ -1493,9 +1623,12 @@ def main(argv: list[str] | None = None) -> int:
     target.add_argument("--episode-seven-candidate-subowners", action="store_true")
     target.add_argument("--episode-seven-schedule-probe", action="store_true")
     target.add_argument("--episode-seven-horizon-two-parity", action="store_true")
+    target.add_argument("--episode-zero-horizon-two-parity", action="store_true")
     arguments = parser.parse_args(argv)
     report = (
-        probe_episode_seven_horizon_two_parity(root_seed=arguments.root_seed)
+        probe_episode_zero_horizon_two_parity(root_seed=arguments.root_seed)
+        if arguments.episode_zero_horizon_two_parity
+        else probe_episode_seven_horizon_two_parity(root_seed=arguments.root_seed)
         if arguments.episode_seven_horizon_two_parity
         else probe_episode_seven_bounded_schedules(root_seed=arguments.root_seed)
         if arguments.episode_seven_schedule_probe

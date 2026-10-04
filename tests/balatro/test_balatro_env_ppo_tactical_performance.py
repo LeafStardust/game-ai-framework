@@ -13,10 +13,12 @@ from games.balatro.env.ppo_tactical_performance import (
     PPO_TACTICAL_EPISODE_COST_SCHEMA,
     PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA,
     PPO_TACTICAL_HORIZON_TWO_PARITY_SCHEMA,
+    PPO_TACTICAL_EPISODE_PAIRED_PARITY_SCHEMA,
     measure_ppo_tactical_cost,
     compare_first_production_inert_transition_aliases,
     probe_episode_seven_bounded_schedules,
     probe_episode_seven_horizon_two_parity,
+    probe_episode_zero_horizon_two_parity,
     trace_episode_seven_candidate_subowners,
     trace_initial_policy_ppo_episode_tactical_costs,
     _ReconstructTypeSampler,
@@ -473,6 +475,65 @@ def test_env_ppo_horizon_two_parity_uses_separate_bounded_engine(monkeypatch):
     assert probe_engine.max_horizon == 8
     assert probe_engine.max_search_nodes == 5000
     assert production_engine.max_horizon == 8
+
+
+def test_env_ppo_episode_zero_parity_keeps_production_authoritative(monkeypatch):
+    from games.balatro.card import BalatroCard
+    from games.balatro.state import BalatroState
+
+    state = BalatroState()
+    state.hand = [BalatroCard("A", "Spades")]
+    production_engine = _FakeEngine()
+    probe_engine = _FakeEngine()
+    production_environment = SimpleNamespace(
+        _backend=SimpleNamespace(_tactical_decision_engine=production_engine)
+    )
+    environments = iter(
+        (
+            production_environment,
+            SimpleNamespace(
+                _backend=SimpleNamespace(_tactical_decision_engine=probe_engine)
+            ),
+        )
+    )
+    monkeypatch.setattr(
+        tactical_performance,
+        "make_ppo_training_environment",
+        lambda stream_index: next(environments),
+    )
+    monkeypatch.setattr(
+        tactical_performance,
+        "PPOLearner",
+        lambda training_run: SimpleNamespace(
+            model=SimpleNamespace(infer=lambda observation, mask: None)
+        ),
+    )
+
+    def collector(target, training_run, *, episode_index, policy):
+        target._backend._tactical_decision_engine.decide(state)
+        return SimpleNamespace(episode_index=0, decisions=(object(),))
+
+    monkeypatch.setattr(
+        tactical_performance,
+        "collect_complete_ppo_episode",
+        collector,
+    )
+    ticks = count()
+
+    report = probe_episode_zero_horizon_two_parity(
+        clock=lambda: float(next(ticks))
+    )
+
+    assert report.schema == PPO_TACTICAL_EPISODE_PAIRED_PARITY_SCHEMA
+    assert report.episode_index == 0
+    assert report.environment_transitions == 1
+    assert report.all_actions_match is True
+    assert len(report.records) == 1
+    assert report.records[0].probe_elapsed_seconds == 1.0
+    assert report.records[0].production_elapsed_seconds == 1.0
+    assert report.records[0].matches_production is True
+    assert probe_engine.max_horizon == 8
+    assert probe_engine.max_search_nodes == 5000
 
 
 def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
