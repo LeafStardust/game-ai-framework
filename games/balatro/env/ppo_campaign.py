@@ -18,7 +18,7 @@ from games.balatro.env.ppo_training_session import (
 )
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 from games.balatro.live.hand_action_policy import (
-    SEARCH_SCHEDULE_FULL,
+    SEARCH_SCHEDULE_SELECTIVE,
     LiveHandActionDecisionEngine,
 )
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
@@ -57,7 +57,7 @@ def make_ppo_training_environment(stream_index: int) -> BalatroHeadlessEnvironme
         max_search_nodes=5000,
         exact_limit=128,
         child_exact_limit=8,
-        search_schedule_mode=SEARCH_SCHEDULE_FULL,
+        search_schedule_mode=SEARCH_SCHEDULE_SELECTIVE,
         max_search_seconds=None,
     )
     return BalatroHeadlessEnvironment(PPOHeadlessBackend(engine))

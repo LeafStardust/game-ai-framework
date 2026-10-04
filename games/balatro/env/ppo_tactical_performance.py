@@ -56,18 +56,18 @@ _SELECTIVE_ESCALATION_TARGET_DIGEST = (
 )
 
 _EPISODE_7_EXPECTED_PREFIX = (
-    ("4a0542854bbb2308d64a0d3dbed557c81d846fe314ecbfe78b0bc253dc847ff2", "PLAY_CARDS", (0, 1, 2, 3), ((2, 18, 2000, False), (3, 183, 2000, False))),
-    ("19f3c1857846f11b54219c9879bca59e62985ba615d1090d2d0f5cefac7f6fc2", "PLAY_CARDS", (0, 1), ((2, 18, 2000, False), (3, 63, 2000, False))),
+    ("4a0542854bbb2308d64a0d3dbed557c81d846fe314ecbfe78b0bc253dc847ff2", "PLAY_CARDS", (0, 1, 2, 3), ((2, 18, 2000, False),)),
+    ("19f3c1857846f11b54219c9879bca59e62985ba615d1090d2d0f5cefac7f6fc2", "PLAY_CARDS", (0, 1), ((2, 18, 2000, False),)),
     ("142d9f84e3dffefcae262869bf45c528512d07485ad5dd65a9e68a36e2683e49", "PLAY_CARDS", (0, 1, 6, 7), ((2, 15, 2000, False),)),
     ("ccdaf04a97754f506cfadf4766b192b1a3e863708c3cf1f9c7bd4fee08426372", "PLAY_CARDS", (0, 1, 2, 3, 4), ((2, 3, 2000, False),)),
-    ("b24654edbeefb4c3ae62d391a5f1a8d109055d4621f3f0185b1f3a26323e9fda", "DISCARD_CARDS", (0, 1, 4, 5, 6), ((2, 18, 2000, False), (3, 81, 2000, False), (4, 254, 2000, False), (5, 562, 3000, False))),
-    ("bf661a1b04e2c84019e55d4e2716abc3450a8956ff666e787f6a42c3465ccd0c", "DISCARD_CARDS", (2, 3, 4, 6, 7), ((2, 18, 2000, False), (3, 79, 2000, False), (4, 220, 2000, False), (4, 570, 1000, False), (5, 392, 3000, False), (5, 956, 1000, False))),
+    ("b24654edbeefb4c3ae62d391a5f1a8d109055d4621f3f0185b1f3a26323e9fda", "DISCARD_CARDS", (0, 1, 4, 5, 6), ((2, 18, 2000, False),)),
+    ("bf661a1b04e2c84019e55d4e2716abc3450a8956ff666e787f6a42c3465ccd0c", "DISCARD_CARDS", (2, 3, 4, 6, 7), ((2, 18, 2000, False),)),
     ("e7e679b56595ebab6691b3723f3a85b2747dbbcd06f7ed9fb5be84df003e01c9", "PLAY_CARDS", (0, 1, 2, 3, 5), ((2, 15, 2000, False),)),
-    ("7ba8ed02c8b736e7222f85fc0726d35711465a4519f6e7850a36a92e9d020784", "PLAY_CARDS", (3, 4), ((2, 18, 2000, False), (3, 58, 2000, False))),
+    ("7ba8ed02c8b736e7222f85fc0726d35711465a4519f6e7850a36a92e9d020784", "PLAY_CARDS", (3, 4), ((2, 18, 2000, False),)),
     ("a63e3298ce4b73019dc17a6e3f6dbe9f42babdb22acfbc508c3626b51699c2c2", "DISCARD_CARDS", (0, 3, 4, 5, 6), ((2, 18, 2000, False), (3, 51, 2000, False), (3, 51, 1000, False))),
     ("a9794ce7394796bc117fb3c635a487cc04f9288746a2beaba8f4158f2406579f", "PLAY_CARDS", (0, 1, 4, 5), ((2, 3, 2000, False),)),
-    ("85496a49e6df7095bf3f9ef59d6132d9e309e5ba8ac769f7b5e86f470163bc7a", "DISCARD_CARDS", (0, 2, 3, 6, 7), ((2, 292, 2000, False), (3, 2000, 2000, True), (4, 2000, 2000, True), (5, 3000, 3000, True))),
-    ("f63c5da42cd96a7e9ecd9281dee0dd90666edf8722f618ee5857fddf8301a145", "DISCARD_CARDS", (0, 2, 3, 6, 7), ((2, 292, 2000, False), (3, 2000, 2000, True), (4, 2000, 2000, True), (5, 3000, 3000, True))),
+    ("85496a49e6df7095bf3f9ef59d6132d9e309e5ba8ac769f7b5e86f470163bc7a", "DISCARD_CARDS", (0, 2, 3, 6, 7), ((2, 292, 2000, False),)),
+    ("f63c5da42cd96a7e9ecd9281dee0dd90666edf8722f618ee5857fddf8301a145", "DISCARD_CARDS", (0, 2, 3, 6, 7), ((2, 292, 2000, False),)),
 )
 
 _CANDIDATE_HELPER_NAMES = (

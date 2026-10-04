@@ -226,11 +226,7 @@ def test_env_ppo_tactical_cost_pins_first_production_decision_and_search_trace()
     assert report.game_seed == "7258FFDA"
     assert report.action == "DISCARD_CARDS"
     assert report.selected_hand_indices == (3, 4, 5, 6, 7)
-    assert report.search_attempts == (
-        (2, 18, 2000, False),
-        (3, 79, 2000, False),
-        (3, 38, 1000, False),
-    )
+    assert report.search_attempts == ((2, 18, 2000, False),)
     assert report.total_elapsed_seconds > 0.0
     assert report.candidate_generation_elapsed_seconds > 0.0
     assert report.search_evaluation_elapsed_seconds > 0.0

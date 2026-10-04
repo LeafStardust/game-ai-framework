@@ -29,9 +29,11 @@ PACE_PLAY = "PACE_PLAY"
 PACE_RECOVERY = "PACE_RECOVERY"
 SEARCH_SCHEDULE_FULL = "full"
 SEARCH_SCHEDULE_PROBE_DEEPEST = "probe-deepest"
+SEARCH_SCHEDULE_SELECTIVE = "selective"
 _SEARCH_SCHEDULE_MODES = {
     SEARCH_SCHEDULE_FULL,
     SEARCH_SCHEDULE_PROBE_DEEPEST,
+    SEARCH_SCHEDULE_SELECTIVE,
 }
 
 
@@ -855,7 +857,10 @@ class LiveHandActionDecisionEngine:
             max_horizon=self.max_horizon,
             max_nodes=self.max_search_nodes,
         )
-        if self.search_schedule_mode == SEARCH_SCHEDULE_FULL or len(schedule) <= 1:
+        if self.search_schedule_mode in {
+            SEARCH_SCHEDULE_FULL,
+            SEARCH_SCHEDULE_SELECTIVE,
+        } or len(schedule) <= 1:
             return schedule
 
         deepest_horizon = max(config.horizon for config in schedule)
@@ -875,6 +880,19 @@ class LiveHandActionDecisionEngine:
             else None
         )
         schedule = self._search_schedule(state)
+        if self.search_schedule_mode == SEARCH_SCHEDULE_SELECTIVE and schedule:
+            shallow = self._decide_schedule(state, schedule[:1])
+            if not self._selective_deepening_candidate(shallow):
+                return shallow
+            escalation = tuple(config for config in schedule if config.horizon <= 3)
+            return self._decide_schedule(state, escalation)
+        return self._decide_schedule(state, schedule)
+
+    def _decide_schedule(
+        self,
+        state,
+        schedule: tuple[AdaptiveBlindSearchConfig, ...],
+    ) -> HandActionDecision:
         attempts: list[HandActionSearchAttempt] = []
         summaries: list[AdaptiveRecommendationSummary] = []
         last_completed_plans: list[LiveBlindPlan] | None = None

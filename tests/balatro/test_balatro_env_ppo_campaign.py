@@ -19,7 +19,7 @@ from games.balatro.env.ppo_campaign import (
 )
 from games.balatro.env.ppo_contract import PPOContractError, PPOTrainingRun
 from games.balatro.live.hand_action_policy import (
-    SEARCH_SCHEDULE_FULL,
+    SEARCH_SCHEDULE_SELECTIVE,
     LiveHandActionDecisionEngine,
 )
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
@@ -198,7 +198,7 @@ def test_env_ppo_campaign_factory_freezes_production_tactical_owner():
     assert engine.max_search_nodes == 5000
     assert engine.exact_limit == 128
     assert engine.child_exact_limit == 8
-    assert engine.search_schedule_mode == SEARCH_SCHEDULE_FULL
+    assert engine.search_schedule_mode == SEARCH_SCHEDULE_SELECTIVE
     assert engine.max_search_seconds is None
     with pytest.raises(PPOContractError, match="stream index"):
         make_ppo_training_environment(8)

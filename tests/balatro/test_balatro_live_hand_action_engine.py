@@ -8,6 +8,7 @@ from games.balatro.live.hand_action_policy import (
     CLEAR_PATH,
     PACE_PLAY,
     PACE_RECOVERY,
+    SEARCH_SCHEDULE_SELECTIVE,
     HandActionThresholds,
     LiveHandActionDecisionEngine,
     LiveHandActionPolicy,
@@ -65,6 +66,53 @@ def _selective_candidate(*, mode, action, card_count, pace_ratio):
 )
 def test_selective_deepening_candidate_matches_bounded_evidence(decision, expected):
     assert LiveHandActionDecisionEngine._selective_deepening_candidate(decision) is expected
+
+
+class _SelectiveScheduleEngine(LiveHandActionDecisionEngine):
+    def __init__(self, decisions):
+        self.max_search_seconds = None
+        self.search_schedule_mode = SEARCH_SCHEDULE_SELECTIVE
+        self.decisions = iter(decisions)
+        self.schedule_calls = []
+
+    def _search_schedule(self, state):
+        return tuple(SimpleNamespace(horizon=horizon) for horizon in (2, 3, 4, 5))
+
+    def _decide_schedule(self, state, schedule):
+        self.schedule_calls.append(tuple(config.horizon for config in schedule))
+        return next(self.decisions)
+
+
+def test_selective_schedule_returns_shallow_nontrigger_without_deepening():
+    shallow = _selective_candidate(
+        mode=PACE_RECOVERY,
+        action=DISCARD_CARDS,
+        card_count=5,
+        pace_ratio=0.2,
+    )
+    engine = _SelectiveScheduleEngine((shallow,))
+
+    assert engine.decide(object()) is shallow
+    assert engine.schedule_calls == [(2,)]
+
+
+def test_selective_schedule_reruns_only_through_horizon_three_on_trigger():
+    shallow = _selective_candidate(
+        mode=PACE_RECOVERY,
+        action=DISCARD_CARDS,
+        card_count=2,
+        pace_ratio=0.4,
+    )
+    escalated = _selective_candidate(
+        mode=PACE_RECOVERY,
+        action=DISCARD_CARDS,
+        card_count=5,
+        pace_ratio=0.4,
+    )
+    engine = _SelectiveScheduleEngine((shallow, escalated))
+
+    assert engine.decide(object()) is escalated
+    assert engine.schedule_calls == [(2,), (2, 3)]
 
 
 class _FakeEvaluator:
