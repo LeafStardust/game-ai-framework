@@ -13,7 +13,11 @@ from typing import Any, Callable
 
 from games.balatro.env.environment import BalatroHeadlessEnvironment
 from games.balatro.env.episode_backend import PPOHeadlessBackend
-from games.balatro.env.ppo_contract import PPOContractError, PPOTrainingRun
+from games.balatro.env.ppo_contract import (
+    PPO_TRAINING_CONTRACT,
+    PPOContractError,
+    PPOTrainingRun,
+)
 from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.ppo_training_session import (
     PPO_TRAINING_SESSION_VERSION,
@@ -29,11 +33,11 @@ from games.balatro.live.hand_action_policy import (
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
-PPO_CAMPAIGN_VERSION = "balatro-red-white-ppo-campaign-v2"
+PPO_CAMPAIGN_VERSION = "balatro-red-white-ppo-campaign-v3"
 PPO_TACTICAL_FACTORY_VERSION = "balatro-red-white-ppo-tactical-factory-v2"
-PPO_PARALLEL_COLLECTION_VERSION = "balatro-red-white-ppo-parallel-collection-v1"
-PPO_CAMPAIGN_PROGRESS_VERSION = "balatro-red-white-ppo-progress-v2"
-PPO_CAMPAIGN_FINAL_VERSION = "balatro-red-white-ppo-final-v2"
+PPO_PARALLEL_COLLECTION_VERSION = "balatro-red-white-ppo-parallel-collection-v2"
+PPO_CAMPAIGN_PROGRESS_VERSION = "balatro-red-white-ppo-progress-v3"
+PPO_CAMPAIGN_FINAL_VERSION = "balatro-red-white-ppo-final-v3"
 CHECKPOINT_NAME = "checkpoint.json"
 PROGRESS_NAME = "progress.json"
 FINAL_NAME = "final.json"
@@ -194,6 +198,7 @@ def run_ppo_campaign(
     artifact_directory: str | Path,
     *,
     maximum_episodes: int,
+    maximum_batches: int,
     maximum_workers: int,
     environment_factory=make_ppo_training_environment,
     session_opener: Callable[[PPOTrainingRun, object | None, object], PPOTrainingSession]
@@ -204,6 +209,16 @@ def run_ppo_campaign(
         raise PPOContractError("PPO campaign maximum episodes must be an exact integer")
     if maximum_episodes <= 0:
         raise PPOContractError("PPO campaign maximum episodes must be positive")
+    if isinstance(maximum_batches, bool) or not isinstance(maximum_batches, int):
+        raise PPOContractError("PPO campaign maximum batches must be an exact integer")
+    target_batch_count = (
+        PPO_TRAINING_CONTRACT.total_environment_steps
+        // PPO_TRAINING_CONTRACT.rollout_batch_size
+    )
+    if maximum_batches <= 0 or maximum_batches > target_batch_count:
+        raise PPOContractError(
+            "PPO campaign maximum batches must fit the frozen schedule"
+        )
     if (
         isinstance(maximum_workers, bool)
         or not isinstance(maximum_workers, int)
@@ -246,6 +261,7 @@ def run_ppo_campaign(
     if episode_wave_collector is not None:
         session.advance_parallel(
             maximum_episodes=maximum_episodes,
+            maximum_batches=maximum_batches,
             wave_collector=episode_wave_collector,
             on_episode_committed=publish_committed,
         )
@@ -260,6 +276,7 @@ def run_ppo_campaign(
         ) as executor:
             session.advance_parallel(
                 maximum_episodes=maximum_episodes,
+                maximum_batches=maximum_batches,
                 wave_collector=lambda requests, training_run, model: (
                     _collect_production_wave(
                         executor, requests, training_run, model
@@ -295,12 +312,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root-seed", required=True)
     parser.add_argument("--artifact-directory", required=True)
     parser.add_argument("--maximum-episodes", required=True, type=int)
+    parser.add_argument("--maximum-batches", required=True, type=int)
     parser.add_argument("--maximum-workers", required=True, type=int)
     arguments = parser.parse_args(argv)
     progress = run_ppo_campaign(
         arguments.root_seed,
         arguments.artifact_directory,
         maximum_episodes=arguments.maximum_episodes,
+        maximum_batches=arguments.maximum_batches,
         maximum_workers=arguments.maximum_workers,
     )
     print(json.dumps(progress, sort_keys=True, separators=(",", ":")))

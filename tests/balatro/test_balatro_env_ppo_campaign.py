@@ -59,11 +59,21 @@ class _FakeSession:
         )
 
     def advance_parallel(
-        self, *, maximum_episodes, wave_collector, on_episode_committed
+        self,
+        *,
+        maximum_episodes,
+        maximum_batches,
+        wave_collector,
+        on_episode_committed,
     ):
         assert callable(wave_collector)
+        batches_before = self.learner.completed_batch_count
         for _ in range(maximum_episodes):
-            if self.complete:
+            if (
+                self.complete
+                or self.learner.completed_batch_count - batches_before
+                >= maximum_batches
+            ):
                 break
             self.advance(maximum_episodes=1)
             on_episode_committed(self, object())
@@ -92,6 +102,7 @@ def test_env_ppo_campaign_starts_resumes_and_emits_final_manifest(tmp_path):
         "CAMPAIGN",
         tmp_path,
         maximum_episodes=2,
+        maximum_batches=2,
         maximum_workers=2,
         session_opener=_fake_opener(opened),
     )
@@ -108,6 +119,7 @@ def test_env_ppo_campaign_starts_resumes_and_emits_final_manifest(tmp_path):
         "CAMPAIGN",
         tmp_path,
         maximum_episodes=10,
+        maximum_batches=1,
         maximum_workers=2,
         session_opener=_fake_opener(opened),
     )
@@ -125,6 +137,7 @@ def test_env_ppo_campaign_rebuilds_progress_from_checkpoint_on_resume(tmp_path):
         "REBUILD",
         tmp_path,
         maximum_episodes=1,
+        maximum_batches=1,
         maximum_workers=2,
         session_opener=_fake_opener([]),
     )
@@ -134,6 +147,7 @@ def test_env_ppo_campaign_rebuilds_progress_from_checkpoint_on_resume(tmp_path):
         "REBUILD",
         tmp_path,
         maximum_episodes=1,
+        maximum_batches=1,
         maximum_workers=2,
         session_opener=_fake_opener([]),
     )
@@ -167,6 +181,7 @@ def test_env_ppo_campaign_rejects_stale_and_cross_run_artifacts(tmp_path):
             "STALE",
             tmp_path,
             maximum_episodes=1,
+            maximum_batches=1,
             maximum_workers=2,
             session_opener=_fake_opener([]),
         )
@@ -192,7 +207,7 @@ def test_env_ppo_campaign_rejects_stale_and_cross_run_artifacts(tmp_path):
         _restore_session(run, payload, object())
 
     payload["parallel_collection_version"] = PPO_PARALLEL_COLLECTION_VERSION
-    payload["version"] = "balatro-red-white-ppo-campaign-v1"
+    payload["version"] = "balatro-red-white-ppo-campaign-v2"
     with pytest.raises(PPOContractError, match="campaign version"):
         _restore_session(run, payload, object())
 
@@ -216,6 +231,7 @@ def test_env_ppo_campaign_rejects_final_artifact_for_incomplete_checkpoint(tmp_p
         "INCOMPLETE",
         tmp_path,
         maximum_episodes=1,
+        maximum_batches=1,
         maximum_workers=2,
         session_opener=_fake_opener([]),
     )
@@ -226,6 +242,7 @@ def test_env_ppo_campaign_rejects_final_artifact_for_incomplete_checkpoint(tmp_p
             "INCOMPLETE",
             tmp_path,
             maximum_episodes=1,
+            maximum_batches=1,
             maximum_workers=2,
             session_opener=_fake_opener([]),
         )
@@ -255,6 +272,20 @@ def test_env_ppo_campaign_rejects_invalid_worker_bounds(tmp_path, maximum_worker
             "WORKER-BOUND",
             tmp_path,
             maximum_episodes=1,
+            maximum_batches=1,
             maximum_workers=maximum_workers,
+            session_opener=_fake_opener([]),
+        )
+
+
+@pytest.mark.parametrize("maximum_batches", (0, 1025, True))
+def test_env_ppo_campaign_rejects_invalid_batch_bounds(tmp_path, maximum_batches):
+    with pytest.raises(PPOContractError, match="maximum batches"):
+        run_ppo_campaign(
+            "BATCH-BOUND",
+            tmp_path,
+            maximum_episodes=1,
+            maximum_batches=maximum_batches,
+            maximum_workers=1,
             session_opener=_fake_opener([]),
         )

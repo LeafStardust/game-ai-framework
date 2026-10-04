@@ -296,6 +296,7 @@ def test_env_ppo_training_session_parallel_wave_commits_exact_global_order():
     session = PPOTrainingSession(run, _factory(), learner=learner)
     result = session.advance_parallel(
         maximum_episodes=8,
+        maximum_batches=1,
         wave_collector=collect_wave,
         on_episode_committed=lambda _session, episode: committed.append(
             episode.episode_index
@@ -332,6 +333,7 @@ def test_env_ppo_training_session_parallel_wave_recollects_suffix_after_update()
     session = PPOTrainingSession(run, _factory(), learner=learner)
     result = session.advance_parallel(
         maximum_episodes=4,
+        maximum_batches=2,
         wave_collector=collect_wave,
         on_episode_committed=lambda _session, episode: committed.append(
             episode.episode_index
@@ -367,7 +369,9 @@ def test_env_ppo_training_session_parallel_wave_rejects_drift_before_commit():
         return tuple(results)
 
     with pytest.raises(PPOContractError, match="order drifted"):
-        session.advance_parallel(maximum_episodes=2, wave_collector=misordered)
+        session.advance_parallel(
+            maximum_episodes=2, maximum_batches=1, wave_collector=misordered
+        )
 
     assert learner.total_consumed_environment_transitions == 0
     assert learner.assembler.next_episode_indices == tuple(range(8))
@@ -402,10 +406,63 @@ def test_env_ppo_training_session_parallel_wave_fails_atomically(
         return results[:1] if collector_kind == "partial" else results
 
     with pytest.raises((PPOContractError, RuntimeError), match=message):
-        session.advance_parallel(maximum_episodes=2, wave_collector=collect_wave)
+        session.advance_parallel(
+            maximum_episodes=2, maximum_batches=1, wave_collector=collect_wave
+        )
 
     assert learner.total_consumed_environment_transitions == 0
     assert learner.assembler.next_episode_indices == tuple(range(8))
+
+
+def test_env_ppo_training_session_parallel_stops_at_exact_new_batch_bound():
+    run = PPOTrainingRun.from_seed("SESSION-PARALLEL-BATCH-STOP")
+    learner = _FakeLearner(run)
+    learner.assembler.queued = [255, 255, 256, 256, 256, 256, 256, 256]
+    learner.total_consumed_environment_transitions = sum(learner.assembler.queued)
+    waves = []
+    committed = []
+
+    def collect_wave(requests, training_run, model):
+        waves.append(requests)
+        return tuple(
+            PPOCollectedEpisode(
+                request,
+                model.parameter_sha256,
+                _episode(training_run, request.episode_index),
+            )
+            for request in requests
+        )
+
+    session = PPOTrainingSession(run, _factory(), learner=learner)
+    result = session.advance_parallel(
+        maximum_episodes=4,
+        maximum_batches=1,
+        wave_collector=collect_wave,
+        on_episode_committed=lambda _session, episode: committed.append(
+            episode.episode_index
+        ),
+    )
+
+    assert waves == [tuple(PPOEpisodeRequest(index, index) for index in range(4))]
+    assert committed == [0, 1]
+    assert result.episodes_collected == 2
+    assert result.batches_completed == 1
+    assert learner.assembler.next_episode_indices == (8, 9, 2, 3, 4, 5, 6, 7)
+
+
+@pytest.mark.parametrize("maximum_batches", (0, True, 1025))
+def test_env_ppo_training_session_parallel_rejects_invalid_batch_bound(
+    maximum_batches,
+):
+    run = PPOTrainingRun.from_seed("SESSION-PARALLEL-BATCH-BOUND")
+    session = PPOTrainingSession(run, _factory(), learner=_FakeLearner(run))
+
+    with pytest.raises(PPOContractError, match="maximum batches"):
+        session.advance_parallel(
+            maximum_episodes=1,
+            maximum_batches=maximum_batches,
+            wave_collector=lambda *_args: (),
+        )
 
 
 def test_env_ppo_training_session_rejects_incomplete_or_drifted_collection():

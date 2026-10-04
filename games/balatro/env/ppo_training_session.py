@@ -257,21 +257,30 @@ class PPOTrainingSession:
         self,
         *,
         maximum_episodes: int,
+        maximum_batches: int,
         wave_collector: EpisodeWaveCollector,
         on_episode_committed: EpisodeCommitCallback | None = None,
     ) -> PPOTrainingAdvance:
         limit = _exact_positive_int(maximum_episodes, "maximum episodes")
+        batch_limit = _exact_positive_int(maximum_batches, "maximum batches")
         if not callable(wave_collector):
             raise TypeError("wave_collector must be callable")
         if on_episode_committed is not None and not callable(on_episode_committed):
             raise TypeError("on_episode_committed must be callable")
         self._validate_learner()
+        remaining_batches = self.target_batch_count - self.learner.completed_batch_count
+        if batch_limit > remaining_batches:
+            raise PPOContractError("maximum batches exceeds the remaining PPO schedule")
         episodes_collected = 0
         batches_before = self.learner.completed_batch_count
         last_episode_index: int | None = None
         stream_count = PPO_TRAINING_CONTRACT.parallel_environments
 
-        while episodes_collected < limit and not self.complete:
+        while (
+            episodes_collected < limit
+            and not self.complete
+            and self.learner.completed_batch_count - batches_before < batch_limit
+        ):
             wave_size = min(stream_count, limit - episodes_collected)
             ordered_indices = sorted(self.learner.assembler.next_episode_indices)
             requests = tuple(
