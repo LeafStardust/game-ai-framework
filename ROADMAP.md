@@ -2429,17 +2429,22 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run one clean production campaign from root seed `RED-WHITE-PPO-V1` with eight
-workers, `--maximum-episodes 2048`, and `--maximum-batches 1`. Verify the first
-real 2,048-transition optimizer update, checkpoint/resume state, parameter digest
-change, carryover accounting, exact stop boundary, and end-to-end throughput.
-Do not continue into a second batch or full training. Keep the default/live
-schedule unchanged. Do not change policy, mechanics, projection, the selective
-predicate, or its schedule; do not inspect promotion results, tune
-hyperparameters, add a wall-clock cutoff, or widen mechanics. Do not add a
-cross-call/object-ID cache or reapply any rejected projection-copy, evaluator,
-cache-reuse, manual reconstruction, card-validation, or custom
-`BalatroCard.__deepcopy__` experiment recorded below.
+Repair the PPO rollout evidence contract for the exact supported Hieroglyph and
+Petroglyph Ante decrement. Replace the blanket monotonic-Ante check only with an
+observation-bound exception that requires a running agent-owned `SHOP -> SHOP`
+`BUY_VOUCHER` transition, exact one-step Ante decrement, exact visible
+Hieroglyph/Petroglyph identity in the purchased slot, removal from that slot,
+and the matching owned-Voucher bit transition. Admit Ante zero at a rollout
+boundary, but continue to reject negative Ante and every unproven decrement.
+Version the changed rollout/training/campaign provenance without changing root,
+learner, rollout seed derivation or the frozen policy architecture. Add focused
+positive and tampered regressions plus the complete deterministic episode-25
+regression. After CI is green, restart the clean one-new-batch production gate
+from root seed `RED-WHITE-PPO-V1`; do not resume the pre-repair checkpoint. Do not
+continue into a second batch or full training. Keep the default/live schedule
+unchanged. Do not change policy, mechanics, projection, the selective predicate,
+or its schedule; do not inspect promotion results, tune hyperparameters, add a
+wall-clock cutoff, or widen mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3719,6 +3724,20 @@ passed **82 tests**. A real two-worker campaign-v3 smoke retained the exact
 `37198916477`, job `111426387601`, passed; the actual log reports **3043 passed,
 1613 deselected in 135.58s**. The exact next task is the clean one-new-batch
 production gate above.
+
+The first clean one-batch attempt completed and atomically published episodes
+0..23 (**144 transitions**) before the next speculative wave failed closed.
+Single-worker checkpoint resume proved episode 24 completes in five transitions
+and isolated the earliest failure to episode **25**, derived game seed
+`2C383F87`. Its exact trajectory clears the Ante-1 Boss, enters the Ante-2 shop,
+and legally buys `v_hieroglyph`. The canonical redemption owner correctly lowers
+both public Ante and private blind Ante from 2 to 1, but
+`PPORolloutEpisode.__post_init__` rejects every Ante decrease before consulting
+the action or its public observation. Captured boundaries show the sole decrease
+is the `SHOP -> SHOP` `BUY_VOUCHER` transition; the episode subsequently
+continues at Ante 1 and ends in an exact loss. No second-wave evidence containing
+episode 25 was admitted. The exact next task is the narrow observation-bound
+rollout-contract repair above, not weakening Ante validation generally.
 
 ### Horizon-five candidate sub-profile checkpoint
 
