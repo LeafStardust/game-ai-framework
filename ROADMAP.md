@@ -2429,13 +2429,13 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the version-2 episode-0 and episode-7 paired horizon-2 diagnostics once and
-compare their shallow/production decision signals. Use the recorded mode,
-confidence, setup-discard consensus, clear-path count, pace ratios, and fallback
-value to determine whether a deterministic condition uniquely escalates the sole
-episode-7 mismatch without escalating the expensive matching states. Do not
-change the PPO tactical factory, policy, mechanics, projection, or production
-schedule yet. Do not
+Add an evidence-only selective-escalation diagnostic at the tactical schedule
+owner. Its candidate trigger is a shallow `PACE_RECOVERY` discard selecting
+fewer than five cards while `best_play_pace_ratio < 0.5`; on the frozen evidence
+this uniquely selects `a63e3298...`. Prove that a horizon-3/2000-node escalation
+at that state recovers the authoritative five-card discard, while the trigger
+stays false for the matching episode-0 and episode-7 states. Do not change the
+PPO tactical factory, policy, mechanics, projection, or production schedule yet. Do not
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
@@ -3521,6 +3521,27 @@ diagnostic validation passed **23 tests** locally. GitHub Actions run
 `37189386495`, job `111398208245`, passed; the actual job log reports **3025
 passed, 1607 deselected in 135.43s**. The exact next task is the paired v2
 episode-0 and episode-7 evidence run above; production behavior is unchanged.
+
+The v2 episode-0 run again completed all **4** environment transitions with
+**10/10** exact horizon-2 action/index matches. Every shallow signal exactly
+matched its production signal. In particular, the matching two-card recovery
+discard `d3b9bdc7...` had best-play pace ratio **0.9629629629629629**, while
+the low-pace recovery decisions either selected a play or a full five-card
+discard.
+
+The v2 episode-7 run completed with **11/12** horizon-2 matches and
+**44.865864600011264s** total probe time. Ten of the eleven states with an
+authoritative production signal had exactly equal signal records. The sole
+signal and action/index divergence was the known `a63e3298...` mismatch:
+horizon 2 selected `DISCARD_CARDS (3,4)` with `PACE_RECOVERY`, best-play pace
+ratio **0.41025641025641024**, confidence **0.6**, and fallback value
+**167.9871794871795**; production selected `DISCARD_CARDS (0,3,4,5,6)` with
+the same mode, pace ratio, and confidence but fallback value
+**134.4871794871795**. The condition “shallow recovery discard, fewer than five
+cards, best-play pace below 0.5” selects exactly this **1/22** observed state;
+it excludes the two expensive matching five-card discards. This is evidence for
+the bounded selective-escalation diagnostic above, not yet authority to change
+production.
 
 ### Horizon-five candidate sub-profile checkpoint
 
