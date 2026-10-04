@@ -2429,21 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add a canonical batch-count stop to the bounded parallel training session and
-campaign, in addition to the required episode bound. It must stop immediately
-after the requested number of new optimizer batches, never collect another wave
-under the updated policy, preserve per-episode checkpoint publication, and reject
-zero/boolean/impossible bounds. Add focused no-update and exact-boundary
-regressions. After CI is green, run one clean production campaign from the frozen
-root seed with eight workers, a conservative explicit episode ceiling, and an
-exact one-new-batch stop. Verify the first real 2,048-transition optimizer update,
-checkpoint/resume state, parameter digest change, carryover accounting, and
-end-to-end throughput. Do not continue into a second batch or full training.
-Keep the default/live schedule unchanged. Do not change policy, mechanics,
-projection, the selective predicate, or its schedule; do not inspect promotion
-results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
-not add a cross-call/object-ID cache or reapply any rejected projection-copy,
-evaluator, cache-reuse, manual reconstruction, card-validation, or custom
+Run one clean production campaign from root seed `RED-WHITE-PPO-V1` with eight
+workers, `--maximum-episodes 2048`, and `--maximum-batches 1`. Verify the first
+real 2,048-transition optimizer update, checkpoint/resume state, parameter digest
+change, carryover accounting, exact stop boundary, and end-to-end throughput.
+Do not continue into a second batch or full training. Keep the default/live
+schedule unchanged. Do not change policy, mechanics, projection, the selective
+predicate, or its schedule; do not inspect promotion results, tune
+hyperparameters, add a wall-clock cutoff, or widen mechanics. Do not add a
+cross-call/object-ID cache or reapply any rejected projection-copy, evaluator,
+cache-reuse, manual reconstruction, card-validation, or custom
 `BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
@@ -3711,6 +3706,19 @@ campaign, or about **7.7665 episodes/minute** and **0.9061 transitions/second**.
 If sustained, the frozen schedule would still require roughly **26.8 days**.
 The exact next task is therefore the bounded one-new-batch stop and first real
 optimizer-batch gate above, not full training.
+
+Commit `588a0829b10ade962985d21fdf36ca1b1bef0bf1` adds the required
+positive feasible new-batch bound alongside the existing episode and worker
+bounds. The parallel session stops immediately after the committed episode that
+performs the requested optimizer update; it does not recollect the invalidated
+speculative suffix. Campaign, progress/final, and parallel-collection provenance
+advance to v3/v3/v2 so earlier orchestration checkpoints fail closed. Focused
+session/campaign validation passed **28 tests** locally; expanded PPO validation
+passed **82 tests**. A real two-worker campaign-v3 smoke retained the exact
+15-transition episodes-0/1 result with zero batches. GitHub Actions run
+`37198916477`, job `111426387601`, passed; the actual log reports **3043 passed,
+1613 deselected in 135.58s**. The exact next task is the clean one-new-batch
+production gate above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
