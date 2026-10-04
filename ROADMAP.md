@@ -2429,16 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Repair only the exact episode-41 shop-type-rate Voucher Boss-cash-out boundary
-recorded below. Admit the already-owned Tarot/Planet Merchant/Tycoon capability
-family at Boss cash-out only as audited persisted-rate no-ops; validate exact
-rates and upgrade ancestry, and add focused cash-out plus complete production
-episode-41 regressions. Advance campaign/parallel-collection provenance so the
-failed campaign-v5 checkpoint cannot resume. Do not widen another Voucher
-family or alter policy, projection, the selective predicate, or its schedule.
-After the repair is green, restart the clean one-new-batch production gate from
-root seed `RED-WHITE-PPO-V1` with eight workers, `--maximum-episodes 2048`, and
-`--maximum-batches 1`; do not continue into a second batch or full training.
+Restart the clean one-new-batch production gate from root seed
+`RED-WHITE-PPO-V1` with eight workers, `--maximum-episodes 2048`, and
+`--maximum-batches 1`; do not resume any pre-repair checkpoint. Verify the first
+real 2,048-transition optimizer update, checkpoint/resume state, parameter digest
+change, carryover accounting, exact stop boundary, and end-to-end throughput. Do
+not continue into a second batch or full training. Keep the default/live schedule
+unchanged. Do not change policy, mechanics, projection, the selective predicate,
+or its schedule; do not inspect promotion results, tune hyperparameters, add a
+wall-clock cutoff, or widen mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3806,6 +3805,21 @@ headless redemption and shop-generation owners already validate and consume the
 persisted rate plus upgrade ancestry. This is the next narrow missing cash-out
 capability. The campaign-v5 checkpoint must not resume after mechanics
 provenance changes. The exact next task is the narrow repair above.
+
+Commit `cb1019d6aadceb5e6d97acfc04e9e586745977ba` admits the complete
+already-owned Tarot/Planet Merchant/Tycoon rate capability at Boss cash-out as a
+persisted-state no-op. It delegates exact rate and upgrade-ancestry validation to
+the canonical Voucher-rate owner; stale rates, missing base Vouchers, malformed
+ownership, and every other Voucher family remain fail closed. Campaign/progress/
+final provenance advances to v6 and parallel collection to v5, so the failed
+campaign-v5 checkpoint cannot resume.
+
+Focused deterministic regressions cover each base/upgrade family, stale rate
+rejection, and production episode 41 (`20C74BCD`) through all **12** decisions to
+its unchanged loss boundary. Focused cash-out/rate/rollout validation passed
+**79 tests** locally. GitHub Actions run `37216192716`, job `111477076081`,
+passed; the actual log reports **3069 passed, 1613 deselected in 148.72s**. The
+exact next task is the clean one-new-batch restart above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
