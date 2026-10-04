@@ -2429,17 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Repair only the exact episode-39 Overstock Boss-cash-out boundary recorded below.
-Admit Overstock/Overstock Plus at Boss cash-out only as audited no-ops whose
-persistent shop-size consequence remains owned by canonical shop generation;
-preserve strict ownership validation and add focused cash-out, generated-shop,
-and complete production episode-39 regressions. Advance campaign/parallel
-collection provenance so the failed pre-repair checkpoint cannot resume. Do not
-widen support to another Voucher family or alter policy, projection, the
-selective predicate, or its schedule. After the repair is green, restart the clean
-one-new-batch production gate from root seed `RED-WHITE-PPO-V1` with eight
-workers, `--maximum-episodes 2048`, and `--maximum-batches 1`; do not continue
-into a second batch or full training.
+Restart the clean one-new-batch production gate from root seed
+`RED-WHITE-PPO-V1` with eight workers, `--maximum-episodes 2048`, and
+`--maximum-batches 1`; do not resume either pre-repair checkpoint. Verify the
+first real 2,048-transition optimizer update, checkpoint/resume state, parameter
+digest change, carryover accounting, exact stop boundary, and end-to-end
+throughput. Do not continue into a second batch or full training. Keep the
+default/live schedule unchanged. Do not change policy, mechanics, projection,
+the selective predicate, or its schedule; do not inspect promotion results, tune
+hyperparameters, add a wall-clock cutoff, or widen mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3772,6 +3770,24 @@ main-shop capacities 2/3/4. Therefore this is a narrow missing cash-out no-op
 capability, not permission to approximate shop size or admit other Voucher
 families. The failed checkpoint must not resume after mechanics provenance
 changes. The exact next task is the narrow repair above.
+
+Commit `875693e67624829505da8cf5fbead6fd1bbdc90e` admits only the
+Overstock family at the Boss cash-out Voucher boundary. Complete authoritative
+ownership is still required, Overstock Plus without Overstock remains invalid,
+and consumable-capacity/Joker-edition persisted values retain their independent
+validation. Cash-out preserves Voucher history without RNG or inventory work;
+the existing main-shop generator remains the sole consumer that derives three or
+four main slots.
+
+Focused deterministic regressions cover both Overstock levels through cash-out,
+reject malformed upgrade history, generate the exact subsequent slot count, and
+replay production episode 39 (`B19790C4`) through all **9** decisions to its
+unchanged loss boundary. Campaign/progress/final provenance advances to v5 and
+parallel collection to v4, so neither failed campaign-v4 checkpoint can resume.
+Focused mechanics/rollout validation passed **63 tests** locally. GitHub Actions
+run `37200726612`, job `111431690927`, passed; the actual log reports **3056
+passed, 1613 deselected in 146.50s**. The exact next task is the clean one-new-
+batch restart above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
