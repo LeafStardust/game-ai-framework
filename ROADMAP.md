@@ -2429,19 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Repair the PPO rollout evidence contract for the exact supported Hieroglyph and
-Petroglyph Ante decrement. Replace the blanket monotonic-Ante check only with an
-observation-bound exception that requires a running agent-owned `SHOP -> SHOP`
-`BUY_VOUCHER` transition, exact one-step Ante decrement, exact visible
-Hieroglyph/Petroglyph identity in the purchased slot, removal from that slot,
-and the matching owned-Voucher bit transition. Admit Ante zero at a rollout
-boundary, but continue to reject negative Ante and every unproven decrement.
-Version the changed rollout/training/campaign provenance without changing root,
-learner, rollout seed derivation or the frozen policy architecture. Add focused
-positive and tampered regressions plus the complete deterministic episode-25
-regression. After CI is green, restart the clean one-new-batch production gate
-from root seed `RED-WHITE-PPO-V1`; do not resume the pre-repair checkpoint. Do not
-continue into a second batch or full training. Keep the default/live schedule
+Restart the clean one-new-batch production gate from root seed
+`RED-WHITE-PPO-V1` with eight workers, `--maximum-episodes 2048`, and
+`--maximum-batches 1`; do not resume the pre-repair checkpoint. Verify the first
+real 2,048-transition optimizer update, checkpoint/resume state, parameter digest
+change, carryover accounting, exact stop boundary, and end-to-end throughput. Do
+not continue into a second batch or full training. Keep the default/live schedule
 unchanged. Do not change policy, mechanics, projection, the selective predicate,
 or its schedule; do not inspect promotion results, tune hyperparameters, add a
 wall-clock cutoff, or widen mechanics.
@@ -3738,6 +3731,26 @@ is the `SHOP -> SHOP` `BUY_VOUCHER` transition; the episode subsequently
 continues at Ante 1 and ends in an exact loss. No second-wave evidence containing
 episode 25 was admitted. The exact next task is the narrow observation-bound
 rollout-contract repair above, not weakening Ante validation generally.
+
+Commit `ff41d4894544c92b4c66ccc33abd684ad346a852` replaces that blanket
+rule with the exact observation-bound Hieroglyph/Petroglyph exception. It requires
+a running agent-owned `SHOP -> SHOP` `BUY_VOUCHER` action at slot 0, an exact
+one-step decrement, matching pre/post encoded Ante values, the exact visible
+Ante-Voucher center, removal from the only Voucher slot, and the corresponding
+owned-Voucher `0 -> 1` transition. Petroglyph additionally requires retained
+Hieroglyph ownership. Ante zero is representable; negative Ante and every other
+decrement remain rejected.
+
+The training/evidence contract advances to v4 and campaign/progress/final/
+parallel-collection provenance advances to v4/v4/v4/v3. Action sampling now
+binds an explicit frozen v3 domain separate from the evidence schema, preserving
+the existing root, learner, rollout seeds, initial parameters, game seeds, and
+policy draws. The complete production episode-25 regression retains seed
+`2C383F87`, all **12** decisions, and its sole `2 -> 1` Hieroglyph decrement.
+Focused rollout/backend/Voucher validation passed **51 tests** locally; expanded
+PPO/Voucher validation passed **104 tests**. GitHub Actions run `37199843264`,
+job `111429089341`, passed; the actual log reports **3050 passed, 1613 deselected
+in 76.43s**. The exact next task is the clean one-new-batch restart above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
