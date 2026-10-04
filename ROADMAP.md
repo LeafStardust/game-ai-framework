@@ -2429,12 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add evidence-only decision-signal fields to the paired horizon-2 diagnostics.
-Record the shallow and production decision modes, confidence, setup-discard
-consensus, clear-path count, pace ratio, and fallback value needed to compare the
-sole episode-7 mismatch against the 21 matching episode-0/episode-7 states. Use
-that comparison to define a deterministic selective deeper-search trigger; do
-not change the PPO tactical factory, policy, mechanics, projection, or production
+Run the version-2 episode-0 and episode-7 paired horizon-2 diagnostics once and
+compare their shallow/production decision signals. Use the recorded mode,
+confidence, setup-discard consensus, clear-path count, pace ratios, and fallback
+value to determine whether a deterministic condition uniquely escalates the sole
+episode-7 mismatch without escalating the expensive matching states. Do not
+change the PPO tactical factory, policy, mechanics, projection, or production
 schedule yet. Do not
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
@@ -3509,6 +3509,18 @@ exact action/index matches. The single known mismatch remains `a63e3298...`;
 therefore a global horizon-2 schedule remains rejected. The exact next bounded
 task is the decision-signal diagnostic above, which must identify an evidenced
 selective escalation condition before any production schedule change.
+
+Commit `1eb3c20ed534aec801f3ee7e68cd2657714d1727` versions both parity
+schemas to v2 and records decision mode, confidence, setup-discard consensus,
+clear-path count, best-play and selected pace ratios, and selected fallback value.
+Episode 0 records both shallow and authoritative production signals. Episode 7
+records both through its verified production prefix and explicitly uses `null`
+for the terminal target production signal rather than rerunning its known
+multi-hour full search. Nonfinite signal evidence fails closed. Focused
+diagnostic validation passed **23 tests** locally. GitHub Actions run
+`37189386495`, job `111398208245`, passed; the actual job log reports **3025
+passed, 1607 deselected in 135.43s**. The exact next task is the paired v2
+episode-0 and episode-7 evidence run above; production behavior is unchanged.
 
 ### Horizon-five candidate sub-profile checkpoint
 
