@@ -2429,24 +2429,22 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add a canonical batch-boundary-safe parallel episode-collection owner for the
-PPO training session and campaign. Each frozen-policy wave may speculatively
-collect at most the next episode for each stream in isolated worker environments;
-results must be committed in exact global episode-index order. If a committed
-episode makes a batch ready, perform the existing optimizer update at that exact
-boundary and discard/recollect every higher speculative result under the updated
-model. Preserve explicit episode/worker bounds, sequential behavior, complete-
-episode admission, and checkpoint accounting. Worker failure, missing/duplicate/
-misordered results, policy-version drift, and partial waves must fail closed
-before publication. Add focused deterministic regressions spanning both a wave
-without an update and a wave whose update invalidates its speculative suffix,
-then run a bounded eight-episode production parity/timing gate. Do not launch
-full training. Keep the default/live schedule unchanged. Do not change policy,
-mechanics, projection, the selective predicate, or its schedule; do not inspect
-learned-policy results, tune hyperparameters, add a wall-clock cutoff, or widen
-mechanics. Do not add a cross-call/object-ID cache or reapply any rejected
-projection-copy, evaluator, cache-reuse, manual reconstruction, card-validation,
-or custom `BalatroCard.__deepcopy__` experiment recorded below.
+Add a canonical batch-count stop to the bounded parallel training session and
+campaign, in addition to the required episode bound. It must stop immediately
+after the requested number of new optimizer batches, never collect another wave
+under the updated policy, preserve per-episode checkpoint publication, and reject
+zero/boolean/impossible bounds. Add focused no-update and exact-boundary
+regressions. After CI is green, run one clean production campaign from the frozen
+root seed with eight workers, a conservative explicit episode ceiling, and an
+exact one-new-batch stop. Verify the first real 2,048-transition optimizer update,
+checkpoint/resume state, parameter digest change, carryover accounting, and
+end-to-end throughput. Do not continue into a second batch or full training.
+Keep the default/live schedule unchanged. Do not change policy, mechanics,
+projection, the selective predicate, or its schedule; do not inspect promotion
+results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
+not add a cross-call/object-ID cache or reapply any rejected projection-copy,
+evaluator, cache-reuse, manual reconstruction, card-validation, or custom
+`BalatroCard.__deepcopy__` experiment recorded below.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3679,6 +3677,40 @@ would still require about **24.3405183160212 days**. The scaling is material
 enough to justify a canonical parallel collector, but not permission to change
 learning semantics or begin full training. The exact next task is the batch-
 boundary-safe speculative/ordered-commit owner above.
+
+Commit `f826470404ff3318da52127b7a7b40685ddc2fc4` adds that owner.
+`PPOTrainingSession.advance_parallel` validates a complete frozen-policy wave
+before mutation, commits only in global episode-index order, performs the existing
+optimizer update at the same exact episode boundary as sequential collection,
+and discards/recollects any speculative suffix after the parameter digest changes.
+The campaign uses an explicitly bounded spawn-process pool, retains atomic
+checkpoint/progress publication after every committed episode, and versions the
+campaign/progress/final and parallel-collection provenance. Sequential `advance`
+and the serialized session schema are unchanged. Partial, malformed, missing,
+misordered, policy-drifted, and failed worker waves reject before admission.
+
+Focused session/campaign validation passed **21 tests** locally; expanded
+session/campaign/learner/assembler/rollout/model/contract validation passed **75
+tests**. A real two-worker Windows smoke collected episodes 0 and 1, then resumed
+the v2 checkpoint for episodes 2 and 3 with exact totals and indices. GitHub
+Actions run `37198460108`, job `111425055710`, passed; the actual log reports
+**3036 passed, 1613 deselected in 134.70s**.
+
+The clean eight-worker production campaign completed its exact first wave in
+**61.8038405 wall-clock seconds**. Its **45,268,619-byte** checkpoint has SHA-256
+`bb14a05f7260922d6e9505a32762da45c4b8acdce6daef56123db965ad3102a2`;
+the **652-byte** progress manifest records campaign v2, parallel collection v1,
+and tactical factory v2. It contains per-stream carryover counts
+`[4, 11, 7, 10, 5, 6, 6, 7]`, **56 collected transitions**, zero optimizer
+batches, and next episode indices `[8, 9, 10, 11, 12, 13, 14, 15]`; no final
+artifact exists. The entire serialized session/learner payload is semantically
+identical to the sequential campaign checkpoint.
+
+This is a **1.8626x** end-to-end speedup over the 115.1199245-second sequential
+campaign, or about **7.7665 episodes/minute** and **0.9061 transitions/second**.
+If sustained, the frozen schedule would still require roughly **26.8 days**.
+The exact next task is therefore the bounded one-new-batch stop and first real
+optimizer-batch gate above, not full training.
 
 ### Horizon-five candidate sub-profile checkpoint
 
