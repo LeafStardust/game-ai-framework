@@ -3464,6 +3464,18 @@ its v14 target total was **3189.2530351000023s**. This single-state result is a
 large latency signal, not authority to change the campaign. The exact next gate
 is the paired all-episode-7-state horizon-2 parity diagnostic above.
 
+Commit `27d68ba51ee2d779c4611e73bac641f7c54c5f42` adds the versioned
+`balatro-red-white-ppo-horizon-two-parity-v1` diagnostic. A separate
+horizon-2/2000-node engine evaluates every frozen episode-7 tactical state while
+the unchanged production engine alone advances the canonical trajectory. Each
+record binds digest, expected and observed action/indices, search attempts, and
+elapsed time; input mutation and production-prefix drift fail closed. The target
+uses frozen production evidence and stops before another full horizon-5 run.
+Focused diagnostic validation passed **21 tests** locally. GitHub Actions run
+`37183499199`, job `111380603041`, passed; the actual job log reports **3023
+passed, 1607 deselected in 73.98s**. The exact next task is the single headless
+paired episode-7 parity run above.
+
 ### Horizon-five candidate sub-profile checkpoint
 
 The exact `657e5ffd...` state was captured inside the ordered episode diagnostic
