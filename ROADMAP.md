@@ -2435,8 +2435,7 @@ trajectories against the frozen evidence and record complete episode/tactical
 timing. Do not alter the selective predicate or schedule until both complete
 episodes are measured. Keep the default/live schedule unchanged. Do not change
 policy, mechanics, or projection. Do not
-replay episodes 0..6,
-complete episode 7 after the target, launch full training, inspect learned-policy
+replay episodes 1..6, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
 not add a cross-call/object-ID cache or reapply any rejected projection-copy,
 evaluator, cache-reuse, manual reconstruction, card-validation, or custom
