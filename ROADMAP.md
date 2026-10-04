@@ -2429,12 +2429,12 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the evidence-only selective-escalation diagnostic once. Verify that its
-shallow `PACE_RECOVERY`/partial-discard/pace-below-0.5 trigger remains false on
-the frozen episode-7 prefix, fires only at `a63e3298...`, and that the bounded
-horizon-3/2000-node escalation recovers the authoritative five-card discard.
-Do not change the
-PPO tactical factory, policy, mechanics, projection, or production schedule yet. Do not
+Implement the validated selective schedule at the canonical tactical engine and
+enable it only in the PPO environment factory. The selective mode must return
+the horizon-2 decision unless the existing fail-closed predicate fires; only
+then may it rerun the bounded schedule through horizon 3. Keep the default/live
+full schedule unchanged. Add focused deterministic regressions for both paths
+and for PPO-factory ownership. Do not change policy, mechanics, or projection. Do not
 replay episodes 0..6,
 complete episode 7 after the target, launch full training, inspect learned-policy
 results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics. Do
@@ -3556,6 +3556,16 @@ passed **32 tests** locally. GitHub Actions run `37193956613`, job
 `111411821551`, passed; the actual job log reports **3026 passed, 1611
 deselected in 135.86s**. The exact next task is the single selective-escalation
 diagnostic run above; production behavior remains unchanged.
+
+The selective-escalation diagnostic completed in about **23 wall-clock
+seconds**. It verified the first **9** authoritative episode-7 decisions, kept
+the trigger false on decisions 0..7, and fired exactly once at `a63e3298...`.
+The isolated horizon-3/2000-node escalation recovered the authoritative
+`DISCARD_CARDS (0,3,4,5,6)` result with the exact production attempt trace
+`2/18, 3/51, 3c/51`; `trigger_count=1` and `all_escalations_match=true`. The
+diagnostic stopped before the later expensive states. This result authorizes the
+PPO-only selective schedule implementation above; it does not authorize changing
+the default/live schedule or widening mechanics.
 
 ### Horizon-five candidate sub-profile checkpoint
 
