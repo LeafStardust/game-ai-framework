@@ -2429,16 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Restart the clean one-new-batch production gate from root seed
-`RED-WHITE-PPO-V1` with campaign-v8 provenance, eight workers,
-`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
-pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
-checkpoint/resume state, parameter digest change, carryover accounting, exact
-stop boundary, and end-to-end throughput. Do not continue into a second batch or
-full training. Keep the default/live schedule unchanged. Do not change policy,
-mechanics, projection, the selective predicate, or its schedule; do not inspect
-promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
-mechanics.
+Repair only the exact episode-50 Hieroglyph Boss-cash-out boundary recorded
+below. Admit the already-owned Hieroglyph/Petroglyph family at Boss cash-out only
+as audited redemption-time no-ops; validate exact Ante/resource persistence and
+upgrade ancestry through the canonical owner, and add focused cash-out plus
+complete production episode-50 regressions. Advance campaign/parallel-collection
+provenance so the failed campaign-v8 checkpoint cannot resume. Do not widen
+another Voucher family or alter policy, projection, the selective predicate, or
+its schedule. After the repair is green, restart the clean one-new-batch gate
+from root seed `RED-WHITE-PPO-V1` with eight workers, `--maximum-episodes 2048`,
+and `--maximum-batches 1`; do not continue into a second batch or full training.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3908,6 +3908,23 @@ observed; production code remained fail closed and the fixture now also asserts
 the unobserved rejection. GitHub Actions run `37269743629`, job `111634015168`,
 passed; the actual log reports **3092 passed, 1613 deselected in 169.79s**. The
 exact next task is the clean campaign-v8 one-new-batch restart above.
+
+The clean campaign-v8 restart crossed the repaired episodes 45 and 46 and
+atomically committed episodes 40..47, reaching **312 transitions** with next
+indices 48..55 and zero optimizer batches. The known expensive worker remained
+CPU-active with stable memory until the ordered wave committed. The following
+48..55 wave then failed closed at Boss cash-out; its checkpoint remains exactly
+at 312 transitions.
+
+Ordered isolation proves episodes 48 and 49 complete. The earliest failure is
+episode **50**, stream 2, derived game seed `05B3FF62`. Its exact six-decision
+prefix clears Small and Big, buys `v_hieroglyph` in the Ante-1 Big-Blind shop,
+persists Ante 0 and round-reset hands 3, and selects Ante-0 Boss The Manacle at
+`$6`; after the Boss clears, cash-out rejects the Voucher history. The canonical
+redemption owner already applies Hieroglyph/Petroglyph's persistent Ante and
+round-resource changes with upgrade ancestry, and Boss cash-out has no Voucher
+callback. This is the next narrow missing cash-out capability. The campaign-v8
+checkpoint must not resume after mechanics provenance changes.
 
 ### Horizon-five candidate sub-profile checkpoint
 
