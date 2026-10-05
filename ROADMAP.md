@@ -2429,16 +2429,14 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Restart the clean one-new-batch production gate from root seed
-`RED-WHITE-PPO-V1` with campaign-v11 provenance, eight workers,
-`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
-pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
-checkpoint/resume state, parameter digest change, carryover accounting, exact
-stop boundary, and end-to-end throughput. Do not continue into a second batch or
-full training. Keep the default/live schedule unchanged. Do not change policy,
-mechanics, projection, the selective predicate, or its schedule; do not inspect
-promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
-mechanics.
+Repair the exact episode-102 Seed Money Boss-cash-out boundary described below.
+The canonical cash-out capability must admit only exact Seed Money/Money Tree
+history, validate its persisted interest-cap state and upgrade ancestry, and
+compute interest from the exact cap without changing payout order. Add focused
+deterministic regressions for payout, malformed/stale state, family composition,
+and the complete unchanged episode. Advance campaign provenance so the failed
+campaign-v11 checkpoint cannot resume. Do not change policy, projection, the
+selective predicate, or its schedule, and do not widen any unrelated mechanic.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -4043,6 +4041,30 @@ resume. Focused validation passed **187 tests** locally. GitHub Actions run
 `37307839876`, job `111755729297`, passed; the actual log reports **3136 passed,
 1613 deselected in 165.99s**. The exact next task is the clean campaign-v11
 one-new-batch restart above.
+
+### Campaign-v11 Seed Money cash-out boundary
+
+The clean campaign-v11 one-new-batch gate crossed the repaired episode 89 and
+atomically committed complete episodes 0 through 95 before stopping fail-closed.
+Its surviving checkpoint contains **692 transitions**, zero optimizer batches,
+next episode indices `[96, 97, 98, 99, 100, 101, 102, 103]`, and SHA-256
+`77964814cf2f3cc39c32261bd36dc08f9062de6a8a015c38be841aebf6a296a8`.
+No worker remains active. Ordered direct isolation proves episodes 96 through
+101 complete and identifies episode **102**, stream 6, game seed `0058185F`, as
+the earliest failure.
+
+Episode 102 selects the Ante-1 Small Blind, clears it, enters the shop with
+`$17`, buys `v_seed_money`, exits with `$7` and exact persisted interest cap
+`$50`, then clears Boss `The Window`. Boss cash-out rejects that otherwise exact
+Voucher history. The canonical capability currently excludes the interest-cap
+family, does not validate `BalatroState.interest_cap`, and calls
+`baseline_interest_dollars(money)` with its default `$25` cap. Pinned ownership
+already reconstructs exact caps of `$25`, `$50`, and `$100` from authoritative
+Voucher history and enforces Money Tree ancestry. The active task is therefore
+the narrow cash-out admission, validation, and payout composition above. This is
+not permission to admit unsupported economy Vouchers or approximate missing
+state. The failed campaign-v11 checkpoint must not resume after mechanics
+provenance changes.
 
 ### Horizon-five candidate sub-profile checkpoint
 
