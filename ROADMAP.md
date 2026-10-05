@@ -2429,19 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Admit exact integer Ante zero/negative values through the canonical normal-shop
-generation boundaries for the episode-89 Hieroglyph path described below.
-Preserve the existing source-key construction (`cdt{ante}`, `rarity{ante}sho`,
-Tarot/Planet `sho{ante}`, and `shop_pack{ante}`); do not clamp, alias, or replace
-the Ante. Keep booleans and non-integers fail closed. Add focused deterministic
-main-card, consumable, Booster, and complete inventory regressions plus a
-complete production episode-89 regression. Also admit the immediately chained
-Boss cash-out composition of Hieroglyph with the already-exact Wasteful resource
-family, using the existing combined round-resource validator rather than a new
-special case. Advance campaign/progress/final and parallel-collection provenance
-so the failed campaign-v10 checkpoint cannot resume. Do not change policy,
-projection, the selective predicate, or its schedule, and do not widen any other
-mechanic.
+Restart the clean one-new-batch production gate from root seed
+`RED-WHITE-PPO-V1` with campaign-v11 provenance, eight workers,
+`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
+pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
+checkpoint/resume state, parameter digest change, carryover accounting, exact
+stop boundary, and end-to-end throughput. Do not continue into a second batch or
+full training. Keep the default/live schedule unchanged. Do not change policy,
+mechanics, projection, the selective predicate, or its schedule; do not inspect
+promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
+mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -4022,6 +4019,30 @@ for either redemption-time mutation. The active task therefore includes this
 immediately chained mixed-family cash-out admission and focused malformed-state
 regressions. Antimatter remains excluded because its separate Joker-capacity
 state is not validated here.
+
+The episode-89 nonpositive-Ante shop and mixed-resource cash-out repair is
+**COMPLETE / GREEN** at commit `b6856298`. One canonical normal-shop validator
+now accepts every exact integer Ante and rejects booleans/non-integers before
+RNG. Main-card type/rarity, Tarot/Planet identity, and weighted Booster owners
+all consume it while preserving literal `cdt{ante}`, `rarity{ante}sho`,
+Tarot/Planet `sho{ante}`, and `shop_pack{ante}` keys. Focused zero/negative tests
+cover each owner and complete main/Voucher/Booster composition without clamping
+or aliasing the Ante.
+
+Boss cash-out now admits the already-persisted Grabber/Nacho Tong and
+Wasteful/Recyclomancy resource families, including composition with
+Hieroglyph/Petroglyph. Their exact reset hands/discards and upgrade ancestry are
+validated together; stale or unobserved resources, missing upgrade bases,
+Joker-composed resources, Antimatter, and every other unsupported family remain
+fail closed. The complete production episode-89 regression uses root seed
+`RED-WHITE-PPO-V1`, stream 1, game seed `C749D4F7`, crosses the Ante-0 shop and
+the later Hieroglyph/Wasteful Boss cash-out, and reaches its unchanged loss in
+**17 strategic actions**. Campaign/progress/final provenance advanced to v11
+and parallel collection to v10, so the failed campaign-v10 checkpoint cannot
+resume. Focused validation passed **187 tests** locally. GitHub Actions run
+`37307839876`, job `111755729297`, passed; the actual log reports **3136 passed,
+1613 deselected in 165.99s**. The exact next task is the clean campaign-v11
+one-new-batch restart above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
