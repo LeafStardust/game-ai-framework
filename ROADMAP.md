@@ -2435,10 +2435,13 @@ Preserve the existing source-key construction (`cdt{ante}`, `rarity{ante}sho`,
 Tarot/Planet `sho{ante}`, and `shop_pack{ante}`); do not clamp, alias, or replace
 the Ante. Keep booleans and non-integers fail closed. Add focused deterministic
 main-card, consumable, Booster, and complete inventory regressions plus a
-complete production episode-89 regression. Advance campaign/progress/final and
-parallel-collection provenance so the failed campaign-v10 checkpoint cannot
-resume. Do not change policy, projection, the selective predicate, or its
-schedule, and do not widen any other mechanic.
+complete production episode-89 regression. Also admit the immediately chained
+Boss cash-out composition of Hieroglyph with the already-exact Wasteful resource
+family, using the existing combined round-resource validator rather than a new
+special case. Advance campaign/progress/final and parallel-collection provenance
+so the failed campaign-v10 checkpoint cannot resume. Do not change policy,
+projection, the selective predicate, or its schedule, and do not widen any other
+mechanic.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -4006,6 +4009,19 @@ composition. This is one narrow normal-shop Ante-domain repair, not permission
 to change pools, rates, prices, eligibility, or RNG order. The failed
 campaign-v10 checkpoint must not resume after mechanics provenance changes.
 The exact next task is the narrow repair above.
+
+The first implementation pass crosses the Ante-0 Big-Blind shop generation with
+literal `cdt0`, Tarot/Planet `sho0`, and `shop_pack0` keys. Episode 89 then
+continues through The Pillar, buys a consumable, advances to Ante 1, buys another
+consumable plus `v_wasteful`, and clears The Psychic. Boss cash-out rejects the
+combined `v_hieroglyph` + `v_wasteful` history because its admitted no-effect
+set excludes Grabber/Wasteful resource Vouchers. The same canonical capability
+already computes combined Voucher resources and validates the exact resulting
+three reset hands and four reset discards; vanilla has no Boss cash-out callback
+for either redemption-time mutation. The active task therefore includes this
+immediately chained mixed-family cash-out admission and focused malformed-state
+regressions. Antimatter remains excluded because its separate Joker-capacity
+state is not validated here.
 
 ### Horizon-five candidate sub-profile checkpoint
 
