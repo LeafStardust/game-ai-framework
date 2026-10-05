@@ -2429,15 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Admit The Flint through the canonical R4 Play lifecycle for the exact episode-86
-boundary described below. Reuse the already-owned boss base-score transform;
-do not duplicate or approximate its rounding/source order in the transition
-layer. Add focused deterministic Play regressions for exact transformed scoring,
-input isolation, loss/clear behavior, and unsupported-state rejection, plus a
-complete production episode-86 regression. Advance campaign/progress/final and
-parallel-collection provenance so the failed campaign-v9 checkpoint cannot
-resume. Do not change policy, projection, the selective predicate, or its
-schedule, and do not widen any other mechanic.
+Restart the clean one-new-batch production gate from root seed
+`RED-WHITE-PPO-V1` with campaign-v10 provenance, eight workers,
+`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
+pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
+checkpoint/resume state, parameter digest change, carryover accounting, exact
+stop boundary, and end-to-end throughput. Do not continue into a second batch or
+full training. Keep the default/live schedule unchanged. Do not change policy,
+mechanics, projection, the selective predicate, or its schedule; do not inspect
+promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
+mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3961,6 +3962,27 @@ already pin that source order. This is therefore a narrow missing Play-lifecycle
 admission, not a new scoring implementation. The failed campaign-v9 checkpoint
 must not resume after mechanics provenance changes. The exact next task is the
 narrow repair above.
+
+The episode-86 Flint repair is **COMPLETE / GREEN** at commit `bfb55185`.
+Inspection of the execution path showed that R4 Play still called the plain
+`BalatroScorer` even though tactical projection already composed the canonical
+`BossBaseScoreScorerMixin`. That mixin now has a public deterministic scorer,
+and R4 selects it only for The Flint; the existing transform remains the sole
+owner of base Chips/Mult halving and Balatro round-up order. Arm retains its
+separate pre-score level mutation, while all unowned Joker, Tag, consumable,
+Voucher, card-effect, and blind-modifier interactions remain fail closed.
+
+Focused Play regressions pin transformed leveled scoring, copy-on-write input
+isolation, clear and final-hand loss boundaries, Paint Brush hand size, and
+unsupported-callback rejection. The complete production episode-86 regression
+uses root seed `RED-WHITE-PPO-V1`, stream 6, game seed `7D4CD200`, crosses The
+Flint boundary, and reaches its unchanged loss in **12 strategic actions**.
+Campaign/progress/final provenance advanced to v10 and parallel collection to
+v9, so the failed campaign-v9 checkpoint cannot resume. Focused validation
+passed **90 tests** locally. GitHub Actions run `37301917442`, job
+`111736392360`, passed; the actual log reports **3106 passed, 1613 deselected in
+188.39s**. The exact next task is the clean campaign-v10 one-new-batch restart
+above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
