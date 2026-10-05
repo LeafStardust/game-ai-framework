@@ -2429,16 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Restart the clean one-new-batch production gate from root seed
-`RED-WHITE-PPO-V1` with campaign-v12 provenance, eight workers,
-`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
-pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
-checkpoint/resume state, parameter digest change, carryover accounting, exact
-stop boundary, and end-to-end throughput. Do not continue into a second batch or
-full training. Keep the default/live schedule unchanged. Do not change policy,
-mechanics, projection, the selective predicate, or its schedule; do not inspect
-promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
-mechanics.
+Add bounded timing attribution for the exact initial-policy episodes and
+parallel waves that produced the first optimizer batch. Timing must remain
+diagnostic-only and outside deterministic checkpoint/model state, use an
+injected clock in regression tests, preserve complete episode/order/digest
+evidence, and identify the concrete slow tail behind the 90-minute gate before
+another optimization. Do not resume into a second batch or begin full training.
+Keep the default/live schedule unchanged. Do not change policy, mechanics,
+projection, the selective predicate, or its schedule; do not inspect promotion
+results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -4085,6 +4084,37 @@ validation passed **243 tests**, followed by **82 tests** after the final owner
 documentation cleanup. GitHub Actions run `37313959118`, job `111775916951`,
 passed; the actual log reports **3144 passed, 1613 deselected in 208.77s**. The
 exact next task is the clean campaign-v12 one-new-batch restart above.
+
+### First real optimizer-batch checkpoint
+
+The clean campaign-v12 gate completed successfully and stopped at the requested
+one-new-batch boundary. It committed complete episodes **0 through 311**, then
+performed exactly one 2,048-transition optimizer update and exited without
+collecting another episode. The canonical **46,954,547-byte** checkpoint has
+SHA-256 `872f3be2dbce3e860b1151edef810df27157858e8f5202799869a75500038a4c`;
+the **670-byte** progress manifest binds that digest and records campaign v12,
+parallel collection v11, tactical factory v2, and training-session v1.
+
+The checkpoint has **2,268 collected transitions**, **2,048 optimizer-consumed
+transitions**, one completed batch, Adam step 80, and **220 carryover
+transitions** distributed across the eight streams as
+`[28, 52, 40, 32, 24, 8, 35, 1]`. Its next episode indices are exactly
+`[312, 313, 314, 315, 316, 317, 318, 319]`. Read-only restoration through the
+canonical campaign/session owners succeeds with every counter unchanged. The
+model parameter digest changed from the frozen initial
+`f82fdfda2d5448d27fe8c5af5298a8ce7d905f64f7bab37baa810c124ffd9d71`
+to `180d11d0971a3bdfb8f9a1f0c2251fcdce0e0d82456f9ef6a1abb61fd50e7567`.
+`complete=false` and no `final.json` exists because the full 1,024-batch schedule
+is intentionally incomplete.
+
+The artifact directory was created at `2026-10-05T13:10:11.6720443Z` and the
+final checkpoint was published at `2026-10-05T14:40:26.7970636Z`, an elapsed
+**5,415.1250193 seconds (1:30:15.125)**. End-to-end throughput was about
+**3.456984 episodes/minute** and **0.418827 collected transitions/second**. At
+that sustained transition rate the frozen 2,097,152-transition schedule would
+take about **57.953758 days**, so this proves optimizer/checkpoint correctness
+but does not justify full training. The exact next task is the bounded timing
+attribution above, not a second optimizer batch.
 
 ### Horizon-five candidate sub-profile checkpoint
 
