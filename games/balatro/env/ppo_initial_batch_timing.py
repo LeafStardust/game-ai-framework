@@ -9,11 +9,12 @@ from hashlib import sha256
 import json
 import math
 import multiprocessing
+from pathlib import Path
 from time import perf_counter
 from typing import Callable
 
 from games.balatro.env.ppo_batch import PPOBatchAssembler
-from games.balatro.env.ppo_campaign import make_ppo_training_environment
+from games.balatro.env.ppo_campaign import _atomic_write, make_ppo_training_environment
 from games.balatro.env.ppo_contract import (
     PPO_TRAINING_CONTRACT,
     PPOContractError,
@@ -306,18 +307,53 @@ def measure_initial_batch_timing(
     )
 
 
+def write_initial_batch_timing_report(
+    path: str | Path,
+    report: PPOInitialBatchTimingReport,
+) -> str:
+    """Atomically publish one complete diagnostic report and return its digest."""
+    if not isinstance(report, PPOInitialBatchTimingReport):
+        raise TypeError("report must be PPOInitialBatchTimingReport")
+    destination = Path(path)
+    if not destination.parent.is_dir():
+        raise PPOContractError("PPO timing report directory does not exist")
+    content = report.to_json().encode("utf-8")
+    _atomic_write(destination, content)
+    return sha256(content).hexdigest()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root-seed", required=True)
     parser.add_argument("--maximum-episodes", required=True, type=int)
     parser.add_argument("--maximum-workers", required=True, type=int)
+    parser.add_argument("--output-path", required=True)
     arguments = parser.parse_args(argv)
     report = measure_initial_batch_timing(
         arguments.root_seed,
         maximum_episodes=arguments.maximum_episodes,
         maximum_workers=arguments.maximum_workers,
     )
-    print(report.to_json())
+    report_sha256 = write_initial_batch_timing_report(
+        arguments.output_path,
+        report,
+    )
+    print(
+        json.dumps(
+            {
+                "schema": report.schema,
+                "output_path": str(Path(arguments.output_path)),
+                "report_sha256": report_sha256,
+                "committed_episode_count": report.committed_episode_count,
+                "collected_environment_transitions": (
+                    report.collected_environment_transitions
+                ),
+                "elapsed_seconds": report.elapsed_seconds,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    )
     return 0
 
 

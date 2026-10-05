@@ -8,6 +8,7 @@ from games.balatro.env.ppo_initial_batch_timing import (
     TimedPPOCollectedEpisode,
     _collect_timed_production_episode,
     measure_initial_batch_timing,
+    write_initial_batch_timing_report,
 )
 from games.balatro.env.ppo_model import PPOActorCritic
 from games.balatro.env.ppo_training_session import PPOCollectedEpisode
@@ -89,6 +90,38 @@ def test_env_ppo_initial_batch_timing_preserves_order_hashes_and_injected_time()
         for episode in episodes
     ]
     assert report.to_json() == report.to_json()
+
+def test_env_ppo_initial_batch_timing_report_is_atomically_canonical(tmp_path):
+    run = PPOTrainingRun.from_seed("WRITE")
+
+    def collect_wave(requests, training_run, model):
+        return tuple(
+            TimedPPOCollectedEpisode(
+                PPOCollectedEpisode(
+                    request,
+                    model.parameter_sha256,
+                    _episode(run, request.episode_index, length=257),
+                ),
+                1.0,
+            )
+            for request in requests
+        )
+
+    samples = iter((0.0, 0.0, 1.0, 1.0))
+    report = measure_initial_batch_timing(
+        "WRITE",
+        maximum_episodes=8,
+        maximum_workers=8,
+        clock=lambda: next(samples),
+        episode_wave_collector=collect_wave,
+    )
+    output = tmp_path / "timing.json"
+    digest = write_initial_batch_timing_report(output, report)
+
+    content = output.read_bytes()
+    assert content == report.to_json().encode("utf-8")
+    assert digest == sha256(content).hexdigest()
+    assert not (tmp_path / ".timing.json.tmp").exists()
 
 
 def test_env_ppo_initial_batch_timing_fails_closed_on_bounds_and_clock_drift():
