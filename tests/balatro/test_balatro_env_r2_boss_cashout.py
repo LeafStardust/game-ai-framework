@@ -1,6 +1,7 @@
 import pytest
 
 from games.balatro.blinds.blind import Blind, BlindType
+from games.balatro.env.blind_progression import BlindProgressionState
 from games.balatro.env.boss_cash_out import cash_out_supported_boss
 from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.public_observation import public_observation_state
@@ -209,6 +210,39 @@ def test_env_r2_manacle_cashout_validates_paint_brush_active_reduction():
 
 
 @pytest.mark.parametrize(
+    ("vouchers", "reset_hands", "reset_discards"),
+    [
+        (["v_hieroglyph"], 3, 3),
+        (["v_hieroglyph", "v_petroglyph"], 3, 2),
+    ],
+)
+def test_env_r2_boss_cashout_preserves_exact_ante_voucher_noop(
+    vouchers,
+    reset_hands,
+    reset_discards,
+):
+    run = _finish(_boss_round("The Psychic", money=6, reward=5), hands=1)
+    run.public.ante = 0
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+    run.public.round_reset_hands_observed = True
+    run.public.round_reset_hands = reset_hands
+    run.public.round_reset_discards_observed = True
+    run.public.round_reset_discards = reset_discards
+    run.blind_progression_state = BlindProgressionState(blind_ante=-1)
+    before_rng = run.rng_snapshot()
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 13
+    assert result.public.ante == 0
+    assert result.public.vouchers == vouchers
+    assert result.public.round_reset_hands == reset_hands
+    assert result.public.round_reset_discards == reset_discards
+    assert result.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize(
     ("vouchers", "consumable_slots", "edition_rate"),
     [
         (["v_hone"], 2, 2.0),
@@ -251,6 +285,7 @@ def test_env_r2_boss_cashout_preserves_exact_hone_noop(
         (["v_planet_tycoon"], True),
         (["v_reroll_glut"], True),
         (["v_palette"], True),
+        (["v_petroglyph"], True),
         (["v_seed_money"], True),
         (["v_unknown"], True),
     ],
@@ -369,6 +404,55 @@ def test_env_r2_boss_cashout_rejects_inexact_paint_brush_hand_size_atomically(
     assert run.public.phase == "ROUND_EVAL"
     assert run.public.hand_size == hand_size
     assert run.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("round_reset_hands", 4),
+        ("round_reset_discards", 2),
+        ("round_reset_hands_observed", False),
+        ("round_reset_discards_observed", False),
+    ],
+)
+def test_env_r2_boss_cashout_rejects_inexact_hieroglyph_resources_atomically(
+    field,
+    value,
+):
+    run = _finish(_boss_round("The Psychic"))
+    run.public.vouchers = ["v_hieroglyph"]
+    run.public.vouchers_observed = True
+    run.public.round_reset_hands_observed = True
+    run.public.round_reset_hands = 3
+    run.public.round_reset_discards_observed = True
+    run.public.round_reset_discards = 3
+    run.blind_progression_state = BlindProgressionState(
+        blind_ante=run.public.ante - 1
+    )
+    setattr(run.public, field, value)
+    before_rng = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
+        cash_out_supported_boss(run)
+
+    assert run.public.phase == "ROUND_EVAL"
+    assert run.rng_snapshot() == before_rng
+
+
+def test_env_r2_boss_cashout_rejects_stale_hieroglyph_private_ante():
+    run = _finish(_boss_round("The Psychic"))
+    run.public.vouchers = ["v_hieroglyph"]
+    run.public.vouchers_observed = True
+    run.public.round_reset_hands_observed = True
+    run.public.round_reset_hands = 3
+    run.public.round_reset_discards_observed = True
+    run.public.round_reset_discards = 3
+    run.blind_progression_state = BlindProgressionState(
+        blind_ante=run.public.ante + 1
+    )
+
+    with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
+        cash_out_supported_boss(run)
 
 
 def test_env_r2_boss_cashout_rejects_unknown_ante_history_atomically():

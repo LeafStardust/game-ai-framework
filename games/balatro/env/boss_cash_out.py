@@ -104,6 +104,11 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
         base_reroll_cost=run.base_reroll_cost,
         reroll_cost=run.reroll_cost,
         boss_hand_size_sub=run.boss_hand_size_sub,
+        blind_ante=(
+            None
+            if run.blind_progression_state is None
+            else run.blind_progression_state.blind_ante
+        ),
     ):
         raise HeadlessTransitionError(
             "Boss cash-out does not yet own Voucher economy modifiers"

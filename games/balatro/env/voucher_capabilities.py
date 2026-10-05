@@ -42,6 +42,7 @@ EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset(
     | EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS
     | EXACT_REROLL_COST_VOUCHER_KEYS
     | EXACT_HAND_SIZE_VOUCHER_KEYS
+    | EXACT_ANTE_VOUCHER_KEYS
 )
 
 # These Vouchers have no effect on ordinary base-shop generation. They are
@@ -117,6 +118,7 @@ def boss_cash_out_vouchers_are_exact(
     base_reroll_cost: object,
     reroll_cost: object,
     boss_hand_size_sub: object,
+    blind_ante: object,
 ) -> bool:
     """Return whether owned Vouchers are exact at Boss cash-out/shop entry."""
     if not isinstance(state, BalatroState):
@@ -136,11 +138,13 @@ def boss_cash_out_vouchers_are_exact(
     expected_planet_rate = expected_planet_rate_for_vouchers(state)
     expected_reroll_cost = expected_base_reroll_cost_for_vouchers(state)
     expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
+    expected_round_resources = expected_red_deck_round_resources_for_vouchers(state)
     if (
         expected_tarot_rate is None
         or expected_planet_rate is None
         or expected_reroll_cost is None
         or expected_hand_size is None
+        or expected_round_resources is None
     ):
         return False
     if owned & EXACT_HAND_SIZE_VOUCHER_KEYS:
@@ -156,6 +160,22 @@ def boss_cash_out_vouchers_are_exact(
             ):
                 return False
         elif boss_hand_size_sub is not None or state.hand_size != expected_hand_size:
+            return False
+    if owned & EXACT_ANTE_VOUCHER_KEYS:
+        if state.jokers:
+            return False
+        expected_hands, expected_discards = expected_round_resources
+        if (
+            state.round_reset_hands_observed is not True
+            or state.round_reset_discards_observed is not True
+            or type(state.round_reset_hands) is not int
+            or state.round_reset_hands != expected_hands
+            or type(state.round_reset_discards) is not int
+            or state.round_reset_discards != expected_discards
+            or type(state.ante) is not int
+            or type(blind_ante) is not int
+            or state.ante != blind_ante + 1
+        ):
             return False
     slots = state.consumable_slots
     edition = state.joker_generation_edition_rate
@@ -253,6 +273,26 @@ def expected_red_deck_hand_size_for_vouchers(state: BalatroState) -> int | None:
     if owned is None or ("v_palette" in owned and "v_paint_brush" not in owned):
         return None
     return 8 + int("v_paint_brush" in owned) + int("v_palette" in owned)
+
+
+def expected_red_deck_round_resources_for_vouchers(
+    state: BalatroState,
+) -> tuple[int, int] | None:
+    """Return exact persistent Red Deck reset hands/discards from Vouchers."""
+    if not isinstance(state, BalatroState):
+        raise TypeError("state must be BalatroState")
+    owned = _owned_supported_vouchers(state)
+    if owned is None:
+        return None
+    if "v_nacho_tong" in owned and "v_grabber" not in owned:
+        return None
+    if "v_recyclomancy" in owned and "v_wasteful" not in owned:
+        return None
+    hands = 4 + int("v_grabber" in owned) + int("v_nacho_tong" in owned)
+    discards = 3 + int("v_wasteful" in owned) + int("v_recyclomancy" in owned)
+    hands -= int("v_hieroglyph" in owned)
+    discards -= int("v_petroglyph" in owned)
+    return hands, discards
 
 
 def expected_interest_cap_for_vouchers(state: BalatroState) -> int | None:

@@ -300,6 +300,60 @@ def test_env_ppo_rollout_crosses_exact_paint_brush_boss_tactics(
     ) == 1.0
 
 
+@pytest.fixture(scope="module")
+def episode_50_with_hieroglyph():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(2),
+        run,
+        episode_index=50,
+        policy=PPOActorCritic(run).infer,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_hieroglyph_boss_cashout(
+    episode_50_with_hieroglyph,
+):
+    episode = episode_50_with_hieroglyph
+
+    assert episode.game_seed == "05B3FF62"
+    assert episode.action_count == 16
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [decision.action.alias for decision in episode.decisions] == [
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+    ]
+
+    before = episode.boundaries[5]
+    after = episode.boundaries[6]
+    assert (before.ante, before.phase, before.money) == (0, "BLIND_SELECT", 6)
+    assert (after.ante, after.phase, after.money) == (1, "SHOP", 12)
+    for boundary in (before, after):
+        assert _observation_feature(
+            boundary.observation,
+            "vouchers.owned.v_hieroglyph",
+        ) == 1.0
+        assert _observation_feature(
+            boundary.observation,
+            "state.round_reset_hands",
+        ) == 3.0
+
+
 def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
     episode_25_with_hieroglyph,
 ):
