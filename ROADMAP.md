@@ -2429,16 +2429,15 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Restart the clean one-new-batch production gate from root seed
-`RED-WHITE-PPO-V1` with campaign-v9 provenance, eight workers,
-`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
-pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
-checkpoint/resume state, parameter digest change, carryover accounting, exact
-stop boundary, and end-to-end throughput. Do not continue into a second batch or
-full training. Keep the default/live schedule unchanged. Do not change policy,
-mechanics, projection, the selective predicate, or its schedule; do not inspect
-promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
-mechanics.
+Admit The Flint through the canonical R4 Play lifecycle for the exact episode-86
+boundary described below. Reuse the already-owned boss base-score transform;
+do not duplicate or approximate its rounding/source order in the transition
+layer. Add focused deterministic Play regressions for exact transformed scoring,
+input isolation, loss/clear behavior, and unsupported-state rejection, plus a
+complete production episode-86 regression. Advance campaign/progress/final and
+parallel-collection provenance so the failed campaign-v9 checkpoint cannot
+resume. Do not change policy, projection, the selective predicate, or its
+schedule, and do not widen any other mechanic.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3942,6 +3941,26 @@ locally and campaign provenance passed **13 tests**. GitHub Actions run
 `37275095866`, job `111650265047`, passed; the actual log reports **3101 passed,
 1613 deselected in 93.44s**. The exact next task is the clean campaign-v9
 one-new-batch restart above.
+
+The clean campaign-v9 restart atomically committed episodes 0..79 with **575
+transitions**, zero optimizer batches, and next episode indices 80..87 before
+the following speculative wave failed closed. Its progress manifest binds
+checkpoint SHA-256 `403e1c006d229d16288eae94d68c4808041950f49aede250de76598dd4fe7cdb`;
+no failed-wave episode or optimizer update was admitted.
+
+Ordered direct isolation proves episodes 80..85 complete. The earliest failure
+is episode **86**, stream 6, derived game seed `7D4CD200`. Its exact strategic
+prefix clears Ante 1, buys no item, clears Ante-2 Small, buys Paint Brush, clears
+Ante-2 Big, and selects Boss The Flint at `$29`. With exact hand size nine and
+`v_paint_brush` retained, the tactical policy makes three legal discards and then
+chooses a four-card Play at visible indices `(5, 6, 7, 8)` on its final hand;
+the R4 Play allow-list rejects The Flint before mutation. The canonical scorer
+already halves only leveled base Chips and Mult with Balatro round-up semantics
+before ordinary card/Joker phases, and dedicated deterministic downstream tests
+already pin that source order. This is therefore a narrow missing Play-lifecycle
+admission, not a new scoring implementation. The failed campaign-v9 checkpoint
+must not resume after mechanics provenance changes. The exact next task is the
+narrow repair above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
