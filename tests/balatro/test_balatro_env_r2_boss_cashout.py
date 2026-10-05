@@ -169,6 +169,46 @@ def test_env_r2_boss_cashout_preserves_exact_reroll_voucher_noop(
 
 
 @pytest.mark.parametrize(
+    ("vouchers", "hand_size"),
+    [
+        (["v_paint_brush"], 9),
+        (["v_paint_brush", "v_palette"], 10),
+    ],
+)
+def test_env_r2_boss_cashout_preserves_exact_hand_size_voucher_noop(
+    vouchers,
+    hand_size,
+):
+    run = _finish(_boss_round("The Psychic", money=4, reward=5), hands=1)
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+    run.public.hand_size = hand_size
+    before_rng = run.rng_snapshot()
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 10
+    assert result.public.vouchers == vouchers
+    assert result.public.hand_size == hand_size
+    assert result.rng_snapshot() == before_rng
+
+
+def test_env_r2_manacle_cashout_validates_paint_brush_active_reduction():
+    run = _boss_round("The Manacle", money=4, reward=5)
+    run.public.vouchers = ["v_paint_brush"]
+    run.public.vouchers_observed = True
+    run.public.hand_size = 8
+    run.boss_hand_size_sub = 1
+    run = _finish(run, hands=1)
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.hand_size == 9
+    assert result.boss_hand_size_sub is None
+    assert result.public.vouchers == ["v_paint_brush"]
+
+
+@pytest.mark.parametrize(
     ("vouchers", "consumable_slots", "edition_rate"),
     [
         (["v_hone"], 2, 2.0),
@@ -210,6 +250,7 @@ def test_env_r2_boss_cashout_preserves_exact_hone_noop(
         (["v_tarot_tycoon"], True),
         (["v_planet_tycoon"], True),
         (["v_reroll_glut"], True),
+        (["v_palette"], True),
         (["v_seed_money"], True),
         (["v_unknown"], True),
     ],
@@ -309,6 +350,24 @@ def test_env_r2_boss_cashout_rejects_inexact_reroll_voucher_costs_atomically(
     assert run.public.phase == "ROUND_EVAL"
     assert run.base_reroll_cost == base_reroll_cost
     assert run.reroll_cost == reroll_cost
+    assert run.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize("hand_size", [8, 10])
+def test_env_r2_boss_cashout_rejects_inexact_paint_brush_hand_size_atomically(
+    hand_size,
+):
+    run = _finish(_boss_round("The Goad"))
+    run.public.vouchers = ["v_paint_brush"]
+    run.public.vouchers_observed = True
+    run.public.hand_size = hand_size
+    before_rng = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
+        cash_out_supported_boss(run)
+
+    assert run.public.phase == "ROUND_EVAL"
+    assert run.public.hand_size == hand_size
     assert run.rng_snapshot() == before_rng
 
 

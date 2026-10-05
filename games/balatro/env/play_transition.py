@@ -51,6 +51,7 @@ from games.balatro.env.voucher_capabilities import (
     EXACT_RESOURCE_VOUCHER_KEYS,
     EXACT_SHOP_SIZE_VOUCHER_KEYS,
     EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS,
+    expected_red_deck_hand_size_for_vouchers,
 )
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.consumable import PlanetCard, TarotCard
@@ -262,10 +263,12 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "R4 baseline Play does not yet own Voucher action-time interactions"
         )
-    if boss_name != "The Manacle" and state.hand_size != 8:
-        raise HeadlessTransitionError(
-            "R4 baseline Play currently requires the ordinary Red Deck hand size"
-        )
+    if boss_name != "The Manacle":
+        expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
+        if expected_hand_size is None or state.hand_size != expected_hand_size:
+            raise HeadlessTransitionError(
+                "R4 baseline Play requires exact Red Deck Voucher hand size"
+            )
     if boss_name == "The Mouth":
         if state.boss_blind_state_observed is not True:
             raise HeadlessTransitionError(

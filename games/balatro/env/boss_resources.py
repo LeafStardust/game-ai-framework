@@ -13,6 +13,9 @@ from games.balatro.blinds.blind import BlindType
 from games.balatro.env.deal import draw_one_supported_card_to_hand
 from games.balatro.env.round_zones import draw_one_retained_preblind_card
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.voucher_capabilities import (
+    expected_red_deck_hand_size_for_vouchers,
+)
 
 
 _RESOURCE_BOSS_NAMES = frozenset({"The Water", "The Needle", "The Manacle"})
@@ -21,6 +24,7 @@ _RESOURCE_BOSS_NAMES = frozenset({"The Water", "The Needle", "The Manacle"})
 def require_active_manacle_state(run: HeadlessRunState) -> None:
     """Require the exact active Red/White Manacle one-slot reduction."""
     state = run.public
+    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
     if (
         state.boss_name != "The Manacle"
         or state.blind is None
@@ -29,10 +33,12 @@ def require_active_manacle_state(run: HeadlessRunState) -> None:
     ):
         raise HeadlessTransitionError("Manacle action requires its active Boss blind")
     if (
-        run.boss_hand_size_sub != 1
+        expected_hand_size is None
+        or type(run.boss_hand_size_sub) is not int
+        or run.boss_hand_size_sub != 1
         or run.boss_hands_sub is not None
         or run.boss_discards_sub is not None
-        or state.hand_size != 7
+        or state.hand_size != expected_hand_size - 1
     ):
         raise HeadlessTransitionError(
             "Manacle action requires its exact stored hand-size adjustment"

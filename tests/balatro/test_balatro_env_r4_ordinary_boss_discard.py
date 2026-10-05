@@ -32,7 +32,12 @@ ORDINARY_REDRAW_BOSSES = (
 )
 
 
-def _boss_run(name: str, *, seed: str | None = None) -> HeadlessRunState:
+def _boss_run(
+    name: str,
+    *,
+    seed: str | None = None,
+    vouchers: tuple[str, ...] = (),
+) -> HeadlessRunState:
     state = BalatroState()
     state.deck_name = "RED"
     state.stake_name = "WHITE"
@@ -50,6 +55,11 @@ def _boss_run(name: str, *, seed: str | None = None) -> HeadlessRunState:
     state.round_reset_hands = 4
     state.round_reset_discards_observed = True
     state.round_reset_discards = 3
+    state.vouchers = list(vouchers)
+    state.vouchers_observed = True
+    state.hand_size = 8 + int("v_paint_brush" in vouchers) + int(
+        "v_palette" in vouchers
+    )
     run = HeadlessRunState(public=state, seed=seed or f"R4-DISCARD-{name}")
     if name == "The Pillar":
         for card in run.require_playing_card_order():
@@ -98,6 +108,48 @@ def test_env_r4_special_boss_redraws_remain_fail_closed_atomically(boss_name):
 def test_env_r4_ordinary_boss_discard_rejects_inexact_resource_state():
     run = _boss_run("The Hook")
     run.public.hand_size = 9
+    before = serialize_headless_run_state(run)
+
+    with pytest.raises(HeadlessTransitionError, match="ordinary Red Deck resource"):
+        apply_supported_tactical_discard(run, (0,))
+
+    assert serialize_headless_run_state(run) == before
+
+
+@pytest.mark.parametrize(
+    ("vouchers", "hand_size"),
+    [
+        (("v_paint_brush",), 9),
+        (("v_paint_brush", "v_palette"), 10),
+    ],
+)
+def test_env_r4_ordinary_boss_discard_uses_exact_voucher_hand_size(
+    vouchers,
+    hand_size,
+):
+    run = _boss_run("The Goad", vouchers=vouchers)
+
+    result = apply_supported_tactical_discard(run, (0, 2))
+
+    assert len(run.public.hand) == run.public.hand_size == hand_size
+    assert len(result.public.hand) == result.public.hand_size == hand_size
+    assert result.public.vouchers == list(vouchers)
+
+
+@pytest.mark.parametrize(
+    ("vouchers", "hand_size"),
+    [
+        (("v_paint_brush",), 8),
+        (("v_paint_brush",), 10),
+        (("v_palette",), 9),
+    ],
+)
+def test_env_r4_ordinary_boss_discard_rejects_inexact_voucher_hand_size(
+    vouchers,
+    hand_size,
+):
+    run = _boss_run("The Goad", vouchers=vouchers)
+    run.public.hand_size = hand_size
     before = serialize_headless_run_state(run)
 
     with pytest.raises(HeadlessTransitionError, match="ordinary Red Deck resource"):

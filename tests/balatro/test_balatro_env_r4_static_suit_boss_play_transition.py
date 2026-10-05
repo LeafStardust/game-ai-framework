@@ -17,7 +17,12 @@ STATIC_SUIT_BOSSES = (
 )
 
 
-def _static_suit_run(boss_name: str, *, seed: str) -> HeadlessRunState:
+def _static_suit_run(
+    boss_name: str,
+    *,
+    seed: str,
+    vouchers: tuple[str, ...] = (),
+) -> HeadlessRunState:
     state = BalatroState()
     state.deck_name = "RED"
     state.stake_name = "WHITE"
@@ -30,6 +35,11 @@ def _static_suit_run(boss_name: str, *, seed: str) -> HeadlessRunState:
     state.round_reset_hands = 4
     state.round_reset_discards_observed = True
     state.round_reset_discards = 3
+    state.vouchers = list(vouchers)
+    state.vouchers_observed = True
+    state.hand_size = 8 + int("v_paint_brush" in vouchers) + int(
+        "v_palette" in vouchers
+    )
     return start_supported_static_suit_debuff_boss(
         HeadlessRunState(public=state, seed=seed)
     )
@@ -76,6 +86,23 @@ def test_env_r4_static_suit_boss_clean_card_keeps_ordinary_rank_chips():
     result = apply_supported_ordinary_play(run, (selected_index,))
 
     assert result.public.score == 5 + BalatroScorer.RANK_CHIPS[selected.rank]
+
+
+def test_env_r4_static_suit_boss_play_uses_exact_paint_brush_hand_size():
+    run = _static_suit_run(
+        "The Goad",
+        seed="R4-GOAD-PAINT-BRUSH",
+        vouchers=("v_paint_brush",),
+    )
+    selected_index = next(
+        index for index, card in enumerate(run.public.hand) if not card.debuffed
+    )
+
+    result = apply_supported_ordinary_play(run, (selected_index,))
+
+    assert len(run.public.hand) == run.public.hand_size == 9
+    assert len(result.public.hand) == result.public.hand_size == 9
+    assert result.public.vouchers == ["v_paint_brush"]
 
 
 @pytest.mark.parametrize(("boss_name", "suit"), STATIC_SUIT_BOSSES)

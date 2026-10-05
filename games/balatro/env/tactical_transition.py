@@ -28,6 +28,9 @@ from games.balatro.env.tactical_evidence import (
     build_public_tactical_transition_evidence,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.voucher_capabilities import (
+    expected_red_deck_hand_size_for_vouchers,
+)
 
 
 # Pinned vanilla has no direct Blind callback in
@@ -69,8 +72,10 @@ def _require_active_ordinary_discard_boss_state(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "ordinary Boss discard does not own additional blind modifiers"
         )
+    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
     if (
-        state.hand_size != 8
+        expected_hand_size is None
+        or state.hand_size != expected_hand_size
         or run.boss_hands_sub is not None
         or run.boss_discards_sub is not None
         or run.boss_hand_size_sub is not None
@@ -119,8 +124,10 @@ def _require_active_psychic_discard_state(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "Psychic discard does not own additional blind modifiers"
         )
+    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
     if (
-        state.hand_size != 8
+        expected_hand_size is None
+        or state.hand_size != expected_hand_size
         or run.boss_hands_sub is not None
         or run.boss_discards_sub is not None
         or run.boss_hand_size_sub is not None

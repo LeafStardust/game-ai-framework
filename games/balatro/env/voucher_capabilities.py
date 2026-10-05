@@ -11,12 +11,13 @@ from __future__ import annotations
 from games.balatro.state import BalatroState
 
 
+EXACT_HAND_SIZE_VOUCHER_KEYS = frozenset({"v_paint_brush", "v_palette"})
 EXACT_RESOURCE_VOUCHER_KEYS = frozenset(
     {
         "v_crystal_ball", "v_grabber", "v_nacho_tong", "v_wasteful",
-        "v_recyclomancy", "v_antimatter", "v_paint_brush", "v_palette",
+        "v_recyclomancy", "v_antimatter",
     }
-)
+) | EXACT_HAND_SIZE_VOUCHER_KEYS
 EXACT_EDITION_RATE_VOUCHER_KEYS = frozenset({"v_hone", "v_glow_up"})
 EXACT_DISCOUNT_VOUCHER_KEYS = frozenset({"v_clearance_sale", "v_liquidation"})
 EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS = frozenset(
@@ -40,6 +41,7 @@ EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset(
     EXACT_SHOP_SIZE_VOUCHER_KEYS
     | EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS
     | EXACT_REROLL_COST_VOUCHER_KEYS
+    | EXACT_HAND_SIZE_VOUCHER_KEYS
 )
 
 # These Vouchers have no effect on ordinary base-shop generation. They are
@@ -114,6 +116,7 @@ def boss_cash_out_vouchers_are_exact(
     *,
     base_reroll_cost: object,
     reroll_cost: object,
+    boss_hand_size_sub: object,
 ) -> bool:
     """Return whether owned Vouchers are exact at Boss cash-out/shop entry."""
     if not isinstance(state, BalatroState):
@@ -132,12 +135,28 @@ def boss_cash_out_vouchers_are_exact(
     expected_tarot_rate = expected_tarot_rate_for_vouchers(state)
     expected_planet_rate = expected_planet_rate_for_vouchers(state)
     expected_reroll_cost = expected_base_reroll_cost_for_vouchers(state)
+    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
     if (
         expected_tarot_rate is None
         or expected_planet_rate is None
         or expected_reroll_cost is None
+        or expected_hand_size is None
     ):
         return False
+    if owned & EXACT_HAND_SIZE_VOUCHER_KEYS:
+        # Cash-out support for this newly admitted family is deliberately narrow:
+        # Joker hand-size composition remains a separate callback capability.
+        if state.jokers:
+            return False
+        if state.boss_name == "The Manacle":
+            if (
+                type(boss_hand_size_sub) is not int
+                or boss_hand_size_sub != 1
+                or state.hand_size != expected_hand_size - 1
+            ):
+                return False
+        elif boss_hand_size_sub is not None or state.hand_size != expected_hand_size:
+            return False
     slots = state.consumable_slots
     edition = state.joker_generation_edition_rate
     tarot = state.tarot_rate
@@ -224,6 +243,16 @@ def expected_base_reroll_cost_for_vouchers(state: BalatroState) -> int | None:
     if "v_reroll_surplus" in owned:
         return 3
     return 5
+
+
+def expected_red_deck_hand_size_for_vouchers(state: BalatroState) -> int | None:
+    """Return exact persistent Red Deck hand size from Voucher history."""
+    if not isinstance(state, BalatroState):
+        raise TypeError("state must be BalatroState")
+    owned = _owned_supported_vouchers(state)
+    if owned is None or ("v_palette" in owned and "v_paint_brush" not in owned):
+        return None
+    return 8 + int("v_paint_brush" in owned) + int("v_palette" in owned)
 
 
 def expected_interest_cap_for_vouchers(state: BalatroState) -> int | None:

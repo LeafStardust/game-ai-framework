@@ -251,6 +251,55 @@ def test_env_ppo_rollout_crosses_exact_reroll_surplus_boss_cashout(
         ) == 1.0
 
 
+@pytest.fixture(scope="module")
+def episode_46_with_paint_brush():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(6),
+        run,
+        episode_index=46,
+        policy=PPOActorCritic(run).infer,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_paint_brush_boss_tactics(
+    episode_46_with_paint_brush,
+):
+    episode = episode_46_with_paint_brush
+
+    assert episode.game_seed == "9AC8FAC6"
+    assert episode.action_count == 10
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [decision.action.alias for decision in episode.decisions] == [
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+    ]
+
+    before = episode.boundaries[5]
+    after = episode.boundaries[6]
+    assert (before.ante, before.phase, before.money) == (1, "BLIND_SELECT", 4)
+    assert (after.ante, after.phase, after.money) == (2, "SHOP", 11)
+    assert _observation_feature(before.observation, "state.hand_size") == 9.0
+    assert _observation_feature(
+        before.observation,
+        "vouchers.owned.v_paint_brush",
+    ) == 1.0
+    assert _observation_feature(after.observation, "state.hand_size") == 9.0
+    assert _observation_feature(
+        after.observation,
+        "vouchers.owned.v_paint_brush",
+    ) == 1.0
+
+
 def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
     episode_25_with_hieroglyph,
 ):

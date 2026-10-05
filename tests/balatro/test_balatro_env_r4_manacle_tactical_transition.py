@@ -10,7 +10,12 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.state import BalatroState
 
 
-def _manacle_run(*, requirement=99_999, seed="R4-MANACLE"):
+def _manacle_run(
+    *,
+    requirement=99_999,
+    seed="R4-MANACLE",
+    vouchers: tuple[str, ...] = (),
+):
     state = BalatroState()
     state.deck_name = "RED"
     state.stake_name = "WHITE"
@@ -23,6 +28,11 @@ def _manacle_run(*, requirement=99_999, seed="R4-MANACLE"):
     state.round_reset_hands = 4
     state.round_reset_discards_observed = True
     state.round_reset_discards = 3
+    state.vouchers = list(vouchers)
+    state.vouchers_observed = True
+    state.hand_size = 8 + int("v_paint_brush" in vouchers) + int(
+        "v_palette" in vouchers
+    )
     return start_supported_resource_boss(HeadlessRunState(public=state, seed=seed))
 
 
@@ -48,6 +58,24 @@ def test_env_r4_manacle_discard_refills_to_reduced_hand_size():
     assert result.public.discards_remaining == 2
     assert result.public.discards_used == 1
     assert result.boss_hand_size_sub == 1
+
+
+def test_env_r4_manacle_uses_voucher_hand_size_before_active_reduction():
+    run = _manacle_run(
+        requirement=1,
+        seed="R4-MANACLE-PAINT-BRUSH",
+        vouchers=("v_paint_brush",),
+    )
+
+    result = apply_supported_ordinary_play(run, (0,))
+    defeated = defeat_supported_boss(result)
+
+    assert len(run.public.hand) == run.public.hand_size == 8
+    assert run.boss_hand_size_sub == 1
+    assert result.public.hand_size == 8
+    assert len(result.public.hand) == 7
+    assert defeated.public.hand_size == 9
+    assert defeated.boss_hand_size_sub is None
 
 
 def test_env_r4_manacle_clear_restores_hand_size_only_at_defeat():
