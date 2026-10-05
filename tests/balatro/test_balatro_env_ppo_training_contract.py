@@ -400,6 +400,83 @@ def test_env_ppo_rollout_crosses_exact_flint_play_boundary(
     ) == 1.0
 
 
+@pytest.fixture(scope="module")
+def episode_89_with_ante_zero_shop():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(1),
+        run,
+        episode_index=89,
+        policy=PPOActorCritic(run).infer,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_ante_zero_shop_and_mixed_voucher_cashout(
+    episode_89_with_ante_zero_shop,
+):
+    episode = episode_89_with_ante_zero_shop
+
+    assert episode.game_seed == "C749D4F7"
+    assert episode.action_count == 17
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [decision.action.alias for decision in episode.decisions] == [
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_CONSUMABLE",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_CONSUMABLE",
+        "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+    ]
+
+    after_hieroglyph = episode.boundaries[2]
+    after_ante_zero_big = episode.boundaries[4]
+    after_mixed_voucher_boss = episode.boundaries[15]
+    assert (
+        after_hieroglyph.ante,
+        after_hieroglyph.phase,
+        after_hieroglyph.money,
+    ) == (0, "SHOP", 0)
+    assert (
+        after_ante_zero_big.ante,
+        after_ante_zero_big.phase,
+        after_ante_zero_big.money,
+    ) == (0, "SHOP", 6)
+    assert (
+        after_mixed_voucher_boss.ante,
+        after_mixed_voucher_boss.phase,
+        after_mixed_voucher_boss.money,
+    ) == (2, "SHOP", 9)
+    for boundary in (after_ante_zero_big, after_mixed_voucher_boss):
+        assert _observation_feature(
+            boundary.observation,
+            "vouchers.owned.v_hieroglyph",
+        ) == 1.0
+    assert _observation_feature(
+        after_mixed_voucher_boss.observation,
+        "vouchers.owned.v_wasteful",
+    ) == 1.0
+    assert _observation_feature(
+        after_mixed_voucher_boss.observation,
+        "state.round_reset_hands",
+    ) == 3.0
+    assert _observation_feature(
+        after_mixed_voucher_boss.observation,
+        "state.round_reset_discards",
+    ) == 4.0
+
+
 def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
     episode_25_with_hieroglyph,
 ):

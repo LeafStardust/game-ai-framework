@@ -214,6 +214,8 @@ def test_env_r2_manacle_cashout_validates_paint_brush_active_reduction():
     [
         (["v_hieroglyph"], 3, 3),
         (["v_hieroglyph", "v_petroglyph"], 3, 2),
+        (["v_hieroglyph", "v_wasteful"], 3, 4),
+        (["v_hieroglyph", "v_wasteful", "v_recyclomancy"], 3, 5),
     ],
 )
 def test_env_r2_boss_cashout_preserves_exact_ante_voucher_noop(
@@ -240,6 +242,68 @@ def test_env_r2_boss_cashout_preserves_exact_ante_voucher_noop(
     assert result.public.round_reset_hands == reset_hands
     assert result.public.round_reset_discards == reset_discards
     assert result.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize(
+    ("vouchers", "reset_hands", "reset_discards"),
+    [
+        (["v_grabber"], 5, 3),
+        (["v_grabber", "v_nacho_tong"], 6, 3),
+        (["v_wasteful"], 4, 4),
+        (["v_wasteful", "v_recyclomancy"], 4, 5),
+    ],
+)
+def test_env_r2_boss_cashout_preserves_exact_round_resource_voucher_noop(
+    vouchers,
+    reset_hands,
+    reset_discards,
+):
+    run = _finish(_boss_round("The Psychic", money=6, reward=5), hands=1)
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+    run.public.round_reset_hands_observed = True
+    run.public.round_reset_hands = reset_hands
+    run.public.round_reset_discards_observed = True
+    run.public.round_reset_discards = reset_discards
+    before_rng = run.rng_snapshot()
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 13
+    assert result.public.vouchers == vouchers
+    assert result.public.round_reset_hands == reset_hands
+    assert result.public.round_reset_discards == reset_discards
+    assert result.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("round_reset_hands", 5),
+        ("round_reset_discards", 3),
+        ("round_reset_hands_observed", False),
+        ("round_reset_discards_observed", False),
+    ],
+)
+def test_env_r2_boss_cashout_rejects_stale_wasteful_resources_atomically(
+    field,
+    value,
+):
+    run = _finish(_boss_round("The Psychic"))
+    run.public.vouchers = ["v_wasteful"]
+    run.public.vouchers_observed = True
+    run.public.round_reset_hands_observed = True
+    run.public.round_reset_hands = 4
+    run.public.round_reset_discards_observed = True
+    run.public.round_reset_discards = 4
+    setattr(run.public, field, value)
+    before_rng = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
+        cash_out_supported_boss(run)
+
+    assert run.public.phase == "ROUND_EVAL"
+    assert run.rng_snapshot() == before_rng
 
 
 @pytest.mark.parametrize(
@@ -286,6 +350,8 @@ def test_env_r2_boss_cashout_preserves_exact_hone_noop(
         (["v_reroll_glut"], True),
         (["v_palette"], True),
         (["v_petroglyph"], True),
+        (["v_nacho_tong"], True),
+        (["v_recyclomancy"], True),
         (["v_seed_money"], True),
         (["v_unknown"], True),
     ],

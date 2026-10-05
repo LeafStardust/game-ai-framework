@@ -12,12 +12,14 @@ from games.balatro.state import BalatroState
 
 
 EXACT_HAND_SIZE_VOUCHER_KEYS = frozenset({"v_paint_brush", "v_palette"})
+EXACT_ROUND_RESOURCE_VOUCHER_KEYS = frozenset(
+    {"v_grabber", "v_nacho_tong", "v_wasteful", "v_recyclomancy"}
+)
 EXACT_RESOURCE_VOUCHER_KEYS = frozenset(
     {
-        "v_crystal_ball", "v_grabber", "v_nacho_tong", "v_wasteful",
-        "v_recyclomancy", "v_antimatter",
+        "v_crystal_ball", "v_antimatter",
     }
-) | EXACT_HAND_SIZE_VOUCHER_KEYS
+) | EXACT_HAND_SIZE_VOUCHER_KEYS | EXACT_ROUND_RESOURCE_VOUCHER_KEYS
 EXACT_EDITION_RATE_VOUCHER_KEYS = frozenset({"v_hone", "v_glow_up"})
 EXACT_DISCOUNT_VOUCHER_KEYS = frozenset({"v_clearance_sale", "v_liquidation"})
 EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS = frozenset(
@@ -28,10 +30,11 @@ EXACT_INTEREST_CAP_VOUCHER_KEYS = frozenset({"v_seed_money", "v_money_tree"})
 EXACT_SHOP_SIZE_VOUCHER_KEYS = frozenset({"v_overstock_norm", "v_overstock_plus"})
 EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 
-# Crystal Ball's capacity change, Hone's Joker-edition generation rate, the
-# Overstock family's main-shop capacity changes, and the reroll-cost family's
-# reset-cost changes are persisted when redeemed; none has a callback during
-# Boss cash-out. Their histories are consumed later by the exact shop owners.
+# Crystal Ball's capacity change, Grabber/Wasteful round-resource changes,
+# Hone's Joker-edition generation rate, the Overstock family's main-shop
+# capacity changes, and the reroll-cost family's reset-cost changes are persisted
+# when redeemed; none has a callback during Boss cash-out. Their histories are
+# consumed later by the exact resource/shop owners.
 # Keep this boundary deliberately narrower than general Voucher support:
 # payout/interest/pricing modifiers require their own exact Boss cash-out
 # ownership before they may cross that transition.
@@ -42,6 +45,7 @@ EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset(
     | EXACT_SHOP_TYPE_RATE_VOUCHER_KEYS
     | EXACT_REROLL_COST_VOUCHER_KEYS
     | EXACT_HAND_SIZE_VOUCHER_KEYS
+    | EXACT_ROUND_RESOURCE_VOUCHER_KEYS
     | EXACT_ANTE_VOUCHER_KEYS
 )
 
@@ -161,7 +165,7 @@ def boss_cash_out_vouchers_are_exact(
                 return False
         elif boss_hand_size_sub is not None or state.hand_size != expected_hand_size:
             return False
-    if owned & EXACT_ANTE_VOUCHER_KEYS:
+    if owned & (EXACT_ANTE_VOUCHER_KEYS | EXACT_ROUND_RESOURCE_VOUCHER_KEYS):
         if state.jokers:
             return False
         expected_hands, expected_discards = expected_round_resources
@@ -172,7 +176,10 @@ def boss_cash_out_vouchers_are_exact(
             or state.round_reset_hands != expected_hands
             or type(state.round_reset_discards) is not int
             or state.round_reset_discards != expected_discards
-            or type(state.ante) is not int
+        ):
+            return False
+        if owned & EXACT_ANTE_VOUCHER_KEYS and (
+            type(state.ante) is not int
             or type(blind_ante) is not int
             or state.ante != blind_ante + 1
         ):

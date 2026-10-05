@@ -261,9 +261,9 @@ def test_env_ppo_campaign_factory_freezes_production_tactical_owner():
     assert engine.child_exact_limit == 8
     assert engine.search_schedule_mode == SEARCH_SCHEDULE_SELECTIVE
     assert engine.max_search_seconds is None
-    assert PPO_CAMPAIGN_VERSION == "balatro-red-white-ppo-campaign-v10"
+    assert PPO_CAMPAIGN_VERSION == "balatro-red-white-ppo-campaign-v11"
     assert PPO_PARALLEL_COLLECTION_VERSION == (
-        "balatro-red-white-ppo-parallel-collection-v9"
+        "balatro-red-white-ppo-parallel-collection-v10"
     )
     with pytest.raises(PPOContractError, match="stream index"):
         make_ppo_training_environment(8)

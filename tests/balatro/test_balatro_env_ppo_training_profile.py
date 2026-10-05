@@ -206,3 +206,30 @@ def test_env_ppo_profile_drives_complete_first_shop_in_source_order():
     nodes = generated.run.rng_snapshot()["nodes"]
     assert "Voucher" in nodes
     assert "shop_pack1" in nodes
+
+
+@pytest.mark.parametrize("ante", [0, -1])
+def test_env_ppo_profile_generates_complete_nonpositive_ante_shop(ante):
+    run = initialize_pristine_ppo_generation_authority(
+        _uninitialized_pristine_run(f"PROFILE-NONPOSITIVE-SHOP-{ante}")
+    )
+    run.public.phase = "SHOP"
+    run.public.shop_active = True
+    run.public.shop_inflation_observed = True
+    run.public.shop_inflation = 0
+    run.public.ante = ante
+
+    generated = generate_normal_shop_inventory(
+        run,
+        first_shop=False,
+        banned_booster_keys=PPO_TRAINING_PROFILE.banned_center_keys,
+    )
+
+    assert len(generated.main.items) == 2
+    assert len(generated.run.public.shop_vouchers) == 1
+    assert len(generated.boosters.items) == 2
+    nodes = generated.run.rng_snapshot()["nodes"]
+    assert f"cdt{ante}" in nodes
+    assert f"shop_pack{ante}" in nodes
+    assert "cdt1" not in nodes
+    assert "shop_pack1" not in nodes

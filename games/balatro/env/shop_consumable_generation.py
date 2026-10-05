@@ -12,6 +12,7 @@ from collections.abc import Collection
 from dataclasses import dataclass
 
 from games.balatro.env.consumable_centers import current_consumable_pool_from_eligible_keys
+from games.balatro.env.shop_generation import require_exact_normal_shop_ante
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import shop_generation_vouchers_are_exact
 
@@ -40,8 +41,7 @@ def poll_base_shop_consumable_center(
     state = run.public
     if state.phase != "SHOP" or not state.shop_active:
         raise HeadlessTransitionError("consumable shop generation requires active SHOP")
-    if type(state.ante) is not int or state.ante < 1:
-        raise HeadlessTransitionError("consumable shop generation requires positive exact Ante")
+    require_exact_normal_shop_ante(state)
     if not shop_generation_vouchers_are_exact(state):
         raise HeadlessTransitionError(
             "base consumable generation does not own current voucher modifiers"

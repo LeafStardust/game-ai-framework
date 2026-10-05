@@ -6,6 +6,7 @@ from collections.abc import Collection
 from dataclasses import dataclass
 
 from games.balatro.env.shop_pricing import vanilla_card_cost
+from games.balatro.env.shop_generation import require_exact_normal_shop_ante
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import shop_pricing_vouchers_are_exact
 from games.balatro.jokers.astronomer import AstronomerJoker
@@ -152,8 +153,7 @@ def _validate_boundary(run: HeadlessRunState) -> None:
     state = run.public
     if state.phase != "SHOP" or not state.shop_active:
         raise HeadlessTransitionError("Booster generation requires an active SHOP")
-    if type(state.ante) is not int or state.ante < 1:
-        raise HeadlessTransitionError("Booster generation requires a positive exact Ante")
+    require_exact_normal_shop_ante(state)
     if run.tags:
         raise HeadlessTransitionError("normal Booster generation does not own active Tags")
     if len(state.shop_boosters) >= 2:

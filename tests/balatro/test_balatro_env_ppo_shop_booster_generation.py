@@ -19,14 +19,14 @@ from games.balatro.jokers.astronomer import AstronomerJoker
 from games.balatro.state import BalatroState
 
 
-def _shop_run(seed="BOOSTERS"):
+def _shop_run(seed="BOOSTERS", *, ante=1):
     state = BalatroState()
     state.deck_name = "RED"
     state.stake_name = "WHITE"
     state.owned_deck = state.deck.copy()
     state.phase = "SHOP"
     state.shop_active = True
-    state.ante = 1
+    state.ante = ante
     state.vouchers_observed = True
     state.shop_inflation_observed = True
     state.shop_inflation = 0
@@ -119,6 +119,29 @@ def test_env_ppo_weighted_boosters_fill_two_slots_deterministically():
     assert run.public.shop_boosters == []
     assert run.rng_snapshot() == before
     assert "shop_pack1" in first.run.rng_snapshot()["nodes"]
+
+
+@pytest.mark.parametrize("ante", [0, -1])
+def test_env_ppo_weighted_boosters_preserve_nonpositive_ante_key(ante):
+    generated = generate_weighted_normal_shop_boosters(
+        _shop_run(f"BOOSTER-NONPOSITIVE-{ante}", ante=ante)
+    )
+
+    nodes = generated.run.rng_snapshot()["nodes"]
+    assert f"shop_pack{ante}" in nodes
+    assert "shop_pack1" not in nodes
+
+
+@pytest.mark.parametrize("ante", [True, 0.0, "0"])
+def test_env_ppo_weighted_boosters_reject_noninteger_ante_before_rng(ante):
+    run = _shop_run("BOOSTER-BAD-ANTE")
+    run.public.ante = ante
+    before = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="exact integer Ante"):
+        generate_weighted_normal_shop_boosters(run)
+
+    assert run.rng_snapshot() == before
 
 
 def test_env_ppo_generated_boosters_encode_without_inventing_discovery_state():

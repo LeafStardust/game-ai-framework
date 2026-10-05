@@ -43,6 +43,31 @@ def test_env_r2_base_shop_type_poll_uses_ante_key_and_isolates_input_rng():
     assert "cdt1" not in result.run.rng.nodes
 
 
+@pytest.mark.parametrize("ante", [0, -1])
+def test_env_r2_base_shop_polls_preserve_nonpositive_ante_keys(ante):
+    run = _run(seed=f"SHOP-NONPOSITIVE-{ante}", ante=ante)
+
+    card_type = poll_base_shop_card_type(run)
+    rarity = poll_base_shop_joker_rarity(card_type.run)
+
+    nodes = rarity.run.rng_snapshot()["nodes"]
+    assert f"cdt{ante}" in nodes
+    assert f"rarity{ante}sho" in nodes
+    assert "cdt1" not in nodes
+
+
+@pytest.mark.parametrize("ante", [True, 0.0, "0"])
+def test_env_r2_base_shop_polls_reject_noninteger_ante_before_rng(ante):
+    run = _run(seed="SHOP-BAD-ANTE")
+    run.public.ante = ante
+    before = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="exact integer Ante"):
+        poll_base_shop_card_type(run)
+
+    assert run.rng_snapshot() == before
+
+
 def test_env_r2_base_shop_type_poll_replays_exactly_from_same_seed_and_state():
     first = poll_base_shop_card_type(_run(seed="SHOPTYPE", ante=3))
     second = poll_base_shop_card_type(_run(seed="SHOPTYPE", ante=3))

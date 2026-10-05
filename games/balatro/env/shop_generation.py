@@ -150,6 +150,16 @@ def _joker_edition_from_roll(roll: float, edition_rate: float) -> str | None:
     return None
 
 
+def require_exact_normal_shop_ante(state) -> int:
+    """Return the literal vanilla Ante used by normal-shop keyed RNG."""
+    ante = getattr(state, "ante", None)
+    if type(ante) is not int:
+        raise HeadlessTransitionError(
+            "normal shop generation requires an exact integer Ante"
+        )
+    return ante
+
+
 def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -157,8 +167,7 @@ def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
     state = run.public
     if state.phase != "SHOP" or not state.shop_active:
         raise HeadlessTransitionError("base shop generation requires an active SHOP")
-    if not isinstance(state.ante, int) or isinstance(state.ante, bool) or state.ante < 1:
-        raise HeadlessTransitionError("base shop generation requires a positive exact Ante")
+    require_exact_normal_shop_ante(state)
     if not shop_generation_vouchers_are_exact(state):
         raise HeadlessTransitionError(
             "base shop generation does not own current voucher modifiers"

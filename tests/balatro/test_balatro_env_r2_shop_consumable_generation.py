@@ -9,13 +9,13 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.state import BalatroState
 
 
-def _run(seed: str = "CONSUMABLE") -> HeadlessRunState:
+def _run(seed: str = "CONSUMABLE", *, ante: int = 3) -> HeadlessRunState:
     state = BalatroState()
     state.deck_name = "RED"
     state.stake_name = "WHITE"
     state.phase = "SHOP"
     state.shop_active = True
-    state.ante = 3
+    state.ante = ante
     return HeadlessRunState(public=state, seed=seed)
 
 
@@ -56,6 +56,29 @@ def test_env_r2_consumable_identity_preserves_input_rng_state():
     assert result.run is not run
     assert run.rng_snapshot() == before
     assert result.run.rng_snapshot() != before
+
+
+@pytest.mark.parametrize("ante", [0, -1])
+def test_env_r2_consumable_identity_preserves_nonpositive_ante_key(ante):
+    result = poll_base_shop_consumable_center(
+        _run(seed=f"CONSUMABLE-NONPOSITIVE-{ante}", ante=ante),
+        "Tarot",
+        VANILLA_TAROT_CENTER_ORDER,
+    )
+
+    assert f"Tarotsho{ante}" in result.run.rng_snapshot()["nodes"]
+
+
+@pytest.mark.parametrize("ante", [True, 0.0, "0"])
+def test_env_r2_consumable_identity_rejects_noninteger_ante_before_rng(ante):
+    run = _run(seed="CONSUMABLE-BAD-ANTE")
+    run.public.ante = ante
+    before = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="exact integer Ante"):
+        poll_base_shop_consumable_center(run, "Tarot", VANILLA_TAROT_CENTER_ORDER)
+
+    assert run.rng_snapshot() == before
 
 
 def test_env_r2_consumable_identity_rejects_guessed_or_modified_boundaries():
