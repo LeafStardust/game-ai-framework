@@ -477,6 +477,62 @@ def test_env_ppo_rollout_crosses_exact_ante_zero_shop_and_mixed_voucher_cashout(
     ) == 4.0
 
 
+@pytest.fixture(scope="module")
+def episode_102_with_seed_money():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(6),
+        run,
+        episode_index=102,
+        policy=PPOActorCritic(run).infer,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_seed_money_boss_cashout(
+    episode_102_with_seed_money,
+):
+    episode = episode_102_with_seed_money
+
+    assert episode.game_seed == "0058185F"
+    assert episode.action_count == 8
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [decision.action.alias for decision in episode.decisions] == [
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+    ]
+    after_seed_money = episode.boundaries[4]
+    assert (
+        after_seed_money.ante,
+        after_seed_money.phase,
+        after_seed_money.money,
+    ) == (1, "SHOP", 7)
+    assert _observation_feature(
+        after_seed_money.observation,
+        "vouchers.owned.v_seed_money",
+    ) == 1.0
+    assert _observation_feature(
+        after_seed_money.observation,
+        "state.interest_cap",
+    ) == 50.0
+    after_boss_cashout = episode.boundaries[6]
+    assert (after_boss_cashout.phase, after_boss_cashout.money) == ("SHOP", 14)
+    assert _observation_feature(
+        after_boss_cashout.observation,
+        "vouchers.owned.v_seed_money",
+    ) == 1.0
+    assert _observation_feature(
+        after_boss_cashout.observation,
+        "state.interest_cap",
+    ) == 50.0
+
+
 def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
     episode_25_with_hieroglyph,
 ):

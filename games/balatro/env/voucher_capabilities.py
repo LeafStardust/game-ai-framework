@@ -36,9 +36,10 @@ EXACT_ANTE_VOUCHER_KEYS = frozenset({"v_hieroglyph", "v_petroglyph"})
 # when redeemed; none has a callback during Boss cash-out. Their histories are
 # consumed later by the exact resource/shop owners.
 # Keep this boundary deliberately narrower than general Voucher support:
-# payout/interest/pricing modifiers require their own exact Boss cash-out
-# ownership before they may cross that transition.
-EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset(
+# pricing modifiers require their own exact Boss cash-out ownership before they
+# may cross that transition. Interest-cap Vouchers are admitted because this
+# boundary validates their persisted cap and applies it to the payout below.
+EXACT_BOSS_CASH_OUT_VOUCHER_KEYS = frozenset(
     {"v_crystal_ball", "v_hone"}
 ) | (
     EXACT_SHOP_SIZE_VOUCHER_KEYS
@@ -47,6 +48,7 @@ EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS = frozenset(
     | EXACT_HAND_SIZE_VOUCHER_KEYS
     | EXACT_ROUND_RESOURCE_VOUCHER_KEYS
     | EXACT_ANTE_VOUCHER_KEYS
+    | EXACT_INTEREST_CAP_VOUCHER_KEYS
 )
 
 # These Vouchers have no effect on ordinary base-shop generation. They are
@@ -129,7 +131,7 @@ def boss_cash_out_vouchers_are_exact(
         raise TypeError("state must be BalatroState")
     owned = _owned_supported_vouchers(
         state,
-        EXACT_BOSS_CASH_OUT_NO_EFFECT_VOUCHER_KEYS,
+        EXACT_BOSS_CASH_OUT_VOUCHER_KEYS,
     )
     if owned is None:
         return False
@@ -143,12 +145,20 @@ def boss_cash_out_vouchers_are_exact(
     expected_reroll_cost = expected_base_reroll_cost_for_vouchers(state)
     expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
     expected_round_resources = expected_red_deck_round_resources_for_vouchers(state)
+    expected_interest_cap = expected_interest_cap_for_vouchers(state)
     if (
         expected_tarot_rate is None
         or expected_planet_rate is None
         or expected_reroll_cost is None
         or expected_hand_size is None
         or expected_round_resources is None
+        or expected_interest_cap is None
+    ):
+        return False
+    if owned & EXACT_INTEREST_CAP_VOUCHER_KEYS and (
+        state.interest_cap_observed is not True
+        or type(state.interest_cap) is not int
+        or state.interest_cap != expected_interest_cap
     ):
         return False
     if owned & EXACT_HAND_SIZE_VOUCHER_KEYS:

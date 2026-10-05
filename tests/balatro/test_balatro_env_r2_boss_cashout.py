@@ -277,6 +277,52 @@ def test_env_r2_boss_cashout_preserves_exact_round_resource_voucher_noop(
 
 
 @pytest.mark.parametrize(
+    ("vouchers", "interest_cap", "expected_money"),
+    [
+        (["v_seed_money"], 50, 115),
+        (["v_seed_money", "v_money_tree"], 100, 125),
+    ],
+)
+def test_env_r2_boss_cashout_applies_exact_interest_cap_voucher_payout(
+    vouchers,
+    interest_cap,
+    expected_money,
+):
+    run = _finish(_boss_round("The Psychic", money=100, reward=5), hands=0)
+    run.public.vouchers = vouchers
+    run.public.vouchers_observed = True
+    run.public.interest_cap_observed = True
+    run.public.interest_cap = interest_cap
+    before_rng = run.rng_snapshot()
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == expected_money
+    assert result.public.vouchers == vouchers
+    assert result.public.interest_cap_observed is True
+    assert result.public.interest_cap == interest_cap
+    assert result.rng_snapshot() == before_rng
+
+
+def test_env_r2_boss_cashout_composes_seed_money_with_round_resource_voucher():
+    run = _finish(_boss_round("The Psychic", money=50, reward=5), hands=1)
+    run.public.vouchers = ["v_seed_money", "v_wasteful"]
+    run.public.vouchers_observed = True
+    run.public.interest_cap_observed = True
+    run.public.interest_cap = 50
+    run.public.round_reset_hands_observed = True
+    run.public.round_reset_hands = 4
+    run.public.round_reset_discards_observed = True
+    run.public.round_reset_discards = 4
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 66
+    assert result.public.vouchers == ["v_seed_money", "v_wasteful"]
+    assert result.public.round_reset_discards == 4
+
+
+@pytest.mark.parametrize(
     ("field", "value"),
     [
         ("round_reset_hands", 5),
@@ -352,7 +398,7 @@ def test_env_r2_boss_cashout_preserves_exact_hone_noop(
         (["v_petroglyph"], True),
         (["v_nacho_tong"], True),
         (["v_recyclomancy"], True),
-        (["v_seed_money"], True),
+        (["v_money_tree"], True),
         (["v_unknown"], True),
     ],
 )
@@ -371,6 +417,34 @@ def test_env_r2_boss_cashout_rejects_inexact_voucher_state_atomically(
 
     assert run.public.phase == "ROUND_EVAL"
     assert run.public.money == before_money
+    assert run.rng_snapshot() == before_rng
+
+
+@pytest.mark.parametrize(
+    ("interest_cap", "observed"),
+    [
+        (25, True),
+        (100, True),
+        (50.0, True),
+        (50, False),
+    ],
+)
+def test_env_r2_boss_cashout_rejects_stale_seed_money_cap_atomically(
+    interest_cap,
+    observed,
+):
+    run = _finish(_boss_round("The Window", money=100, reward=5), hands=0)
+    run.public.vouchers = ["v_seed_money"]
+    run.public.vouchers_observed = True
+    run.public.interest_cap = interest_cap
+    run.public.interest_cap_observed = observed
+    before_rng = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="Voucher economy modifiers"):
+        cash_out_supported_boss(run)
+
+    assert run.public.phase == "ROUND_EVAL"
+    assert run.public.money == 100
     assert run.rng_snapshot() == before_rng
 
 

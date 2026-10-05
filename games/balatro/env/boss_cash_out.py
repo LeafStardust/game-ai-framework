@@ -23,7 +23,10 @@ from games.balatro.env.round_end import (
 )
 from games.balatro.env.round_zones import repopulate_round_end_deck
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
-from games.balatro.env.voucher_capabilities import boss_cash_out_vouchers_are_exact
+from games.balatro.env.voucher_capabilities import (
+    boss_cash_out_vouchers_are_exact,
+    expected_interest_cap_for_vouchers,
+)
 
 
 def _require_exact_int(name: str, value: object) -> int:
@@ -51,8 +54,9 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
       applied by the progression owner before complete source composition;
     * Boss ``cash_out`` then regenerates Small/Big tag choices and invokes
       ``reset_blinds()``, including exact next-Boss selection;
-    * Voucher economy modifiers and shop generation remain separate owners;
-      only explicitly audited cash-out no-ops may cross this helper unchanged.
+    * shop-generation and pricing modifiers remain separate owners; only
+      explicitly audited persisted no-ops and exact interest-cap payout may
+      cross this helper.
 
     Therefore this function is an internal exact subset, not a standalone
     training-visible Boss cash-out action.
@@ -128,8 +132,15 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
         raise HeadlessTransitionError("Boss cash-out requires an ungenerated shop boundary")
 
     # Compute payout inputs against the pre-defeat public economy state. The Boss
-    # reset must not erase the reward row before it is captured.
-    interest = baseline_interest_dollars(money)
+    # reset must not erase the reward row before it is captured. Voucher history
+    # and the persisted cap were validated together above, so interest uses the
+    # exact Seed Money/Money Tree cap rather than the baseline default.
+    interest_cap = expected_interest_cap_for_vouchers(state)
+    if interest_cap is None:
+        raise HeadlessTransitionError(
+            "Boss cash-out does not own Voucher interest-cap semantics"
+        )
+    interest = baseline_interest_dollars(money, interest_cap)
     joker_dollars = _round_end_joker_dollars(run)
     payout = reward + hands_remaining + joker_dollars + interest
 
@@ -140,8 +151,9 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
     next_state.money = money + payout
     next_state.phase = "SHOP"
     next_state.shop_active = True
-    # As above, this exact Boss-cash-out subset rejects Voucher/tag modifiers and
-    # admits only audited cash-out no-ops. The shop therefore starts with
+    # As above, this exact Boss-cash-out subset rejects unowned Voucher/tag
+    # modifiers. Interest-cap payout is already consumed above; supported
+    # persisted no-ops cross unchanged. The shop therefore starts with
     # authoritative vanilla pricing inputs of zero inflation and zero discount.
     next_state.shop_inflation_observed = True
     next_state.shop_inflation = 0
