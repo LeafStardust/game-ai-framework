@@ -2429,14 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Repair the exact episode-102 Seed Money Boss-cash-out boundary described below.
-The canonical cash-out capability must admit only exact Seed Money/Money Tree
-history, validate its persisted interest-cap state and upgrade ancestry, and
-compute interest from the exact cap without changing payout order. Add focused
-deterministic regressions for payout, malformed/stale state, family composition,
-and the complete unchanged episode. Advance campaign provenance so the failed
-campaign-v11 checkpoint cannot resume. Do not change policy, projection, the
-selective predicate, or its schedule, and do not widen any unrelated mechanic.
+Restart the clean one-new-batch production gate from root seed
+`RED-WHITE-PPO-V1` with campaign-v12 provenance, eight workers,
+`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
+pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
+checkpoint/resume state, parameter digest change, carryover accounting, exact
+stop boundary, and end-to-end throughput. Do not continue into a second batch or
+full training. Keep the default/live schedule unchanged. Do not change policy,
+mechanics, projection, the selective predicate, or its schedule; do not inspect
+promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
+mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -4065,6 +4067,24 @@ the narrow cash-out admission, validation, and payout composition above. This is
 not permission to admit unsupported economy Vouchers or approximate missing
 state. The failed campaign-v11 checkpoint must not resume after mechanics
 provenance changes.
+
+The episode-102 repair is **COMPLETE / GREEN** at commit `dce822bb`. The
+canonical Boss cash-out capability now admits the Seed Money/Money Tree family,
+requires exact observed persisted caps of `$50`/`$100`, rejects missing upgrade
+ancestry and stale, unobserved, non-integer, or otherwise unsupported state, and
+passes the validated cap into the existing pre-payout interest calculation.
+Exact payout regressions distinguish baseline `$5`, Seed Money `$10`, and Money
+Tree `$20` maximum interest; mixed Seed Money/Wasteful composition preserves the
+separate round-resource authority. Episode 102 now completes with its unchanged
+loss in **8 strategic actions**, crossing Seed Money purchase and The Window
+Boss cash-out into a `$14` shop while retaining the exact `$50` cap.
+
+Campaign/progress/final provenance advanced to v12 and parallel collection to
+v11, so the failed campaign-v11 checkpoint cannot resume. Broader affected local
+validation passed **243 tests**, followed by **82 tests** after the final owner
+documentation cleanup. GitHub Actions run `37313959118`, job `111775916951`,
+passed; the actual log reports **3144 passed, 1613 deselected in 208.77s**. The
+exact next task is the clean campaign-v12 one-new-batch restart above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
