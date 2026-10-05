@@ -3,7 +3,7 @@ from __future__ import annotations
 from math import ceil
 
 from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
-from games.balatro.scoring import HandScore
+from games.balatro.scoring import BalatroScorer, HandScore
 
 
 def effective_boss_hand_level(state, hand, hand_level: int) -> int:
@@ -128,3 +128,7 @@ class BossBaseScoreScorerMixin:
             return super().score(hand, state, cards, **kwargs)
         finally:
             self.SCORES = original_scores
+
+
+class BossBaseScoreScorer(BossBaseScoreScorerMixin, BalatroScorer):
+    """Canonical deterministic scorer for already-admitted Boss base transforms."""

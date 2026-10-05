@@ -354,6 +354,52 @@ def test_env_ppo_rollout_crosses_exact_hieroglyph_boss_cashout(
         ) == 3.0
 
 
+@pytest.fixture(scope="module")
+def episode_86_with_flint():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(6),
+        run,
+        episode_index=86,
+        policy=PPOActorCritic(run).infer,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_flint_play_boundary(
+    episode_86_with_flint,
+):
+    episode = episode_86_with_flint
+
+    assert episode.game_seed == "7D4CD200"
+    assert episode.action_count == 12
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [decision.action.alias for decision in episode.decisions] == [
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+    ]
+
+    before = episode.boundaries[11]
+    after = episode.boundaries[12]
+    assert (before.ante, before.phase, before.money) == (2, "BLIND_SELECT", 29)
+    assert (after.ante, after.phase, after.money) == (2, "GAME_OVER", 29)
+    assert _observation_feature(before.observation, "state.hand_size") == 9.0
+    assert _observation_feature(
+        before.observation,
+        "vouchers.owned.v_paint_brush",
+    ) == 1.0
+
+
 def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
     episode_25_with_hieroglyph,
 ):

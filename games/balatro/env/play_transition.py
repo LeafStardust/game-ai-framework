@@ -2,9 +2,9 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow Psychic / Tooth / Hook / Pillar / Arm / Fish / Mouth / Needle / Manacle /
-Verdant Leaf / static suit-debuff Boss paths, with an unmodified base playing-
-card deck and no Joker, Tag, random-card, or other unowned callbacks. Held
+narrow Psychic / Flint / Tooth / Hook / Pillar / Arm / Fish / Mouth / Needle /
+Manacle / Verdant Leaf / static suit-debuff Boss paths, with an unmodified base
+playing-card deck and no Joker, Tag, random-card, or other unowned callbacks. Held
 profile Tarot/Planet cards and already-applied supported Vouchers are explicit
 play-time no-ops.
 The boundary can widen only when those source-order mechanics have canonical
@@ -56,6 +56,7 @@ from games.balatro.env.voucher_capabilities import (
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.consumable import PlanetCard, TarotCard
 from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.live.boss_score_transform import BossBaseScoreScorer
 from games.balatro.scoring import BalatroScorer
 
 
@@ -222,6 +223,7 @@ def _require_supported_context(run: HeadlessRunState) -> None:
     ordinary = blind_type in {BlindType.SMALL, BlindType.BIG} and not boss_name
     supported_boss = blind_type == BlindType.BOSS and boss_name in {
         "The Psychic",
+        "The Flint",
         "The Tooth",
         "The Hook",
         "The Pillar",
@@ -427,7 +429,12 @@ def apply_supported_ordinary_play(
         hand_scores_zero = boss_hand.triggered
     if not hand_scores_zero:
         record_accepted_boss_hand(next_state, poker_hand)
-        hand_score = BalatroScorer().score(
+        scorer = (
+            BossBaseScoreScorer()
+            if _boss_name(next_state) == "The Flint"
+            else BalatroScorer()
+        )
+        hand_score = scorer.score(
             poker_hand,
             state=next_state,
             cards=selected,
