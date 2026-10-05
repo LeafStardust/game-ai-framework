@@ -2429,16 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Restart the clean one-new-batch production gate from root seed
-`RED-WHITE-PPO-V1` with campaign-v10 provenance, eight workers,
-`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
-pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
-checkpoint/resume state, parameter digest change, carryover accounting, exact
-stop boundary, and end-to-end throughput. Do not continue into a second batch or
-full training. Keep the default/live schedule unchanged. Do not change policy,
-mechanics, projection, the selective predicate, or its schedule; do not inspect
-promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
-mechanics.
+Admit exact integer Ante zero/negative values through the canonical normal-shop
+generation boundaries for the episode-89 Hieroglyph path described below.
+Preserve the existing source-key construction (`cdt{ante}`, `rarity{ante}sho`,
+Tarot/Planet `sho{ante}`, and `shop_pack{ante}`); do not clamp, alias, or replace
+the Ante. Keep booleans and non-integers fail closed. Add focused deterministic
+main-card, consumable, Booster, and complete inventory regressions plus a
+complete production episode-89 regression. Advance campaign/progress/final and
+parallel-collection provenance so the failed campaign-v10 checkpoint cannot
+resume. Do not change policy, projection, the selective predicate, or its
+schedule, and do not widen any other mechanic.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3983,6 +3983,29 @@ passed **90 tests** locally. GitHub Actions run `37301917442`, job
 `111736392360`, passed; the actual log reports **3106 passed, 1613 deselected in
 188.39s**. The exact next task is the clean campaign-v10 one-new-batch restart
 above.
+
+The clean campaign-v10 restart crossed the repaired episode 86 in the real
+eight-worker path and atomically committed episodes 0..87 with **634
+transitions**, zero optimizer batches, and next episode indices 88..95. The
+following speculative wave failed closed during post-round normal-shop
+generation; its checkpoint remains exactly at 634 transitions with SHA-256
+`1848c64446deba839d79b82aefac55e667bc4a063e9b733c543eb008cd085f5d`.
+
+Ordered direct isolation proves episode 88 complete and identifies episode
+**89**, stream 1, derived game seed `C749D4F7`, as the earliest failure. Its
+exact prefix clears Ante-1 Small, buys `v_hieroglyph` for `$10`, retains public
+and private Ante zero plus three reset hands, exits the shop, and clears the
+Ante-0 Big Blind. The resulting ordinary shop is valid, but the base main-shop
+validator rejects Ante zero before its first `cdt0` keyed poll. Pinned vanilla
+key construction interpolates the exact Ante and does not impose a positive
+guard; the existing blind-requirement owner likewise documents zero and
+negative Ante as reachable vanilla domains through Hieroglyph/Petroglyph. The
+same stale positive-only assumption exists in the Tarot/Planet identity and
+weighted Booster owners and would fail later in the same source-ordered shop
+composition. This is one narrow normal-shop Ante-domain repair, not permission
+to change pools, rates, prices, eligibility, or RNG order. The failed
+campaign-v10 checkpoint must not resume after mechanics provenance changes.
+The exact next task is the narrow repair above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
