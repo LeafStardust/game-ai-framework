@@ -2429,19 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Repair only the exact episode-46 Paint Brush hand-size boundary recorded below.
-Make the canonical tactical Play/Discard resource validators derive the expected
-Red Deck hand size from authoritative Voucher history, including exact Paint
-Brush/Palette upgrade ancestry and Manacle's separate active reduction. Admit
-that same persisted hand-size family through Boss cash-out as an audited no-op,
-validating the current size and any active Manacle reduction before teardown.
-Add focused atomic validation and a complete production episode-46 regression.
-Advance campaign/parallel-collection provenance so the failed campaign-v7
-checkpoint cannot resume. Do not widen another mechanic or alter policy,
-projection, the selective predicate, or its schedule. After the repair is green,
-restart the clean one-new-batch gate from root seed `RED-WHITE-PPO-V1` with eight
-workers, `--maximum-episodes 2048`, and `--maximum-batches 1`; do not continue
-into a second batch or full training.
+Restart the clean one-new-batch production gate from root seed
+`RED-WHITE-PPO-V1` with campaign-v8 provenance, eight workers,
+`--maximum-episodes 2048`, and `--maximum-batches 1`; do not resume any
+pre-repair checkpoint. Verify the first real 2,048-transition optimizer update,
+checkpoint/resume state, parameter digest change, carryover accounting, exact
+stop boundary, and end-to-end throughput. Do not continue into a second batch or
+full training. Keep the default/live schedule unchanged. Do not change policy,
+mechanics, projection, the selective predicate, or its schedule; do not inspect
+promotion results, tune hyperparameters, add a wall-clock cutoff, or widen
+mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -3876,20 +3873,41 @@ size 9, and selects Ante-1 Boss The Goad at `$4`. The tactical policy then choos
 an ordinary discard, but the discard validator still hard-codes base Red Deck
 hand size 8. Paint Brush is already redeemed canonically as a persistent +1 hand
 size and has no Play/Discard callback; the matching tactical Play validator and
-Manacle validator contain the same baseline assumption. The next task is the
-narrow canonical resource-validation repair above, not a policy or rescue-layer
-change. The campaign-v7 checkpoint must not resume after mechanics provenance
-changes.
+Manacle validator contain the same baseline assumption. At that checkpoint, the
+narrow canonical resource-validation repair above was the next task, not a
+policy or rescue-layer change. The campaign-v7 checkpoint must not resume after
+mechanics provenance changes.
 
 The first implementation pass crosses episode 46's Paint Brush tactical discard
 and subsequent Play actions exactly. The same episode then clears The Goad and
 fails closed at Boss cash-out because that boundary has not yet admitted the
 same already-persisted hand-size Voucher family. Pinned semantics still apply
 Paint Brush/Palette only at redemption; Boss cash-out has no Voucher callback.
-The active task therefore includes this immediately chained cash-out validation
-for Paint Brush/Palette, with current hand size reconstructed from authoritative
-Voucher ancestry and Manacle's active one-slot reduction handled explicitly. It
-does not admit any other Voucher family.
+The task was therefore extended to include this immediately chained cash-out
+validation for Paint Brush/Palette, with current hand size reconstructed from
+authoritative Voucher ancestry and Manacle's active one-slot reduction handled
+explicitly. It did not admit any other Voucher family.
+
+The episode-46 Paint Brush repair is **COMPLETE / GREEN** at commits `5bfee893`
+and `fbec139f`. One canonical capability now reconstructs Red Deck hand size from
+authoritative Paint Brush/Palette history and rejects missing upgrade ancestry.
+Tactical Play, ordinary/Psychic Discard, and active Manacle validation consume
+that invariant. Boss cash-out admits only the same persisted hand-size family,
+validates the current size and Manacle reduction, and remains fail closed for
+mixed Joker hand-size composition. Campaign/progress/final provenance advanced
+to v8 and parallel collection to v7, so the failed campaign-v7 checkpoint cannot
+resume.
+
+The complete episode-46 regression uses root seed `RED-WHITE-PPO-V1`, stream 6,
+game seed `9AC8FAC6`, crosses Paint Brush tactics and The Goad cash-out, and
+reaches its unchanged Ante-2 loss in **10 actions**. Focused validation passed
+**156 tests** locally, campaign provenance passed **13 tests**, and the final
+fixture correction passed **76 targeted tests**. The first CI run correctly
+exposed one stale fixture whose injected Voucher ownership was not marked
+observed; production code remained fail closed and the fixture now also asserts
+the unobserved rejection. GitHub Actions run `37269743629`, job `111634015168`,
+passed; the actual log reports **3092 passed, 1613 deselected in 169.79s**. The
+exact next task is the clean campaign-v8 one-new-batch restart above.
 
 ### Horizon-five candidate sub-profile checkpoint
 
