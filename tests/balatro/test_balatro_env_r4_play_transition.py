@@ -257,8 +257,14 @@ def test_env_r4_ordinary_play_rejects_unowned_or_malformed_generated_consumables
 def test_env_r4_ordinary_play_admits_applied_voucher_and_rejects_observatory():
     supported = _play_run(seed="R4-VOUCHER-NO-OP")
     supported.public.vouchers = ["v_seed_money"]
+    supported.public.vouchers_observed = True
     result = apply_supported_ordinary_play(supported, (0,))
     assert result.public.vouchers == ["v_seed_money"]
+
+    unobserved = _play_run(seed="R4-VOUCHER-UNOBSERVED")
+    unobserved.public.vouchers = ["v_seed_money"]
+    with pytest.raises(HeadlessTransitionError, match="Voucher hand size"):
+        apply_supported_ordinary_play(unobserved, (0,))
 
     observatory = _play_run(seed="R4-OBSERVATORY")
     observatory.public.vouchers = ["v_observatory"]
