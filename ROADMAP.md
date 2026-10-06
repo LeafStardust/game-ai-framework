@@ -2443,6 +2443,27 @@ policy, mechanics, projection, the selective predicate, or its schedule; do not
 inspect promotion results, tune hyperparameters, add a wall-clock cutoff, or
 widen mechanics.
 
+### Episode-trace durability checkpoint
+
+The first episode-43 diagnostic attempt completed, but its long-lived command
+session expired after the process exited and the CLI had emitted its only copy
+of the report to captured standard output. No trace evidence survived, so no
+timing or tactical conclusion is inferred from that attempt.
+
+Commit `248c3e74e281a8d2ee1a22f604a7004be3b7b106` repairs only that
+diagnostic publication boundary. An exact episode-cost report can now be
+atomically written to an explicit existing-directory output path; its canonical
+bytes and SHA-256 digest are preserved independently of terminal/session
+lifetime. Output paths without an exact `--episode-index`, missing parent
+directories, and wrong report types fail closed. Focused validation passed
+**26 tests** locally. GitHub Actions run `37411334706`, job `112100204978`,
+passed; the actual log reports **3150 passed, 1613 deselected in 209.20s**.
+
+The active task remains the unchanged episode-43 (`EE424B52`) decision-level
+trace using the durable output path, followed by exact decision/subowner
+attribution. No other slow-tail episode, optimizer batch, policy, schedule, or
+mechanics work is yet authorized.
+
 ### Eight-episode probe Manacle checkpoint
 
 The initial unchanged `--maximum-episodes 8` invocation ran for **77.4433825
