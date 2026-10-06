@@ -1770,7 +1770,12 @@ def _trace_candidate_subowners(
                     raise PPOContractError(
                         "candidate sub-owner diagnostic clock moved backwards"
                     )
-                candidate_elapsed["seconds"] += ended - started
+                elapsed = ended - started
+                candidate_elapsed["seconds"] += elapsed
+                if search_scope and helper_accumulator.stack:
+                    helper_accumulator.stack[-1][2] = (
+                        float(helper_accumulator.stack[-1][2]) + elapsed
+                    )
                 if search_scope:
                     helper_accumulator.enabled = True
 

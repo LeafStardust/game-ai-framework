@@ -407,6 +407,7 @@ def test_env_ppo_search_subowner_scope_excludes_candidate_and_policy_helpers(
     )
 
     def estimate_action(target, action, depth):
+        engine.planner._candidate_actions(target)
         return engine.planner.evaluator.evaluate(target, action)
 
     engine.planner._estimate_action = estimate_action
