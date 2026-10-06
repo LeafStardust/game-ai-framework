@@ -490,11 +490,36 @@ Empty-active discard optimization gate:
 - GitHub Actions run `37466943628`, job `112280263173`.
 - Actual job log: **3164 passed, 1616 deselected in 197.34s**.
 
+The post-optimization schema-v18 report is committed at
+`docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_DISCARD_V18_POST_INERT.json`.
+Its canonical 5,933-byte report has SHA-256
+`fe46d20819f5362beed09ba76e65a9df7bf57f28dac5f90a224a4a3fd7531ed7`;
+the repository copy includes a terminal newline (5,934 bytes, SHA-256
+`ffddcb1f5c57d125192e3c4bf4990151eaaf4a27b6c8b2279cc522c1487f126d`).
+The full frozen target identity, cache/branch/outcome accounting, and search
+attempts remain exact.
+
+Post-optimization comparison:
+
+- All **682,505** active-Joker selections still select zero Jokers; context
+  preparation and Joker application fall from 682,505 calls each to exactly
+  zero.
+- The directly attributed discard pipeline (parent plus all six subowners)
+  falls from **53.94128589928732** to **48.57139330080827 seconds**
+  (**9.9551% lower**).
+- The sample ran under slower surrounding machine conditions: total target time
+  rose from 298.35111329999927 to 310.44034400000237 seconds and candidate time
+  from 261.7304256993957 to 270.1883482000703 seconds. Those aggregate values
+  are not claimed as a speedup or regression; the exact owned pipeline delta is
+  the valid comparison.
+- Decision 12 is now fully attributed through its safe optimization boundary.
+  Named non-card collection copying remains intentionally untouched.
+
 ## Exact active task
 
-Run one post-optimization schema-v18 diagnostic at frozen episode-43 decision
-12, preserve the canonical report, and compare it directly with the
-pre-optimization schema-v18 evidence.
+Resume the existing frozen campaign-v12 checkpoint for exactly one additional
+optimizer batch, then preserve and compare its authoritative progress evidence
+against the first-batch checkpoint.
 
 Requirements:
 
@@ -502,17 +527,23 @@ Requirements:
   `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
   `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
-- Preserve all 13 prefix decisions and the pinned digest/action/search identity.
-- Require 682,505 discard active-Joker selections with zero selected Jokers;
-  context-preparation and Joker-application calls must fall to zero.
-- Record exact total, candidate, Hook discard-projection, and discard-helper
-  timing deltas against the pre-optimization schema-v18 report.
-- Commit the report under `docs/balatro/` with canonical and repository-copy
-  byte counts and SHA-256 values, then select the next task only from evidence.
-- Do not optimize any named non-card collection.
-- Do not resume a second optimizer batch, start full training, change
-  policy/hyperparameters/search schedule, or widen mechanics until this task is
-  recorded here.
+- Before launch, verify the existing
+  `C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5`
+  checkpoint is 46,954,547 bytes with SHA-256
+  `872f3be2dbce3e860b1151edef810df27157858e8f5202799869a75500038a4c`
+  and binds one completed batch, 2,268 collected transitions, 2,048 consumed
+  transitions, and next indices 312..319.
+- Use root seed `RED-WHITE-PPO-V1`, eight workers, `--maximum-batches 1`, and a
+  sufficiently high episode bound only to reach the next batch. Do not create a
+  new campaign or recollect already committed episodes.
+- Preserve the resulting checkpoint/progress hashes, byte counts, episode and
+  transition totals, carryovers, next indices, optimizer step, elapsed time,
+  and parameter digest.
+- Stop fail-closed on any mechanics/provenance error and record the earliest
+  exact boundary instead of widening mechanics speculatively.
+- Do not start unbounded/full training, inspect promotion results, change
+  policy/hyperparameters/search schedule, or widen mechanics until this bounded
+  second-batch checkpoint is recorded here.
 
 ## Held and deferred work
 
@@ -533,5 +564,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_SUBOWNERS_V16.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_HOOK_V17.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_DISCARD_V18.json`
+- `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_DISCARD_V18_POST_INERT.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
