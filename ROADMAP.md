@@ -734,20 +734,50 @@ Checkpoint search-subowner attribution gate:
 - GitHub Actions run `37518995187`, job `112459167769`.
 - Actual job log: **3196 passed, 1616 deselected in 196.39s**.
 
+Batch-2 decision-11 search-subowner evidence:
+
+- The exact trained-policy diagnostic reproduced the pinned 12-decision prefix,
+  target digest/action/indices/search attempt, and complete terminal episode SHA
+  `0899f4127cfa8f6094ba49692215bde2c091af73d3bda5c0a02c70ad63eebc98`.
+  It remained explicitly uncommitted; session SHA before and after is
+  `c1a695faf0ccab8b9d68af96eae2e14fd0fcdad00c85f91e67d3935956afddda`.
+- The canonical 5,094-byte report has SHA-256
+  `f1623caf2a7c66f810f124aff0fa80dd0d9d07d2a648c9f9109f3e859a545297`.
+  The repository copy at
+  `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_SEARCH_SUBOWNERS.json`
+  includes a terminal newline (5,095 bytes, SHA-256
+  `ae113ef5f9f0f0fa56cd11973cb185bddf1918798d9c2304e5e5802f1c594684`).
+- Under helper instrumentation the target search evaluation took
+  **8.68869749995065 seconds**. Existing exclusive helper attribution covers
+  only **0.8965%**; the demonstrated dominant owner is the still-unattributed
+  search-evaluation residual at **8.61080069997115 seconds (99.1035%)**.
+- The largest currently measured helper, `_state_detach_card_collections`, is
+  only **0.04038159968331456 seconds (0.4648%)** across 100 calls and therefore
+  is not an authorized optimization target. The production call graph places
+  the residual immediately under the planner estimate path entered through
+  `_estimate_action`, which is not yet split by the current helper report.
+- Checkpoint/progress hashes, sizes, timestamps, counters, and next indices
+  remained unchanged after the diagnostic.
+
 ## Exact active task
 
-Run and preserve the exact checkpoint-backed search-evaluation subowner trace
-for episode 637 / stream 5 / zero-based tactical decision 11, then select only
-its demonstrated dominant helper before any batch-3 resume.
+Add exact checkpoint-backed planner estimate-path attribution for episode 637 /
+stream 5 / zero-based tactical decision 11, then run and preserve that bounded
+trained-policy trace before any optimization or batch-3 resume.
 
 Requirements:
 
-- Preflight the checkpoint and trained policy against the batch-2 evidence.
-- Run exactly:
-  `python -m games.balatro.env.ppo_checkpoint_search_subowners --root-seed RED-WHITE-PPO-V1 --checkpoint-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5\checkpoint.json" --output-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-episode-637-decision-11-search-subowners.json"`.
-- Verify checkpoint/progress bytes and hashes remain unchanged. Validate and
-  commit the canonical report under `docs/balatro/`, then update this roadmap
-  with its exact hash, timings, and demonstrated helper owner.
+- Extend the existing search-evaluation scope at the production planner owner;
+  split `_estimate_action` into exclusive estimate-play, estimate-discard,
+  recursive best-value, projection, draw-distribution, and remaining estimate
+  work as the real call graph permits. Do not infer cost from call counts.
+- Reuse the exact restored checkpoint policy, pinned decision prefix, complete
+  terminal replay, and immutability/provenance gates. Preserve call counts,
+  exclusive timings, and a balanced estimate-path residual without changing
+  planner behavior or adding a rescue implementation.
+- Add focused deterministic regression tests and use GitHub Actions as the
+  implementation gate. After green, run and commit the exact bounded diagnostic
+  before selecting an optimization target.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
@@ -775,5 +805,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_DISCARD_V18_POST_INERT.json`
 - `docs/balatro/BALATRO_PPO_BATCH2_WAVE_632_639_TIMING.json`
 - `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_TACTICAL.json`
+- `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_SEARCH_SUBOWNERS.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
