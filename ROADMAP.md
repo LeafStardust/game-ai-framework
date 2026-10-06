@@ -2516,6 +2516,41 @@ passed, 1613 deselected in 206.61s**. The exact next task is to run this frozen
 decision-11 subowner diagnostic and preserve its report before considering any
 optimization.
 
+### Episode-43 decision-11 subowner checkpoint
+
+The frozen diagnostic completed and verified all 12 prefix decisions. Its
+canonical 4,690-byte report has SHA-256
+`7fcea61dafc1ef6b3cfcdefa378b4cc0194383da3065f3b4f41dfd62add60490`;
+the complete evidence is preserved in
+`docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_SUBOWNERS.json` (repository
+copy including its terminal newline: 4,691 bytes, SHA-256
+`2b0a26fcc758db1a18cbb1eac2f9bcae4e641f8590744c3baec9b5cf0fd000ce`).
+The target remained digest `7fb297b6...`, `DISCARD_CARDS(5)`, with exact search
+attempts `(h2,n252,max2000,complete)` and
+`(h3,n2000,max2000,budget-exceeded)`.
+
+Instrumentation raised target wall time to **648.5922759999958 seconds** and
+candidate time to **610.2228404998896 seconds**, so those values are attribution
+evidence rather than a performance comparison. The exact dominant path is now
+established: **728,887** generated-consumable transitions were evaluated, and
+all **728,887** were inert; zero Eight Ball, Main Generator, or Sixth Sense
+capability. Nevertheless every call entered
+`BalatroState.copy_for_tactical_projection`, whose exclusive measured cost was
+**295.30642790847924 seconds**. Recursive copy subowners added **56.16093468970212**
+seconds for dicts, **12.752040303312242** for lists, **11.147607308492297** for
+reconstruction, and **3.463350795514998** for the outer deepcopy wrapper.
+Generated Joker projection/scoring contributed **90.13103089077049** and
+**27.408676404418657** seconds respectively. The evaluator cache recorded 1,860
+hits and 945 misses; reconstruction and scalar-card samplers each reached their
+100,000-call evidence caps.
+
+The exact next task is to read the canonical generated-consumable transition
+owner and its parity/isolation tests, then design the narrow inert-capability
+repair that avoids unnecessary mutable projection without changing any capable
+Eight Ball/Main Generator/Sixth Sense path. Unsupported or ambiguous capability
+state must remain fail-closed. No policy, schedule, or mechanics change is
+authorized.
+
 ### Eight-episode probe Manacle checkpoint
 
 The initial unchanged `--maximum-episodes 8` invocation ran for **77.4433825
