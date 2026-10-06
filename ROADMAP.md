@@ -665,6 +665,21 @@ Checkpoint tactical-attribution gate:
 - GitHub Actions run `37512036854`, job `112435369114`.
 - Actual job log: **3188 passed, 1616 deselected in 138.75s**.
 
+Immediate-fallback attribution correction:
+
+- The first exact episode-637 trace failed closed before publication because
+  production immediate-fallback candidate generation was timed while its
+  enclosing `_rank_immediate_plans` search owner was not. The checkpoint and
+  progress hashes, sizes, timestamps, counters, and indices remained unchanged,
+  and no output report was created.
+- Commit `a80c6d215c5573a2e66bc8e6a139dd25d8446cbf` instruments that canonical
+  search owner. A focused regression now proves candidate generation, search
+  evaluation, policy arbitration, and residual time balance exactly for this
+  path; no report-side approximation or rescue layer was added.
+- Broader affected tactical/timing validation: **47 passed in 14.84s**.
+- GitHub Actions run `37512835152`, job `112438129938`.
+- Actual job log: **3189 passed, 1616 deselected in 191.93s**.
+
 ## Exact active task
 
 Run and preserve the exact checkpoint-backed tactical trace for episode 637 /
