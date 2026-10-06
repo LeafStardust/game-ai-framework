@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`49e758db33054040e190a36fa62bc6a8e5724282`.
+`9052c97dafe65b6ecca2d52078ffcd2605b6e9c5`.
 
 ## Objective
 
@@ -533,41 +533,57 @@ Bounded second-batch resume boundary:
   owns the keyed `wheel` RNG, physical draw order, 1-in-7 face-down predicate,
   policy masking, and cleanup semantics.
 
+Wheel tactical-redraw gate:
+
+- Commit `9052c97dafe65b6ecca2d52078ffcd2605b6e9c5`.
+- The canonical facing owner now replenishes both Wheel play and discard draws
+  from retained physical draw-pile order and consumes exactly one keyed
+  `wheel` poll per replacement before public hand sorting.
+- Selected hidden Wheel cards are revealed before hand evaluation. Retained
+  hand-card facing is unchanged, newly hidden identities remain masked from the
+  policy, and invalid Boss/resource/zone state fails atomically without RNG
+  advancement.
+- The deterministic episode-313 regression uses seed `88DB75F5`, crosses both
+  Wheel redraw boundaries without changing the prior strategic decisions, and
+  completes after 13 decisions as an Ante-1 loss with score 364.
+- Focused local validation: **43 passed, 34 deselected in 5.31s**. Broader
+  affected Boss lifecycle validation: **80 passed in 5.78s**.
+- GitHub Actions run `37473389349`, job `112302411629`.
+- Actual job log: **3170 passed, 1616 deselected in 205.07s**.
+
 ## Exact active task
 
-Implement The Wheel's exact post-discard replenishment in the canonical R4
-tactical transition, then prove production episode 313 crosses the repaired
-boundary without changing its earlier decisions.
+Resume the unchanged campaign-v12 checkpoint for exactly one additional
+optimizer batch and preserve its next deterministic boundary or completed-batch
+evidence.
 
 Requirements:
 
-- Require digest
-  `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
-  `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
-  `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
-- Reuse the existing keyed `wheel` RNG and retained physical draw-pile order;
-  consume exactly one Wheel poll per newly drawn card, before public hand sort
-  can affect assignment.
-- Mark each replacement card's facing authoritative, mask only RNG-selected
-  hidden identities in policy observation, and leave already-retained hand-card
-  facing unchanged.
-- Preserve atomicity and RNG on invalid phase, Boss/resource state, private/public
-  zone mismatch, unsupported Joker callbacks/probability modifiers, Purple
-  Seals, or malformed draw identity.
-- Add focused deterministic regressions for physical assignment, seed replay,
-  masking, input immutability, and fail-closed cases plus the complete episode
-  313 trained-policy regression.
-- Use GitHub Actions as the gate. Only after green may the unchanged campaign
-  checkpoint resume the same one-additional-batch command.
+- Preflight the checkpoint before execution. It must remain 46,954,547 bytes
+  with SHA-256
+  `872f3be2dbce3e860b1151edef810df27157858e8f5202799869a75500038a4c`,
+  one completed batch, 2,268 collected / 2,048 consumed transitions, and next
+  episode indices 312..319.
+- Run exactly:
+  `python -m games.balatro.env.ppo_campaign --root-seed RED-WHITE-PPO-V1 --artifact-directory "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5" --maximum-episodes 512 --maximum-batches 1 --maximum-workers 8`.
+- If collection stops fail-closed, verify checkpoint/progress atomicity, isolate
+  the earliest exact ordered episode from the same trained checkpoint, and fix
+  only that demonstrated canonical mechanics boundary with focused deterministic
+  regression coverage.
+- If the batch completes, record exact checkpoint/progress bytes and hashes,
+  episode/transition totals, carryovers, next episode indices, optimizer step,
+  parameter digest, elapsed time, and throughput.
 - Do not start unbounded/full training, inspect promotion results, change
-  policy/hyperparameters/search schedule, or widen beyond The Wheel discard.
+  policy/hyperparameters/search schedule, or widen beyond the next demonstrated
+  boundary.
 
 ## Held and deferred work
 
 - Natural Money Tree live parity evidence is explicitly on hold by user
   direction. It is not passed and must not be inferred.
 - No live Balatro run is currently required.
-- Remaining slow-tail episodes are deferred until decision 12 is attributed.
+- Remaining slow-tail episodes are admitted only through the bounded campaign
+  task above.
 - Higher stakes and other decks begin only after controlled Red/White promotion.
 
 ## Resume evidence index
