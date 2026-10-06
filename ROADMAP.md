@@ -448,11 +448,39 @@ Discard-projection attribution gate:
 - GitHub Actions run `37426984252`, job `112148777942`.
 - Actual job log: **3163 passed, 1614 deselected in 198.50s**.
 
+The decision-12 schema-v18 report is committed at
+`docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_DISCARD_V18.json`. Its
+canonical 6,152-byte report has SHA-256
+`6ac5a5721ffe8e8098f088262de4ab4154beb3f85e7dfa4cc4b3c73dca699e9f`;
+the repository copy includes a terminal newline (6,153 bytes, SHA-256
+`7338d58b4a7cf6263f84164a932edfa9e4deb56bd21197eb4bc5d56bac503b7a`).
+All 13 prefix decisions, the pinned target identity, and both search attempts
+remain exact.
+
+Schema-v18 discard attribution:
+
+- Total target time: **298.35111329999927 seconds**; candidate generation:
+  **261.7304256993957 seconds**.
+- Exactly **682,505** discard projections performed **682,505** active-Joker
+  selections and application calls, but selected and applied **zero** discard
+  Jokers.
+- State-shell copying is the largest discard subowner at
+  **34.927474298587185 seconds**, but widening into its named collection-copy
+  responsibilities is explicitly out of scope.
+- The largest safe redundant owner is context preparation at
+  **7.1288739017472835 seconds**: it constructs hand rules, evaluates the
+  discarded hand, and allocates a Joker context despite the exact empty active
+  set. Empty Joker application adds 0.6197887022863142 seconds.
+- Joker graph cloning remains required for output isolation; discard side-effect
+  finalization remains required for Purple Seals, destruction, discard-pile,
+  and discard-use semantics.
+
 ## Exact active task
 
-Run the single schema-v18 discard-projection attribution diagnostic at frozen
-episode-43 decision 12, preserve the canonical report, and use its exact timing
-and accounting to select the next owner.
+Optimize the canonical `LiveDiscardJokerProjector` empty-active path so it skips
+discard-hand evaluation, Joker-context construction, and empty Joker
+application while preserving the exact projected state and all discard side
+effects.
 
 Requirements:
 
@@ -460,17 +488,21 @@ Requirements:
   `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
   `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
-- Preserve all 13 prefix decisions and the pinned target/search identity.
-- Record the exact schema-v18 discard helper timings, active-selection and
-  application counts, and selected/applied Joker totals.
-- Commit the report under `docs/balatro/` with canonical and repository-copy
-  byte counts and SHA-256 values.
-- Select any optimization only from the measured dominant safe subowner; do
-  not infer it from the schema-v17 aggregate projector time.
+- Keep state-shell copying and Joker graph cloning unchanged so returned-state
+  alias isolation remains exact.
+- Preserve Purple Seal generation, Trading Card destruction, discard-pile
+  updates, player discard-use increments, and Hook's non-consuming semantics.
+- Exercise the existing context/Joker pipeline whenever any active discard
+  Joker or resolvable copy target exists; unsupported first-discard state must
+  remain fail-closed on that path.
+- Add focused deterministic regressions for empty-active player and Hook
+  discards, Purple Seal side effects, and active/copy-Joker fallback behavior.
+- Compare exact public-state output and parent aliases before and after the
+  optimization, then use CI as the gate.
 - Do not optimize any named non-card collection.
-- Do not resume a second optimizer batch, start full training, change
-  policy/hyperparameters/search schedule, or widen mechanics until this task is
-  recorded here.
+- Do not run another long profile, resume a second optimizer batch, start full
+  training, change policy/hyperparameters/search schedule, or widen mechanics
+  until this optimization is green and recorded here.
 
 ## Held and deferred work
 
@@ -490,5 +522,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16_POST_HELPERS.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_SUBOWNERS_V16.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_HOOK_V17.json`
+- `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_DISCARD_V18.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
