@@ -8,13 +8,17 @@ from dataclasses import asdict, dataclass, field
 from hashlib import sha256
 import json
 import math
+from pathlib import Path
 from time import perf_counter
 from typing import Callable
 
 import games.balatro.state as balatro_state
 from games.balatro.env.blind_progression import activate_selected_blind_progression
 from games.balatro.env.episode_backend import pristine_red_white_reset
-from games.balatro.env.ppo_campaign import make_ppo_training_environment
+from games.balatro.env.ppo_campaign import (
+    _atomic_write,
+    make_ppo_training_environment,
+)
 from games.balatro.env.ppo_contract import (
     PPO_TRAINING_CONTRACT,
     PPOContractError,
@@ -155,6 +159,21 @@ class PPOTacticalEpisodeCostReport:
 
     def to_json(self) -> str:
         return json.dumps(self.as_dict(), sort_keys=True)
+
+
+def write_ppo_tactical_episode_report(
+    path: str | Path,
+    report: PPOTacticalEpisodeCostReport,
+) -> str:
+    """Atomically publish one complete tactical episode trace."""
+    if not isinstance(report, PPOTacticalEpisodeCostReport):
+        raise TypeError("report must be PPOTacticalEpisodeCostReport")
+    destination = Path(path)
+    if not destination.parent.is_dir():
+        raise PPOContractError("PPO tactical report directory does not exist")
+    content = report.to_json().encode("utf-8")
+    _atomic_write(destination, content)
+    return sha256(content).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -1902,7 +1921,10 @@ def main(argv: list[str] | None = None) -> int:
     target.add_argument("--episode-seven-horizon-two-parity", action="store_true")
     target.add_argument("--episode-zero-horizon-two-parity", action="store_true")
     target.add_argument("--episode-seven-selective-escalation", action="store_true")
+    parser.add_argument("--output-path")
     arguments = parser.parse_args(argv)
+    if arguments.output_path is not None and arguments.episode_index is None:
+        parser.error("--output-path requires --episode-index")
     report = (
         probe_episode_seven_selective_escalation(root_seed=arguments.root_seed)
         if arguments.episode_seven_selective_escalation
@@ -1921,7 +1943,27 @@ def main(argv: list[str] | None = None) -> int:
             root_seed=arguments.root_seed,
         )
     )
-    print(report.to_json())
+    if arguments.output_path is None:
+        print(report.to_json())
+    else:
+        report_sha256 = write_ppo_tactical_episode_report(
+            arguments.output_path,
+            report,
+        )
+        print(
+            json.dumps(
+                {
+                    "schema": report.schema,
+                    "output_path": str(Path(arguments.output_path)),
+                    "report_sha256": report_sha256,
+                    "episode_index": report.episode_index,
+                    "decision_count": len(report.decisions),
+                    "total_elapsed_seconds": report.total_elapsed_seconds,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
     return 0
 
 

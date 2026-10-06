@@ -1,4 +1,5 @@
 import json
+from hashlib import sha256
 from itertools import count
 from types import SimpleNamespace
 
@@ -23,6 +24,7 @@ from games.balatro.env.ppo_tactical_performance import (
     probe_episode_zero_horizon_two_parity,
     trace_episode_seven_candidate_subowners,
     trace_initial_policy_ppo_episode_tactical_costs,
+    write_ppo_tactical_episode_report,
     _ReconstructTypeSampler,
     _instrument_episode_engine,
 )
@@ -952,3 +954,76 @@ def test_env_ppo_initial_policy_episode_trace_rejects_invalid_index(
 ):
     with pytest.raises(PPOContractError, match="nonnegative episode index"):
         trace_initial_policy_ppo_episode_tactical_costs(episode_index=episode_index)
+
+
+def test_env_ppo_tactical_episode_report_is_atomically_canonical(
+    monkeypatch,
+    tmp_path,
+    capsys,
+):
+    report = tactical_performance.PPOTacticalEpisodeCostReport(
+        schema=PPO_TACTICAL_EPISODE_COST_SCHEMA,
+        root_seed="RED-WHITE-PPO-V1",
+        episode_index=43,
+        stream_index=3,
+        game_seed="EE424B52",
+        environment_transitions=7,
+        total_elapsed_seconds=12.5,
+        tactical_elapsed_seconds=11.0,
+        decisions=(),
+    )
+    output = tmp_path / "episode-43.json"
+    digest = write_ppo_tactical_episode_report(output, report)
+
+    content = output.read_bytes()
+    assert content == report.to_json().encode("utf-8")
+    assert digest == sha256(content).hexdigest()
+    assert not (tmp_path / ".episode-43.json.tmp").exists()
+
+    monkeypatch.setattr(
+        tactical_performance,
+        "trace_initial_policy_ppo_episode_tactical_costs",
+        lambda **kwargs: report,
+    )
+    assert tactical_performance.main(
+        [
+            "--root-seed",
+            "RED-WHITE-PPO-V1",
+            "--episode-index",
+            "43",
+            "--output-path",
+            str(output),
+        ]
+    ) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary == {
+        "schema": PPO_TACTICAL_EPISODE_COST_SCHEMA,
+        "output_path": str(output),
+        "report_sha256": digest,
+        "episode_index": 43,
+        "decision_count": 0,
+        "total_elapsed_seconds": 12.5,
+    }
+
+
+def test_env_ppo_tactical_episode_report_rejects_invalid_publication(tmp_path):
+    with pytest.raises(TypeError, match="PPOTacticalEpisodeCostReport"):
+        write_ppo_tactical_episode_report(tmp_path / "report.json", object())
+    report = tactical_performance.PPOTacticalEpisodeCostReport(
+        schema=PPO_TACTICAL_EPISODE_COST_SCHEMA,
+        root_seed="RED-WHITE-PPO-V1",
+        episode_index=43,
+        stream_index=3,
+        game_seed="EE424B52",
+        environment_transitions=0,
+        total_elapsed_seconds=0.0,
+        tactical_elapsed_seconds=0.0,
+        decisions=(),
+    )
+    with pytest.raises(PPOContractError, match="directory does not exist"):
+        write_ppo_tactical_episode_report(tmp_path / "missing" / "report.json", report)
+
+
+def test_env_ppo_tactical_cli_rejects_output_without_episode_index(tmp_path):
+    with pytest.raises(SystemExit):
+        tactical_performance.main(["--output-path", str(tmp_path / "report.json")])
