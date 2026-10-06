@@ -293,12 +293,36 @@ Card-detachment optimization gate:
 - GitHub Actions run `37421013032`, job `112130135632`.
 - Actual job log: **3159 passed, 1613 deselected in 197.05s**.
 
+The post-fast-path schema-v16 report is committed at
+`docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16_POST_FAST.json`.
+Its canonical 4,664-byte report has SHA-256
+`d1f635c3b0332f06e92828e060f74f3b63e8fdea7b88a11d79d8904327968e43`;
+the repository copy includes a terminal newline (4,665 bytes, SHA-256
+`3b29e33be347e56dbd5ae3be5d73fa0960aec21b1c94e8b38d91d1659a90c47c`).
+The target identity, action, attempts, 12-decision verified prefix, 1,860/945
+cache counts, and 728,887 exact inert transitions are unchanged.
+
+Before/after schema-v16 results:
+
+- Total target time: 420.91189390000363 -> **324.3295658999996 seconds**
+  (**22.9460% lower**).
+- Candidate generation: 389.38627049954084 -> **291.82993469967914
+  seconds** (**25.0539% lower**).
+- Card-collection detachment: 244.07908259911346 ->
+  **142.32064609440567 seconds** (**41.6908% lower**).
+- The first 100,000 exact-card validation samples fell from
+  0.18630290101282299 to 0.12925959857238922 seconds; copy samples fell from
+  0.17939219769323245 to 0.09220489767903928 seconds.
+- Extended-card reconstruction remains absent in the capped sample. Named
+  non-card collections remain individually immaterial.
+
 ## Exact active task
 
-Run the schema-v16 diagnostic once against the frozen episode-43 decision-11
-target after commit `27f1c490`, and preserve its atomic report. Confirm the
-exact identity contract and quantify the real end-to-end improvement before
-selecting any further owner.
+Optimize only the exact-scalar validation and copy helpers still inside
+`BalatroState._detach_tactical_card_collections`. Replace generator-based scalar
+validation and constructor keyword dispatch with behaviorally equivalent,
+allocation-light operations; retain the exact class/key/scalar gate before any
+fast copy.
 
 Requirements:
 
@@ -306,11 +330,15 @@ Requirements:
   `7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d`,
   `DISCARD_CARDS(5)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)`.
-- Require schema v16 card and named-collection attribution in the report.
-- Publish the report atomically and commit the canonical evidence plus its
-  before/after interpretation.
-- Do not optimize any named non-card collection; the pre-change schema-v16
-  profile shows none is material.
+- Preserve fail-closed `deepcopy` for subclasses, missing/extra attributes, and
+  every non-scalar field value.
+- Preserve exact copied attributes, cross-collection identity, zero input-card
+  aliases, and public-state output.
+- Add focused deterministic regressions for missing attributes as well as the
+  existing subclass/extra/mutable cases.
+- Benchmark the two helper owners, then re-run the production alias comparator
+  and exact frozen profile only after tests and CI are green.
+- Do not optimize any named non-card collection.
 - Do not profile decision 12, resume a second optimizer batch, start full
   training, change policy/hyperparameters/search schedule, or widen mechanics
   until this task is green and recorded here.
