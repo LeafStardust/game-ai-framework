@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`afc237b1f7c5281dee63aa4c15743ec9ddbfd73e`.
+`6923361ceea2a0e7cd7c36b3fb1d9c73c87223fa`.
 
 ## Objective
 
@@ -607,29 +607,41 @@ Second optimizer-batch checkpoint:
   batches still project to at most roughly 33.7 days of collection, so full
   training remains unauthorized pending exact timing attribution.
 
+Checkpoint-wave timing gate:
+
+- Commit `6923361ceea2a0e7cd7c36b3fb1d9c73c87223fa`.
+- Schema `balatro-red-white-ppo-campaign-wave-timing-v1` restores the exact
+  campaign checkpoint and reuses the production environment, policy, rollout,
+  and existing timed-worker owner for one ordered eight-stream wave.
+- Reports bind campaign/checkpoint/training-run/policy provenance, exact episode
+  and stream indices, terminal episode digests, per-episode timings, and total
+  wave time. Every episode is explicitly uncommitted.
+- The full restored session is canonically hashed before and after collection;
+  partial/malformed results, policy mutation, clock drift, noncanonical input,
+  or stream-order drift fail closed. Only a complete report is atomically
+  written, and campaign artifacts are never written.
+- Focused local validation: **22 passed in 11.07s**. Broader affected PPO
+  validation: **49 passed in 14.62s**.
+- GitHub Actions run `37510354233`, job `112429587728`.
+- Actual job log: **3181 passed, 1616 deselected in 222.04s**.
+
 ## Exact active task
 
-Add exact read-only timing attribution for bounded campaign waves restored from
-an existing checkpoint, then time the next ordered wave from the completed
-batch-2 checkpoint to identify the current slow owner before any batch-3 resume.
+Run and preserve one exact read-only eight-worker timing wave for episodes
+632..639 from the completed batch-2 checkpoint, then select only its demonstrated
+dominant slow owner before any batch-3 resume.
 
 Requirements:
 
-- Reuse the existing diagnostic-only timing collector; do not fork production
-  environment, policy, rollout, or campaign mechanics.
-- Bind the timing report to campaign/checkpoint SHA-256, training-run SHA-256,
-  exact restored policy digest, requested episode/stream indices, complete
-  episode digests, per-episode elapsed time, and wave elapsed time.
-- The diagnostic must not assemble, optimize, write campaign artifacts, advance
-  next indices, or mutate the restored checkpoint/model. Partial or failed waves
-  remain fail-closed and produce no complete report.
-- Add focused deterministic tests for provenance, exact request ordering,
-  clock validation, immutability, malformed/partial results, and canonical JSON
-  report hashing.
-- Use GitHub Actions as the implementation gate. After green, run one exact
-  read-only eight-worker timing wave for episodes 632..639 from checkpoint
-  `8baf6ec84b6a52b142c60f74df281757de74d0873ba5f4cd9e816945b5f6e631`
-  and preserve its report before selecting any optimization owner.
+- Preflight checkpoint size/hash, progress, next indices, Adam step, carryovers,
+  and policy digest against the completed batch-2 evidence above.
+- Run exactly:
+  `python -m games.balatro.env.ppo_campaign_wave_timing --root-seed RED-WHITE-PPO-V1 --checkpoint-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5\checkpoint.json" --maximum-workers 8 --output-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-wave-632-639.json"`.
+- Verify the campaign checkpoint/progress bytes and hashes remain unchanged;
+  validate and commit the canonical timing report under `docs/balatro/`.
+- Attribute the slowest episode further only if the complete wave identifies a
+  material outlier. Update this roadmap with the exact report hash, timings, and
+  next demonstrated owner before implementation.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
