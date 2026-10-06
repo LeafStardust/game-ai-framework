@@ -748,6 +748,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
         visible_transition_class.project_transition(self, *args, **kwargs)
         tactical_performance.balatro_state.deepcopy(self)
         args[1].copy_for_tactical_projection()
+        args[1].copy().detach_tactical_mutable_aliases()
         return SimpleNamespace(expected=1.0, minimum=0.0)
 
     monkeypatch.setattr(
@@ -805,6 +806,22 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
     state_card_shallow_copy = (
         tactical_performance.balatro_state._copy_exact_scalar_card
     )
+    state_detachment = BalatroState.detach_tactical_mutable_aliases
+    state_card_detachment = BalatroState._detach_tactical_card_collections
+    state_named_detachment = BalatroState._detach_tactical_named_collection
+    detached_unique_cards = len(
+        {
+            id(card)
+            for collection in (
+                state.deck,
+                state.owned_deck or (),
+                state.hand,
+                state.discard_pile,
+            )
+            for card in collection
+        }
+    )
+    expected_card_samples = 2 + 2 * detached_unique_cards
     ticks = count()
 
     report = trace(
@@ -813,7 +830,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
 
     assert requested_streams == [expected_stream]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v15"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v16"
     assert report.episode_index == episode_index
     assert report.stream_index == expected_stream
     assert report.game_seed == game_seed
@@ -853,6 +870,18 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
     assert helper_costs["_state_deepcopy_reconstruct"].calls == 2
     assert helper_costs["_state_deepcopy_dict"].calls == 2
     assert helper_costs["_state_deepcopy_list"].calls == 2
+    assert helper_costs["_state_detach_tactical_mutable_aliases"].calls == 2
+    assert helper_costs["_state_detach_card_collections"].calls == 2
+    assert "_state_detach_extended_card_deepcopy" not in helper_costs
+    for name in (
+        "consumables",
+        "shop_jokers",
+        "shop_consumables",
+        "shop_boosters",
+        "shop_vouchers",
+        "vouchers",
+    ):
+        assert helper_costs[f"_state_detach_{name}"].calls == 2
     assert report.reconstruct_type_sample_limit == 100_000
     assert report.reconstruct_type_sampled_calls == 2
     assert [
@@ -861,9 +890,9 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
     ] == [("games.balatro.state.BalatroState", 2)]
     assert report.reconstruct_type_samples[0].exclusive_elapsed_seconds >= 0.0
     assert report.state_card_sample_limit == 100_000
-    assert report.state_card_validation_sampled_calls == 2
+    assert report.state_card_validation_sampled_calls == expected_card_samples
     assert report.state_card_validation_elapsed_seconds > 0.0
-    assert report.state_card_shallow_copy_sampled_calls == 2
+    assert report.state_card_shallow_copy_sampled_calls == expected_card_samples
     assert report.state_card_shallow_copy_elapsed_seconds > 0.0
     assert helper_costs["_score_outcomes_scorer_score"].calls == 2
     assert helper_costs["_generate_play_actions"].calls == 1
@@ -872,6 +901,9 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
     assert generated_transition_class.project_transition is generated_transition
     assert visible_transition_class.project_transition is visible_transition
     assert BalatroState.copy_for_tactical_projection is tactical_copy
+    assert BalatroState.detach_tactical_mutable_aliases is state_detachment
+    assert BalatroState._detach_tactical_card_collections is state_card_detachment
+    assert BalatroState._detach_tactical_named_collection is state_named_detachment
     assert tactical_performance.balatro_state.deepcopy is state_deepcopy
     assert tactical_performance.copy_module._reconstruct is reconstruct
     assert tactical_performance.copy_module._deepcopy_dispatch[dict] is dict_deepcopy

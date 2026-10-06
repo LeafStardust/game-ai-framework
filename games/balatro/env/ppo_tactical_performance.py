@@ -40,7 +40,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v15"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v16"
 )
 PPO_TACTICAL_INERT_ALIAS_SCHEMA = "balatro-red-white-ppo-inert-alias-v1"
 PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA = "balatro-red-white-ppo-schedule-probe-v1"
@@ -119,6 +119,21 @@ _CANDIDATE_HELPER_NAMES = (
     "_state_deepcopy_list",
     "_score_outcomes_scorer_score",
     "_generate_play_actions",
+)
+_DETACHMENT_HELPER_NAMES = (
+    "_state_detach_tactical_mutable_aliases",
+    "_state_detach_card_collections",
+    "_state_detach_extended_card_deepcopy",
+    "_state_detach_consumables",
+    "_state_detach_shop_jokers",
+    "_state_detach_shop_consumables",
+    "_state_detach_shop_boosters",
+    "_state_detach_shop_vouchers",
+    "_state_detach_vouchers",
+)
+_CANDIDATE_REPORT_HELPER_NAMES = (
+    *_CANDIDATE_HELPER_NAMES,
+    *_DETACHMENT_HELPER_NAMES,
 )
 
 
@@ -1550,7 +1565,7 @@ def _trace_candidate_subowners(
                 calls=helper_accumulator.calls.get(name, 0),
                 exclusive_elapsed_seconds=helper_accumulator.elapsed.get(name, 0.0),
             )
-            for name in _CANDIDATE_HELPER_NAMES
+            for name in _CANDIDATE_REPORT_HELPER_NAMES
             if helper_accumulator.calls.get(name, 0)
         )
         reconstruct_type_samples = tuple(
@@ -1658,10 +1673,21 @@ def _trace_candidate_subowners(
             "copy_for_tactical_projection",
             "_state_copy_for_tactical_projection",
         ),
+        (
+            BalatroState,
+            "detach_tactical_mutable_aliases",
+            "_state_detach_tactical_mutable_aliases",
+        ),
+        (
+            BalatroState,
+            "_detach_tactical_card_collections",
+            "_state_detach_card_collections",
+        ),
     )
     original_state_deepcopy = balatro_state.deepcopy
     original_state_card_validation = balatro_state._has_exact_scalar_card_state
     original_state_card_shallow_copy = balatro_state._copy_exact_scalar_card
+    original_named_detachment = BalatroState._detach_tactical_named_collection
     timed_state_deepcopy = helper_accumulator.wrap(
         "_state_projection_deepcopy",
         original_state_deepcopy,
@@ -1669,6 +1695,14 @@ def _trace_candidate_subowners(
     state_deepcopy_depth = {"value": 0}
 
     def nested_state_deepcopy(*args, **kwargs):
+        if helper_accumulator.enabled and any(
+            frame[0] == "_state_detach_card_collections"
+            for frame in helper_accumulator.stack
+        ):
+            return helper_accumulator.wrap(
+                "_state_detach_extended_card_deepcopy",
+                original_state_deepcopy,
+            )(*args, **kwargs)
         if helper_accumulator.enabled and any(
             frame[0] == "_state_copy_for_tactical_projection"
             for frame in helper_accumulator.stack
@@ -1733,6 +1767,37 @@ def _trace_candidate_subowners(
                 helper_accumulator.wrap(report_name, instrumented),
             )
             installed_class_instrumentation.append((owner, name, original))
+        named_detachment_wrappers = {
+            name: helper_accumulator.wrap(
+                f"_state_detach_{name}",
+                original_named_detachment,
+            )
+            for name in (
+                "consumables",
+                "shop_jokers",
+                "shop_consumables",
+                "shop_boosters",
+                "shop_vouchers",
+                "vouchers",
+            )
+        }
+
+        def instrumented_named_detachment(state, name, memo):
+            wrapper = named_detachment_wrappers.get(name)
+            if wrapper is None:
+                raise RuntimeError("unknown tactical detachment collection")
+            return wrapper(state, name, memo)
+
+        BalatroState._detach_tactical_named_collection = (
+            instrumented_named_detachment
+        )
+        installed_class_instrumentation.append(
+            (
+                BalatroState,
+                "_detach_tactical_named_collection",
+                original_named_detachment,
+            )
+        )
         balatro_state.deepcopy = nested_state_deepcopy
         installed_class_instrumentation.append(
             (balatro_state, "deepcopy", original_state_deepcopy)

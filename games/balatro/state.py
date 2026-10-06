@@ -249,8 +249,23 @@ class BalatroState(GameState):
                 self.voucher_generation_pool,
             )
         }
-        card_fields = frozenset(BalatroCard.__dataclass_fields__)
+        self._detach_tactical_card_collections(
+            memo,
+            frozenset(BalatroCard.__dataclass_fields__),
+        )
 
+        for name in (
+            "consumables",
+            "shop_jokers",
+            "shop_consumables",
+            "shop_boosters",
+            "shop_vouchers",
+            "vouchers",
+        ):
+            self._detach_tactical_named_collection(name, memo)
+        return self
+
+    def _detach_tactical_card_collections(self, memo, card_fields) -> None:
         def detach_card(card):
             marker = id(card)
             if marker in memo:
@@ -266,16 +281,8 @@ class BalatroState(GameState):
         if self.owned_deck is not None:
             self.owned_deck = [detach_card(card) for card in self.owned_deck]
 
-        for name in (
-            "consumables",
-            "shop_jokers",
-            "shop_consumables",
-            "shop_boosters",
-            "shop_vouchers",
-            "vouchers",
-        ):
-            setattr(self, name, deepcopy(getattr(self, name), memo))
-        return self
+    def _detach_tactical_named_collection(self, name, memo) -> None:
+        setattr(self, name, deepcopy(getattr(self, name), memo))
 
     def add_consumable(self, consumable) -> bool:
         if len(self.consumables) >= self.consumable_slots:
