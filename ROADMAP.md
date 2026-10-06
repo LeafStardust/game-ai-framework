@@ -551,28 +551,42 @@ Wheel tactical-redraw gate:
 - GitHub Actions run `37473389349`, job `112302411629`.
 - Actual job log: **3170 passed, 1616 deselected in 205.07s**.
 
+Post-Wheel bounded campaign boundary:
+
+- The exact eight-worker one-additional-batch command resumed the verified
+  campaign-v12 artifact and durably committed 96 further complete episodes
+  before the next fail-closed wave.
+- The valid checkpoint is now 53,677,812 bytes with SHA-256
+  `e2c75781f556bf197c0c5edce4c98fd2761550fb439aaf1d8a770a6246745a64`.
+  Progress names the same hash, one completed batch, 2,922 collected / 2,048
+  consumed transitions, and next episode indices 408..415.
+- The failed ordered wave was not admitted. Read-only sequential isolation from
+  that trained checkpoint proves episodes 408 through 412 complete. Episode
+  413 / stream 5 / seed `DDE9AB93` is the earliest failure and raises the
+  active `The House` play boundary.
+
 ## Exact active task
 
-Resume the unchanged campaign-v12 checkpoint for exactly one additional
-optimizer batch and preserve its next deterministic boundary or completed-batch
-evidence.
+Implement The House's exact active play-facing lifecycle in the canonical R4
+play transition, then prove production episode 413 crosses the repaired
+boundary without changing its earlier decisions.
 
 Requirements:
 
-- Preflight the checkpoint before execution. It must remain 46,954,547 bytes
-  with SHA-256
-  `872f3be2dbce3e860b1151edef810df27157858e8f5202799869a75500038a4c`,
-  one completed batch, 2,268 collected / 2,048 consumed transitions, and next
-  episode indices 312..319.
-- Run exactly:
-  `python -m games.balatro.env.ppo_campaign --root-seed RED-WHITE-PPO-V1 --artifact-directory "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5" --maximum-episodes 512 --maximum-batches 1 --maximum-workers 8`.
-- If collection stops fail-closed, verify checkpoint/progress atomicity, isolate
-  the earliest exact ordered episode from the same trained checkpoint, and fix
-  only that demonstrated canonical mechanics boundary with focused deterministic
-  regression coverage.
-- If the batch completes, record exact checkpoint/progress bytes and hashes,
-  episode/transition totals, carryovers, next episode indices, optimizer step,
-  parameter digest, elapsed time, and throughput.
+- Pin behavior to
+  `GladdonT/balatro-source-code@895ab3a25bc6f513fa80885eb59951bf8e76bc55`
+  before changing the existing deterministic House start owner.
+- Reveal selected face-down cards before hand evaluation and preserve exact
+  facing for retained and replacement cards according to The House's first-hand
+  lifecycle; do not expose hidden identities in policy observation.
+- Preserve input immutability and fail atomically on invalid phase,
+  Boss/resource state, facing/zone drift, unsupported callbacks, or malformed
+  draw identity.
+- Add focused deterministic regressions for reveal/scoring, retained and
+  replacement facing, policy masking, input immutability, fail-closed cases,
+  and the complete trained-policy episode-413 boundary.
+- Use GitHub Actions as the gate. Only after green may the current checkpoint
+  resume the same exact one-additional-batch command.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or widen beyond the next demonstrated
   boundary.
