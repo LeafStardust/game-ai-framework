@@ -1196,7 +1196,7 @@ def trace_initial_policy_ppo_episode_tactical_costs(
     root_seed: str = "RED-WHITE-PPO-V1",
     clock: Callable[[], float] = perf_counter,
 ) -> PPOTacticalEpisodeCostReport:
-    """Trace one exact pre-optimizer episode without replaying earlier streams."""
+    """Trace one exact pre-optimizer episode without replaying earlier episodes."""
     if not isinstance(root_seed, str) or not root_seed:
         raise ValueError("root_seed must be a nonempty string")
     if not callable(clock):
@@ -1205,14 +1205,15 @@ def trace_initial_policy_ppo_episode_tactical_costs(
     if (
         isinstance(episode_index, bool)
         or not isinstance(episode_index, int)
-        or not 0 <= episode_index < stream_count
+        or episode_index < 0
     ):
         raise PPOContractError(
-            "PPO tactical episode diagnostic requires a first-wave episode index"
+            "PPO tactical episode diagnostic requires a nonnegative episode index"
         )
 
     training_run = PPOTrainingRun.from_seed(root_seed)
-    environment = make_ppo_training_environment(episode_index)
+    stream_index = episode_index % stream_count
+    environment = make_ppo_training_environment(stream_index)
     learner = PPOLearner(training_run)
     records: list[PPOTacticalEpisodeDecisionCost] = []
     _instrument_episode_engine(
@@ -1238,7 +1239,7 @@ def trace_initial_policy_ppo_episode_tactical_costs(
         schema=PPO_TACTICAL_EPISODE_COST_SCHEMA,
         root_seed=root_seed,
         episode_index=episode_index,
-        stream_index=episode_index,
+        stream_index=stream_index,
         game_seed=training_run.game_seed(episode_index),
         environment_transitions=len(episode.decisions),
         total_elapsed_seconds=total,

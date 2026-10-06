@@ -267,7 +267,7 @@ def test_env_ppo_episode_instrumentation_records_ordered_decision_cost():
     assert records[0].search_attempts == ()
 
 
-def test_env_ppo_initial_policy_episode_trace_targets_only_requested_first_wave(
+def test_env_ppo_initial_policy_episode_trace_targets_only_requested_episode(
     monkeypatch,
 ):
     from games.balatro.card import BalatroCard
@@ -313,19 +313,19 @@ def test_env_ppo_initial_policy_episode_trace_targets_only_requested_first_wave(
     ticks = iter(float(value) for value in range(18))
 
     report = trace_initial_policy_ppo_episode_tactical_costs(
-        episode_index=7,
+        episode_index=43,
         clock=lambda: next(ticks),
     )
 
-    assert requested_streams == [7]
+    assert requested_streams == [3]
     assert len(collector_calls) == 1
-    assert collector_calls[0][:3] == (environment, "3DEFB26A", 7)
+    assert collector_calls[0][:3] == (environment, "EE424B52", 43)
     assert callable(collector_calls[0][3])
     assert report.schema == PPO_TACTICAL_EPISODE_COST_SCHEMA
     assert report.root_seed == "RED-WHITE-PPO-V1"
-    assert report.episode_index == 7
-    assert report.stream_index == 7
-    assert report.game_seed == "3DEFB26A"
+    assert report.episode_index == 43
+    assert report.stream_index == 3
+    assert report.game_seed == "EE424B52"
     assert report.environment_transitions == 3
     assert report.total_elapsed_seconds == 17.0
     assert report.tactical_elapsed_seconds == 14.0
@@ -335,7 +335,7 @@ def test_env_ppo_initial_policy_episode_trace_targets_only_requested_first_wave(
         "PLAY_CARDS",
     ]
     payload = json.loads(report.to_json())
-    assert payload["episode_index"] == 7
+    assert payload["episode_index"] == 43
     assert len(payload["decisions"]) == 2
 
 
@@ -946,9 +946,9 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
     )
 
 
-@pytest.mark.parametrize("episode_index", [-1, 8, True, 1.0, None])
-def test_env_ppo_initial_policy_episode_trace_rejects_non_first_wave_index(
+@pytest.mark.parametrize("episode_index", [-1, True, 1.0, None])
+def test_env_ppo_initial_policy_episode_trace_rejects_invalid_index(
     episode_index,
 ):
-    with pytest.raises(PPOContractError, match="first-wave episode index"):
+    with pytest.raises(PPOContractError, match="nonnegative episode index"):
         trace_initial_policy_ppo_episode_tactical_costs(episode_index=episode_index)
