@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`898ac9cb0819c39a768d69dfd3fc49a1f42a8318`.
+`8f49d005696974483d7e6a3e27fc2cf3994e3d02`.
 
 ## Objective
 
@@ -356,12 +356,24 @@ Post-helper before/after results:
   **35.5542% lower**, candidate generation **39.2585% lower**, and card
   detachment **65.7711% lower**.
 
+Decision-12 diagnostic gate:
+
+- Commit `8f49d005696974483d7e6a3e27fc2cf3994e3d02`.
+- The schema-v16 diagnostic now exposes an exact episode-43 decision-12 route
+  whose prefix is the complete frozen decision-11 prefix plus only the pinned
+  decision-12 digest/action/search contract.
+- CLI selection remains mutually exclusive and uses the existing atomic
+  candidate-subowner writer; the generic instrumentation/accounting/restoration
+  owner is unchanged.
+- Focused local validation: **69 passed in 1.03s**.
+- GitHub Actions run `37423411824`, job `112137605591`.
+- Actual job log: **3162 passed, 1613 deselected in 191.97s**.
+
 ## Exact active task
 
-Extend the existing schema-v16 candidate-subowner diagnostic only enough to
-target episode 43 decision 12, the remaining dominant outlier in the committed
-episode trace. Reuse the verified decision-11 prefix and append the exact
-decision-12 contract; do not change runtime mechanics.
+Run the schema-v16 diagnostic once against the frozen episode-43 decision-12
+target and preserve its atomic report. Use its exact attribution to select the
+next owner; do not assume decision 12 matches decision 11.
 
 Requirements:
 
@@ -369,10 +381,9 @@ Requirements:
   `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
   `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
-- Add focused routing, identity-drift, instrumentation-accounting, restoration,
-  CLI, and atomic-publication regressions as applicable.
-- Run the single decision-12 target only after the diagnostic change is green
-  in GitHub Actions, then preserve and interpret its atomic report.
+- Require 13 verified prefix decisions and unchanged schema-v16 accounting.
+- Publish the report atomically and commit its exact interpretation before any
+  runtime optimization.
 - Do not optimize any named non-card collection.
 - Do not profile decision 12, resume a second optimizer batch, start full
   training, change policy/hyperparameters/search schedule, or widen mechanics
