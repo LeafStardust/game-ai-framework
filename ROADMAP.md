@@ -2464,6 +2464,40 @@ trace using the durable output path, followed by exact decision/subowner
 attribution. No other slow-tail episode, optimizer batch, policy, schedule, or
 mechanics work is yet authorized.
 
+### Episode-43 decision-cost checkpoint
+
+The unchanged durable episode-43 trace completed successfully. Its canonical
+14,521-byte report has SHA-256
+`79d444d4441a7db5a7e0a8f6d7e212cffbc55b313ebcd22c1317f40f53faf6ca`;
+the complete ordered evidence is preserved in
+`docs/balatro/BALATRO_PPO_EPISODE_43_TACTICAL_COST.json` (the repository copy's
+terminal newline gives file SHA-256
+`647c6163e3d8376886ce5abaf60dfb4cbb74500e96feaf7247a26742287e62b0`).
+It records the exact episode/stream/game-seed tuple **43 / 3 / `EE424B52`**, 10
+environment transitions, 30 tactical decisions, **1090.8815212999907 seconds**
+total episode time, and **1090.3553323000087 seconds** tactical time.
+
+Candidate generation accounts for **1008.54513729979 seconds (92.4969%)**.
+Decisions 11 and 12 alone account for **96.8910%** of tactical time:
+
+* decision 11, input digest `7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d`,
+  selects `DISCARD_CARDS(5)` and traces `(h2,n252,max2000,complete)` then
+  `(h3,n2000,max2000,budget-exceeded)`; total **542.525570999991 seconds**,
+  including **510.05955759975768** candidate generation, **28.269988300235127**
+  search evaluation, **3.9532308000052581** policy arbitration, and
+  **0.24279429999296551** other;
+* decision 12, input digest `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
+  selects `DISCARD_CARDS(1)` with the identical two search-attempt shapes;
+  total **513.93069320000359 seconds**, including **479.94843159998709**
+  candidate generation, **29.515306900022551** search evaluation,
+  **4.2145507000095677** policy arbitration, and **0.25240399998438079** other.
+
+The active task is now to extend the existing candidate-subowner diagnostic
+only as required to replay and stop at verified episode-43 decision 11, then
+attribute its 510-second candidate-generation cost to an exact canonical
+subowner. Decision 12 and the other slow-tail episodes remain out of scope until
+decision 11 is understood. No optimization is authorized yet.
+
 ### Eight-episode probe Manacle checkpoint
 
 The initial unchanged `--maximum-episodes 8` invocation ran for **77.4433825
