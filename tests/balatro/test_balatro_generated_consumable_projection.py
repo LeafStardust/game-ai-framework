@@ -197,7 +197,9 @@ def test_selective_card_detachment_fast_path_fails_closed(monkeypatch):
     subclass = CardSubclass("Q", "Clubs")
     mutable_field = BalatroCard("J", "Diamonds")
     mutable_field.rank = ["J"]
-    cards = [scalar, extended, subclass, mutable_field]
+    missing_field = BalatroCard("10", "Spades")
+    del missing_field.seal
+    cards = [scalar, extended, subclass, mutable_field, missing_field]
     state = _state(cards, [])
     state.deck = list(cards)
     state.discard_pile = list(cards)
@@ -224,6 +226,7 @@ def test_selective_card_detachment_fast_path_fails_closed(monkeypatch):
         assert projected is branch.owned_deck[index]
         assert projected is not source
     assert type(branch.hand[2]) is CardSubclass
+    assert "seal" not in vars(branch.hand[4])
     branch.hand[0].permanent_bonus = 99
     branch.hand[1].projection_metadata["history"].append("projected")
     branch.hand[3].rank.append("projected")

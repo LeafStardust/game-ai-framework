@@ -13,14 +13,21 @@ def _has_exact_scalar_card_state(card, card_fields) -> bool:
     if type(card) is not BalatroCard:
         return False
     attributes = vars(card)
-    return attributes.keys() == card_fields and all(
-        value is None or type(value) in _EXACT_SCALAR_CARD_VALUE_TYPES
-        for value in attributes.values()
-    )
+    if attributes.keys() != card_fields:
+        return False
+    for value in attributes.values():
+        if value is not None and type(value) not in _EXACT_SCALAR_CARD_VALUE_TYPES:
+            return False
+    return True
 
 
 def _copy_exact_scalar_card(card: BalatroCard) -> BalatroCard:
-    return BalatroCard(**vars(card))
+    # The caller has proved the instance has exactly the canonical fields and
+    # only immutable scalar values, so copying its dictionary cannot retain a
+    # mutable alias and avoids generic copy/constructor dispatch.
+    projected = BalatroCard.__new__(BalatroCard)
+    projected.__dict__ = vars(card).copy()
+    return projected
 
 
 class BalatroState(GameState):
