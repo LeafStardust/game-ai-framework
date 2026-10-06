@@ -68,6 +68,9 @@ class _FakeScoreOutcomes:
         self.joker_projector = SimpleNamespace(
             score=lambda *args, **kwargs: SimpleNamespace()
         )
+        self.discard_joker_projector = SimpleNamespace(
+            project=lambda state, cards, **kwargs: state
+        )
 
     @staticmethod
     def _activation_count(state, class_name):
@@ -86,6 +89,18 @@ class _FakeScoreOutcomes:
         return self._project_non_hook_transition(*args, **kwargs)
 
     def _project_hook_transition(self, *args, **kwargs):
+        state = args[1]
+        cards = args[2]
+        held = self._held_cards_after_play_selection(state, cards)
+        branches = self._hook_forced_discard_branches(held, 1)
+        for forced_cards in branches:
+            branch_state = self.discard_joker_projector.project(
+                state,
+                forced_cards,
+                consume_discard_use=False,
+            )
+            self._remove_cards(branch_state.hand, forced_cards)
+            self._append_hook_outcomes([], SimpleNamespace(), 1.0)
         return SimpleNamespace(expected=1.0, minimum=0.0)
 
     def _project_non_hook_transition(self, *args, **kwargs):
@@ -95,6 +110,22 @@ class _FakeScoreOutcomes:
         result = self.project_transition(*args, **kwargs)
         self.scorer.score(*args, **kwargs)
         return result
+
+    @classmethod
+    def _held_cards_after_play_selection(cls, state, cards):
+        return cls._remove_cards(state.hand, cards)
+
+    @staticmethod
+    def _hook_forced_discard_branches(held, discard_count):
+        return ((held[0],),) if held else ((),)
+
+    @staticmethod
+    def _remove_cards(source, removed):
+        return list(source)
+
+    @staticmethod
+    def _append_hook_outcomes(outcomes, transition, branch_probability):
+        return 1
 
 
 class _FakeEvaluator:
@@ -688,6 +719,13 @@ def test_env_ppo_selective_escalation_recovers_frozen_target(monkeypatch):
             3,
             "EE424B52",
         ),
+        (
+            43,
+            "_EPISODE_43_DECISION_12_EXPECTED_PREFIX",
+            trace_episode_43_decision_12_candidate_subowners,
+            3,
+            "EE424B52",
+        ),
     ),
 )
 def test_env_ppo_candidate_subowner_stops_at_verified_target(
@@ -765,6 +803,11 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
         generated_transition,
     )
     score_outcomes = engine.planner.evaluator.score_outcomes
+    hook_held_cards = score_outcomes._held_cards_after_play_selection
+    hook_forced_branches = score_outcomes._hook_forced_discard_branches
+    hook_remove_cards = score_outcomes._remove_cards
+    hook_outcome_aggregation = score_outcomes._append_hook_outcomes
+    hook_discard_projection = score_outcomes.discard_joker_projector.project
 
     def non_hook_transition(*args, **kwargs):
         return generated_transition_class.project_transition(
@@ -831,7 +874,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
 
     assert requested_streams == [expected_stream]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v16"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v17"
     assert report.episode_index == episode_index
     assert report.stream_index == expected_stream
     assert report.game_seed == game_seed
@@ -857,6 +900,16 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
     assert helper_costs["_score_outcomes_project"].calls == 2
     assert helper_costs["_score_outcomes_project_transition"].calls == 2
     assert helper_costs["_score_outcomes_hook_transition"].calls == 2
+    assert helper_costs["_hook_held_cards"].calls == 2
+    assert helper_costs["_hook_forced_branches"].calls == 2
+    assert helper_costs["_hook_discard_projection"].calls == 2
+    assert helper_costs["_hook_remove_cards"].calls == 2
+    assert helper_costs["_hook_outcome_aggregation"].calls == 2
+    assert report.hook_forced_branch_sets == 2
+    assert report.hook_forced_branches == 2
+    assert report.hook_discard_projection_calls == 2
+    assert report.hook_outcome_aggregation_calls == 2
+    assert report.hook_aggregated_outcomes == 2
     assert helper_costs["_score_outcomes_non_hook_transition"].calls == 2
     assert helper_costs["_generated_consumable_project_transition"].calls == 2
     assert report.generated_consumable_transition_calls == 2
@@ -906,6 +959,11 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
     assert BalatroState._detach_tactical_card_collections is state_card_detachment
     assert BalatroState._detach_tactical_named_collection is state_named_detachment
     assert tactical_performance.balatro_state.deepcopy is state_deepcopy
+    assert score_outcomes._held_cards_after_play_selection == hook_held_cards
+    assert score_outcomes._hook_forced_discard_branches == hook_forced_branches
+    assert score_outcomes._remove_cards == hook_remove_cards
+    assert score_outcomes._append_hook_outcomes == hook_outcome_aggregation
+    assert score_outcomes.discard_joker_projector.project == hook_discard_projection
     assert tactical_performance.copy_module._reconstruct is reconstruct
     assert tactical_performance.copy_module._deepcopy_dispatch[dict] is dict_deepcopy
     assert tactical_performance.copy_module._deepcopy_dispatch[list] is list_deepcopy
@@ -967,6 +1025,17 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
     state_card_shallow_copy = (
         tactical_performance.balatro_state._copy_exact_scalar_card
     )
+    score_outcomes = engine.planner.evaluator.score_outcomes
+    hook_helpers = {
+        name: getattr(score_outcomes, name)
+        for name in (
+            "_held_cards_after_play_selection",
+            "_hook_forced_discard_branches",
+            "_remove_cards",
+            "_append_hook_outcomes",
+        )
+    }
+    hook_discard_projection = score_outcomes.discard_joker_projector.project
     monkeypatch.setattr(
         tactical_performance,
         "make_ppo_training_environment",
@@ -1009,6 +1078,9 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
         tactical_performance.balatro_state._copy_exact_scalar_card
         is state_card_shallow_copy
     )
+    for name, original in hook_helpers.items():
+        assert getattr(score_outcomes, name) == original
+    assert score_outcomes.discard_joker_projector.project == hook_discard_projection
 
 
 @pytest.mark.parametrize(
@@ -1191,6 +1263,11 @@ def test_env_ppo_candidate_subowner_report_is_atomically_canonical(
         generated_consumable_eight_ball_capable_calls=0,
         generated_consumable_main_generator_capable_calls=0,
         generated_consumable_sixth_sense_capable_calls=0,
+        hook_forced_branch_sets=0,
+        hook_forced_branches=0,
+        hook_discard_projection_calls=0,
+        hook_outcome_aggregation_calls=0,
+        hook_aggregated_outcomes=0,
         total_elapsed_seconds=12.5,
         candidate_generation_elapsed_seconds=11.0,
         helper_costs=(),

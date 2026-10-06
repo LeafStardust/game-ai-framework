@@ -40,7 +40,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v16"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v17"
 )
 PPO_TACTICAL_INERT_ALIAS_SCHEMA = "balatro-red-white-ppo-inert-alias-v1"
 PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA = "balatro-red-white-ppo-schedule-probe-v1"
@@ -135,9 +135,17 @@ _DETACHMENT_HELPER_NAMES = (
     "_state_detach_shop_vouchers",
     "_state_detach_vouchers",
 )
+_HOOK_HELPER_NAMES = (
+    "_hook_held_cards",
+    "_hook_forced_branches",
+    "_hook_discard_projection",
+    "_hook_remove_cards",
+    "_hook_outcome_aggregation",
+)
 _CANDIDATE_REPORT_HELPER_NAMES = (
     *_CANDIDATE_HELPER_NAMES,
     *_DETACHMENT_HELPER_NAMES,
+    *_HOOK_HELPER_NAMES,
 )
 
 
@@ -442,6 +450,11 @@ class PPOTacticalCandidateSubownerReport:
     generated_consumable_eight_ball_capable_calls: int
     generated_consumable_main_generator_capable_calls: int
     generated_consumable_sixth_sense_capable_calls: int
+    hook_forced_branch_sets: int
+    hook_forced_branches: int
+    hook_discard_projection_calls: int
+    hook_outcome_aggregation_calls: int
+    hook_aggregated_outcomes: int
     total_elapsed_seconds: float
     candidate_generation_elapsed_seconds: float
     helper_costs: tuple[PPOTacticalCandidateHelperCost, ...]
@@ -1349,6 +1362,13 @@ def _trace_candidate_subowners(
         "main_generator": 0,
         "sixth_sense": 0,
     }
+    hook_accounting = {
+        "forced_branch_sets": 0,
+        "forced_branches": 0,
+        "discard_projection_calls": 0,
+        "outcome_aggregation_calls": 0,
+        "aggregated_outcomes": 0,
+    }
     state_card_samples = {
         "validation_calls": 0,
         "validation_seconds": 0.0,
@@ -1365,6 +1385,7 @@ def _trace_candidate_subowners(
     instrumented_score_outcome_scorers: list[object] = []
     instrumented_joker_projectors: list[object] = []
     instrumented_action_generators: list[object] = []
+    installed_instance_instrumentation: list[tuple[object, str, object]] = []
 
     def instrument_evaluator(evaluator) -> None:
         if any(existing is evaluator for existing in instrumented_evaluators):
@@ -1418,6 +1439,75 @@ def _trace_candidate_subowners(
                         source_name,
                         helper_accumulator.wrap(report_name, function),
                     )
+            for source_name, report_name, accounting_kind in (
+                (
+                    "_held_cards_after_play_selection",
+                    "_hook_held_cards",
+                    None,
+                ),
+                (
+                    "_hook_forced_discard_branches",
+                    "_hook_forced_branches",
+                    "forced_branches",
+                ),
+                ("_remove_cards", "_hook_remove_cards", None),
+                (
+                    "_append_hook_outcomes",
+                    "_hook_outcome_aggregation",
+                    "aggregated_outcomes",
+                ),
+            ):
+                function = getattr(score_outcomes, source_name, None)
+                if not callable(function):
+                    continue
+
+                def counted_hook_helper(
+                    *args,
+                    _function=function,
+                    _accounting_kind=accounting_kind,
+                    **kwargs,
+                ):
+                    result = _function(*args, **kwargs)
+                    if helper_accumulator.enabled:
+                        if _accounting_kind == "forced_branches":
+                            hook_accounting["forced_branch_sets"] += 1
+                            hook_accounting["forced_branches"] += len(result)
+                        elif _accounting_kind == "aggregated_outcomes":
+                            hook_accounting["outcome_aggregation_calls"] += 1
+                            hook_accounting["aggregated_outcomes"] += int(result)
+                    return result
+
+                installed_instance_instrumentation.append(
+                    (score_outcomes, source_name, function)
+                )
+                setattr(
+                    score_outcomes,
+                    source_name,
+                    helper_accumulator.wrap(report_name, counted_hook_helper),
+                )
+            discard_projector = getattr(
+                score_outcomes,
+                "discard_joker_projector",
+                None,
+            )
+            discard_project = getattr(discard_projector, "project", None)
+            if callable(discard_project):
+                def counted_discard_projection(
+                    *args,
+                    _project=discard_project,
+                    **kwargs,
+                ):
+                    if helper_accumulator.enabled:
+                        hook_accounting["discard_projection_calls"] += 1
+                    return _project(*args, **kwargs)
+
+                installed_instance_instrumentation.append(
+                    (discard_projector, "project", discard_project)
+                )
+                discard_projector.project = helper_accumulator.wrap(
+                    "_hook_discard_projection",
+                    counted_discard_projection,
+                )
             joker_projector = getattr(score_outcomes, "joker_projector", None)
             if (
                 joker_projector is not None
@@ -1637,6 +1727,15 @@ def _trace_candidate_subowners(
             generated_consumable_sixth_sense_capable_calls=generated_capabilities[
                 "sixth_sense"
             ],
+            hook_forced_branch_sets=hook_accounting["forced_branch_sets"],
+            hook_forced_branches=hook_accounting["forced_branches"],
+            hook_discard_projection_calls=hook_accounting[
+                "discard_projection_calls"
+            ],
+            hook_outcome_aggregation_calls=hook_accounting[
+                "outcome_aggregation_calls"
+            ],
+            hook_aggregated_outcomes=hook_accounting["aggregated_outcomes"],
             total_elapsed_seconds=total,
             candidate_generation_elapsed_seconds=candidate,
             helper_costs=helper_costs,
@@ -1919,6 +2018,8 @@ def _trace_candidate_subowners(
         for value_type, original in reversed(installed_copy_dispatch):
             copy_module._deepcopy_dispatch[value_type] = original
         for owner, name, original in reversed(installed_class_instrumentation):
+            setattr(owner, name, original)
+        for owner, name, original in reversed(installed_instance_instrumentation):
             setattr(owner, name, original)
     raise PPOContractError("candidate sub-owner target was not reached")
 

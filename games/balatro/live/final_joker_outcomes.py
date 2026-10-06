@@ -245,7 +245,7 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
                 include_card_chips=include_card_chips,
             )
 
-        forced_branches = tuple(combinations(held, discard_count))
+        forced_branches = self._hook_forced_discard_branches(held, discard_count)
         branch_probability = 1.0 / len(forced_branches)
         outcomes: list[ScoreOutcome] = []
         unsupported: list[str] = []
@@ -276,14 +276,11 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
             unsupported.extend(transition.unsupported_jokers)
             random_sources.extend(transition.distribution.random_sources)
 
-            for outcome in transition.distribution.outcomes:
-                outcomes.append(
-                    ScoreOutcome(
-                        score=outcome.score,
-                        probability=outcome.probability * branch_probability,
-                        state_after_scoring=outcome.state_after_scoring,
-                    )
-                )
+            self._append_hook_outcomes(
+                outcomes,
+                transition,
+                branch_probability,
+            )
 
         random_sources.append(f"The Hook forced discard x{discard_count}")
         distribution = ScoreOutcomeDistribution(
@@ -358,6 +355,24 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
             list(getattr(state, "hand", []) or []),
             played_cards,
         )
+
+    @staticmethod
+    def _hook_forced_discard_branches(held, discard_count) -> tuple:
+        return tuple(combinations(held, discard_count))
+
+    @staticmethod
+    def _append_hook_outcomes(outcomes, transition, branch_probability) -> int:
+        appended = 0
+        for outcome in transition.distribution.outcomes:
+            outcomes.append(
+                ScoreOutcome(
+                    score=outcome.score,
+                    probability=outcome.probability * branch_probability,
+                    state_after_scoring=outcome.state_after_scoring,
+                )
+            )
+            appended += 1
+        return appended
 
     @classmethod
     def _remove_cards(cls, source, removed) -> list:
