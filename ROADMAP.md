@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`c5f83675408a448ef4f4085398ea1fce9aa237d2`.
+`49e758db33054040e190a36fa62bc6a8e5724282`.
 
 ## Objective
 
@@ -475,12 +475,26 @@ Schema-v18 discard attribution:
   finalization remains required for Purple Seals, destruction, discard-pile,
   and discard-use semantics.
 
+Empty-active discard optimization gate:
+
+- Commit `49e758db33054040e190a36fa62bc6a8e5724282`.
+- The canonical discard projector now skips hand evaluation, Joker-context
+  construction, and the empty application loop only after exact active-Joker
+  selection returns empty. State-shell copying, Joker graph cloning, and every
+  discard side effect remain on the canonical path.
+- Exact before/after public state matches for the inert forced-discard path;
+  returned Jokers remain detached from the parent. Player/Hook discard-use,
+  Purple Seal, active Joker, and Blueprint-copy fallback regressions are green.
+- Focused local validation: **63 passed in 1.33s**; broader affected projection
+  validation: **148 passed in 2.64s**.
+- GitHub Actions run `37466943628`, job `112280263173`.
+- Actual job log: **3164 passed, 1616 deselected in 197.34s**.
+
 ## Exact active task
 
-Optimize the canonical `LiveDiscardJokerProjector` empty-active path so it skips
-discard-hand evaluation, Joker-context construction, and empty Joker
-application while preserving the exact projected state and all discard side
-effects.
+Run one post-optimization schema-v18 diagnostic at frozen episode-43 decision
+12, preserve the canonical report, and compare it directly with the
+pre-optimization schema-v18 evidence.
 
 Requirements:
 
@@ -488,21 +502,17 @@ Requirements:
   `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
   `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
-- Keep state-shell copying and Joker graph cloning unchanged so returned-state
-  alias isolation remains exact.
-- Preserve Purple Seal generation, Trading Card destruction, discard-pile
-  updates, player discard-use increments, and Hook's non-consuming semantics.
-- Exercise the existing context/Joker pipeline whenever any active discard
-  Joker or resolvable copy target exists; unsupported first-discard state must
-  remain fail-closed on that path.
-- Add focused deterministic regressions for empty-active player and Hook
-  discards, Purple Seal side effects, and active/copy-Joker fallback behavior.
-- Compare exact public-state output and parent aliases before and after the
-  optimization, then use CI as the gate.
+- Preserve all 13 prefix decisions and the pinned digest/action/search identity.
+- Require 682,505 discard active-Joker selections with zero selected Jokers;
+  context-preparation and Joker-application calls must fall to zero.
+- Record exact total, candidate, Hook discard-projection, and discard-helper
+  timing deltas against the pre-optimization schema-v18 report.
+- Commit the report under `docs/balatro/` with canonical and repository-copy
+  byte counts and SHA-256 values, then select the next task only from evidence.
 - Do not optimize any named non-card collection.
-- Do not run another long profile, resume a second optimizer batch, start full
-  training, change policy/hyperparameters/search schedule, or widen mechanics
-  until this optimization is green and recorded here.
+- Do not resume a second optimizer batch, start full training, change
+  policy/hyperparameters/search schedule, or widen mechanics until this task is
+  recorded here.
 
 ## Held and deferred work
 
