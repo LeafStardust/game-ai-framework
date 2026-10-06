@@ -340,6 +340,45 @@ def test_env_ppo_rollout_crosses_exact_wheel_play_and_discard_redraws(
 
 
 @pytest.fixture(scope="module")
+def episode_413_with_house_play_facing():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(5),
+        run,
+        episode_index=413,
+        policy=PPOActorCritic(run).infer,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_house_play_facing(
+    episode_413_with_house_play_facing,
+):
+    episode = episode_413_with_house_play_facing
+
+    assert episode.game_seed == "DDE9AB93"
+    assert episode.action_count == 13
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert episode.boundaries[-1].ante == 1
+    assert episode.boundaries[-1].score == 132
+    assert [decision.action.alias for decision in episode.decisions] == [
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "BUY_CONSUMABLE",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+    ]
+
+
+@pytest.fixture(scope="module")
 def episode_50_with_hieroglyph():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
