@@ -88,6 +88,10 @@ _EPISODE_43_DECISION_11_EXPECTED_PREFIX = (
     ("5134dd7a7dda282a67b196c8aefc95615600a0aa7b4400903448706f36563b52", "PLAY_CARDS", (1, 2, 3, 5, 6), ((2, 164, 2000, False), (2, 97, 1000, False))),
     ("7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d", "DISCARD_CARDS", (5,), ((2, 252, 2000, False), (3, 2000, 2000, True))),
 )
+_EPISODE_43_DECISION_12_EXPECTED_PREFIX = (
+    *_EPISODE_43_DECISION_11_EXPECTED_PREFIX,
+    ("9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e", "DISCARD_CARDS", (1,), ((2, 252, 2000, False), (3, 2000, 2000, True))),
+)
 
 _CANDIDATE_HELPER_NAMES = (
     "_root_play_candidates",
@@ -1949,6 +1953,21 @@ def trace_episode_43_decision_11_candidate_subowners(
     )
 
 
+def trace_episode_43_decision_12_candidate_subowners(
+    *,
+    root_seed: str = "RED-WHITE-PPO-V1",
+    clock: Callable[[], float] = perf_counter,
+) -> PPOTacticalCandidateSubownerReport:
+    """Stop at verified episode-43 decision 12 and time candidate subowners."""
+    return _trace_candidate_subowners(
+        episode_index=43,
+        target_index=len(_EPISODE_43_DECISION_12_EXPECTED_PREFIX) - 1,
+        expected_prefix=_EPISODE_43_DECISION_12_EXPECTED_PREFIX,
+        root_seed=root_seed,
+        clock=clock,
+    )
+
+
 def measure_ppo_tactical_cost(
     *,
     root_seed: str = "RED-WHITE-PPO-V1",
@@ -2050,6 +2069,10 @@ def main(argv: list[str] | None = None) -> int:
         "--episode-43-decision-11-candidate-subowners",
         action="store_true",
     )
+    target.add_argument(
+        "--episode-43-decision-12-candidate-subowners",
+        action="store_true",
+    )
     target.add_argument("--episode-seven-schedule-probe", action="store_true")
     target.add_argument("--episode-seven-horizon-two-parity", action="store_true")
     target.add_argument("--episode-zero-horizon-two-parity", action="store_true")
@@ -2060,13 +2083,18 @@ def main(argv: list[str] | None = None) -> int:
         arguments.episode_index is not None
         or arguments.episode_seven_candidate_subowners
         or arguments.episode_43_decision_11_candidate_subowners
+        or arguments.episode_43_decision_12_candidate_subowners
     )
     if arguments.output_path is not None and not output_capable:
         parser.error(
             "--output-path requires an episode or candidate-subowner trace"
         )
     report = (
-        trace_episode_43_decision_11_candidate_subowners(
+        trace_episode_43_decision_12_candidate_subowners(
+            root_seed=arguments.root_seed
+        )
+        if arguments.episode_43_decision_12_candidate_subowners
+        else trace_episode_43_decision_11_candidate_subowners(
             root_seed=arguments.root_seed
         )
         if arguments.episode_43_decision_11_candidate_subowners

@@ -24,6 +24,7 @@ from games.balatro.env.ppo_tactical_performance import (
     probe_episode_zero_horizon_two_parity,
     trace_episode_seven_candidate_subowners,
     trace_episode_43_decision_11_candidate_subowners,
+    trace_episode_43_decision_12_candidate_subowners,
     trace_initial_policy_ppo_episode_tactical_costs,
     write_ppo_tactical_candidate_subowner_report,
     write_ppo_tactical_episode_report,
@@ -1010,7 +1011,27 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
     )
 
 
-def test_env_ppo_episode_43_candidate_subowner_routes_exact_target(monkeypatch):
+@pytest.mark.parametrize(
+    ("trace_function", "expected_prefix_name", "target_index"),
+    (
+        (
+            trace_episode_43_decision_11_candidate_subowners,
+            "_EPISODE_43_DECISION_11_EXPECTED_PREFIX",
+            11,
+        ),
+        (
+            trace_episode_43_decision_12_candidate_subowners,
+            "_EPISODE_43_DECISION_12_EXPECTED_PREFIX",
+            12,
+        ),
+    ),
+)
+def test_env_ppo_episode_43_candidate_subowner_routes_exact_target(
+    monkeypatch,
+    trace_function,
+    expected_prefix_name,
+    target_index,
+):
     captured = {}
     marker = object()
 
@@ -1021,16 +1042,27 @@ def test_env_ppo_episode_43_candidate_subowner_routes_exact_target(monkeypatch):
     monkeypatch.setattr(tactical_performance, "_trace_candidate_subowners", trace)
     clock = lambda: 1.0
 
-    assert trace_episode_43_decision_11_candidate_subowners(clock=clock) is marker
+    assert trace_function(clock=clock) is marker
     assert captured == {
         "episode_index": 43,
-        "target_index": 11,
-        "expected_prefix": (
-            tactical_performance._EPISODE_43_DECISION_11_EXPECTED_PREFIX
-        ),
+        "target_index": target_index,
+        "expected_prefix": getattr(tactical_performance, expected_prefix_name),
         "root_seed": "RED-WHITE-PPO-V1",
         "clock": clock,
     }
+
+
+def test_env_ppo_episode_43_decision_12_prefix_extends_exact_decision_11():
+    decision_11 = tactical_performance._EPISODE_43_DECISION_11_EXPECTED_PREFIX
+    decision_12 = tactical_performance._EPISODE_43_DECISION_12_EXPECTED_PREFIX
+
+    assert decision_12[:-1] == decision_11
+    assert decision_12[-1] == (
+        "9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e",
+        "DISCARD_CARDS",
+        (1,),
+        ((2, 252, 2000, False), (3, 2000, 2000, True)),
+    )
 
 
 @pytest.mark.parametrize("episode_index", [-1, True, 1.0, None])
@@ -1114,10 +1146,31 @@ def test_env_ppo_tactical_cli_rejects_output_without_episode_index(tmp_path):
         tactical_performance.main(["--output-path", str(tmp_path / "report.json")])
 
 
+@pytest.mark.parametrize(
+    ("trace_name", "flag", "target_index", "selected_index"),
+    (
+        (
+            "trace_episode_43_decision_11_candidate_subowners",
+            "--episode-43-decision-11-candidate-subowners",
+            11,
+            5,
+        ),
+        (
+            "trace_episode_43_decision_12_candidate_subowners",
+            "--episode-43-decision-12-candidate-subowners",
+            12,
+            1,
+        ),
+    ),
+)
 def test_env_ppo_candidate_subowner_report_is_atomically_canonical(
     monkeypatch,
     tmp_path,
     capsys,
+    trace_name,
+    flag,
+    target_index,
+    selected_index,
 ):
     report = tactical_performance.PPOTacticalCandidateSubownerReport(
         schema=PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA,
@@ -1125,11 +1178,11 @@ def test_env_ppo_candidate_subowner_report_is_atomically_canonical(
         episode_index=43,
         stream_index=3,
         game_seed="EE424B52",
-        verified_prefix_decisions=12,
-        target_decision_index=11,
+        verified_prefix_decisions=target_index + 1,
+        target_decision_index=target_index,
         public_input_sha256="a" * 64,
         action="DISCARD_CARDS",
-        selected_hand_indices=(5,),
+        selected_hand_indices=(selected_index,),
         search_attempts=((2, 252, 2000, False), (3, 2000, 2000, True)),
         evaluation_cache_hits=0,
         evaluation_cache_misses=0,
@@ -1151,7 +1204,7 @@ def test_env_ppo_candidate_subowner_report_is_atomically_canonical(
         state_card_shallow_copy_elapsed_seconds=0.0,
         residual_candidate_elapsed_seconds=11.0,
     )
-    output = tmp_path / "episode-43-decision-11.json"
+    output = tmp_path / f"episode-43-decision-{target_index}.json"
     digest = write_ppo_tactical_candidate_subowner_report(output, report)
     content = output.read_bytes()
     assert content == report.to_json().encode("utf-8")
@@ -1159,12 +1212,12 @@ def test_env_ppo_candidate_subowner_report_is_atomically_canonical(
 
     monkeypatch.setattr(
         tactical_performance,
-        "trace_episode_43_decision_11_candidate_subowners",
+        trace_name,
         lambda **kwargs: report,
     )
     assert tactical_performance.main(
         [
-            "--episode-43-decision-11-candidate-subowners",
+            flag,
             "--output-path",
             str(output),
         ]
@@ -1174,7 +1227,7 @@ def test_env_ppo_candidate_subowner_report_is_atomically_canonical(
         "output_path": str(output),
         "report_sha256": digest,
         "episode_index": 43,
-        "target_decision_index": 11,
+        "target_decision_index": target_index,
         "total_elapsed_seconds": 12.5,
     }
 
