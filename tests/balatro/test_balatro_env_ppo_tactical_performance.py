@@ -62,15 +62,64 @@ class _FakeDecision:
         self.selected_fallback_value = 12.5
 
 
+class _FakeDiscardProjector:
+    def project(self, state, cards, **kwargs):
+        branch_state = self._copy_state_shell(state)
+        self._clone_joker_graph(branch_state, state)
+        active = self._active_jokers(branch_state, **kwargs)
+        context, _discards_used = self._prepare_discard_context(
+            branch_state,
+            cards,
+            active,
+            **kwargs,
+        )
+        context = self._apply_active_jokers(active, context)
+        self._finalize_discard_side_effects(
+            branch_state,
+            cards,
+            context,
+            discards_used=0,
+            **kwargs,
+        )
+        return branch_state
+
+    @staticmethod
+    def _copy_state_shell(state):
+        return state
+
+    @staticmethod
+    def _clone_joker_graph(branch_state, source_state):
+        return ()
+
+    @staticmethod
+    def _active_jokers(state, **kwargs):
+        return ("active",)
+
+    @staticmethod
+    def _prepare_discard_context(state, cards, active, **kwargs):
+        return SimpleNamespace(), 0
+
+    @staticmethod
+    def _apply_active_jokers(active, context):
+        return context
+
+    @staticmethod
+    def _finalize_discard_side_effects(
+        state,
+        cards,
+        context,
+        **kwargs,
+    ):
+        return None
+
+
 class _FakeScoreOutcomes:
     def __init__(self):
         self.scorer = SimpleNamespace(score=lambda *args, **kwargs: 1.0)
         self.joker_projector = SimpleNamespace(
             score=lambda *args, **kwargs: SimpleNamespace()
         )
-        self.discard_joker_projector = SimpleNamespace(
-            project=lambda state, cards, **kwargs: state
-        )
+        self.discard_joker_projector = _FakeDiscardProjector()
 
     @staticmethod
     def _activation_count(state, class_name):
@@ -808,6 +857,17 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
     hook_remove_cards = score_outcomes._remove_cards
     hook_outcome_aggregation = score_outcomes._append_hook_outcomes
     hook_discard_projection = score_outcomes.discard_joker_projector.project
+    discard_projection_helpers = {
+        name: getattr(score_outcomes.discard_joker_projector, name)
+        for name in (
+            "_copy_state_shell",
+            "_clone_joker_graph",
+            "_active_jokers",
+            "_prepare_discard_context",
+            "_apply_active_jokers",
+            "_finalize_discard_side_effects",
+        )
+    }
 
     def non_hook_transition(*args, **kwargs):
         return generated_transition_class.project_transition(
@@ -874,7 +934,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
 
     assert requested_streams == [expected_stream]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
-    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v17"
+    assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v18"
     assert report.episode_index == episode_index
     assert report.stream_index == expected_stream
     assert report.game_seed == game_seed
@@ -910,6 +970,19 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
     assert report.hook_discard_projection_calls == 2
     assert report.hook_outcome_aggregation_calls == 2
     assert report.hook_aggregated_outcomes == 2
+    for name in (
+        "_discard_state_shell_copy",
+        "_discard_joker_graph_clone",
+        "_discard_active_joker_selection",
+        "_discard_context_preparation",
+        "_discard_joker_application",
+        "_discard_side_effect_finalization",
+    ):
+        assert helper_costs[name].calls == 2
+    assert report.discard_active_joker_selection_calls == 2
+    assert report.discard_active_jokers_selected == 2
+    assert report.discard_joker_application_calls == 2
+    assert report.discard_jokers_applied == 2
     assert helper_costs["_score_outcomes_non_hook_transition"].calls == 2
     assert helper_costs["_generated_consumable_project_transition"].calls == 2
     assert report.generated_consumable_transition_calls == 2
@@ -964,6 +1037,8 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
     assert score_outcomes._remove_cards == hook_remove_cards
     assert score_outcomes._append_hook_outcomes == hook_outcome_aggregation
     assert score_outcomes.discard_joker_projector.project == hook_discard_projection
+    for name, original in discard_projection_helpers.items():
+        assert getattr(score_outcomes.discard_joker_projector, name) == original
     assert tactical_performance.copy_module._reconstruct is reconstruct
     assert tactical_performance.copy_module._deepcopy_dispatch[dict] is dict_deepcopy
     assert tactical_performance.copy_module._deepcopy_dispatch[list] is list_deepcopy
@@ -1036,6 +1111,17 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
         )
     }
     hook_discard_projection = score_outcomes.discard_joker_projector.project
+    discard_projection_helpers = {
+        name: getattr(score_outcomes.discard_joker_projector, name)
+        for name in (
+            "_copy_state_shell",
+            "_clone_joker_graph",
+            "_active_jokers",
+            "_prepare_discard_context",
+            "_apply_active_jokers",
+            "_finalize_discard_side_effects",
+        )
+    }
     monkeypatch.setattr(
         tactical_performance,
         "make_ppo_training_environment",
@@ -1081,6 +1167,8 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
     for name, original in hook_helpers.items():
         assert getattr(score_outcomes, name) == original
     assert score_outcomes.discard_joker_projector.project == hook_discard_projection
+    for name, original in discard_projection_helpers.items():
+        assert getattr(score_outcomes.discard_joker_projector, name) == original
 
 
 @pytest.mark.parametrize(
@@ -1268,6 +1356,10 @@ def test_env_ppo_candidate_subowner_report_is_atomically_canonical(
         hook_discard_projection_calls=0,
         hook_outcome_aggregation_calls=0,
         hook_aggregated_outcomes=0,
+        discard_active_joker_selection_calls=0,
+        discard_active_jokers_selected=0,
+        discard_joker_application_calls=0,
+        discard_jokers_applied=0,
         total_elapsed_seconds=12.5,
         candidate_generation_elapsed_seconds=11.0,
         helper_costs=(),

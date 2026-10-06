@@ -40,7 +40,7 @@ PPO_TACTICAL_COST_SCHEMA = "balatro-red-white-ppo-tactical-cost-v1"
 PPO_TACTICAL_COST_WORKLOAD = "red-white-ppo-first-episode-first-small-blind-decision-v1"
 PPO_TACTICAL_EPISODE_COST_SCHEMA = "balatro-red-white-ppo-tactical-episode-cost-v1"
 PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-tactical-candidate-subowner-v17"
+    "balatro-red-white-ppo-tactical-candidate-subowner-v18"
 )
 PPO_TACTICAL_INERT_ALIAS_SCHEMA = "balatro-red-white-ppo-inert-alias-v1"
 PPO_TACTICAL_SCHEDULE_PROBE_SCHEMA = "balatro-red-white-ppo-schedule-probe-v1"
@@ -142,10 +142,19 @@ _HOOK_HELPER_NAMES = (
     "_hook_remove_cards",
     "_hook_outcome_aggregation",
 )
+_DISCARD_PROJECTION_HELPER_NAMES = (
+    "_discard_state_shell_copy",
+    "_discard_joker_graph_clone",
+    "_discard_active_joker_selection",
+    "_discard_context_preparation",
+    "_discard_joker_application",
+    "_discard_side_effect_finalization",
+)
 _CANDIDATE_REPORT_HELPER_NAMES = (
     *_CANDIDATE_HELPER_NAMES,
     *_DETACHMENT_HELPER_NAMES,
     *_HOOK_HELPER_NAMES,
+    *_DISCARD_PROJECTION_HELPER_NAMES,
 )
 
 
@@ -455,6 +464,10 @@ class PPOTacticalCandidateSubownerReport:
     hook_discard_projection_calls: int
     hook_outcome_aggregation_calls: int
     hook_aggregated_outcomes: int
+    discard_active_joker_selection_calls: int
+    discard_active_jokers_selected: int
+    discard_joker_application_calls: int
+    discard_jokers_applied: int
     total_elapsed_seconds: float
     candidate_generation_elapsed_seconds: float
     helper_costs: tuple[PPOTacticalCandidateHelperCost, ...]
@@ -1369,6 +1382,12 @@ def _trace_candidate_subowners(
         "outcome_aggregation_calls": 0,
         "aggregated_outcomes": 0,
     }
+    discard_accounting = {
+        "active_selection_calls": 0,
+        "active_jokers_selected": 0,
+        "joker_application_calls": 0,
+        "jokers_applied": 0,
+    }
     state_card_samples = {
         "validation_calls": 0,
         "validation_seconds": 0.0,
@@ -1508,6 +1527,71 @@ def _trace_candidate_subowners(
                     "_hook_discard_projection",
                     counted_discard_projection,
                 )
+                for source_name, report_name, accounting_kind in (
+                    (
+                        "_copy_state_shell",
+                        "_discard_state_shell_copy",
+                        None,
+                    ),
+                    (
+                        "_clone_joker_graph",
+                        "_discard_joker_graph_clone",
+                        None,
+                    ),
+                    (
+                        "_active_jokers",
+                        "_discard_active_joker_selection",
+                        "active_selection",
+                    ),
+                    (
+                        "_prepare_discard_context",
+                        "_discard_context_preparation",
+                        None,
+                    ),
+                    (
+                        "_apply_active_jokers",
+                        "_discard_joker_application",
+                        "joker_application",
+                    ),
+                    (
+                        "_finalize_discard_side_effects",
+                        "_discard_side_effect_finalization",
+                        None,
+                    ),
+                ):
+                    function = getattr(discard_projector, source_name, None)
+                    if not callable(function):
+                        continue
+
+                    def counted_discard_helper(
+                        *args,
+                        _function=function,
+                        _accounting_kind=accounting_kind,
+                        **kwargs,
+                    ):
+                        result = _function(*args, **kwargs)
+                        if helper_accumulator.enabled:
+                            if _accounting_kind == "active_selection":
+                                discard_accounting["active_selection_calls"] += 1
+                                discard_accounting["active_jokers_selected"] += len(
+                                    result
+                                )
+                            elif _accounting_kind == "joker_application":
+                                discard_accounting["joker_application_calls"] += 1
+                                discard_accounting["jokers_applied"] += len(args[0])
+                        return result
+
+                    installed_instance_instrumentation.append(
+                        (discard_projector, source_name, function)
+                    )
+                    setattr(
+                        discard_projector,
+                        source_name,
+                        helper_accumulator.wrap(
+                            report_name,
+                            counted_discard_helper,
+                        ),
+                    )
             joker_projector = getattr(score_outcomes, "joker_projector", None)
             if (
                 joker_projector is not None
@@ -1736,6 +1820,16 @@ def _trace_candidate_subowners(
                 "outcome_aggregation_calls"
             ],
             hook_aggregated_outcomes=hook_accounting["aggregated_outcomes"],
+            discard_active_joker_selection_calls=discard_accounting[
+                "active_selection_calls"
+            ],
+            discard_active_jokers_selected=discard_accounting[
+                "active_jokers_selected"
+            ],
+            discard_joker_application_calls=discard_accounting[
+                "joker_application_calls"
+            ],
+            discard_jokers_applied=discard_accounting["jokers_applied"],
             total_elapsed_seconds=total,
             candidate_generation_elapsed_seconds=candidate,
             helper_costs=helper_costs,

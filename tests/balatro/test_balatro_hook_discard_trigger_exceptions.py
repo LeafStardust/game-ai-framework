@@ -79,3 +79,77 @@ def test_hook_forced_discard_still_penalizes_green_joker_without_using_discard()
     assert projected.discards_used == 0
     assert projected.jokers[0].mult == 3
     assert state.jokers[0].mult == 4
+
+
+def test_discard_projection_helper_pipeline_preserves_order_and_isolation() -> None:
+    class RecordingProjector(LiveDiscardJokerProjector):
+        def __init__(self):
+            super().__init__()
+            self.calls = []
+
+        def _copy_state_shell(self, state):
+            self.calls.append("copy_state_shell")
+            return super()._copy_state_shell(state)
+
+        def _clone_joker_graph(self, branch_state, source_state):
+            self.calls.append("clone_joker_graph")
+            return super()._clone_joker_graph(branch_state, source_state)
+
+        def _active_jokers(self, state, *, consume_discard_use=True):
+            self.calls.append("active_jokers")
+            return super()._active_jokers(
+                state,
+                consume_discard_use=consume_discard_use,
+            )
+
+        def _prepare_discard_context(
+            self,
+            branch_state,
+            discarded,
+            active,
+            *,
+            consume_discard_use,
+        ):
+            self.calls.append("prepare_context")
+            return super()._prepare_discard_context(
+                branch_state,
+                discarded,
+                active,
+                consume_discard_use=consume_discard_use,
+            )
+
+        def _apply_active_jokers(self, active, context):
+            self.calls.append("apply_jokers")
+            return super()._apply_active_jokers(active, context)
+
+        def _finalize_discard_side_effects(self, *args, **kwargs):
+            self.calls.append("finalize_side_effects")
+            return super()._finalize_discard_side_effects(*args, **kwargs)
+
+    state = _state()
+    green = GreenJoker()
+    green.mult = 4
+    state.jokers = [green]
+    card = BalatroCard("2", "Clubs", live_id="two")
+    projector = RecordingProjector()
+
+    projected = projector.project(
+        state,
+        [card],
+        consume_discard_use=False,
+    )
+
+    assert projector.calls == [
+        "copy_state_shell",
+        "clone_joker_graph",
+        "active_jokers",
+        "prepare_context",
+        "apply_jokers",
+        "finalize_side_effects",
+    ]
+    assert projected is not state
+    assert projected.jokers[0] is not state.jokers[0]
+    assert projected.jokers[0].mult == 3
+    assert state.jokers[0].mult == 4
+    assert projected.discard_pile == [card]
+    assert projected.discards_used == 0

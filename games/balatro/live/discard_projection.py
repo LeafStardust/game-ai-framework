@@ -63,13 +63,48 @@ class LiveDiscardJokerProjector:
         if state is None:
             return None
 
-        branch_state = state.copy()
-        branch_state.jokers = deepcopy(list(getattr(state, "jokers", [])))
+        branch_state = self._copy_state_shell(state)
+        self._clone_joker_graph(branch_state, state)
         discarded = list(cards or [])
         active = self._active_jokers(
             branch_state,
             consume_discard_use=consume_discard_use,
         )
+        context, discards_used = self._prepare_discard_context(
+            branch_state,
+            discarded,
+            active,
+            consume_discard_use=consume_discard_use,
+        )
+        context = self._apply_active_jokers(active, context)
+        self._finalize_discard_side_effects(
+            branch_state,
+            discarded,
+            context,
+            consume_discard_use=consume_discard_use,
+            discards_used=discards_used,
+        )
+        return branch_state
+
+    @staticmethod
+    def _copy_state_shell(state):
+        return state.copy()
+
+    @staticmethod
+    def _clone_joker_graph(branch_state, source_state) -> list:
+        branch_state.jokers = deepcopy(
+            list(getattr(source_state, "jokers", []))
+        )
+        return branch_state.jokers
+
+    def _prepare_discard_context(
+        self,
+        branch_state,
+        discarded,
+        active,
+        *,
+        consume_discard_use: bool,
+    ) -> tuple[JokerContext, int | None]:
         discards_used = getattr(branch_state, "discards_used", None)
         if discards_used is None and any(
             type(joker).__name__ in self.FIRST_DISCARD_CLASS_NAMES
@@ -96,9 +131,23 @@ class LiveDiscardJokerProjector:
                 "destroyed_cards": [],
             },
         )
+        return context, discards_used
+
+    @staticmethod
+    def _apply_active_jokers(active, context: JokerContext) -> JokerContext:
         for joker in active:
             context = joker.apply(context)
+        return context
 
+    def _finalize_discard_side_effects(
+        self,
+        branch_state,
+        discarded,
+        context: JokerContext,
+        *,
+        consume_discard_use: bool,
+        discards_used: int | None,
+    ) -> None:
         # Purple Seals trigger on the discard event before a Trading Card can
         # permanently destroy the same playing card. Random Tarot identity is
         # intentionally abstracted until authoritative re-observation.
@@ -111,7 +160,6 @@ class LiveDiscardJokerProjector:
         self._append_discard_pile(branch_state, discarded, destroyed)
         if consume_discard_use and discards_used is not None:
             branch_state.discards_used = max(0, int(discards_used)) + 1
-        return branch_state
 
     def _active_jokers(self, state, *, consume_discard_use: bool = True) -> list:
         active = []
