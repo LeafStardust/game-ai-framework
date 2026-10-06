@@ -201,34 +201,37 @@ Exact attribution:
   27.408676404418657 seconds.
 - Evaluator cache: 1,860 hits, 945 misses.
 
-Latest implementation gate before cleanup:
+Latest implementation gate:
 
-- Commit `65e9d6f4d4733a18baa650a3fe850322edcf3a41`.
-- GitHub Actions run `37413943005`, job `112108299554`.
-- Actual job log: **3154 passed, 1613 deselected in 206.61s**.
+- Commit `ba1ca8d716774bf7b5dbb79c37c1992c1b68c0fe`.
+- The generated-consumable owner now uses a strict tri-state capability check.
+  Exact inert states reuse the already-isolated parent transition and detach
+  only mutable card, consumable, voucher, and shop-item aliases. Exact
+  generator/copier capability keeps the full projection path; state/Joker
+  subclasses and malformed containers remain conservative.
+- The production alias comparator preserves identical public-state hashes
+  (`78325d40...`) while reducing wrapped input-card aliases from the inherited
+  60 to exactly 0.
+- Focused local validation: **65 passed**.
+- GitHub Actions run `37416886729`, job `112117355442`.
+- Actual job log: **3158 passed, 1613 deselected in 118.18s**.
 
 ## Exact active task
 
-Read the canonical generated-consumable transition owner and its parity,
-mutation-isolation, and capability tests. Design and implement the narrow
-inert-capability optimization that avoids the unnecessary mutable tactical
-projection demonstrated above while preserving exact behavior for every capable
-Eight Ball, Main Generator, and Sixth Sense path.
+Re-run only the frozen episode-43 decision-11 candidate-subowner diagnostic
+against commit `ba1ca8d7`, using atomic report publication. Preserve and compare
+the exact target digest, action, selected indices, and search-attempt trace
+before interpreting timing.
 
 Requirements:
 
-- Make the change at the generated-consumable transition/state-projection owner,
-  not in the PPO learner, search schedule, or a rescue cache.
-- Prove the inert result is behaviorally identical and does not expose mutable
-  aliases to any caller that can mutate it.
-- Preserve full isolation and existing outcomes for capable paths.
-- Treat unknown, malformed, subclassed, or ambiguous capability state as
-  unsupported/fail-closed; never classify it inert by approximation.
-- Add focused deterministic regressions for exact inert identity/value behavior,
-  mutation isolation, capable paths, and malformed capability state.
-- Re-profile the exact episode-43 decision-11 target after CI. Preserve the
-  digest, selected action/indices, and search-attempt trace before evaluating
-  performance.
+- Require digest
+  `7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d`,
+  `DISCARD_CARDS(5)`, and attempts `(h2,n252,max2000,complete)` then
+  `(h3,n2000,max2000,budget-exceeded)`.
+- Compare candidate-generation and exact subowner counts/timings with the
+  preserved pre-change report.
+- Preserve the complete new report under `docs/balatro/` and update this file.
 - Do not profile decision 12, resume a second optimizer batch, start full
   training, change policy/hyperparameters/search schedule, or widen mechanics
   until this task is green and recorded here.
