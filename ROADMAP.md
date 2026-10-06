@@ -773,6 +773,17 @@ Planner estimate-path attribution gate:
   diagnostic validation: **54 passed in 32.33s**.
 - GitHub Actions run `37520246148`, job `112463504931`.
 - Actual job log: **3196 passed, 1616 deselected in 137.99s**.
+- The first expanded trace failed closed before publication because helper
+  accumulation also covered decision logic outside the timed search envelope;
+  checkpoint/progress artifacts remained unchanged and no report was written.
+  Commit `490be3c16fef243a69366006f908f9c757e4da96` makes the target-active
+  state explicit and enables helpers only inside `rank_plans` or immediate
+  fallback search, while candidate and policy work remain excluded. A focused
+  regression exercises an evaluator call outside search and proves exclusion.
+- Corrected focused validation: **42 passed in 10.45s**. Corrected broader
+  validation: **54 passed in 31.39s**.
+- Corrected GitHub Actions run `37521009246`, job `112466082351`.
+- Actual corrected job log: **3196 passed, 1616 deselected in 172.06s**.
 
 ## Exact active task
 
