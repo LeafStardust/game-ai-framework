@@ -70,13 +70,16 @@ class LiveDiscardJokerProjector:
             branch_state,
             consume_discard_use=consume_discard_use,
         )
-        context, discards_used = self._prepare_discard_context(
-            branch_state,
-            discarded,
-            active,
-            consume_discard_use=consume_discard_use,
-        )
-        context = self._apply_active_jokers(active, context)
+        discards_used = getattr(branch_state, "discards_used", None)
+        context = None
+        if active:
+            context, discards_used = self._prepare_discard_context(
+                branch_state,
+                discarded,
+                active,
+                consume_discard_use=consume_discard_use,
+            )
+            context = self._apply_active_jokers(active, context)
         self._finalize_discard_side_effects(
             branch_state,
             discarded,
@@ -143,7 +146,7 @@ class LiveDiscardJokerProjector:
         self,
         branch_state,
         discarded,
-        context: JokerContext,
+        context: JokerContext | None,
         *,
         consume_discard_use: bool,
         discards_used: int | None,
@@ -152,10 +155,11 @@ class LiveDiscardJokerProjector:
         # permanently destroy the same playing card. Random Tarot identity is
         # intentionally abstracted until authoritative re-observation.
         self._apply_purple_seals(branch_state, discarded)
-        self._apply_hand_level_ups(branch_state, context.data.get("level_up_hands"))
+        context_data = context.data if context is not None else {}
+        self._apply_hand_level_ups(branch_state, context_data.get("level_up_hands"))
         destroyed = project_destroyed_playing_cards(
             branch_state,
-            context.data.get("destroyed_cards", ()),
+            context_data.get("destroyed_cards", ()),
         )
         self._append_discard_pile(branch_state, discarded, destroyed)
         if consume_discard_use and discards_used is not None:
