@@ -4,8 +4,8 @@ Authoritative development state for Balatro Red Deck / White Stake competence
 in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
-Last synchronized implementation HEAD before this roadmap cleanup:
-`ac4a9287260cc485e7eb5476854679ac9cbc2b8d`.
+Last synchronized implementation HEAD:
+`9badb2cc18fcebb468ac126b1e781f143eb20b88`.
 
 ## Objective
 
@@ -235,13 +235,25 @@ Latest implementation gate:
 - GitHub Actions run `37416886729`, job `112117355442`.
 - Actual job log: **3158 passed, 1613 deselected in 118.18s**.
 
+Detachment-attribution diagnostic gate:
+
+- Commit `9badb2cc18fcebb468ac126b1e781f143eb20b88`.
+- `BalatroState.detach_tactical_mutable_aliases` now exposes canonical,
+  behavior-preserving card-collection and named-collection subowners solely so
+  the frozen target can attribute their cost.
+- Candidate-subowner schema v16 measures the detachment owner, card traversal,
+  capped exact-scalar validation/copy samples, extended-card deepcopy, and each
+  mutable consumable/shop/voucher collection. All temporary instrumentation is
+  restored after both successful and failed diagnostic runs.
+- Focused local validation: **65 passed in 1.01s**.
+- GitHub Actions run `37419564525`, job `112125661818`.
+- Actual job log: **3158 passed, 1613 deselected in 106.94s**.
+
 ## Exact active task
 
-Extend the diagnostic only enough to attribute the remaining
-`detach_tactical_mutable_aliases` cost inside the frozen episode-43 decision-11
-target. Separate card collection traversal, exact-scalar validation/copy,
-extended-card deepcopy, and each non-card mutable collection without changing
-runtime behavior.
+Run the schema-v16 diagnostic once against the frozen episode-43 decision-11
+target and preserve its atomic report. Use the result to identify the exact
+dominant detachment subowner before considering any further optimization.
 
 Requirements:
 
@@ -249,8 +261,10 @@ Requirements:
   `7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d`,
   `DISCARD_CARDS(5)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)`.
-- Add focused deterministic tests for exact instrumentation accounting and
-  restoration, then run the single target with atomic report publication.
+- Require schema v16 attribution for card traversal, exact-scalar samples,
+  extended-card deepcopy, and each named non-card mutable collection.
+- Publish the report atomically and commit the canonical evidence plus its
+  interpretation before changing runtime behavior.
 - Do not optimize another collection until the new exact attribution identifies
   it as material.
 - Do not profile decision 12, resume a second optimizer batch, start full
