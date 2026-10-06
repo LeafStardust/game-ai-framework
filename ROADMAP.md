@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`2ed3b9650e8d78342bcd863f4d34f9edc7b146fc`.
+`c5f83675408a448ef4f4085398ea1fce9aa237d2`.
 
 ## Objective
 
@@ -433,13 +433,26 @@ Schema-v17 Hook attribution:
   **7.123402616314706 seconds**. The attribution accounts exactly for all
   branch sets and outcomes and isolates discard projection as the next owner.
 
+Discard-projection attribution gate:
+
+- Commit `c5f83675408a448ef4f4085398ea1fce9aa237d2`.
+- Schema v18 introduces behavior-preserving canonical boundaries for state
+  shell copying, Joker graph cloning, active-Joker selection, context
+  preparation, Joker application, and discard side-effect finalization.
+- The profiler records exact active-selection/application call and Joker counts
+  and restores every temporary instance wrapper after both successful and
+  failing traces.
+- The canonical regression proves helper order, forced-discard semantics, and
+  parent-state/Joker isolation. Focused local validation: **60 passed in
+  1.27s**; broader affected projection validation: **145 passed in 2.50s**.
+- GitHub Actions run `37426984252`, job `112148777942`.
+- Actual job log: **3163 passed, 1614 deselected in 198.50s**.
+
 ## Exact active task
 
-Extend the diagnostic only enough to attribute the
-38.645466690388275-second discard-Joker projection owner at frozen episode-43
-decision 12. Separate state-shell copying, Joker graph cloning, active-Joker
-selection, hand/rules/context preparation, Joker application, and discard
-side-effect finalization without changing runtime behavior.
+Run the single schema-v18 discard-projection attribution diagnostic at frozen
+episode-43 decision 12, preserve the canonical report, and use its exact timing
+and accounting to select the next owner.
 
 Requirements:
 
@@ -447,18 +460,17 @@ Requirements:
   `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
   `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
-- Add behavior-preserving canonical helper boundaries only where required for
-  exact attribution; do not add a Hook-only or learner-only projection path.
-- Record exact discard projection and active-Joker/application accounting, and
-  restore every temporary wrapper after both success and failure.
-- Add focused deterministic instrumentation/accounting/restoration tests, then
-  run the single decision-12 target only after CI is green.
-- Select any optimization only from the measured dominant safe discard
-  subowner; do not infer it from the aggregate projector time.
+- Preserve all 13 prefix decisions and the pinned target/search identity.
+- Record the exact schema-v18 discard helper timings, active-selection and
+  application counts, and selected/applied Joker totals.
+- Commit the report under `docs/balatro/` with canonical and repository-copy
+  byte counts and SHA-256 values.
+- Select any optimization only from the measured dominant safe subowner; do
+  not infer it from the schema-v17 aggregate projector time.
 - Do not optimize any named non-card collection.
-- Do not profile decision 12 again, resume a second optimizer batch, start full
-  training, change policy/hyperparameters/search schedule, or widen mechanics
-  until this instrumentation task is green and recorded here.
+- Do not resume a second optimizer batch, start full training, change
+  policy/hyperparameters/search schedule, or widen mechanics until this task is
+  recorded here.
 
 ## Held and deferred work
 
