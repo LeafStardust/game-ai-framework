@@ -645,27 +645,41 @@ Batch-2 next-wave timing evidence:
   **29.75549409998348 seconds**, **97.1786%** of wave wall time and **3.9794x**
   the next-slowest episode, despite only seven decisions.
 
+Checkpoint tactical-attribution gate:
+
+- Commit `7d14b89d91f2d19658c6b88bd455e539ae0bc462`.
+- Schema `balatro-red-white-ppo-checkpoint-tactical-episode-v1` restores the
+  exact canonical campaign checkpoint, requires the requested episode to be
+  the current pending index for its production stream, and reuses the existing
+  tactical instrumentation, environment, trained policy, and rollout owner.
+- Reports bind campaign/checkpoint/training-run/policy provenance, the complete
+  terminal episode digest, ordered per-decision public-input digests, actions,
+  selected indices, search attempts, balanced timing buckets, and explicit
+  `committed=false` status.
+- The restored session is canonically hashed before and after tracing. Policy
+  mutation, session mutation, clock drift, timing imbalance, noncanonical
+  checkpoints, episode drift, and stream-selection drift fail closed; no
+  campaign artifact is written or advanced.
+- Focused local validation: **7 passed**. Broader affected tactical/timing
+  validation: **46 passed in 15.70s**.
+- GitHub Actions run `37512036854`, job `112435369114`.
+- Actual job log: **3188 passed, 1616 deselected in 138.75s**.
+
 ## Exact active task
 
-Add exact checkpoint-backed tactical decision attribution, then trace episode
-637 / stream 5 / seed `4BA9B47B` under the batch-2 trained policy to identify its
-dominant decision and canonical subowner before any batch-3 resume.
+Run and preserve the exact checkpoint-backed tactical trace for episode 637 /
+stream 5 / seed `4BA9B47B`, then identify its dominant decision and canonical
+subowner before any batch-3 resume.
 
 Requirements:
 
-- Reuse the existing production tactical instrumentation and exact restored
-  campaign policy; do not fork the planner, rollout, environment, or model.
-- Bind the report to checkpoint/training-run/policy provenance and episode 637's
-  complete terminal episode digest. Preserve ordered per-decision input digest,
-  action, selected indices, search attempts, total, candidate-generation,
-  search-evaluation, policy-arbitration, and residual time.
-- Hash the restored session before and after tracing. Do not assemble, optimize,
-  write campaign artifacts, advance indices, or mutate the checkpoint/model.
-- Add focused deterministic tests for checkpoint provenance, exact episode/
-  stream selection, timing accounting, immutability, drift rejection, and
-  canonical report hashing. Use GitHub Actions as the implementation gate.
-- After green, run the exact trained checkpoint trace for episode 637 and commit
-  the report before selecting a narrower subowner or optimization.
+- Preflight the checkpoint and trained policy against the batch-2 evidence.
+- Run exactly:
+  `python -m games.balatro.env.ppo_checkpoint_tactical_performance --root-seed RED-WHITE-PPO-V1 --checkpoint-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5\checkpoint.json" --episode-index 637 --output-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-episode-637-tactical.json"`.
+- Verify the checkpoint/progress bytes and hashes remain unchanged. Validate and
+  commit the canonical report under `docs/balatro/`, then update this roadmap
+  with the exact report hash, episode digest, timings, dominant decision, and
+  next demonstrated subowner before implementation.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
