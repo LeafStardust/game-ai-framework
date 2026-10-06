@@ -1224,6 +1224,12 @@ def _instrument_episode_engine(engine, clock, records) -> None:
 
     engine._adaptive_planner = adaptive_planner
     engine.rank_plans = timed("ranked_search", engine.rank_plans)
+    rank_immediate_plans = getattr(engine, "_rank_immediate_plans", None)
+    if callable(rank_immediate_plans):
+        engine._rank_immediate_plans = timed(
+            "ranked_search",
+            rank_immediate_plans,
+        )
     engine.policy.decide = timed("policy_arbitration", engine.policy.decide)
     original_decide = engine.decide
 

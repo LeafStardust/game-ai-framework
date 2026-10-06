@@ -352,6 +352,46 @@ def test_env_ppo_episode_instrumentation_records_ordered_decision_cost():
     assert records[0].search_attempts == ()
 
 
+def test_env_ppo_episode_instrumentation_owns_immediate_fallback_search_cost():
+    from games.balatro.card import BalatroCard
+    from games.balatro.state import BalatroState
+
+    state = BalatroState()
+    state.hand = [BalatroCard("A", "Spades")]
+    engine = _FakeEngine()
+
+    def rank_immediate_plans(target):
+        engine.planner._candidate_actions(target)
+        return ()
+
+    engine._rank_immediate_plans = rank_immediate_plans
+
+    def decide(target):
+        engine._rank_immediate_plans(target)
+        engine.policy.decide(target, ())
+        return _FakeDecision([target.hand[0]])
+
+    engine.decide = decide
+    records = []
+    ticks = count()
+    _instrument_episode_engine(engine, lambda: float(next(ticks)), records)
+
+    engine.decide(state)
+
+    assert len(records) == 1
+    record = records[0]
+    assert record.candidate_generation_elapsed_seconds > 0.0
+    assert record.search_evaluation_elapsed_seconds > 0.0
+    assert sum(
+        (
+            record.candidate_generation_elapsed_seconds,
+            record.search_evaluation_elapsed_seconds,
+            record.policy_arbitration_elapsed_seconds,
+            record.other_elapsed_seconds,
+        )
+    ) == record.total_elapsed_seconds
+
+
 def test_env_ppo_initial_policy_episode_trace_targets_only_requested_episode(
     monkeypatch,
 ):
