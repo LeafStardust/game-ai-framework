@@ -2429,15 +2429,16 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Add bounded timing attribution for the exact initial-policy episodes and
-parallel waves that produced the first optimizer batch. Timing must remain
-diagnostic-only and outside deterministic checkpoint/model state, use an
-injected clock in regression tests, preserve complete episode/order/digest
-evidence, and identify the concrete slow tail behind the 90-minute gate before
-another optimization. Do not resume into a second batch or begin full training.
-Keep the default/live schedule unchanged. Do not change policy, mechanics,
-projection, the selective predicate, or its schedule; do not inspect promotion
-results, tune hyperparameters, add a wall-clock cutoff, or widen mechanics.
+Run the existing decision-level tactical cost diagnostic for initial-policy
+episode **43** (`EE424B52`), the single dominant first-batch outlier. Preserve
+its complete ordered public-input digests, actions, visible indices, search
+attempt/node traces, and exclusive timing categories; identify the exact
+decision/subowner responsible before any optimization. Do not profile the other
+four slow-tail episodes until episode 43 is understood. Do not resume into a
+second batch or begin full training. Keep the default/live schedule unchanged.
+Do not change policy, mechanics, projection, the selective predicate, or its
+schedule; do not inspect promotion results, tune hyperparameters, add a wall-
+clock cutoff, or widen mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -4115,6 +4116,49 @@ that sustained transition rate the frozen 2,097,152-transition schedule would
 take about **57.953758 days**, so this proves optimizer/checkpoint correctness
 but does not justify full training. The exact next task is the bounded timing
 attribution above, not a second optimizer batch.
+
+### Initial-batch slow-tail timing checkpoint
+
+Commits `1cc7ef11` and `50c556f4` add the diagnostic-only
+`balatro-red-white-ppo-initial-batch-timing-v1` owner. It reconstructs first-
+batch readiness with the frozen initial policy and existing batch assembler but
+never assembles or optimizes the batch. Each worker retains a complete episode
+SHA-256 plus elapsed time; the parent retains ordered requested/committed indices
+and wave time. Timing exists only in a separate report and cannot enter campaign
+checkpoints, model state, RNG, or rollout evidence. Injected-clock regressions
+cover worker/wave/total time, exact ordering and hashes, ready-batch accounting,
+invalid bounds, backward clocks, and atomic canonical report publication.
+
+Focused diagnostic/campaign/assembler/session validation passed **35 tests**;
+the atomic-output follow-up passed **4 tests**. GitHub Actions run
+`37341351644`, job `111868930347`, passed; the actual log reports **3148 passed,
+1613 deselected in 172.51s**. The preceding diagnostic-owner run `37340521908`,
+job `111866145916`, passed with **3147 passed, 1613 deselected in 208.60s**.
+
+The clean eight-worker timing replay completed in **5,503.181343 seconds** and
+atomically published report SHA-256
+`ff4a29f6f976df8c10d0621c78b92cf26abab2b755eb95994a714a532a4cb0a6`.
+All **312** collected episodes were committed, terminal, and uniquely hashed.
+The report exactly reproduces **2,268 transitions**, queued stream counts
+`[284, 308, 296, 288, 280, 264, 291, 257]`, post-batch carryover
+`[28, 52, 40, 32, 24, 8, 35, 1]`, and next indices 312..319 under the frozen
+initial parameter digest `f82fdfda...`. Its runtime is only **1.6261%** above
+the independent 5,415.125-second training gate.
+
+Five waves consume **4,655.4486981 seconds**, or **84.5956%** of total wall
+time, and each is dominated by one episode:
+
+| Episode | Seed | Actions | Worker seconds |
+| ---: | --- | ---: | ---: |
+| 43 | `EE424B52` | 10 | 2038.8557368 |
+| 225 | `DB127F5C` | 9 | 831.6035496 |
+| 118 | `E53FFDBA` | 7 | 641.2209675 |
+| 306 | `F705622B` | 18 | 638.7191160 |
+| 253 | `D330679B` | 8 | 504.4552497 |
+
+Episode 43 alone accounts for **37.0487%** of total wall time. The exact next
+task is its decision-level tactical attribution above, not a speculative
+optimization or another training batch.
 
 ### Horizon-five candidate sub-profile checkpoint
 
