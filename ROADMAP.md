@@ -201,6 +201,25 @@ Exact attribution:
   27.408676404418657 seconds.
 - Evaluator cache: 1,860 hits, 945 misses.
 
+Post-inert re-profile evidence is committed at
+`docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_SUBOWNERS_POST_INERT.json`.
+Its canonical 3,801-byte report has SHA-256
+`7323e04147509eac1671361ebc51fc4309b1d41f3d50b1910307142b556786e5`;
+the repository copy includes a terminal newline (3,802 bytes, SHA-256
+`d0b08bc4f7ae756b6204c77e34a8997d5be16820bc419161cd915eba79cce038`).
+The digest, `DISCARD_CARDS(5)`, selected index, both search attempts, all 12
+verified prefix decisions, 1,860 cache hits, 945 misses, and 728,887 exact inert
+generated transitions are unchanged.
+
+Measured candidate time fell from **610.2228404998896** to
+**459.629491099578 seconds** (**24.6784% lower**); total target time fell from
+**648.5922759999958** to **496.955010399994 seconds** (**23.3794% lower**).
+All 728,887 `copy_for_tactical_projection` calls and their dict/list/
+reconstruction/deepcopy subcalls are eliminated. Generated Joker projector and
+scorer calls also halved from 1,457,774 to 728,887 because the redundant probe
+is skipped. The dominant remaining measured owner is now the 728,887 selective
+generated-consumable transitions themselves at **308.02795810486714 seconds**.
+
 Latest implementation gate:
 
 - Commit `ba1ca8d716774bf7b5dbb79c37c1992c1b68c0fe`.
@@ -218,20 +237,22 @@ Latest implementation gate:
 
 ## Exact active task
 
-Re-run only the frozen episode-43 decision-11 candidate-subowner diagnostic
-against commit `ba1ca8d7`, using atomic report publication. Preserve and compare
-the exact target digest, action, selected indices, and search-attempt trace
-before interpreting timing.
+Extend the diagnostic only enough to attribute the remaining
+`detach_tactical_mutable_aliases` cost inside the frozen episode-43 decision-11
+target. Separate card collection traversal, exact-scalar validation/copy,
+extended-card deepcopy, and each non-card mutable collection without changing
+runtime behavior.
 
 Requirements:
 
-- Require digest
+- Continue to require digest
   `7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d`,
   `DISCARD_CARDS(5)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)`.
-- Compare candidate-generation and exact subowner counts/timings with the
-  preserved pre-change report.
-- Preserve the complete new report under `docs/balatro/` and update this file.
+- Add focused deterministic tests for exact instrumentation accounting and
+  restoration, then run the single target with atomic report publication.
+- Do not optimize another collection until the new exact attribution identifies
+  it as material.
 - Do not profile decision 12, resume a second optimizer batch, start full
   training, change policy/hyperparameters/search schedule, or widen mechanics
   until this task is green and recorded here.
@@ -249,5 +270,6 @@ Requirements:
 
 - `docs/balatro/BALATRO_PPO_EPISODE_43_TACTICAL_COST.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_SUBOWNERS.json`
+- `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_SUBOWNERS_POST_INERT.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
