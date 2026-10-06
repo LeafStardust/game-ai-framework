@@ -797,20 +797,45 @@ Planner estimate-path attribution gate:
 - GitHub Actions run `37521605140`, job `112468163846`.
 - Actual job log: **3196 passed, 1616 deselected in 131.07s**.
 
+Batch-2 decision-11 estimate-path evidence:
+
+- The third exact trained-policy attempt completed with the same pinned prefix,
+  target decision, trained policy, and terminal episode SHA
+  `0899f4127cfa8f6094ba49692215bde2c091af73d3bda5c0a02c70ad63eebc98`.
+  Session SHA before and after is
+  `c1a695faf0ccab8b9d68af96eae2e14fd0fcdad00c85f91e67d3935956afddda`;
+  `committed=false`.
+- The canonical 6,045-byte report has SHA-256
+  `e49beeafc47ef9aa5a3a0f65924ceddcffc3b3322eff76de047e17605298b3f1`.
+  The repository copy at
+  `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_ESTIMATE_SUBOWNERS.json`
+  includes a terminal newline (6,046 bytes, SHA-256
+  `868d055c7a6355b4431dbc7ac06bc4c8e20243e02a674ab65a1d1c4918da34ef`).
+- Search evaluation is **9.130538300378248 seconds** under expanded
+  instrumentation. Direct estimator state deep-copying is the demonstrated
+  dominant owner: **8.780730300059076 seconds (96.1688%)** across **3,403**
+  calls. Estimate-play is next at only **0.18722279911162332 seconds (2.0505%)**.
+- Accounting now closes: residual search evaluation is only
+  **0.00013689999468624592 seconds**. Checkpoint/progress hashes, sizes,
+  timestamps, counters, and indices remained unchanged.
+
 ## Exact active task
 
-Run and preserve the exact checkpoint-backed planner estimate-path trace for
-episode 637 / stream 5 / zero-based tactical decision 11, then select only its
-demonstrated dominant estimate owner before any optimization or batch-3 resume.
+Add exact call-site attribution for estimator state deep-copying at episode 637 /
+stream 5 / zero-based tactical decision 11, then run and preserve that bounded
+trained-policy trace before optimizing cloning or resuming batch 3.
 
 Requirements:
 
-- Preflight the checkpoint and trained policy against the batch-2 evidence.
-- Run exactly:
-  `python -m games.balatro.env.ppo_checkpoint_search_subowners --root-seed RED-WHITE-PPO-V1 --checkpoint-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5\checkpoint.json" --output-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-episode-637-decision-11-estimate-subowners.json"`.
-- Verify checkpoint/progress bytes and hashes remain unchanged. Validate and
-  commit the canonical report under `docs/balatro/`, then update this roadmap
-  with its exact hash, balanced timings, and demonstrated estimate owner.
+- Extend the existing exclusive instrumentation to classify every estimator
+  deepcopy by its active production estimate call path/call site. Preserve the
+  exact 3,403-call total and balanced elapsed accounting; do not infer ownership
+  from source inspection or call counts alone.
+- Reuse the restored checkpoint policy, pinned prefix, complete terminal replay,
+  and immutability/provenance gates. Add focused deterministic tests and use
+  GitHub Actions as the implementation gate.
+- After green, run and commit the canonical bounded report, then optimize only
+  the demonstrated deepcopy call-site owner with exact semantic regressions.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
@@ -839,5 +864,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH2_WAVE_632_639_TIMING.json`
 - `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_TACTICAL.json`
 - `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_SEARCH_SUBOWNERS.json`
+- `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_ESTIMATE_SUBOWNERS.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
