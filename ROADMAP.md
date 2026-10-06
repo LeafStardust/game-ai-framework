@@ -249,11 +249,36 @@ Detachment-attribution diagnostic gate:
 - GitHub Actions run `37419564525`, job `112125661818`.
 - Actual job log: **3158 passed, 1613 deselected in 106.94s**.
 
+The schema-v16 frozen-target report is committed at
+`docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16.json`.
+Its canonical 4,666-byte report has SHA-256
+`48665922dfc098d8281edc8346ff92790e83484ed5afec0a7551fb1de4252c9f`;
+the repository copy includes a terminal newline (4,667 bytes, SHA-256
+`68148e4f51f80d82c5235bf6a9eb287495d917da95e66833b6fafb0588ce7464`).
+The required target identity, action, attempts, verified prefix, cache counts,
+and 728,887 exact inert transitions are unchanged.
+
+Exact detachment attribution:
+
+- Total target time: **420.91189390000363 seconds**.
+- Candidate generation: **389.38627049954084 seconds**.
+- Card-collection detachment: **244.07908259911346 seconds** across 728,887
+  calls (**62.6830%** of candidate generation).
+- The detachment owner's remaining exclusive overhead: **5.499662598827854
+  seconds**.
+- Consumables, shop Jokers, shop consumables, shop boosters, shop vouchers,
+  and vouchers together cost **11.061359712432 seconds**; no individual named
+  collection exceeds 3.181 seconds.
+- The capped first 100,000 exact-card samples cost 0.18630290101282299 seconds
+  for scalar validation and 0.17939219769323245 seconds for shallow copying.
+- No extended-card reconstruction was observed in the 100,000-call sample.
+
 ## Exact active task
 
-Run the schema-v16 diagnostic once against the frozen episode-43 decision-11
-target and preserve its atomic report. Use the result to identify the exact
-dominant detachment subowner before considering any further optimization.
+Optimize only the canonical `BalatroState._detach_tactical_card_collections`
+owner identified by schema v16. Reduce repeated exact-card traversal/
+validation/copy overhead without weakening alias isolation or the conservative
+deepcopy path for subclasses, extra attributes, or mutable field values.
 
 Requirements:
 
@@ -261,12 +286,15 @@ Requirements:
   `7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d`,
   `DISCARD_CARDS(5)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)`.
-- Require schema v16 attribution for card traversal, exact-scalar samples,
-  extended-card deepcopy, and each named non-card mutable collection.
-- Publish the report atomically and commit the canonical evidence plus its
-  interpretation before changing runtime behavior.
-- Do not optimize another collection until the new exact attribution identifies
-  it as material.
+- Preserve cross-collection identity for a card appearing in multiple state
+  collections while leaving zero aliases to every input card.
+- Preserve public-state output and all generated-capable conservative paths.
+- Add focused deterministic regressions for exact canonical cards, shared-card
+  identity, subclasses, extra attributes, and mutable field values.
+- Re-run the production alias comparator and the exact frozen decision-11
+  profile after the implementation is green.
+- Do not optimize any named non-card collection; schema v16 shows none is
+  material.
 - Do not profile decision 12, resume a second optimizer batch, start full
   training, change policy/hyperparameters/search schedule, or widen mechanics
   until this task is green and recorded here.
