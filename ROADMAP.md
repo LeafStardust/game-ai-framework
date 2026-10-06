@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`27f1c49058fc6eca8d64c4cd63abbd7b88f36833`.
+`898ac9cb0819c39a768d69dfd3fc49a1f42a8318`.
 
 ## Objective
 
@@ -316,13 +316,29 @@ Before/after schema-v16 results:
 - Extended-card reconstruction remains absent in the capped sample. Named
   non-card collections remain individually immaterial.
 
+Exact-card helper optimization gate:
+
+- Commit `898ac9cb0819c39a768d69dfd3fc49a1f42a8318`.
+- Exact scalar validation now uses a fail-fast loop after the exact class/key
+  gate. Exact-card copying clones the already-validated scalar-only instance
+  dictionary directly, avoiding generic copy and constructor dispatch.
+- Subclass, extra-field, mutable-field, and missing-instance-field cases remain
+  on graph-preserving `deepcopy`.
+- One-million-call microbenchmarks measured validation at 0.5376129 versus
+  1.1120527 seconds (**51.6558% lower**) and exact copying at 0.2358578 versus
+  1.2125076 seconds (**80.5479% lower**).
+- Production alias/public-state hashes and the 60 -> 0 input-card alias result
+  remain exact.
+- Focused local validation: **66 passed in 1.04s**.
+- GitHub Actions run `37422274157`, job `112134052768`.
+- Actual job log: **3159 passed, 1613 deselected in 195.33s**.
+
 ## Exact active task
 
-Optimize only the exact-scalar validation and copy helpers still inside
-`BalatroState._detach_tactical_card_collections`. Replace generator-based scalar
-validation and constructor keyword dispatch with behaviorally equivalent,
-allocation-light operations; retain the exact class/key/scalar gate before any
-fast copy.
+Run the schema-v16 diagnostic once against the frozen episode-43 decision-11
+target after commit `898ac9cb`, and preserve its atomic report. Confirm the
+exact identity contract and quantify the helper optimization before selecting
+the next measured owner.
 
 Requirements:
 
@@ -330,14 +346,10 @@ Requirements:
   `7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d`,
   `DISCARD_CARDS(5)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)`.
-- Preserve fail-closed `deepcopy` for subclasses, missing/extra attributes, and
-  every non-scalar field value.
-- Preserve exact copied attributes, cross-collection identity, zero input-card
-  aliases, and public-state output.
-- Add focused deterministic regressions for missing attributes as well as the
-  existing subclass/extra/mutable cases.
-- Benchmark the two helper owners, then re-run the production alias comparator
-  and exact frozen profile only after tests and CI are green.
+- Require unchanged schema-v16 target identity, card attribution, and named
+  collection attribution.
+- Publish the report atomically and commit the canonical evidence plus exact
+  before/after interpretation.
 - Do not optimize any named non-card collection.
 - Do not profile decision 12, resume a second optimizer batch, start full
   training, change policy/hyperparameters/search schedule, or widen mechanics
