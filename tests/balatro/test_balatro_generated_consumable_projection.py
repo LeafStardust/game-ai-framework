@@ -1,5 +1,3 @@
-from copy import copy as standard_shallow_copy
-
 import games.balatro.state as state_module
 from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.card import BalatroCard
@@ -189,6 +187,51 @@ def test_selective_alias_detachment_covers_mutable_tactical_collections():
     assert state.vouchers == [{"history": ["owned"]}]
 
 
+def test_selective_card_detachment_fast_path_fails_closed(monkeypatch):
+    class CardSubclass(BalatroCard):
+        pass
+
+    scalar = BalatroCard("A", "Spades", permanent_bonus=12)
+    extended = BalatroCard("K", "Hearts")
+    extended.projection_metadata = {"history": ["played"]}
+    subclass = CardSubclass("Q", "Clubs")
+    mutable_field = BalatroCard("J", "Diamonds")
+    mutable_field.rank = ["J"]
+    cards = [scalar, extended, subclass, mutable_field]
+    state = _state(cards, [])
+    state.deck = list(cards)
+    state.discard_pile = list(cards)
+    copied = []
+    exact_copy = state_module._copy_exact_scalar_card
+
+    def observed_exact_copy(card):
+        copied.append(card)
+        return exact_copy(card)
+
+    monkeypatch.setattr(
+        state_module,
+        "_copy_exact_scalar_card",
+        observed_exact_copy,
+    )
+
+    branch = state.copy().detach_tactical_mutable_aliases()
+
+    assert copied == [scalar]
+    for index, source in enumerate(cards):
+        projected = branch.hand[index]
+        assert projected is branch.deck[index]
+        assert projected is branch.discard_pile[index]
+        assert projected is branch.owned_deck[index]
+        assert projected is not source
+    assert type(branch.hand[2]) is CardSubclass
+    branch.hand[0].permanent_bonus = 99
+    branch.hand[1].projection_metadata["history"].append("projected")
+    branch.hand[3].rank.append("projected")
+    assert scalar.permanent_bonus == 12
+    assert extended.projection_metadata == {"history": ["played"]}
+    assert mutable_field.rank == ["J"]
+
+
 def test_capable_generated_paths_keep_full_tactical_projection(monkeypatch):
     original = BalatroState.copy_for_tactical_projection
     calls = []
@@ -275,7 +318,7 @@ def test_tactical_projection_copy_deep_copies_extended_card_state():
     )
 
 
-def test_tactical_projection_shallow_copies_only_exact_scalar_cards(monkeypatch):
+def test_tactical_projection_fast_copies_only_exact_scalar_cards(monkeypatch):
     class CardSubclass(BalatroCard):
         pass
 
@@ -287,11 +330,17 @@ def test_tactical_projection_shallow_copies_only_exact_scalar_cards(monkeypatch)
     state.deck = [scalar, extended, subclass]
     copied = []
 
-    def observed_shallow_copy(card):
-        copied.append(card)
-        return standard_shallow_copy(card)
+    exact_copy = state_module._copy_exact_scalar_card
 
-    monkeypatch.setattr(state_module, "shallow_copy", observed_shallow_copy)
+    def observed_exact_copy(card):
+        copied.append(card)
+        return exact_copy(card)
+
+    monkeypatch.setattr(
+        state_module,
+        "_copy_exact_scalar_card",
+        observed_exact_copy,
+    )
 
     branch = state.copy_for_tactical_projection()
 

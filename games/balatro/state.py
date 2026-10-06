@@ -1,22 +1,26 @@
-from copy import copy as shallow_copy, deepcopy
+from copy import deepcopy
 
 from framework.core.state import GameState
 
 from games.balatro.card import BalatroCard
 
 
+_BALATRO_CARD_FIELDS = frozenset(BalatroCard.__dataclass_fields__)
+_EXACT_SCALAR_CARD_VALUE_TYPES = frozenset({bool, int, float, str})
+
+
 def _has_exact_scalar_card_state(card, card_fields) -> bool:
     if type(card) is not BalatroCard:
         return False
     attributes = vars(card)
-    return set(attributes) == card_fields and all(
-        value is None or type(value) in {bool, int, float, str}
+    return attributes.keys() == card_fields and all(
+        value is None or type(value) in _EXACT_SCALAR_CARD_VALUE_TYPES
         for value in attributes.values()
     )
 
 
 def _copy_exact_scalar_card(card: BalatroCard) -> BalatroCard:
-    return shallow_copy(card)
+    return BalatroCard(**vars(card))
 
 
 class BalatroState(GameState):
@@ -217,7 +221,7 @@ class BalatroState(GameState):
                 self.voucher_generation_pool,
             )
         }
-        card_fields = frozenset(BalatroCard.__dataclass_fields__)
+        card_fields = _BALATRO_CARD_FIELDS
         seen_cards = set()
         for collection in (
             self.deck,
@@ -251,7 +255,7 @@ class BalatroState(GameState):
         }
         self._detach_tactical_card_collections(
             memo,
-            frozenset(BalatroCard.__dataclass_fields__),
+            _BALATRO_CARD_FIELDS,
         )
 
         for name in (
@@ -266,20 +270,22 @@ class BalatroState(GameState):
         return self
 
     def _detach_tactical_card_collections(self, memo, card_fields) -> None:
-        def detach_card(card):
-            marker = id(card)
-            if marker in memo:
-                return memo[marker]
-            if _has_exact_scalar_card_state(card, card_fields):
-                projected = _copy_exact_scalar_card(card)
-                memo[marker] = projected
-                return projected
-            return deepcopy(card, memo)
-
-        for name in ("deck", "hand", "discard_pile"):
-            setattr(self, name, [detach_card(card) for card in getattr(self, name)])
-        if self.owned_deck is not None:
-            self.owned_deck = [detach_card(card) for card in self.owned_deck]
+        for name in ("deck", "hand", "discard_pile", "owned_deck"):
+            source_cards = getattr(self, name)
+            if source_cards is None:
+                continue
+            projected_cards = []
+            for card in source_cards:
+                marker = id(card)
+                projected = memo.get(marker)
+                if projected is None:
+                    if _has_exact_scalar_card_state(card, card_fields):
+                        projected = _copy_exact_scalar_card(card)
+                    else:
+                        projected = deepcopy(card, memo)
+                    memo[marker] = projected
+                projected_cards.append(projected)
+            setattr(self, name, projected_cards)
 
     def _detach_tactical_named_collection(self, name, memo) -> None:
         setattr(self, name, deepcopy(getattr(self, name), memo))
