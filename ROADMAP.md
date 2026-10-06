@@ -409,11 +409,37 @@ Hook-attribution diagnostic gate:
 - GitHub Actions run `37425237861`, job `112143289527`.
 - Actual job log: **3163 passed, 1613 deselected in 197.76s**.
 
+The decision-12 schema-v17 report is committed at
+`docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_HOOK_V17.json`. Its canonical
+5,350-byte report has SHA-256
+`65e73c9cb5c33c3992a5490efbe68e7557ee6404e0f77865e7d16e4c224264c6`;
+the repository copy includes a terminal newline (5,351 bytes, SHA-256
+`5b22c33f601852b70898945d897ba3ac62454ece858b99980570a3598c1c79f3`).
+All 13 prefix decisions, the pinned target identity, and both search attempts
+remain exact.
+
+Schema-v17 Hook attribution:
+
+- Total target time: **254.8979316999903 seconds**; candidate generation:
+  **220.5095313998172 seconds**.
+- Exactly **83,408** Hook forced-branch sets produced **682,505** forced
+  branches, discard projections, aggregation calls, and aggregated outcomes.
+- Discard-Joker projection is the dominant Hook subowner at
+  **38.645466690388275 seconds**. The other separated Hook work is small:
+  held-card selection 0.44416119770903606 seconds, forced-branch construction
+  0.17402039893204346 seconds, hand removal 2.4097911006829236 seconds, and
+  outcome aggregation 1.5502811945480062 seconds.
+- The parent Hook transition's remaining exclusive work is
+  **7.123402616314706 seconds**. The attribution accounts exactly for all
+  branch sets and outcomes and isolates discard projection as the next owner.
+
 ## Exact active task
 
-Run the single schema-v17 Hook-attribution diagnostic at frozen episode-43
-decision 12, preserve the canonical report, and use its exact timing and
-accounting to select the next owner.
+Extend the diagnostic only enough to attribute the
+38.645466690388275-second discard-Joker projection owner at frozen episode-43
+decision 12. Separate state-shell copying, Joker graph cloning, active-Joker
+selection, hand/rules/context preparation, Joker application, and discard
+side-effect finalization without changing runtime behavior.
 
 Requirements:
 
@@ -421,17 +447,18 @@ Requirements:
   `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
   `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
-- Preserve all 13 prefix decisions and the pinned target/search identity.
-- Record the exact schema-v17 Hook call/branch/outcome counts and each named
-  subowner timing from the generated report.
-- Commit the report under `docs/balatro/` with canonical and repository-copy
-  byte counts and SHA-256 values.
-- Select any runtime optimization only from the measured dominant safe
-  subowner; do not infer it from the schema-v16 aggregate.
+- Add behavior-preserving canonical helper boundaries only where required for
+  exact attribution; do not add a Hook-only or learner-only projection path.
+- Record exact discard projection and active-Joker/application accounting, and
+  restore every temporary wrapper after both success and failure.
+- Add focused deterministic instrumentation/accounting/restoration tests, then
+  run the single decision-12 target only after CI is green.
+- Select any optimization only from the measured dominant safe discard
+  subowner; do not infer it from the aggregate projector time.
 - Do not optimize any named non-card collection.
-- Do not resume a second optimizer batch, start full training, change
-  policy/hyperparameters/search schedule, or widen mechanics until this task is
-  recorded here.
+- Do not profile decision 12 again, resume a second optimizer batch, start full
+  training, change policy/hyperparameters/search schedule, or widen mechanics
+  until this instrumentation task is green and recorded here.
 
 ## Held and deferred work
 
@@ -450,5 +477,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16_POST_FAST.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16_POST_HELPERS.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_SUBOWNERS_V16.json`
+- `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_HOOK_V17.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
