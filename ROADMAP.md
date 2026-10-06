@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`9052c97dafe65b6ecca2d52078ffcd2605b6e9c5`.
+`afc237b1f7c5281dee63aa4c15743ec9ddbfd73e`.
 
 ## Objective
 
@@ -565,28 +565,45 @@ Post-Wheel bounded campaign boundary:
   413 / stream 5 / seed `DDE9AB93` is the earliest failure and raises the
   active `The House` play boundary.
 
+House play-facing gate:
+
+- Commit `afc237b1f7c5281dee63aa4c15743ec9ddbfd73e`.
+- Pinned vanilla source confirms The House keeps new hand draws face-down only
+  while both round hands played and discards used are zero. The canonical play
+  owner now reveals selected hidden cards before classification/scoring, keeps
+  unselected initial cards hidden, and draws post-play replacements face-up.
+- Policy observation continues to mask only retained hidden identities; input
+  state and RNG remain immutable, and facing/zone drift fails closed.
+- The exact trained checkpoint completes episode 413 / stream 5 / seed
+  `DDE9AB93` in 14 decisions as an Ante-1 loss with score 132. Its strategic
+  actions are `SELECT_BLIND`, `END_SHOP`, `SELECT_BLIND`, `END_SHOP`,
+  `SELECT_BLIND`, `BUY_VOUCHER`, `BUY_CONSUMABLE`, `END_SHOP`, `SELECT_BLIND`,
+  `BUY_VOUCHER`, `END_SHOP`, `SELECT_BLIND`, `END_SHOP`, `SELECT_BLIND`.
+- Focused local validation: **58 passed in 1.37s**. Broader affected play-path
+  validation: **84 passed in 6.57s**.
+- GitHub Actions run `37476160011`, job `112311981772`.
+- Actual job log: **3176 passed, 1616 deselected in 151.29s**.
+
 ## Exact active task
 
-Implement The House's exact active play-facing lifecycle in the canonical R4
-play transition, then prove production episode 413 crosses the repaired
-boundary without changing its earlier decisions.
+Resume the current campaign-v12 checkpoint for exactly one additional optimizer
+batch and preserve its next deterministic boundary or completed-batch evidence.
 
 Requirements:
 
-- Pin behavior to
-  `GladdonT/balatro-source-code@895ab3a25bc6f513fa80885eb59951bf8e76bc55`
-  before changing the existing deterministic House start owner.
-- Reveal selected face-down cards before hand evaluation and preserve exact
-  facing for retained and replacement cards according to The House's first-hand
-  lifecycle; do not expose hidden identities in policy observation.
-- Preserve input immutability and fail atomically on invalid phase,
-  Boss/resource state, facing/zone drift, unsupported callbacks, or malformed
-  draw identity.
-- Add focused deterministic regressions for reveal/scoring, retained and
-  replacement facing, policy masking, input immutability, fail-closed cases,
-  and the complete trained-policy episode-413 boundary.
-- Use GitHub Actions as the gate. Only after green may the current checkpoint
-  resume the same exact one-additional-batch command.
+- Preflight the checkpoint at 53,677,812 bytes with SHA-256
+  `e2c75781f556bf197c0c5edce4c98fd2761550fb439aaf1d8a770a6246745a64`,
+  one completed batch, 2,922 collected / 2,048 consumed transitions, and next
+  episode indices 408..415.
+- Run exactly:
+  `python -m games.balatro.env.ppo_campaign --root-seed RED-WHITE-PPO-V1 --artifact-directory "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5" --maximum-episodes 512 --maximum-batches 1 --maximum-workers 8`.
+- If collection stops fail-closed, verify the last committed checkpoint and
+  progress agree, isolate the earliest exact ordered episode from the same
+  trained checkpoint, and fix only that demonstrated canonical mechanics
+  boundary with focused deterministic regression coverage.
+- If the batch completes, record exact checkpoint/progress bytes and hashes,
+  episode/transition totals, carryovers, next episode indices, optimizer step,
+  parameter digest, elapsed time, and throughput.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or widen beyond the next demonstrated
   boundary.
