@@ -714,27 +714,40 @@ Batch-2 episode-637 tactical evidence:
 - Checkpoint/progress hashes, sizes, timestamps, counters, and next indices
   remained unchanged after the trace.
 
+Checkpoint search-subowner attribution gate:
+
+- Commit `acfebfe075f8d24117cdaea5d44d34e541124a3a`.
+- Schema `balatro-red-white-ppo-checkpoint-search-subowner-v1` restores the
+  exact trained checkpoint, pins the first 12 tactical decision signatures to
+  the committed episode-637 report, and reuses the existing exclusive helper
+  instrumentation at zero-based target decision 11.
+- The new `search_evaluation` scope times candidate generation and policy
+  arbitration but disables helper accumulation inside them, leaving helper
+  call counts and exclusive timings owned only by search evaluation. It records
+  the residual search time without report-side estimates.
+- The diagnostic replays the same trained-policy episode to a complete terminal
+  boundary for its episode digest, binds checkpoint/training/policy/session
+  provenance, and remains explicitly uncommitted. Prefix, stream, target,
+  clock, timing, policy, terminal episode, and session drift fail closed.
+- Focused local validation: **42 passed in 8.97s**. Broader affected PPO
+  diagnostic validation: **54 passed in 36.23s**.
+- GitHub Actions run `37518995187`, job `112459167769`.
+- Actual job log: **3196 passed, 1616 deselected in 196.39s**.
+
 ## Exact active task
 
-Add exact checkpoint-backed search-evaluation subowner attribution for episode
-637 / stream 5 / zero-based tactical decision 11, then run and preserve that
-bounded trained-policy trace before any batch-3 resume.
+Run and preserve the exact checkpoint-backed search-evaluation subowner trace
+for episode 637 / stream 5 / zero-based tactical decision 11, then select only
+its demonstrated dominant helper before any batch-3 resume.
 
 Requirements:
 
-- Reuse the exact restored checkpoint policy, production episode rollout, and
-  existing tactical helper instrumentation. Pin and validate the ordered
-  decision prefix through index 11 against the committed tactical report.
-- Attribute the target's search-evaluation work to its existing planner,
-  evaluator, projection, copying, and outcome helpers without changing search
-  behavior or adding report-side estimates. Preserve exact action/search trace,
-  helper call counts and exclusive timings, checkpoint/training/policy/episode
-  provenance, and session immutability.
-- Fail closed on prefix, clock, policy, episode, stream, helper-accounting, or
-  session drift. Add focused deterministic tests and use GitHub Actions as the
-  implementation gate before running the exact checkpoint trace.
-- Commit the canonical diagnostic under `docs/balatro/` and update this roadmap
-  with the demonstrated helper owner before optimizing anything.
+- Preflight the checkpoint and trained policy against the batch-2 evidence.
+- Run exactly:
+  `python -m games.balatro.env.ppo_checkpoint_search_subowners --root-seed RED-WHITE-PPO-V1 --checkpoint-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5\checkpoint.json" --output-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-episode-637-decision-11-search-subowners.json"`.
+- Verify checkpoint/progress bytes and hashes remain unchanged. Validate and
+  commit the canonical report under `docs/balatro/`, then update this roadmap
+  with its exact hash, timings, and demonstrated helper owner.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
