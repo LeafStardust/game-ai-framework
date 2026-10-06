@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`8f49d005696974483d7e6a3e27fc2cf3994e3d02`.
+`2ed3b9650e8d78342bcd863f4d34f9edc7b146fc`.
 
 ## Objective
 
@@ -395,12 +395,25 @@ Decision-12 attribution:
 - Decision 12 therefore confirms decision 11's ownership shape rather than
   revealing a separate mechanic-specific regression.
 
+Hook-attribution diagnostic gate:
+
+- Commit `2ed3b9650e8d78342bcd863f4d34f9edc7b146fc`.
+- Schema v17 adds behavior-preserving canonical helper boundaries for held-card
+  selection, forced-branch construction, discard-Joker projection, hand
+  removal, and Hook outcome aggregation.
+- The diagnostic records exact forced branch-set/branch, discard projection,
+  aggregation-call, and aggregated-outcome accounting. Every temporary
+  instance wrapper is restored after both successful and failing traces.
+- Focused local validation: **91 passed in 1.43s** (including the narrower Hook
+  suite at **55 passed in 1.16s**).
+- GitHub Actions run `37425237861`, job `112143289527`.
+- Actual job log: **3163 passed, 1613 deselected in 197.76s**.
+
 ## Exact active task
 
-Extend the diagnostic only enough to attribute the 47.01187289733207-second
-The Hook transition owner at frozen episode-43 decision 12. Separate held-card
-selection, forced-branch construction, discard-Joker projection, hand removal,
-and Hook outcome aggregation without changing runtime behavior.
+Run the single schema-v17 Hook-attribution diagnostic at frozen episode-43
+decision 12, preserve the canonical report, and use its exact timing and
+accounting to select the next owner.
 
 Requirements:
 
@@ -408,16 +421,17 @@ Requirements:
   `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
   `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
-- Add canonical behavior-preserving helper boundaries only where required for
-  exact attribution; do not add profiler-only runtime workarounds.
-- Record exact Hook call/branch/outcome accounting and restore every temporary
-  wrapper after success and failure.
-- Add focused deterministic instrumentation/accounting/restoration tests, then
-  run the single decision-12 target only after CI is green.
+- Preserve all 13 prefix decisions and the pinned target/search identity.
+- Record the exact schema-v17 Hook call/branch/outcome counts and each named
+  subowner timing from the generated report.
+- Commit the report under `docs/balatro/` with canonical and repository-copy
+  byte counts and SHA-256 values.
+- Select any runtime optimization only from the measured dominant safe
+  subowner; do not infer it from the schema-v16 aggregate.
 - Do not optimize any named non-card collection.
-- Do not profile decision 12, resume a second optimizer batch, start full
-  training, change policy/hyperparameters/search schedule, or widen mechanics
-  until this task is green and recorded here.
+- Do not resume a second optimizer batch, start full training, change
+  policy/hyperparameters/search schedule, or widen mechanics until this task is
+  recorded here.
 
 ## Held and deferred work
 
