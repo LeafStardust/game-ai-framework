@@ -23,7 +23,9 @@ from games.balatro.env.ppo_tactical_performance import (
     probe_episode_seven_selective_escalation,
     probe_episode_zero_horizon_two_parity,
     trace_episode_seven_candidate_subowners,
+    trace_episode_43_decision_11_candidate_subowners,
     trace_initial_policy_ppo_episode_tactical_costs,
+    write_ppo_tactical_candidate_subowner_report,
     write_ppo_tactical_episode_report,
     _ReconstructTypeSampler,
     _instrument_episode_engine,
@@ -668,7 +670,33 @@ def test_env_ppo_selective_escalation_recovers_frozen_target(monkeypatch):
     assert escalation_engine.max_horizon == 8
 
 
-def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
+@pytest.mark.parametrize(
+    ("episode_index", "prefix_name", "trace", "expected_stream", "game_seed"),
+    (
+        (
+            7,
+            "_EPISODE_7_EXPECTED_PREFIX",
+            trace_episode_seven_candidate_subowners,
+            7,
+            "3DEFB26A",
+        ),
+        (
+            43,
+            "_EPISODE_43_DECISION_11_EXPECTED_PREFIX",
+            trace_episode_43_decision_11_candidate_subowners,
+            3,
+            "EE424B52",
+        ),
+    ),
+)
+def test_env_ppo_candidate_subowner_stops_at_verified_target(
+    monkeypatch,
+    episode_index,
+    prefix_name,
+    trace,
+    expected_stream,
+    game_seed,
+):
     from games.balatro.card import BalatroCard
     from games.balatro.state import BalatroState
 
@@ -677,7 +705,7 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     digest = tactical_performance._public_input_sha256(state)
     monkeypatch.setattr(
         tactical_performance,
-        "_EPISODE_7_EXPECTED_PREFIX",
+        prefix_name,
         ((digest, "PLAY_CARDS", (0,), ()),),
     )
     engine = _FakeEngine()
@@ -779,14 +807,16 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(monkeypatch):
     )
     ticks = count()
 
-    report = trace_episode_seven_candidate_subowners(
+    report = trace(
         clock=lambda: float(next(ticks)),
     )
 
-    assert requested_streams == [7]
+    assert requested_streams == [expected_stream]
     assert report.schema == PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA
     assert report.schema == "balatro-red-white-ppo-tactical-candidate-subowner-v15"
-    assert report.game_seed == "3DEFB26A"
+    assert report.episode_index == episode_index
+    assert report.stream_index == expected_stream
+    assert report.game_seed == game_seed
     assert report.verified_prefix_decisions == 1
     assert report.target_decision_index == 0
     assert report.public_input_sha256 == digest
@@ -948,6 +978,29 @@ def test_env_ppo_candidate_subowner_rejects_prefix_drift(monkeypatch):
     )
 
 
+def test_env_ppo_episode_43_candidate_subowner_routes_exact_target(monkeypatch):
+    captured = {}
+    marker = object()
+
+    def trace(**kwargs):
+        captured.update(kwargs)
+        return marker
+
+    monkeypatch.setattr(tactical_performance, "_trace_candidate_subowners", trace)
+    clock = lambda: 1.0
+
+    assert trace_episode_43_decision_11_candidate_subowners(clock=clock) is marker
+    assert captured == {
+        "episode_index": 43,
+        "target_index": 11,
+        "expected_prefix": (
+            tactical_performance._EPISODE_43_DECISION_11_EXPECTED_PREFIX
+        ),
+        "root_seed": "RED-WHITE-PPO-V1",
+        "clock": clock,
+    }
+
+
 @pytest.mark.parametrize("episode_index", [-1, True, 1.0, None])
 def test_env_ppo_initial_policy_episode_trace_rejects_invalid_index(
     episode_index,
@@ -1027,3 +1080,76 @@ def test_env_ppo_tactical_episode_report_rejects_invalid_publication(tmp_path):
 def test_env_ppo_tactical_cli_rejects_output_without_episode_index(tmp_path):
     with pytest.raises(SystemExit):
         tactical_performance.main(["--output-path", str(tmp_path / "report.json")])
+
+
+def test_env_ppo_candidate_subowner_report_is_atomically_canonical(
+    monkeypatch,
+    tmp_path,
+    capsys,
+):
+    report = tactical_performance.PPOTacticalCandidateSubownerReport(
+        schema=PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA,
+        root_seed="RED-WHITE-PPO-V1",
+        episode_index=43,
+        stream_index=3,
+        game_seed="EE424B52",
+        verified_prefix_decisions=12,
+        target_decision_index=11,
+        public_input_sha256="a" * 64,
+        action="DISCARD_CARDS",
+        selected_hand_indices=(5,),
+        search_attempts=((2, 252, 2000, False), (3, 2000, 2000, True)),
+        evaluation_cache_hits=0,
+        evaluation_cache_misses=0,
+        generated_consumable_transition_calls=0,
+        generated_consumable_inert_calls=0,
+        generated_consumable_eight_ball_capable_calls=0,
+        generated_consumable_main_generator_capable_calls=0,
+        generated_consumable_sixth_sense_capable_calls=0,
+        total_elapsed_seconds=12.5,
+        candidate_generation_elapsed_seconds=11.0,
+        helper_costs=(),
+        reconstruct_type_sample_limit=100_000,
+        reconstruct_type_sampled_calls=0,
+        reconstruct_type_samples=(),
+        state_card_sample_limit=100_000,
+        state_card_validation_sampled_calls=0,
+        state_card_validation_elapsed_seconds=0.0,
+        state_card_shallow_copy_sampled_calls=0,
+        state_card_shallow_copy_elapsed_seconds=0.0,
+        residual_candidate_elapsed_seconds=11.0,
+    )
+    output = tmp_path / "episode-43-decision-11.json"
+    digest = write_ppo_tactical_candidate_subowner_report(output, report)
+    content = output.read_bytes()
+    assert content == report.to_json().encode("utf-8")
+    assert digest == sha256(content).hexdigest()
+
+    monkeypatch.setattr(
+        tactical_performance,
+        "trace_episode_43_decision_11_candidate_subowners",
+        lambda **kwargs: report,
+    )
+    assert tactical_performance.main(
+        [
+            "--episode-43-decision-11-candidate-subowners",
+            "--output-path",
+            str(output),
+        ]
+    ) == 0
+    assert json.loads(capsys.readouterr().out) == {
+        "schema": PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA,
+        "output_path": str(output),
+        "report_sha256": digest,
+        "episode_index": 43,
+        "target_decision_index": 11,
+        "total_elapsed_seconds": 12.5,
+    }
+
+
+def test_env_ppo_candidate_subowner_report_rejects_wrong_type(tmp_path):
+    with pytest.raises(TypeError, match="PPOTacticalCandidateSubownerReport"):
+        write_ppo_tactical_candidate_subowner_report(
+            tmp_path / "report.json",
+            object(),
+        )

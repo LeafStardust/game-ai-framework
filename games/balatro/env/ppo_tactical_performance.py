@@ -74,6 +74,21 @@ _EPISODE_7_EXPECTED_PREFIX = (
     ("f63c5da42cd96a7e9ecd9281dee0dd90666edf8722f618ee5857fddf8301a145", "DISCARD_CARDS", (0, 2, 3, 6, 7), ((2, 292, 2000, False),)),
 )
 
+_EPISODE_43_DECISION_11_EXPECTED_PREFIX = (
+    ("9b05ad7b121cfa68ee3870890210234afed26eeefca478d53ba3c98bb519740b", "DISCARD_CARDS", (1, 2, 3, 4, 5), ((2, 18, 2000, False),)),
+    ("123361c9c6c172fbeee19a9a1c038c0a68d0a5af3ea0696897cb6807b8c35375", "PLAY_CARDS", (3, 4, 6, 7), ((2, 15, 2000, False),)),
+    ("dc7a9792a1acba6882424d32fb53ecf0824fecf5cdf3d26bf5470f725e5b9d43", "PLAY_CARDS", (3, 4, 5, 6), ((2, 18, 2000, False),)),
+    ("65910dc05a14c25115968d573167adcaef514535f96ce28c7e3464e3b887e315", "PLAY_CARDS", (0, 2, 3, 4, 5), ((2, 2, 2000, False),)),
+    ("10aa3ec7d205f66ec794e2bf2d1ee1e8ce51841ccaa3d5ed2a08973ac7366956", "DISCARD_CARDS", (2, 3, 4, 5, 7), ((2, 18, 2000, False),)),
+    ("f58101a2d56ab973970e54334a3ae65d521d4b10c4f11a0e8e858ea51954e458", "DISCARD_CARDS", (2, 3, 4, 5, 6), ((2, 18, 2000, False),)),
+    ("cad063dfe9d997a77f21edf808879c296761586f2bf9563d7bf200c0b7b47ed4", "PLAY_CARDS", (1, 3, 4, 5, 6), ((2, 17, 2000, False),)),
+    ("62ffa82b488e08cd4eec8f9086a7463307dafabe7fc6baf35141cda127ddf33f", "PLAY_CARDS", (4, 5, 6, 7), ((2, 18, 2000, False),)),
+    ("9599c0c7b3cc5fa75f6c2f7f2cd7241de33cc9f035a9c81ed1d02f292e14ddb6", "PLAY_CARDS", (2, 3, 5, 6), ((2, 3, 2000, False),)),
+    ("ca2f82b95d9abdce25ab8645de280a6d66ac83de241da63a99b14bd9ffb1914f", "DISCARD_CARDS", (2, 3, 4, 5, 6), ((2, 108, 2000, False),)),
+    ("5134dd7a7dda282a67b196c8aefc95615600a0aa7b4400903448706f36563b52", "PLAY_CARDS", (1, 2, 3, 5, 6), ((2, 164, 2000, False), (2, 97, 1000, False))),
+    ("7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d", "DISCARD_CARDS", (5,), ((2, 252, 2000, False), (3, 2000, 2000, True))),
+)
+
 _CANDIDATE_HELPER_NAMES = (
     "_root_play_candidates",
     "_guaranteed_sun_action",
@@ -426,6 +441,21 @@ class PPOTacticalCandidateSubownerReport:
 
     def to_json(self) -> str:
         return json.dumps(self.as_dict(), sort_keys=True)
+
+
+def write_ppo_tactical_candidate_subowner_report(
+    path: str | Path,
+    report: PPOTacticalCandidateSubownerReport,
+) -> str:
+    """Atomically publish one complete tactical candidate-subowner trace."""
+    if not isinstance(report, PPOTacticalCandidateSubownerReport):
+        raise TypeError("report must be PPOTacticalCandidateSubownerReport")
+    destination = Path(path)
+    if not destination.parent.is_dir():
+        raise PPOContractError("PPO tactical report directory does not exist")
+    content = report.to_json().encode("utf-8")
+    _atomic_write(destination, content)
+    return sha256(content).hexdigest()
 
 
 @dataclass
@@ -1267,12 +1297,15 @@ def trace_initial_policy_ppo_episode_tactical_costs(
     )
 
 
-def trace_episode_seven_candidate_subowners(
+def _trace_candidate_subowners(
     *,
+    episode_index: int,
+    target_index: int,
+    expected_prefix: tuple[tuple[object, ...], ...],
     root_seed: str = "RED-WHITE-PPO-V1",
     clock: Callable[[], float] = perf_counter,
 ) -> PPOTacticalCandidateSubownerReport:
-    """Stop after the frozen episode-seven target and time its planner helpers."""
+    """Stop after one frozen target and time its planner helpers."""
     if root_seed != "RED-WHITE-PPO-V1":
         raise PPOContractError(
             "candidate sub-owner diagnostic requires root seed RED-WHITE-PPO-V1"
@@ -1280,10 +1313,11 @@ def trace_episode_seven_candidate_subowners(
     if not callable(clock):
         raise TypeError("clock must be callable")
 
-    episode_index = 7
-    target_index = len(_EPISODE_7_EXPECTED_PREFIX) - 1
+    if target_index != len(expected_prefix) - 1:
+        raise PPOContractError("candidate sub-owner target must end its exact prefix")
+    stream_index = episode_index % PPO_TRAINING_CONTRACT.parallel_environments
     training_run = PPOTrainingRun.from_seed(root_seed)
-    environment = make_ppo_training_environment(episode_index)
+    environment = make_ppo_training_environment(stream_index)
     learner = PPOLearner(training_run)
     engine = environment._backend._tactical_decision_engine
     helper_accumulator = _ExclusiveHelperAccumulator(clock)
@@ -1473,13 +1507,13 @@ def trace_episode_seven_candidate_subowners(
 
     def decide(state):
         decision_index = verified["count"]
-        if decision_index >= len(_EPISODE_7_EXPECTED_PREFIX):
-            raise PPOContractError("episode-seven tactical prefix exceeded target")
-        expected = _EPISODE_7_EXPECTED_PREFIX[decision_index]
+        if decision_index >= len(expected_prefix):
+            raise PPOContractError("candidate tactical prefix exceeded target")
+        expected = expected_prefix[decision_index]
         digest = _public_input_sha256(state)
         if digest != expected[0]:
             raise PPOContractError(
-                f"episode-seven tactical digest drifted at decision {decision_index}"
+                f"candidate tactical digest drifted at decision {decision_index}"
             )
 
         is_target = decision_index == target_index
@@ -1504,7 +1538,7 @@ def trace_episode_seven_candidate_subowners(
         )
         if (action, indices, attempts) != expected[1:]:
             raise PPOContractError(
-                f"episode-seven tactical decision drifted at decision {decision_index}"
+                f"candidate tactical decision drifted at decision {decision_index}"
             )
         verified["count"] += 1
         if not is_target:
@@ -1563,7 +1597,7 @@ def trace_episode_seven_candidate_subowners(
             schema=PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA,
             root_seed=root_seed,
             episode_index=episode_index,
-            stream_index=episode_index,
+            stream_index=stream_index,
             game_seed=training_run.game_seed(episode_index),
             verified_prefix_decisions=verified["count"],
             target_decision_index=target_index,
@@ -1817,7 +1851,37 @@ def trace_episode_seven_candidate_subowners(
             copy_module._deepcopy_dispatch[value_type] = original
         for owner, name, original in reversed(installed_class_instrumentation):
             setattr(owner, name, original)
-    raise PPOContractError("episode-seven candidate sub-owner target was not reached")
+    raise PPOContractError("candidate sub-owner target was not reached")
+
+
+def trace_episode_seven_candidate_subowners(
+    *,
+    root_seed: str = "RED-WHITE-PPO-V1",
+    clock: Callable[[], float] = perf_counter,
+) -> PPOTacticalCandidateSubownerReport:
+    """Stop after the frozen episode-seven target and time its planner helpers."""
+    return _trace_candidate_subowners(
+        episode_index=7,
+        target_index=len(_EPISODE_7_EXPECTED_PREFIX) - 1,
+        expected_prefix=_EPISODE_7_EXPECTED_PREFIX,
+        root_seed=root_seed,
+        clock=clock,
+    )
+
+
+def trace_episode_43_decision_11_candidate_subowners(
+    *,
+    root_seed: str = "RED-WHITE-PPO-V1",
+    clock: Callable[[], float] = perf_counter,
+) -> PPOTacticalCandidateSubownerReport:
+    """Stop at verified episode-43 decision 11 and time candidate subowners."""
+    return _trace_candidate_subowners(
+        episode_index=43,
+        target_index=len(_EPISODE_43_DECISION_11_EXPECTED_PREFIX) - 1,
+        expected_prefix=_EPISODE_43_DECISION_11_EXPECTED_PREFIX,
+        root_seed=root_seed,
+        clock=clock,
+    )
 
 
 def measure_ppo_tactical_cost(
@@ -1917,16 +1981,31 @@ def main(argv: list[str] | None = None) -> int:
     target = parser.add_mutually_exclusive_group()
     target.add_argument("--episode-index", type=int)
     target.add_argument("--episode-seven-candidate-subowners", action="store_true")
+    target.add_argument(
+        "--episode-43-decision-11-candidate-subowners",
+        action="store_true",
+    )
     target.add_argument("--episode-seven-schedule-probe", action="store_true")
     target.add_argument("--episode-seven-horizon-two-parity", action="store_true")
     target.add_argument("--episode-zero-horizon-two-parity", action="store_true")
     target.add_argument("--episode-seven-selective-escalation", action="store_true")
     parser.add_argument("--output-path")
     arguments = parser.parse_args(argv)
-    if arguments.output_path is not None and arguments.episode_index is None:
-        parser.error("--output-path requires --episode-index")
+    output_capable = (
+        arguments.episode_index is not None
+        or arguments.episode_seven_candidate_subowners
+        or arguments.episode_43_decision_11_candidate_subowners
+    )
+    if arguments.output_path is not None and not output_capable:
+        parser.error(
+            "--output-path requires an episode or candidate-subowner trace"
+        )
     report = (
-        probe_episode_seven_selective_escalation(root_seed=arguments.root_seed)
+        trace_episode_43_decision_11_candidate_subowners(
+            root_seed=arguments.root_seed
+        )
+        if arguments.episode_43_decision_11_candidate_subowners
+        else probe_episode_seven_selective_escalation(root_seed=arguments.root_seed)
         if arguments.episode_seven_selective_escalation
         else probe_episode_zero_horizon_two_parity(root_seed=arguments.root_seed)
         if arguments.episode_zero_horizon_two_parity
@@ -1946,20 +2025,37 @@ def main(argv: list[str] | None = None) -> int:
     if arguments.output_path is None:
         print(report.to_json())
     else:
-        report_sha256 = write_ppo_tactical_episode_report(
-            arguments.output_path,
-            report,
-        )
+        if isinstance(report, PPOTacticalEpisodeCostReport):
+            report_sha256 = write_ppo_tactical_episode_report(
+                arguments.output_path,
+                report,
+            )
+            summary = {
+                "schema": report.schema,
+                "output_path": str(Path(arguments.output_path)),
+                "report_sha256": report_sha256,
+                "episode_index": report.episode_index,
+                "decision_count": len(report.decisions),
+                "total_elapsed_seconds": report.total_elapsed_seconds,
+            }
+        elif isinstance(report, PPOTacticalCandidateSubownerReport):
+            report_sha256 = write_ppo_tactical_candidate_subowner_report(
+                arguments.output_path,
+                report,
+            )
+            summary = {
+                "schema": report.schema,
+                "output_path": str(Path(arguments.output_path)),
+                "report_sha256": report_sha256,
+                "episode_index": report.episode_index,
+                "target_decision_index": report.target_decision_index,
+                "total_elapsed_seconds": report.total_elapsed_seconds,
+            }
+        else:
+            parser.error("selected tactical diagnostic cannot persist a report")
         print(
             json.dumps(
-                {
-                    "schema": report.schema,
-                    "output_path": str(Path(arguments.output_path)),
-                    "report_sha256": report_sha256,
-                    "episode_index": report.episode_index,
-                    "decision_count": len(report.decisions),
-                    "total_elapsed_seconds": report.total_elapsed_seconds,
-                },
+                summary,
                 sort_keys=True,
                 separators=(",", ":"),
             )
