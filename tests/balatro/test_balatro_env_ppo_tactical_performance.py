@@ -421,6 +421,15 @@ def test_env_ppo_search_subowner_scope_excludes_candidate_and_policy_helpers(
 
     engine.rank_plans = rank_plans
 
+    def decide(target):
+        engine.planner._candidate_actions(target)
+        engine.rank_plans(target)
+        engine.planner.evaluator.evaluate(target, _FakeAction(target.hand))
+        engine.policy.decide(target, ())
+        return _FakeDecision([target.hand[0]])
+
+    engine.decide = decide
+
     def collect(target, training_run, *, episode_index, policy):
         engine.decide(state)
         raise AssertionError("search subowner target must stop collection")

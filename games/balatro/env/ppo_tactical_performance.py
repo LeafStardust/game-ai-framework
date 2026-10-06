@@ -1408,6 +1408,7 @@ def _trace_candidate_subowners(
         policy = PPOLearner(training_run).model.infer
     engine = environment._backend._tactical_decision_engine
     helper_accumulator = _ExclusiveHelperAccumulator(clock)
+    target_active = {"value": False}
     candidate_elapsed = {"seconds": 0.0}
     search_elapsed = {"seconds": 0.0}
     policy_elapsed = {"seconds": 0.0}
@@ -1787,11 +1788,16 @@ def _trace_candidate_subowners(
 
     def scoped_timed(accumulator, function, *, exclude_helpers=False):
         def timed(*args, **kwargs):
-            if not helper_accumulator.enabled:
+            active = (
+                target_active["value"]
+                if helper_scope == "search_evaluation"
+                else helper_accumulator.enabled
+            )
+            if not active:
                 return function(*args, **kwargs)
             started = float(clock())
-            if exclude_helpers:
-                helper_accumulator.enabled = False
+            previous_enabled = helper_accumulator.enabled
+            helper_accumulator.enabled = not exclude_helpers
             try:
                 return function(*args, **kwargs)
             finally:
@@ -1801,8 +1807,7 @@ def _trace_candidate_subowners(
                         "candidate sub-owner diagnostic clock moved backwards"
                     )
                 accumulator["seconds"] += ended - started
-                if exclude_helpers:
-                    helper_accumulator.enabled = True
+                helper_accumulator.enabled = previous_enabled
 
         return timed
 
@@ -1834,13 +1839,17 @@ def _trace_candidate_subowners(
             )
 
         is_target = decision_index == target_index
-        helper_accumulator.enabled = is_target
+        target_active["value"] = is_target
+        helper_accumulator.enabled = (
+            is_target and helper_scope != "search_evaluation"
+        )
         started = float(clock())
         try:
             decision = original_decide(state)
         finally:
             total = max(0.0, float(clock()) - started)
             helper_accumulator.enabled = False
+            target_active["value"] = False
 
         action = decision.action.name
         indices = tuple(state.hand.index(card) for card in decision.action.cards)
