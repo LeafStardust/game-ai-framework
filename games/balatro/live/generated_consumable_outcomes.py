@@ -6,6 +6,13 @@ from math import comb
 from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
+from games.balatro.jokers.blueprint import BlueprintJoker
+from games.balatro.jokers.brainstorm import BrainstormJoker
+from games.balatro.jokers.eight_ball import EightBallJoker
+from games.balatro.jokers.seance import SeanceJoker
+from games.balatro.jokers.sixth_sense import SixthSenseJoker
+from games.balatro.jokers.superposition import SuperpositionJoker
+from games.balatro.jokers.vagabond import VagabondJoker
 from games.balatro.live.card_destruction import project_destroyed_playing_cards
 from games.balatro.live.copy_projection import (
     COPY_JOKER_CLASS_NAMES,
@@ -23,6 +30,7 @@ from games.balatro.live.score_outcomes import (
     ScoreProjectionTransition,
 )
 from games.balatro.scoring import BalatroScorer
+from games.balatro.state import BalatroState
 
 
 @dataclass
@@ -101,6 +109,14 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
             "VagabondJoker",
         }
     )
+    _EXACT_GENERATOR_TYPES = (
+        EightBallJoker,
+        SeanceJoker,
+        SixthSenseJoker,
+        SuperpositionJoker,
+        VagabondJoker,
+    )
+    _EXACT_COPIER_TYPES = (BlueprintJoker, BrainstormJoker)
 
     def __init__(
         self,
@@ -181,6 +197,17 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
                 cards,
                 include_card_chips=include_card_chips,
             )
+
+        generated_capability = self._generated_consumable_capability(state)
+        if generated_capability is False:
+            inert_transition = super().project_transition(
+                hand,
+                state,
+                cards,
+                include_card_chips=include_card_chips,
+            )
+            if self._detach_inert_transition_aliases(inert_transition, state):
+                return inert_transition
 
         played_cards = list(cards or [])
         money_at_hand_play = int(getattr(state, "money", 0) or 0)
@@ -306,6 +333,64 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
             state_after_scoring=common_state,
             unsupported_jokers=transition.unsupported_jokers,
         )
+
+    @classmethod
+    def _generated_consumable_capability(cls, state) -> bool | None:
+        """Return false only when the generated layer is provably inert.
+
+        ``None`` is deliberately conservative: noncanonical containers and
+        subclasses remain on the fully isolated projection path rather than
+        being approximated as inert.
+        """
+        if type(state) is not BalatroState:
+            return None
+        jokers = getattr(state, "jokers", None)
+        if type(jokers) is not list:
+            return None
+
+        for joker in jokers:
+            joker_type = type(joker)
+            if joker_type in cls._EXACT_GENERATOR_TYPES:
+                return True
+            if isinstance(joker, cls._EXACT_GENERATOR_TYPES):
+                return None
+
+            if joker_type in cls._EXACT_COPIER_TYPES:
+                target, resolvable = resolve_copy_target(joker, state)
+                if not resolvable:
+                    return None
+                if target is None:
+                    continue
+                target_type = type(target)
+                if target_type in cls._EXACT_GENERATOR_TYPES:
+                    return True
+                if isinstance(target, cls._EXACT_GENERATOR_TYPES):
+                    return None
+                continue
+            if isinstance(joker, cls._EXACT_COPIER_TYPES):
+                return None
+
+        return False
+
+    @staticmethod
+    def _detach_inert_transition_aliases(transition, source_state) -> bool:
+        states = []
+        if transition.state_after_scoring is not None:
+            states.append(transition.state_after_scoring)
+        states.extend(
+            outcome.state_after_scoring
+            for outcome in transition.distribution.outcomes
+            if outcome.state_after_scoring is not None
+        )
+        unique_states = {id(state): state for state in states}
+        if any(
+            type(state) is not BalatroState or state is source_state
+            for state in unique_states.values()
+        ):
+            return False
+        for state in unique_states.values():
+            state.detach_tactical_mutable_aliases()
+        return True
 
     def _eight_ball_attempts(
         self,

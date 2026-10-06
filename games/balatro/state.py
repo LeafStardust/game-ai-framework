@@ -233,6 +233,50 @@ class BalatroState(GameState):
                     memo[id(card)] = _copy_exact_scalar_card(card)
         return deepcopy(self, memo)
 
+    def detach_tactical_mutable_aliases(self):
+        """Detach mutable values intentionally shared by ``copy()``.
+
+        Scoring projection already copies the state shell, Blind, Jokers, and
+        mapping state. Generated-consumable projection only needs to detach the
+        mutable collection elements that the shell copy retains by identity.
+        """
+        memo = {
+            id(value): value
+            for value in (
+                self.joker_unlocks,
+                self.joker_generation_pools,
+                self.consumable_generation_pools,
+                self.voucher_generation_pool,
+            )
+        }
+        card_fields = frozenset(BalatroCard.__dataclass_fields__)
+
+        def detach_card(card):
+            marker = id(card)
+            if marker in memo:
+                return memo[marker]
+            if _has_exact_scalar_card_state(card, card_fields):
+                projected = _copy_exact_scalar_card(card)
+                memo[marker] = projected
+                return projected
+            return deepcopy(card, memo)
+
+        for name in ("deck", "hand", "discard_pile"):
+            setattr(self, name, [detach_card(card) for card in getattr(self, name)])
+        if self.owned_deck is not None:
+            self.owned_deck = [detach_card(card) for card in self.owned_deck]
+
+        for name in (
+            "consumables",
+            "shop_jokers",
+            "shop_consumables",
+            "shop_boosters",
+            "shop_vouchers",
+            "vouchers",
+        ):
+            setattr(self, name, deepcopy(getattr(self, name), memo))
+        return self
+
     def add_consumable(self, consumable) -> bool:
         if len(self.consumables) >= self.consumable_slots:
             return False

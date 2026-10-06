@@ -5,6 +5,7 @@ from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.blueprint import BlueprintJoker
+from games.balatro.jokers.brainstorm import BrainstormJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.four_fingers import FourFingersJoker
@@ -19,6 +20,8 @@ from games.balatro.live.generated_consumable_outcomes import (
     ProjectedGeneratedConsumable,
 )
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+from games.balatro.live.post_hand_outcomes import LiveVisibleCardScoreOutcomeModel
+from games.balatro.env.parity import canonical_public_state_signature
 from games.balatro.state import BalatroState
 
 
@@ -49,6 +52,168 @@ def _generated_categories(outcome):
         for consumable in outcome.state_after_scoring.consumables
         if isinstance(consumable, ProjectedGeneratedConsumable)
     ]
+
+
+def test_inert_generated_layer_reuses_exact_isolated_parent_transition(monkeypatch):
+    card = BalatroCard("A", "Spades", permanent_bonus=12)
+    held = {"history": ["held"]}
+    state = _state([card], [], consumables=[held])
+    state.deck = [card]
+    baseline = LiveVisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [card],
+    )
+
+    def fail_redundant_copy(self):
+        raise AssertionError("inert generated layer must not copy parent state")
+
+    monkeypatch.setattr(
+        BalatroState,
+        "copy_for_tactical_projection",
+        fail_redundant_copy,
+    )
+    transition = _project(state, PokerHand.HIGH_CARD, [card])
+
+    assert transition.distribution.random_sources == baseline.distribution.random_sources
+    assert transition.unsupported_jokers == baseline.unsupported_jokers
+    assert [
+        (outcome.score, outcome.probability)
+        for outcome in transition.distribution.outcomes
+    ] == [
+        (outcome.score, outcome.probability)
+        for outcome in baseline.distribution.outcomes
+    ]
+    assert canonical_public_state_signature(transition.state_after_scoring) == (
+        canonical_public_state_signature(baseline.state_after_scoring)
+    )
+    assert transition.state_after_scoring is not state
+    assert transition.distribution.outcomes[0].state_after_scoring is (
+        transition.state_after_scoring
+    )
+    assert transition.state_after_scoring.hand[0] is not card
+    assert transition.state_after_scoring.hand[0] is (
+        transition.state_after_scoring.deck[0]
+    )
+    assert transition.state_after_scoring.hand[0] is (
+        transition.state_after_scoring.owned_deck[0]
+    )
+    transition.state_after_scoring.hand[0].permanent_bonus = 99
+    transition.state_after_scoring.consumables[0]["history"].append("projected")
+    assert card.permanent_bonus == 12
+    assert held == {"history": ["held"]}
+
+
+def test_generated_capability_classifier_is_exact_and_conservative():
+    model = LiveGeneratedConsumableScoreOutcomeModel()
+    card = BalatroCard("A", "Spades")
+    assert model._generated_consumable_capability(_state([card], [])) is False
+
+    for joker in (
+        EightBallJoker(),
+        SeanceJoker(),
+        SixthSenseJoker(),
+        SuperpositionJoker(),
+        VagabondJoker(),
+    ):
+        assert model._generated_consumable_capability(
+            _state([card], [joker])
+        ) is True
+
+    assert model._generated_consumable_capability(
+        _state([card], [BlueprintJoker(), SeanceJoker()])
+    ) is True
+    assert model._generated_consumable_capability(
+        _state([card], [BrainstormJoker(), SeanceJoker()])
+    ) is True
+
+    class SeanceSubclass(SeanceJoker):
+        pass
+
+    class BlueprintSubclass(BlueprintJoker):
+        pass
+
+    assert model._generated_consumable_capability(
+        _state([card], [SeanceSubclass()])
+    ) is None
+    assert model._generated_consumable_capability(
+        _state([card], [BlueprintSubclass()])
+    ) is None
+
+    malformed = _state([card], [])
+    malformed.jokers = ()
+    assert model._generated_consumable_capability(malformed) is None
+
+    class StateSubclass(BalatroState):
+        pass
+
+    assert model._generated_consumable_capability(StateSubclass()) is None
+
+
+def test_selective_alias_detachment_covers_mutable_tactical_collections():
+    card = BalatroCard("A", "Spades")
+    card.projection_metadata = {"history": ["card"]}
+    state = _state([card], [])
+    state.deck = [card]
+    state.discard_pile = [card]
+    state.consumables = [{"history": ["held"]}]
+    state.shop_jokers = [{"history": ["joker"]}]
+    state.shop_consumables = [{"history": ["consumable"]}]
+    state.shop_boosters = [{"history": ["booster"]}]
+    state.shop_vouchers = [{"history": ["voucher"]}]
+    state.vouchers = [{"history": ["owned"]}]
+
+    branch = state.copy().detach_tactical_mutable_aliases()
+
+    assert branch.hand[0] is branch.deck[0]
+    assert branch.hand[0] is branch.owned_deck[0]
+    assert branch.hand[0] is branch.discard_pile[0]
+    assert branch.hand[0] is not card
+    branch.hand[0].projection_metadata["history"].append("projected")
+    for name in (
+        "consumables",
+        "shop_jokers",
+        "shop_consumables",
+        "shop_boosters",
+        "shop_vouchers",
+        "vouchers",
+    ):
+        getattr(branch, name)[0]["history"].append("projected")
+
+    assert card.projection_metadata == {"history": ["card"]}
+    assert state.consumables == [{"history": ["held"]}]
+    assert state.shop_jokers == [{"history": ["joker"]}]
+    assert state.shop_consumables == [{"history": ["consumable"]}]
+    assert state.shop_boosters == [{"history": ["booster"]}]
+    assert state.shop_vouchers == [{"history": ["voucher"]}]
+    assert state.vouchers == [{"history": ["owned"]}]
+
+
+def test_capable_generated_paths_keep_full_tactical_projection(monkeypatch):
+    original = BalatroState.copy_for_tactical_projection
+    calls = []
+
+    def observed_copy(state):
+        calls.append(type(state.jokers[0]))
+        return original(state)
+
+    monkeypatch.setattr(
+        BalatroState,
+        "copy_for_tactical_projection",
+        observed_copy,
+    )
+    card = BalatroCard("A", "Spades")
+    generator_types = (
+        EightBallJoker,
+        SeanceJoker,
+        SixthSenseJoker,
+        SuperpositionJoker,
+        VagabondJoker,
+    )
+    for generator_type in generator_types:
+        _project(_state([card], [generator_type()]), PokerHand.HIGH_CARD, [card])
+
+    assert calls == list(generator_types)
 
 
 def test_generated_branch_copy_shares_only_frozen_generation_authority():
