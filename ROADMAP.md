@@ -584,29 +584,55 @@ House play-facing gate:
 - GitHub Actions run `37476160011`, job `112311981772`.
 - Actual job log: **3176 passed, 1616 deselected in 151.29s**.
 
+Second optimizer-batch checkpoint:
+
+- The exact eight-worker one-additional-batch command completed successfully.
+  It committed episodes 408 through 631 inclusive (224 episodes) and added
+  1,703 environment transitions without another mechanics failure.
+- The checkpoint is 50,131,709 bytes with SHA-256
+  `8baf6ec84b6a52b142c60f74df281757de74d0873ba5f4cd9e816945b5f6e631`.
+  The 670-byte progress manifest has SHA-256
+  `1e4e9d080ce8653fb299d59caf1c09b0e923ad02bab63f37dfa5883183387638`
+  and names the same checkpoint hash.
+- Exact state: two completed batches, 4,625 collected / 4,096 optimizer-consumed
+  transitions, Adam step 160, next episode indices 632..639, and per-stream
+  carryovers `(83, 145, 70, 41, 25, 65, 93, 7)` (529 total).
+- Trained parameter SHA-256:
+  `bfb43f14285cd724c54f90f3132f61dc0f67817be47347b3194b286e13154fa4`.
+- The campaign CLI does not emit elapsed telemetry. The conservative interval
+  from the immediately preceding roadmap commit through final artifact
+  publication is at most 2,370 seconds and includes push, fetch, and preflight
+  overhead. Therefore sustained collection was at least 0.0945148 episodes/s
+  and 0.7185654 transitions/s. At that lower-bound rate, 1,022 remaining
+  batches still project to at most roughly 33.7 days of collection, so full
+  training remains unauthorized pending exact timing attribution.
+
 ## Exact active task
 
-Resume the current campaign-v12 checkpoint for exactly one additional optimizer
-batch and preserve its next deterministic boundary or completed-batch evidence.
+Add exact read-only timing attribution for bounded campaign waves restored from
+an existing checkpoint, then time the next ordered wave from the completed
+batch-2 checkpoint to identify the current slow owner before any batch-3 resume.
 
 Requirements:
 
-- Preflight the checkpoint at 53,677,812 bytes with SHA-256
-  `e2c75781f556bf197c0c5edce4c98fd2761550fb439aaf1d8a770a6246745a64`,
-  one completed batch, 2,922 collected / 2,048 consumed transitions, and next
-  episode indices 408..415.
-- Run exactly:
-  `python -m games.balatro.env.ppo_campaign --root-seed RED-WHITE-PPO-V1 --artifact-directory "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5" --maximum-episodes 512 --maximum-batches 1 --maximum-workers 8`.
-- If collection stops fail-closed, verify the last committed checkpoint and
-  progress agree, isolate the earliest exact ordered episode from the same
-  trained checkpoint, and fix only that demonstrated canonical mechanics
-  boundary with focused deterministic regression coverage.
-- If the batch completes, record exact checkpoint/progress bytes and hashes,
-  episode/transition totals, carryovers, next episode indices, optimizer step,
-  parameter digest, elapsed time, and throughput.
+- Reuse the existing diagnostic-only timing collector; do not fork production
+  environment, policy, rollout, or campaign mechanics.
+- Bind the timing report to campaign/checkpoint SHA-256, training-run SHA-256,
+  exact restored policy digest, requested episode/stream indices, complete
+  episode digests, per-episode elapsed time, and wave elapsed time.
+- The diagnostic must not assemble, optimize, write campaign artifacts, advance
+  next indices, or mutate the restored checkpoint/model. Partial or failed waves
+  remain fail-closed and produce no complete report.
+- Add focused deterministic tests for provenance, exact request ordering,
+  clock validation, immutability, malformed/partial results, and canonical JSON
+  report hashing.
+- Use GitHub Actions as the implementation gate. After green, run one exact
+  read-only eight-worker timing wave for episodes 632..639 from checkpoint
+  `8baf6ec84b6a52b142c60f74df281757de74d0873ba5f4cd9e816945b5f6e631`
+  and preserve its report before selecting any optimization owner.
 - Do not start unbounded/full training, inspect promotion results, change
-  policy/hyperparameters/search schedule, or widen beyond the next demonstrated
-  boundary.
+  policy/hyperparameters/search schedule, or start batch 3 before the timing
+  evidence identifies the next canonical owner.
 
 ## Held and deferred work
 
