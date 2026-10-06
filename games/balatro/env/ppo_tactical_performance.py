@@ -13,6 +13,8 @@ from time import perf_counter
 from typing import Callable
 
 import games.balatro.state as balatro_state
+import games.balatro.live.blind_clear_planner as blind_clear_planner_module
+import games.balatro.live.hand_action_planner as hand_action_planner_module
 from games.balatro.env.blind_progression import activate_selected_blind_progression
 from games.balatro.env.episode_backend import pristine_red_white_reset
 from games.balatro.env.ppo_campaign import (
@@ -155,6 +157,19 @@ _CANDIDATE_REPORT_HELPER_NAMES = (
     *_DETACHMENT_HELPER_NAMES,
     *_HOOK_HELPER_NAMES,
     *_DISCARD_PROJECTION_HELPER_NAMES,
+)
+_SEARCH_EVALUATION_HELPER_NAMES = (
+    "_estimate_action",
+    "_estimate_play",
+    "_estimate_discard",
+    "_best_value",
+    "_guaranteed_next_play_value",
+    "_evaluator_project_play",
+    "_draw_outcomes_distribution",
+    "_draw_outcomes_card_from_signature",
+    "_draw_outcomes_remaining_cards",
+    "_estimate_discard_projection",
+    "_estimate_state_deepcopy",
 )
 
 
@@ -1439,6 +1454,13 @@ def _trace_candidate_subowners(
         if any(existing is evaluator for existing in instrumented_evaluators):
             return
         instrumented_evaluators.append(evaluator)
+        if helper_scope == "search_evaluation":
+            project_play = getattr(evaluator, "project_play", None)
+            if callable(project_play):
+                evaluator.project_play = helper_accumulator.wrap(
+                    "_evaluator_project_play",
+                    project_play,
+                )
         for source_name, report_name in (
             ("_context", "_evaluator_context"),
             ("_discard_value", "_evaluator_discard_value"),
@@ -1699,6 +1721,37 @@ def _trace_candidate_subowners(
             function = getattr(planner, name, None)
             if callable(function):
                 setattr(planner, name, helper_accumulator.wrap(name, function))
+        if helper_scope == "search_evaluation":
+            for name in (
+                "_estimate_action",
+                "_estimate_play",
+                "_estimate_discard",
+                "_best_value",
+                "_guaranteed_next_play_value",
+            ):
+                function = getattr(planner, name, None)
+                if callable(function):
+                    setattr(planner, name, helper_accumulator.wrap(name, function))
+            draw_outcomes = getattr(planner, "draw_outcomes", None)
+            for source_name, report_name in (
+                ("distribution", "_draw_outcomes_distribution"),
+                ("card_from_signature", "_draw_outcomes_card_from_signature"),
+                ("remaining_cards", "_draw_outcomes_remaining_cards"),
+            ):
+                function = getattr(draw_outcomes, source_name, None)
+                if callable(function):
+                    setattr(
+                        draw_outcomes,
+                        source_name,
+                        helper_accumulator.wrap(report_name, function),
+                    )
+            discard_projector = getattr(planner, "discard_joker_projector", None)
+            project_discard = getattr(discard_projector, "project", None)
+            if callable(project_discard):
+                discard_projector.project = helper_accumulator.wrap(
+                    "_estimate_discard_projection",
+                    project_discard,
+                )
         original_candidates = planner._candidate_actions
 
         def timed_candidates(*args, **kwargs):
@@ -1814,7 +1867,14 @@ def _trace_candidate_subowners(
                 calls=helper_accumulator.calls.get(name, 0),
                 exclusive_elapsed_seconds=helper_accumulator.elapsed.get(name, 0.0),
             )
-            for name in _CANDIDATE_REPORT_HELPER_NAMES
+            for name in (
+                *_CANDIDATE_REPORT_HELPER_NAMES,
+                *(
+                    _SEARCH_EVALUATION_HELPER_NAMES
+                    if helper_scope == "search_evaluation"
+                    else ()
+                ),
+            )
             if helper_accumulator.calls.get(name, 0)
         )
         reconstruct_type_samples = tuple(
@@ -1981,6 +2041,22 @@ def _trace_candidate_subowners(
             BalatroState,
             "_detach_tactical_card_collections",
             "_state_detach_card_collections",
+        ),
+        *(
+            (
+                (
+                    blind_clear_planner_module,
+                    "deepcopy",
+                    "_estimate_state_deepcopy",
+                ),
+                (
+                    hand_action_planner_module,
+                    "deepcopy",
+                    "_estimate_state_deepcopy",
+                ),
+            )
+            if helper_scope == "search_evaluation"
+            else ()
         ),
     )
     original_state_deepcopy = balatro_state.deepcopy

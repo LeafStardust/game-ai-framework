@@ -406,8 +406,17 @@ def test_env_ppo_search_subowner_scope_excludes_candidate_and_policy_helpers(
         _backend=SimpleNamespace(_tactical_decision_engine=engine)
     )
 
+    def estimate_action(target, action, depth):
+        return engine.planner.evaluator.evaluate(target, action)
+
+    engine.planner._estimate_action = estimate_action
+
     def rank_plans(target, **kwargs):
-        engine.planner.evaluator.evaluate(target, _FakeAction(target.hand))
+        engine.planner._estimate_action(
+            target,
+            _FakeAction(target.hand),
+            2,
+        )
         return ()
 
     engine.rank_plans = rank_plans
@@ -434,6 +443,7 @@ def test_env_ppo_search_subowner_scope_excludes_candidate_and_policy_helpers(
 
     assert isinstance(result, tactical_performance._PPOTacticalScopedSubownerTrace)
     costs = {item.name: item for item in result.report.helper_costs}
+    assert costs["_estimate_action"].calls == 1
     assert costs["_evaluator_evaluate"].calls == 1
     assert "_candidate_actions" not in costs
     assert result.search_evaluation_elapsed_seconds > 0.0
