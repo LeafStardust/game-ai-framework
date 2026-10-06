@@ -784,6 +784,18 @@ Planner estimate-path attribution gate:
   validation: **54 passed in 31.39s**.
 - Corrected GitHub Actions run `37521009246`, job `112466082351`.
 - Actual corrected job log: **3196 passed, 1616 deselected in 172.06s**.
+- The second expanded trace also failed closed before publication: recursive
+  candidate generation was disabled for helper collection but remained inside
+  its active parent estimate frame's exclusive elapsed time, so it was then
+  subtracted twice from search evaluation. Artifacts again remained unchanged
+  and no report was written.
+- Commit `93b116b2dbe7d89937d5a5c5cdd245fb467de3fb` charges excluded nested
+  candidate elapsed as child time on the active exclusive-helper frame. The
+  focused regression now executes candidate generation inside `_estimate_action`
+  and preserves balanced search-only accounting.
+- Local broader validation: **54 passed in 34.22s**.
+- GitHub Actions run `37521605140`, job `112468163846`.
+- Actual job log: **3196 passed, 1616 deselected in 131.07s**.
 
 ## Exact active task
 
