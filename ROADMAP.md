@@ -2498,6 +2498,24 @@ attribute its 510-second candidate-generation cost to an exact canonical
 subowner. Decision 12 and the other slow-tail episodes remain out of scope until
 decision 11 is understood. No optimization is authorized yet.
 
+### Episode-43 candidate-subowner diagnostic checkpoint
+
+Commit `65e9d6f4d4733a18baa650a3fe850322edcf3a41` extends only the
+existing diagnostic authority. Its frozen episode-43 target verifies the exact
+12-decision prefix from the preserved cost report, routes episode 43 to stream
+3, enables deep helper/copy/cache instrumentation only for decision 11, and
+stops immediately after that decision. Prefix digest, action, visible-index, or
+search-attempt drift fails closed. The candidate-subowner report can be
+atomically published with a canonical SHA-256 digest, and all temporary class/
+module instrumentation is restored on success or failure. Gameplay, policy,
+search schedule, projection behavior, and training state are unchanged.
+
+Focused diagnostic validation passed **30 tests** locally. GitHub Actions run
+`37413943005`, job `112108299554`, passed; the actual log reports **3154
+passed, 1613 deselected in 206.61s**. The exact next task is to run this frozen
+decision-11 subowner diagnostic and preserve its report before considering any
+optimization.
+
 ### Eight-episode probe Manacle checkpoint
 
 The initial unchanged `--maximum-episodes 8` invocation ran for **77.4433825
