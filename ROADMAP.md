@@ -759,25 +759,35 @@ Batch-2 decision-11 search-subowner evidence:
 - Checkpoint/progress hashes, sizes, timestamps, counters, and next indices
   remained unchanged after the diagnostic.
 
+Planner estimate-path attribution gate:
+
+- Commit `cfed457f6626859e7f72ec21f0a62fd82d0314ab`.
+- The existing checkpoint search diagnostic now extends its exclusive helper
+  stack at the production planner owner across `_estimate_action`, play/discard
+  branches, recursive best-value and guaranteed-play work, evaluator projection,
+  draw distribution/card reconstruction, discard projection, and estimator
+  deep copies. Nested elapsed time remains exclusive and balanced.
+- Candidate generation and policy arbitration remain excluded from helper
+  attribution; existing candidate diagnostics retain their prior default scope.
+- Focused local validation: **42 passed in 8.13s**. Broader affected PPO
+  diagnostic validation: **54 passed in 32.33s**.
+- GitHub Actions run `37520246148`, job `112463504931`.
+- Actual job log: **3196 passed, 1616 deselected in 137.99s**.
+
 ## Exact active task
 
-Add exact checkpoint-backed planner estimate-path attribution for episode 637 /
-stream 5 / zero-based tactical decision 11, then run and preserve that bounded
-trained-policy trace before any optimization or batch-3 resume.
+Run and preserve the exact checkpoint-backed planner estimate-path trace for
+episode 637 / stream 5 / zero-based tactical decision 11, then select only its
+demonstrated dominant estimate owner before any optimization or batch-3 resume.
 
 Requirements:
 
-- Extend the existing search-evaluation scope at the production planner owner;
-  split `_estimate_action` into exclusive estimate-play, estimate-discard,
-  recursive best-value, projection, draw-distribution, and remaining estimate
-  work as the real call graph permits. Do not infer cost from call counts.
-- Reuse the exact restored checkpoint policy, pinned decision prefix, complete
-  terminal replay, and immutability/provenance gates. Preserve call counts,
-  exclusive timings, and a balanced estimate-path residual without changing
-  planner behavior or adding a rescue implementation.
-- Add focused deterministic regression tests and use GitHub Actions as the
-  implementation gate. After green, run and commit the exact bounded diagnostic
-  before selecting an optimization target.
+- Preflight the checkpoint and trained policy against the batch-2 evidence.
+- Run exactly:
+  `python -m games.balatro.env.ppo_checkpoint_search_subowners --root-seed RED-WHITE-PPO-V1 --checkpoint-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5\checkpoint.json" --output-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-episode-637-decision-11-estimate-subowners.json"`.
+- Verify checkpoint/progress bytes and hashes remain unchanged. Validate and
+  commit the canonical report under `docs/balatro/`, then update this roadmap
+  with its exact hash, balanced timings, and demonstrated estimate owner.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
