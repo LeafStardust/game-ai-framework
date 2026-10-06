@@ -369,11 +369,38 @@ Decision-12 diagnostic gate:
 - GitHub Actions run `37423411824`, job `112137605591`.
 - Actual job log: **3162 passed, 1613 deselected in 191.97s**.
 
+The decision-12 schema-v16 report is committed at
+`docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_SUBOWNERS_V16.json`.
+Its canonical 4,665-byte report has SHA-256
+`0a17c4242c3a2cd07b6b697a1806b340bb5478ca55f175f56ba2261c16d33d1c`;
+the repository copy includes a terminal newline (4,666 bytes, SHA-256
+`e9dd1f03863bb0d328633336e97e1b5c97c26d76500e864919902235e930fdd5`).
+All 13 prefix decisions, the pinned target identity, and both search attempts
+are exact.
+
+Decision-12 attribution:
+
+- Total target time: **254.21451600000728 seconds**; candidate generation:
+  **219.5430486999976 seconds**.
+- Evaluator cache: 1,740 hits / 885 misses.
+- Generated-consumable transitions: **682,505**, all exact inert and zero
+  generator-capable.
+- Card-collection detachment remains the largest measured owner at
+  **76.9668123024021 seconds** (35.0577% of candidate generation), but its
+  validation/copy paths are already attributed and optimized.
+- The largest unexamined owner is The Hook transition at
+  **47.01187289733207 seconds** across 83,408 calls (21.4135% of candidate
+  generation). Generated Joker projection follows at 33.659568707080325
+  seconds.
+- Decision 12 therefore confirms decision 11's ownership shape rather than
+  revealing a separate mechanic-specific regression.
+
 ## Exact active task
 
-Run the schema-v16 diagnostic once against the frozen episode-43 decision-12
-target and preserve its atomic report. Use its exact attribution to select the
-next owner; do not assume decision 12 matches decision 11.
+Extend the diagnostic only enough to attribute the 47.01187289733207-second
+The Hook transition owner at frozen episode-43 decision 12. Separate held-card
+selection, forced-branch construction, discard-Joker projection, hand removal,
+and Hook outcome aggregation without changing runtime behavior.
 
 Requirements:
 
@@ -381,9 +408,12 @@ Requirements:
   `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
   `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
-- Require 13 verified prefix decisions and unchanged schema-v16 accounting.
-- Publish the report atomically and commit its exact interpretation before any
-  runtime optimization.
+- Add canonical behavior-preserving helper boundaries only where required for
+  exact attribution; do not add profiler-only runtime workarounds.
+- Record exact Hook call/branch/outcome accounting and restore every temporary
+  wrapper after success and failure.
+- Add focused deterministic instrumentation/accounting/restoration tests, then
+  run the single decision-12 target only after CI is green.
 - Do not optimize any named non-card collection.
 - Do not profile decision 12, resume a second optimizer batch, start full
   training, change policy/hyperparameters/search schedule, or widen mechanics
@@ -405,5 +435,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16_POST_FAST.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16_POST_HELPERS.json`
+- `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_SUBOWNERS_V16.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
