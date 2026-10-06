@@ -515,11 +515,29 @@ Post-optimization comparison:
 - Decision 12 is now fully attributed through its safe optimization boundary.
   Named non-card collection copying remains intentionally untouched.
 
+Bounded second-batch resume boundary:
+
+- The required campaign-v12 checkpoint preflight matched exactly: 46,954,547
+  bytes, SHA-256
+  `872f3be2dbce3e860b1151edef810df27157858e8f5202799869a75500038a4c`,
+  one completed batch, 2,268 collected / 2,048 consumed transitions, and next
+  episode indices 312..319.
+- The eight-worker one-additional-batch resume stopped fail-closed after
+  **60.2378246 seconds** when a worker reached the unowned tactical discard
+  redraw for `The Wheel`. The ordered wave was not admitted; checkpoint and
+  progress bytes and hashes remain unchanged.
+- Read-only ordered isolation from the same trained checkpoint proves episode
+  312 / seed `61B70EF9` completes in 3 decisions. Episode 313 / stream 1 / seed
+  `88DB75F5` is the earliest failure and raises the exact Wheel discard boundary.
+- This is a narrow missing R4 redraw owner. The existing R2 Wheel start already
+  owns the keyed `wheel` RNG, physical draw order, 1-in-7 face-down predicate,
+  policy masking, and cleanup semantics.
+
 ## Exact active task
 
-Resume the existing frozen campaign-v12 checkpoint for exactly one additional
-optimizer batch, then preserve and compare its authoritative progress evidence
-against the first-batch checkpoint.
+Implement The Wheel's exact post-discard replenishment in the canonical R4
+tactical transition, then prove production episode 313 crosses the repaired
+boundary without changing its earlier decisions.
 
 Requirements:
 
@@ -527,23 +545,22 @@ Requirements:
   `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
   `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
-- Before launch, verify the existing
-  `C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5`
-  checkpoint is 46,954,547 bytes with SHA-256
-  `872f3be2dbce3e860b1151edef810df27157858e8f5202799869a75500038a4c`
-  and binds one completed batch, 2,268 collected transitions, 2,048 consumed
-  transitions, and next indices 312..319.
-- Use root seed `RED-WHITE-PPO-V1`, eight workers, `--maximum-batches 1`, and a
-  sufficiently high episode bound only to reach the next batch. Do not create a
-  new campaign or recollect already committed episodes.
-- Preserve the resulting checkpoint/progress hashes, byte counts, episode and
-  transition totals, carryovers, next indices, optimizer step, elapsed time,
-  and parameter digest.
-- Stop fail-closed on any mechanics/provenance error and record the earliest
-  exact boundary instead of widening mechanics speculatively.
+- Reuse the existing keyed `wheel` RNG and retained physical draw-pile order;
+  consume exactly one Wheel poll per newly drawn card, before public hand sort
+  can affect assignment.
+- Mark each replacement card's facing authoritative, mask only RNG-selected
+  hidden identities in policy observation, and leave already-retained hand-card
+  facing unchanged.
+- Preserve atomicity and RNG on invalid phase, Boss/resource state, private/public
+  zone mismatch, unsupported Joker callbacks/probability modifiers, Purple
+  Seals, or malformed draw identity.
+- Add focused deterministic regressions for physical assignment, seed replay,
+  masking, input immutability, and fail-closed cases plus the complete episode
+  313 trained-policy regression.
+- Use GitHub Actions as the gate. Only after green may the unchanged campaign
+  checkpoint resume the same one-additional-batch command.
 - Do not start unbounded/full training, inspect promotion results, change
-  policy/hyperparameters/search schedule, or widen mechanics until this bounded
-  second-batch checkpoint is recorded here.
+  policy/hyperparameters/search schedule, or widen beyond The Wheel discard.
 
 ## Held and deferred work
 
