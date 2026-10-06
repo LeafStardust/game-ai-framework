@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`9badb2cc18fcebb468ac126b1e781f143eb20b88`.
+`27f1c49058fc6eca8d64c4cd63abbd7b88f36833`.
 
 ## Objective
 
@@ -273,12 +273,32 @@ Exact detachment attribution:
   for scalar validation and 0.17939219769323245 seconds for shallow copying.
 - No extended-card reconstruction was observed in the 100,000-call sample.
 
+Card-detachment optimization gate:
+
+- Commit `27f1c49058fc6eca8d64c4cd63abbd7b88f36833`.
+- Exact Balatro-card field and scalar-type sets are now module constants;
+  validation compares the card's key view without allocating a set, exact cards
+  reconstruct directly through the canonical `BalatroCard` constructor, and the
+  collection owner no longer invokes an inner closure for every card reference.
+- Subclasses, extra attributes, and mutable field values still fail closed to
+  graph-preserving `deepcopy`; shared cards retain cross-collection identity and
+  no projected card aliases its input.
+- A representative 20,000-iteration pristine-state microbenchmark measured
+  2.1800945 seconds versus 3.4009327 seconds for the prior implementation
+  (**35.8972% lower**).
+- The production comparator preserved input hash `e855e86f...` and identical
+  wrapped/inherited public-state hash `78325d40...`, with inherited input-card
+  aliases 60 and wrapped aliases exactly 0.
+- Focused local validation: **66 passed in 1.00s**.
+- GitHub Actions run `37421013032`, job `112130135632`.
+- Actual job log: **3159 passed, 1613 deselected in 197.05s**.
+
 ## Exact active task
 
-Optimize only the canonical `BalatroState._detach_tactical_card_collections`
-owner identified by schema v16. Reduce repeated exact-card traversal/
-validation/copy overhead without weakening alias isolation or the conservative
-deepcopy path for subclasses, extra attributes, or mutable field values.
+Run the schema-v16 diagnostic once against the frozen episode-43 decision-11
+target after commit `27f1c490`, and preserve its atomic report. Confirm the
+exact identity contract and quantify the real end-to-end improvement before
+selecting any further owner.
 
 Requirements:
 
@@ -286,15 +306,11 @@ Requirements:
   `7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d`,
   `DISCARD_CARDS(5)`, and attempts `(h2,n252,max2000,complete)` then
   `(h3,n2000,max2000,budget-exceeded)`.
-- Preserve cross-collection identity for a card appearing in multiple state
-  collections while leaving zero aliases to every input card.
-- Preserve public-state output and all generated-capable conservative paths.
-- Add focused deterministic regressions for exact canonical cards, shared-card
-  identity, subclasses, extra attributes, and mutable field values.
-- Re-run the production alias comparator and the exact frozen decision-11
-  profile after the implementation is green.
-- Do not optimize any named non-card collection; schema v16 shows none is
-  material.
+- Require schema v16 card and named-collection attribution in the report.
+- Publish the report atomically and commit the canonical evidence plus its
+  before/after interpretation.
+- Do not optimize any named non-card collection; the pre-change schema-v16
+  profile shows none is material.
 - Do not profile decision 12, resume a second optimizer batch, start full
   training, change policy/hyperparameters/search schedule, or widen mechanics
   until this task is green and recorded here.
