@@ -625,23 +625,47 @@ Checkpoint-wave timing gate:
 - GitHub Actions run `37510354233`, job `112429587728`.
 - Actual job log: **3181 passed, 1616 deselected in 222.04s**.
 
+Batch-2 next-wave timing evidence:
+
+- The exact read-only eight-worker timing wave for episodes 632..639 completed
+  in **30.619382000004407 seconds**. All eight episodes are complete losses and
+  explicitly uncommitted; the campaign checkpoint and progress bytes, hashes,
+  sizes, timestamps, counters, and next indices remain unchanged.
+- The canonical 3,244-byte report has SHA-256
+  `f09972189c3d558dd80337f99f2704e30e7d6dd0d4c867faa670cdc4551eee4d`.
+  The repository copy at
+  `docs/balatro/BALATRO_PPO_BATCH2_WAVE_632_639_TIMING.json` includes a terminal
+  newline (3,245 bytes, SHA-256
+  `b995a4e634f3d5a03b1e33990e763a305a7df746cc8ee833f18592ecfb385e67`).
+- Per-episode seconds for 632..639 are `(3.4269816000014544,
+  4.365689199999906, 1.368142400024226, 4.692953899997519,
+  1.894835500017507, 29.75549409998348, 3.1748885000124574,
+  7.477424499986228)`.
+- Episode 637 / stream 5 / seed `4BA9B47B` is the demonstrated dominant owner:
+  **29.75549409998348 seconds**, **97.1786%** of wave wall time and **3.9794x**
+  the next-slowest episode, despite only seven decisions.
+
 ## Exact active task
 
-Run and preserve one exact read-only eight-worker timing wave for episodes
-632..639 from the completed batch-2 checkpoint, then select only its demonstrated
-dominant slow owner before any batch-3 resume.
+Add exact checkpoint-backed tactical decision attribution, then trace episode
+637 / stream 5 / seed `4BA9B47B` under the batch-2 trained policy to identify its
+dominant decision and canonical subowner before any batch-3 resume.
 
 Requirements:
 
-- Preflight checkpoint size/hash, progress, next indices, Adam step, carryovers,
-  and policy digest against the completed batch-2 evidence above.
-- Run exactly:
-  `python -m games.balatro.env.ppo_campaign_wave_timing --root-seed RED-WHITE-PPO-V1 --checkpoint-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5\checkpoint.json" --maximum-workers 8 --output-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-wave-632-639.json"`.
-- Verify the campaign checkpoint/progress bytes and hashes remain unchanged;
-  validate and commit the canonical timing report under `docs/balatro/`.
-- Attribute the slowest episode further only if the complete wave identifies a
-  material outlier. Update this roadmap with the exact report hash, timings, and
-  next demonstrated owner before implementation.
+- Reuse the existing production tactical instrumentation and exact restored
+  campaign policy; do not fork the planner, rollout, environment, or model.
+- Bind the report to checkpoint/training-run/policy provenance and episode 637's
+  complete terminal episode digest. Preserve ordered per-decision input digest,
+  action, selected indices, search attempts, total, candidate-generation,
+  search-evaluation, policy-arbitration, and residual time.
+- Hash the restored session before and after tracing. Do not assemble, optimize,
+  write campaign artifacts, advance indices, or mutate the checkpoint/model.
+- Add focused deterministic tests for checkpoint provenance, exact episode/
+  stream selection, timing accounting, immutability, drift rejection, and
+  canonical report hashing. Use GitHub Actions as the implementation gate.
+- After green, run the exact trained checkpoint trace for episode 637 and commit
+  the report before selecting a narrower subowner or optimization.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
@@ -667,5 +691,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_HOOK_V17.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_DISCARD_V18.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_DISCARD_V18_POST_INERT.json`
+- `docs/balatro/BALATRO_PPO_BATCH2_WAVE_632_639_TIMING.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
