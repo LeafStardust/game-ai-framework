@@ -680,21 +680,61 @@ Immediate-fallback attribution correction:
 - GitHub Actions run `37512835152`, job `112438129938`.
 - Actual job log: **3189 passed, 1616 deselected in 191.93s**.
 
+Batch-2 episode-637 tactical evidence:
+
+- The exact checkpoint-backed trace completed episode 637 / stream 5 / seed
+  `4BA9B47B` as the same seven-transition loss previously observed. Its complete
+  terminal episode SHA-256 is
+  `0899f4127cfa8f6094ba49692215bde2c091af73d3bda5c0a02c70ad63eebc98`.
+- The trace contains 24 ordered tactical decisions, took
+  **23.848412799998187 seconds** end to end, and attributes
+  **23.472520100069232 seconds** to tactical decisions. Session hashes before
+  and after are both
+  `c1a695faf0ccab8b9d68af96eae2e14fd0fcdad00c85f91e67d3935956afddda`;
+  `committed=false`.
+- The canonical 11,725-byte report has SHA-256
+  `782fc0de3c97bb07f562a199ecfd1462471154074d779d4e0a884ea8c9c19840`.
+  The repository copy at
+  `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_TACTICAL.json` includes a
+  terminal newline (11,726 bytes, SHA-256
+  `593f6fd2ed1054d1a9e76fe3fd52b8c777ca060728c901939fdde0250813effc`).
+- Zero-based tactical decision index 11 (the twelfth tactical decision), public
+  input SHA-256
+  `43da28597c26c6d105cb187b762f3cc81bf1fd13472228659fb9f2ed6a6465f4`,
+  is dominant at **7.839980100019602 seconds**: **33.4007%** of tactical time
+  and **32.8742%** of complete episode time. It selects `DISCARD_CARDS` indices
+  `(0, 1, 3, 4, 7)` after one `(2, 292, 2000, false)` search attempt.
+- Its canonical next subowner is search evaluation:
+  **3.9363454995618667 seconds (50.2086%)**, ahead of candidate generation at
+  **3.1596215004392434 seconds (40.3014%)**, policy arbitration at
+  **0.7429765000124462 seconds (9.4768%)**, and residual at
+  **0.0010366000060457736 seconds**. Decisions 11 and 14 together own
+  **61.7455%** of tactical time, so the next diagnostic remains pinned to the
+  demonstrated decision-11 search-evaluation owner.
+- Checkpoint/progress hashes, sizes, timestamps, counters, and next indices
+  remained unchanged after the trace.
+
 ## Exact active task
 
-Run and preserve the exact checkpoint-backed tactical trace for episode 637 /
-stream 5 / seed `4BA9B47B`, then identify its dominant decision and canonical
-subowner before any batch-3 resume.
+Add exact checkpoint-backed search-evaluation subowner attribution for episode
+637 / stream 5 / zero-based tactical decision 11, then run and preserve that
+bounded trained-policy trace before any batch-3 resume.
 
 Requirements:
 
-- Preflight the checkpoint and trained policy against the batch-2 evidence.
-- Run exactly:
-  `python -m games.balatro.env.ppo_checkpoint_tactical_performance --root-seed RED-WHITE-PPO-V1 --checkpoint-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-first-batch-v12-102c05d5\checkpoint.json" --episode-index 637 --output-path "C:\Users\user\AppData\Local\Temp\balatro-ppo-episode-637-tactical.json"`.
-- Verify the checkpoint/progress bytes and hashes remain unchanged. Validate and
-  commit the canonical report under `docs/balatro/`, then update this roadmap
-  with the exact report hash, episode digest, timings, dominant decision, and
-  next demonstrated subowner before implementation.
+- Reuse the exact restored checkpoint policy, production episode rollout, and
+  existing tactical helper instrumentation. Pin and validate the ordered
+  decision prefix through index 11 against the committed tactical report.
+- Attribute the target's search-evaluation work to its existing planner,
+  evaluator, projection, copying, and outcome helpers without changing search
+  behavior or adding report-side estimates. Preserve exact action/search trace,
+  helper call counts and exclusive timings, checkpoint/training/policy/episode
+  provenance, and session immutability.
+- Fail closed on prefix, clock, policy, episode, stream, helper-accounting, or
+  session drift. Add focused deterministic tests and use GitHub Actions as the
+  implementation gate before running the exact checkpoint trace.
+- Commit the canonical diagnostic under `docs/balatro/` and update this roadmap
+  with the demonstrated helper owner before optimizing anything.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
@@ -721,5 +761,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_DISCARD_V18.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_12_DISCARD_V18_POST_INERT.json`
 - `docs/balatro/BALATRO_PPO_BATCH2_WAVE_632_639_TIMING.json`
+- `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_TACTICAL.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
