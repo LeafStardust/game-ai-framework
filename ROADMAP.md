@@ -2429,16 +2429,19 @@ passed **118 tests** locally. GitHub Actions run `34701922146`, job
 
 ### Exact next task
 
-Run the existing decision-level tactical cost diagnostic for initial-policy
-episode **43** (`EE424B52`), the single dominant first-batch outlier. Preserve
-its complete ordered public-input digests, actions, visible indices, search
-attempt/node traces, and exclusive timing categories; identify the exact
-decision/subowner responsible before any optimization. Do not profile the other
-four slow-tail episodes until episode 43 is understood. Do not resume into a
-second batch or begin full training. Keep the default/live schedule unchanged.
-Do not change policy, mechanics, projection, the selective predicate, or its
-schedule; do not inspect promotion results, tune hyperparameters, add a wall-
-clock cutoff, or widen mechanics.
+Extend the existing decision-level tactical cost diagnostic from its stale
+first-wave-only `0..7` bound to any exact nonnegative pre-optimizer episode
+index, deriving `stream_index = episode_index mod 8` while preserving the frozen
+initial policy. Add focused fail-closed tests, then run it for episode **43**
+(`EE424B52`), the single dominant first-batch outlier. Preserve its complete
+ordered public-input digests, actions, visible indices, search attempt/node
+traces, and exclusive timing categories; identify the exact decision/subowner
+responsible before any optimization. Do not profile the other four slow-tail
+episodes until episode 43 is understood. Do not resume into a second batch or
+begin full training. Keep the default/live schedule unchanged. Do not change
+policy, mechanics, projection, the selective predicate, or its schedule; do not
+inspect promotion results, tune hyperparameters, add a wall-clock cutoff, or
+widen mechanics.
 
 ### Eight-episode probe Manacle checkpoint
 
@@ -4158,7 +4161,10 @@ time, and each is dominated by one episode:
 
 Episode 43 alone accounts for **37.0487%** of total wall time. The exact next
 task is its decision-level tactical attribution above, not a speculative
-optimization or another training batch.
+optimization or another training batch. Inspection before that run found the
+existing diagnostic still rejects every episode index above 7 and records
+`stream_index = episode_index`; the narrow arbitrary-index/stream-modulo repair
+in the exact-next-task block is therefore required first.
 
 ### Horizon-five candidate sub-profile checkpoint
 
