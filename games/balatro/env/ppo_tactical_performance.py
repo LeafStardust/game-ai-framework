@@ -488,6 +488,15 @@ class PPOTacticalCandidateSubownerReport:
         return json.dumps(self.as_dict(), sort_keys=True)
 
 
+@dataclass(frozen=True)
+class _PPOTacticalScopedSubownerTrace:
+    report: PPOTacticalCandidateSubownerReport
+    search_evaluation_elapsed_seconds: float
+    policy_arbitration_elapsed_seconds: float
+    other_elapsed_seconds: float
+    residual_search_evaluation_elapsed_seconds: float
+
+
 def write_ppo_tactical_candidate_subowner_report(
     path: str | Path,
     report: PPOTacticalCandidateSubownerReport,
@@ -1355,7 +1364,10 @@ def _trace_candidate_subowners(
     expected_prefix: tuple[tuple[object, ...], ...],
     root_seed: str = "RED-WHITE-PPO-V1",
     clock: Callable[[], float] = perf_counter,
-) -> PPOTacticalCandidateSubownerReport:
+    environment=None,
+    policy=None,
+    helper_scope: str = "candidate",
+) -> PPOTacticalCandidateSubownerReport | _PPOTacticalScopedSubownerTrace:
     """Stop after one frozen target and time its planner helpers."""
     if root_seed != "RED-WHITE-PPO-V1":
         raise PPOContractError(
@@ -1363,16 +1375,27 @@ def _trace_candidate_subowners(
         )
     if not callable(clock):
         raise TypeError("clock must be callable")
+    if helper_scope not in {"candidate", "search_evaluation"}:
+        raise PPOContractError("candidate sub-owner helper scope is invalid")
+    if (environment is None) != (policy is None):
+        raise PPOContractError(
+            "candidate sub-owner environment and policy must be supplied together"
+        )
+    if policy is not None and not callable(policy):
+        raise TypeError("policy must be callable")
 
     if target_index != len(expected_prefix) - 1:
         raise PPOContractError("candidate sub-owner target must end its exact prefix")
     stream_index = episode_index % PPO_TRAINING_CONTRACT.parallel_environments
     training_run = PPOTrainingRun.from_seed(root_seed)
-    environment = make_ppo_training_environment(stream_index)
-    learner = PPOLearner(training_run)
+    if environment is None:
+        environment = make_ppo_training_environment(stream_index)
+        policy = PPOLearner(training_run).model.infer
     engine = environment._backend._tactical_decision_engine
     helper_accumulator = _ExclusiveHelperAccumulator(clock)
     candidate_elapsed = {"seconds": 0.0}
+    search_elapsed = {"seconds": 0.0}
+    policy_elapsed = {"seconds": 0.0}
     evaluation_cache = {"hits": 0, "misses": 0}
     generated_capabilities = {
         "calls": 0,
@@ -1682,13 +1705,20 @@ def _trace_candidate_subowners(
             if not helper_accumulator.enabled:
                 return original_candidates(*args, **kwargs)
             started = float(clock())
+            search_scope = helper_scope == "search_evaluation"
+            if search_scope:
+                helper_accumulator.enabled = False
             try:
                 return original_candidates(*args, **kwargs)
             finally:
-                candidate_elapsed["seconds"] += max(
-                    0.0,
-                    float(clock()) - started,
-                )
+                ended = float(clock())
+                if ended < started:
+                    raise PPOContractError(
+                        "candidate sub-owner diagnostic clock moved backwards"
+                    )
+                candidate_elapsed["seconds"] += ended - started
+                if search_scope:
+                    helper_accumulator.enabled = True
 
         planner._candidate_actions = timed_candidates
 
@@ -1701,6 +1731,41 @@ def _trace_candidate_subowners(
         return planner
 
     engine._adaptive_planner = adaptive_planner
+
+    def scoped_timed(accumulator, function, *, exclude_helpers=False):
+        def timed(*args, **kwargs):
+            if not helper_accumulator.enabled:
+                return function(*args, **kwargs)
+            started = float(clock())
+            if exclude_helpers:
+                helper_accumulator.enabled = False
+            try:
+                return function(*args, **kwargs)
+            finally:
+                ended = float(clock())
+                if ended < started:
+                    raise PPOContractError(
+                        "candidate sub-owner diagnostic clock moved backwards"
+                    )
+                accumulator["seconds"] += ended - started
+                if exclude_helpers:
+                    helper_accumulator.enabled = True
+
+        return timed
+
+    if helper_scope == "search_evaluation":
+        engine.rank_plans = scoped_timed(search_elapsed, engine.rank_plans)
+        rank_immediate_plans = getattr(engine, "_rank_immediate_plans", None)
+        if callable(rank_immediate_plans):
+            engine._rank_immediate_plans = scoped_timed(
+                search_elapsed,
+                rank_immediate_plans,
+            )
+        engine.policy.decide = scoped_timed(
+            policy_elapsed,
+            engine.policy.decide,
+            exclude_helpers=True,
+        )
     original_decide = engine.decide
     verified = {"count": 0}
 
@@ -1857,6 +1922,37 @@ def _trace_candidate_subowners(
             ],
             residual_candidate_elapsed_seconds=residual,
         )
+        if helper_scope == "search_evaluation":
+            search_evaluation = search_elapsed["seconds"] - candidate
+            other = total - search_elapsed["seconds"] - policy_elapsed["seconds"]
+            helper_total = sum(
+                item.exclusive_elapsed_seconds for item in helper_costs
+            )
+            residual_search = search_evaluation - helper_total
+            scoped_timings = (
+                search_evaluation,
+                policy_elapsed["seconds"],
+                other,
+                residual_search,
+            )
+            if any(
+                not math.isfinite(value) or value < -1e-9
+                for value in scoped_timings
+            ):
+                raise PPOContractError(
+                    "search-evaluation sub-owner timing did not balance"
+                )
+            raise _TargetDecisionReached(
+                _PPOTacticalScopedSubownerTrace(
+                    report=report,
+                    search_evaluation_elapsed_seconds=max(0.0, search_evaluation),
+                    policy_arbitration_elapsed_seconds=policy_elapsed["seconds"],
+                    other_elapsed_seconds=max(0.0, other),
+                    residual_search_evaluation_elapsed_seconds=max(
+                        0.0, residual_search
+                    ),
+                )
+            )
         raise _TargetDecisionReached(report)
 
     engine.decide = decide
@@ -2110,7 +2206,7 @@ def _trace_candidate_subowners(
                 environment,
                 training_run,
                 episode_index=episode_index,
-                policy=learner.model.infer,
+                policy=policy,
             )
         except _TargetDecisionReached as reached:
             return reached.report

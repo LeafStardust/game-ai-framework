@@ -392,6 +392,88 @@ def test_env_ppo_episode_instrumentation_owns_immediate_fallback_search_cost():
     ) == record.total_elapsed_seconds
 
 
+def test_env_ppo_search_subowner_scope_excludes_candidate_and_policy_helpers(
+    monkeypatch,
+):
+    from games.balatro.card import BalatroCard
+    from games.balatro.state import BalatroState
+
+    state = BalatroState()
+    state.hand = [BalatroCard("A", "Spades")]
+    digest = tactical_performance._public_input_sha256(state)
+    engine = _FakeEngine()
+    environment = SimpleNamespace(
+        _backend=SimpleNamespace(_tactical_decision_engine=engine)
+    )
+
+    def rank_plans(target, **kwargs):
+        engine.planner.evaluator.evaluate(target, _FakeAction(target.hand))
+        return ()
+
+    engine.rank_plans = rank_plans
+
+    def collect(target, training_run, *, episode_index, policy):
+        engine.decide(state)
+        raise AssertionError("search subowner target must stop collection")
+
+    monkeypatch.setattr(
+        tactical_performance,
+        "collect_complete_ppo_episode",
+        collect,
+    )
+    ticks = count()
+    result = tactical_performance._trace_candidate_subowners(
+        episode_index=637,
+        target_index=0,
+        expected_prefix=((digest, "PLAY_CARDS", (0,), ()),),
+        clock=lambda: float(next(ticks)),
+        environment=environment,
+        policy=lambda observation, mask: None,
+        helper_scope="search_evaluation",
+    )
+
+    assert isinstance(result, tactical_performance._PPOTacticalScopedSubownerTrace)
+    costs = {item.name: item for item in result.report.helper_costs}
+    assert costs["_evaluator_evaluate"].calls == 1
+    assert "_candidate_actions" not in costs
+    assert result.search_evaluation_elapsed_seconds > 0.0
+    assert result.policy_arbitration_elapsed_seconds > 0.0
+    assert result.residual_search_evaluation_elapsed_seconds >= 0.0
+
+
+def test_env_ppo_search_subowner_scope_rejects_clock_drift(monkeypatch):
+    from games.balatro.card import BalatroCard
+    from games.balatro.state import BalatroState
+
+    state = BalatroState()
+    state.hand = [BalatroCard("A", "Spades")]
+    digest = tactical_performance._public_input_sha256(state)
+    engine = _FakeEngine()
+    environment = SimpleNamespace(
+        _backend=SimpleNamespace(_tactical_decision_engine=engine)
+    )
+
+    def collect(target, training_run, *, episode_index, policy):
+        engine.decide(state)
+
+    monkeypatch.setattr(
+        tactical_performance,
+        "collect_complete_ppo_episode",
+        collect,
+    )
+    ticks = count()
+    with pytest.raises(PPOContractError, match="clock moved backwards"):
+        tactical_performance._trace_candidate_subowners(
+            episode_index=637,
+            target_index=0,
+            expected_prefix=((digest, "PLAY_CARDS", (0,), ()),),
+            clock=lambda: -float(next(ticks)),
+            environment=environment,
+            policy=lambda observation, mask: None,
+            helper_scope="search_evaluation",
+        )
+
+
 def test_env_ppo_initial_policy_episode_trace_targets_only_requested_episode(
     monkeypatch,
 ):
