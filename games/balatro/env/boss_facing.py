@@ -201,20 +201,28 @@ def start_supported_fish(run: HeadlessRunState) -> HeadlessRunState:
     return _mark_current_hand_face_up(dealt)
 
 
-def _fish_replenishment_creation_indices(run: HeadlessRunState) -> list[int]:
+def _replenishment_creation_indices(
+    run: HeadlessRunState,
+    *,
+    boss_name: str,
+) -> list[int]:
     """Return creation indices of the exact cards ordinary draw-to-hand will move."""
     state = run.public
     if state.phase != "SELECTING_HAND":
-        raise HeadlessTransitionError("Fish replenishment requires SELECTING_HAND phase")
-    if state.boss_name != "The Fish":
-        raise HeadlessTransitionError("Fish replenishment requires The Fish")
+        raise HeadlessTransitionError(
+            f"{boss_name} replenishment requires SELECTING_HAND phase"
+        )
+    if state.boss_name != boss_name:
+        raise HeadlessTransitionError(
+            f"{boss_name} replenishment requires {boss_name}"
+        )
     if len(run.draw_pile) != len(state.deck):
         raise HeadlessTransitionError(
-            "Fish private draw pile and public remaining deck size disagree"
+            f"{boss_name} private draw pile and public remaining deck size disagree"
         )
     if {id(card) for card in run.draw_pile} != {id(card) for card in state.deck}:
         raise HeadlessTransitionError(
-            "Fish private draw pile and public remaining deck cards disagree"
+            f"{boss_name} private draw pile and public remaining deck cards disagree"
         )
 
     creation_order = run.require_playing_card_order()
@@ -225,7 +233,7 @@ def _fish_replenishment_creation_indices(run: HeadlessRunState) -> list[int]:
         return [creation_index[id(run.draw_pile[-1 - offset])] for offset in range(draw_count)]
     except KeyError as exc:
         raise HeadlessTransitionError(
-            "Fish draw pile contains card outside authoritative playing-card order"
+            f"{boss_name} draw pile contains card outside authoritative playing-card order"
         ) from exc
 
 
@@ -234,7 +242,7 @@ def _draw_fish_replenishment(
     *,
     face_down: bool,
 ) -> HeadlessRunState:
-    draw_indices = _fish_replenishment_creation_indices(run)
+    draw_indices = _replenishment_creation_indices(run, boss_name="The Fish")
     next_run = run.copy()
 
     # Reuse the already-audited ordinary capacity-limited draw owner. Repeated
@@ -275,6 +283,59 @@ def draw_fish_post_discard_cards(run: HeadlessRunState) -> HeadlessRunState:
             "Fish post-discard draw requires authoritative evidence of a discard"
         )
     return _draw_fish_replenishment(run, face_down=False)
+
+
+def _draw_wheel_replenishment(run: HeadlessRunState) -> HeadlessRunState:
+    draw_indices = _replenishment_creation_indices(run, boss_name="The Wheel")
+    next_run = run.copy()
+    for _ in draw_indices:
+        next_run = draw_one_supported_card_to_hand(next_run)
+
+    disabled = bool(getattr(next_run.public.blind, "disabled", False))
+    next_order = next_run.require_playing_card_order()
+    for creation_index in draw_indices:
+        try:
+            card = next_order[creation_index]
+        except IndexError as exc:
+            raise HeadlessTransitionError(
+                "Wheel physical draw index is invalid"
+            ) from exc
+        card.face_down = (
+            False
+            if disabled
+            else next_run.rng.random(_WHEEL_KEY) < _WHEEL_NORMAL_PROBABILITY
+        )
+        card.facing_observed = True
+    return next_run
+
+
+def draw_wheel_post_play_cards(run: HeadlessRunState) -> HeadlessRunState:
+    """Draw Wheel replacements after one accepted played hand."""
+    if _require_round_play_history(run.public) <= 0:
+        raise HeadlessTransitionError(
+            "Wheel post-play draw requires authoritative evidence of a played hand"
+        )
+    return _draw_wheel_replenishment(run)
+
+
+def draw_wheel_post_discard_cards(run: HeadlessRunState) -> HeadlessRunState:
+    """Draw Wheel replacements with one keyed facing poll per physical card.
+
+    The discard transition advances ``discards_used`` before this boundary.
+    Vanilla then moves each replacement from the retained physical deck tail and
+    calls ``Blind:stay_flipped`` with the ``wheel`` pseudoseed for that card.
+    Creation indices retain that physical assignment across public hand sorting.
+    """
+    discards_used = run.public.discards_used
+    if (
+        isinstance(discards_used, bool)
+        or not isinstance(discards_used, int)
+        or discards_used <= 0
+    ):
+        raise HeadlessTransitionError(
+            "Wheel post-discard draw requires authoritative evidence of a discard"
+        )
+    return _draw_wheel_replenishment(run)
 
 
 def clear_facing_boss_hand(run: HeadlessRunState) -> HeadlessRunState:

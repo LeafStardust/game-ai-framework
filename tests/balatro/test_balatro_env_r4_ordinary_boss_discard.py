@@ -93,7 +93,7 @@ def test_env_r4_audited_ordinary_boss_discard_refills_exactly(boss_name):
 
 @pytest.mark.parametrize(
     "boss_name",
-    ("The Serpent", "The Wheel", "The Mark", "Cerulean Bell"),
+    ("The Serpent", "The Mark", "Cerulean Bell"),
 )
 def test_env_r4_special_boss_redraws_remain_fail_closed_atomically(boss_name):
     run = _boss_run(boss_name)

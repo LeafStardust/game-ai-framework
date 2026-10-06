@@ -301,6 +301,45 @@ def test_env_ppo_rollout_crosses_exact_paint_brush_boss_tactics(
 
 
 @pytest.fixture(scope="module")
+def episode_313_with_wheel_redraws():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(1),
+        run,
+        episode_index=313,
+        policy=PPOActorCritic(run).infer,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_wheel_play_and_discard_redraws(
+    episode_313_with_wheel_redraws,
+):
+    episode = episode_313_with_wheel_redraws
+
+    assert episode.game_seed == "88DB75F5"
+    assert episode.action_count == 13
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert episode.boundaries[-1].ante == 1
+    assert episode.boundaries[-1].score == 364
+    assert [decision.action.alias for decision in episode.decisions] == [
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_VOUCHER",
+        "BUY_CONSUMABLE",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "END_SHOP",
+        "SELECT_BLIND",
+    ]
+
+
+@pytest.fixture(scope="module")
 def episode_50_with_hieroglyph():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(

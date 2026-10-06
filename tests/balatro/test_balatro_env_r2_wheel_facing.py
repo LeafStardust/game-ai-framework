@@ -7,6 +7,9 @@ from games.balatro.env.boss_facing import (
     prepare_supported_wheel_start,
     start_supported_wheel,
 )
+from games.balatro.env.serialization import serialize_headless_run_state
+from games.balatro.env.tactical_transition import apply_supported_tactical_discard
+from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.rng import BalatroRNG
 from games.balatro.env.state import EnvStateFrame
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
@@ -126,3 +129,146 @@ def test_env_r2_wheel_cleanup_flips_hidden_cards_up_without_rng():
     assert all(not card.face_down for card in result.public.hand)
     assert all(card.facing_observed for card in result.public.hand)
     assert result.rng_snapshot() == before_rng
+
+
+def test_env_r4_wheel_discard_polls_each_physical_replacement_before_sort():
+    run = start_supported_wheel(_run("WHEEL-DISCARD"))
+    before = serialize_headless_run_state(run)
+    before_rng = run.rng_snapshot()
+    order = run.require_playing_card_order()
+    creation_index = {id(card): index for index, card in enumerate(order)}
+    replacement_indices = [
+        creation_index[id(run.draw_pile[-1])],
+        creation_index[id(run.draw_pile[-2])],
+    ]
+    retained_facing = {
+        creation_index[id(card)]: card.face_down
+        for offset, card in enumerate(run.public.hand)
+        if offset not in {0, 2}
+    }
+    expected_rng = BalatroRNG.from_snapshot(before_rng)
+    expected_facing = [
+        expected_rng.random("wheel") < (1.0 / 7.0)
+        for _ in replacement_indices
+    ]
+
+    result = apply_supported_tactical_discard(run, (0, 2))
+    result_order = result.require_playing_card_order()
+
+    assert serialize_headless_run_state(run) == before
+    assert len(result.public.hand) == result.public.hand_size == 8
+    assert result.public.discards_remaining == 2
+    assert result.public.discards_used == 1
+    assert result.rng_snapshot() == expected_rng.snapshot()
+    assert [
+        result_order[index].face_down for index in replacement_indices
+    ] == expected_facing
+    assert all(result_order[index].facing_observed for index in replacement_indices)
+    assert {
+        index: result_order[index].face_down for index in retained_facing
+    } == retained_facing
+
+
+def test_env_r4_wheel_discard_masks_only_new_hidden_replacements():
+    result = apply_supported_tactical_discard(
+        start_supported_wheel(_run("WHEEL-DISCARD-MASK")),
+        (0, 2, 4),
+    )
+    observation = EnvStateFrame(state=result.public).observation()
+
+    for internal, public in zip(result.public.hand, observation.hand, strict=True):
+        assert public.face_down is internal.face_down
+        if internal.face_down:
+            assert public.rank == "?"
+            assert public.suit == "?"
+            assert public.live_id is None
+        else:
+            assert public.rank == internal.rank
+            assert public.suit == internal.suit
+
+
+def test_env_r4_wheel_discard_replay_is_seed_deterministic_and_seed_sensitive():
+    def signature(seed):
+        result = apply_supported_tactical_discard(
+            start_supported_wheel(_run(seed)),
+            (0, 2, 4, 6),
+        )
+        return (
+            tuple(
+                (card.rank, card.suit, card.face_down)
+                for card in result.public.hand
+            ),
+            result.rng_snapshot(),
+        )
+
+    assert signature("WHEEL-DISCARD-REPLAY") == signature(
+        "WHEEL-DISCARD-REPLAY"
+    )
+    assert signature("WHEEL-DISCARD-REPLAY") != signature(
+        "WHEEL-DISCARD-OTHER"
+    )
+
+
+def test_env_r4_wheel_discard_rejects_zone_drift_atomically():
+    run = start_supported_wheel(_run("WHEEL-DISCARD-DRIFT"))
+    run.draw_pile.pop()
+    before = serialize_headless_run_state(run)
+    before_rng = run.rng_snapshot()
+
+    with pytest.raises(HeadlessTransitionError, match="draw zones"):
+        apply_supported_tactical_discard(run, (0,))
+
+    assert serialize_headless_run_state(run) == before
+    assert run.rng_snapshot() == before_rng
+
+
+def test_env_r4_wheel_discard_rejects_resource_drift_atomically():
+    run = start_supported_wheel(_run("WHEEL-DISCARD-RESOURCE-DRIFT"))
+    run.public.hand_size += 1
+    before = serialize_headless_run_state(run)
+    before_rng = run.rng_snapshot()
+
+    with pytest.raises(
+        HeadlessTransitionError,
+        match="ordinary Red Deck resource state",
+    ):
+        apply_supported_tactical_discard(run, (0,))
+
+    assert serialize_headless_run_state(run) == before
+    assert run.rng_snapshot() == before_rng
+
+
+def test_env_r4_wheel_play_reveals_played_cards_and_polls_replacements():
+    run = start_supported_wheel(_run("WHEEL-PLAY"))
+    before = serialize_headless_run_state(run)
+    order = run.require_playing_card_order()
+    creation_index = {id(card): index for index, card in enumerate(order)}
+    replacement_indices = [
+        creation_index[id(run.draw_pile[-1])],
+        creation_index[id(run.draw_pile[-2])],
+    ]
+    retained_facing = {
+        creation_index[id(card)]: card.face_down
+        for offset, card in enumerate(run.public.hand)
+        if offset not in {0, 1}
+    }
+    expected_rng = BalatroRNG.from_snapshot(run.rng_snapshot())
+    expected_facing = [
+        expected_rng.random("wheel") < (1.0 / 7.0)
+        for _ in replacement_indices
+    ]
+
+    result = apply_supported_ordinary_play(run, (0, 1))
+    result_order = result.require_playing_card_order()
+
+    assert serialize_headless_run_state(run) == before
+    assert result.public.hands_remaining == 3
+    assert len(result.public.hand) == result.public.hand_size == 8
+    assert all(not card.face_down for card in result.public.discard_pile[-2:])
+    assert [
+        result_order[index].face_down for index in replacement_indices
+    ] == expected_facing
+    assert result.rng_snapshot() == expected_rng.snapshot()
+    assert {
+        index: result_order[index].face_down for index in retained_facing
+    } == retained_facing

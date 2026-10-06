@@ -2,7 +2,7 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow Psychic / Flint / Tooth / Hook / Pillar / Arm / Fish / Mouth / Needle /
+narrow Psychic / Flint / Tooth / Hook / Pillar / Arm / Fish / Wheel / Mouth / Needle /
 Manacle / Verdant Leaf / static suit-debuff Boss paths, with an unmodified base
 playing-card deck and no Joker, Tag, random-card, or other unowned callbacks. Held
 profile Tarot/Planet cards and already-applied supported Vouchers are explicit
@@ -24,7 +24,10 @@ from games.balatro.env.boss_debuffs import (
     require_pillar_history_debuff_state,
     require_static_suit_boss_debuff_state,
 )
-from games.balatro.env.boss_facing import draw_fish_post_play_cards
+from games.balatro.env.boss_facing import (
+    draw_fish_post_play_cards,
+    draw_wheel_post_play_cards,
+)
 from games.balatro.env.boss_hand import apply_arm_debuff_hand_level
 from games.balatro.env.boss_play import (
     apply_hook_press_play_discards_from_played_pile,
@@ -114,7 +117,7 @@ def _require_plain_base_cards(
     run: HeadlessRunState,
     *,
     allow_pillar_history_debuffs: bool,
-    allow_fish_facing: bool,
+    allow_facing_boss: bool,
     allow_static_suit_debuffs: bool,
     allow_verdant_leaf_debuffs: bool,
 ) -> None:
@@ -141,16 +144,17 @@ def _require_plain_base_cards(
                 "R4 baseline Play does not yet own modified/debuffed/forced/face-down card effects"
             )
 
-    if not allow_fish_facing:
+    if not allow_facing_boss:
         if any(card.face_down for card in order):
             raise HeadlessTransitionError(
                 "R4 baseline Play does not yet own modified/debuffed/forced/face-down card effects"
             )
     else:
+        facing_boss_name = _boss_name(run.public)
         hand_ids = {id(card) for card in run.public.hand}
         if any(not card.facing_observed for card in run.public.hand):
             raise HeadlessTransitionError(
-                "Fish Play requires authoritative current-hand facing state"
+                f"{facing_boss_name} Play requires authoritative current-hand facing state"
             )
         if any(
             card.face_down
@@ -158,7 +162,7 @@ def _require_plain_base_cards(
             for card in order
         ):
             raise HeadlessTransitionError(
-                "Fish Play encountered face-down state outside the current hand"
+                f"{facing_boss_name} Play encountered face-down state outside the current hand"
             )
 
     if allow_verdant_leaf_debuffs:
@@ -211,6 +215,13 @@ def _is_fish_context(state) -> bool:
     )
 
 
+def _is_wheel_context(state) -> bool:
+    return (
+        getattr(state.blind, "type", None) == BlindType.BOSS
+        and _boss_name(state) == "The Wheel"
+    )
+
+
 def _require_supported_context(run: HeadlessRunState) -> None:
     state = run.public
     if state.phase != "SELECTING_HAND":
@@ -229,6 +240,7 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         "The Pillar",
         "The Arm",
         "The Fish",
+        "The Wheel",
         "The Mouth",
         "The Needle",
         "The Manacle",
@@ -314,8 +326,9 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         allow_pillar_history_debuffs=(
             blind_type is BlindType.BOSS and boss_name == "The Pillar"
         ),
-        allow_fish_facing=(
-            blind_type is BlindType.BOSS and boss_name == "The Fish"
+        allow_facing_boss=(
+            blind_type is BlindType.BOSS
+            and boss_name in {"The Fish", "The Wheel"}
         ),
         allow_static_suit_debuffs=(
             blind_type is BlindType.BOSS
@@ -367,9 +380,9 @@ def apply_supported_ordinary_play(
     next_run.played_pile.extend(selected)
 
     # Pinned vanilla moves highlighted cards to G.play facing up. This reveals
-    # Fish-hidden identities to mechanics before hand classification while the
+    # Fish/Wheel-hidden identities to mechanics before hand classification while the
     # policy only ever saw their masked public observation.
-    if _is_fish_context(next_state):
+    if _is_fish_context(next_state) or _is_wheel_context(next_state):
         for card in selected:
             card.face_down = False
             card.facing_observed = True
@@ -465,6 +478,8 @@ def apply_supported_ordinary_play(
         )
     if _is_fish_context(next_state):
         return draw_fish_post_play_cards(next_run)
+    if _is_wheel_context(next_state):
+        return draw_wheel_post_play_cards(next_run)
     while len(next_run.public.hand) < next_run.public.hand_size:
         next_run = draw_one_supported_card_to_hand(next_run)
 

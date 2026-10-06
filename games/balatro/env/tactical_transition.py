@@ -13,7 +13,10 @@ from collections.abc import Iterable
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.blinds.blind import BlindType
-from games.balatro.env.boss_facing import draw_fish_post_discard_cards
+from games.balatro.env.boss_facing import (
+    draw_fish_post_discard_cards,
+    draw_wheel_post_discard_cards,
+)
 from games.balatro.env.boss_resources import require_active_manacle_state
 from games.balatro.env.boss_selection import BOSS_KEY_BY_NAME
 from games.balatro.env.deal import draw_one_supported_card_to_hand
@@ -38,7 +41,7 @@ from games.balatro.env.voucher_capabilities import (
 # capacity-limited draw after a discard. Fish is included because its existing
 # post-discard owner proves that ``prepped`` is clear and makes the replacement
 # cards face up. House is ordinary after ``discards_used`` advances. Serpent,
-# Wheel, Mark, and Cerulean Bell have distinct redraw behavior and remain
+# Mark, and Cerulean Bell have distinct redraw behavior and remain
 # fail-closed here until that behavior is composed at this boundary. Water
 # removes every current discard at blind start, so no legal discard exists.
 _ORDINARY_DISCARD_BOSS_NAMES = frozenset(BOSS_KEY_BY_NAME) - {
@@ -137,12 +140,45 @@ def _require_active_psychic_discard_state(run: HeadlessRunState) -> None:
         )
 
 
+def _require_active_wheel_discard_state(run: HeadlessRunState) -> None:
+    """Require Wheel's exact keyed-facing discard boundary."""
+    state = run.public
+    blind = state.blind
+    if (
+        state.boss_name != "The Wheel"
+        or blind is None
+        or getattr(blind, "type", None) is not BlindType.BOSS
+        or bool(getattr(blind, "disabled", False))
+    ):
+        raise HeadlessTransitionError("Wheel discard requires its active Boss blind")
+    if (
+        getattr(blind, "modifiers", None)
+        or getattr(blind, "tag_key", None) is not None
+    ):
+        raise HeadlessTransitionError(
+            "Wheel discard does not own additional blind modifiers"
+        )
+    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
+    if (
+        expected_hand_size is None
+        or state.hand_size != expected_hand_size
+        or run.boss_hands_sub is not None
+        or run.boss_discards_sub is not None
+        or run.boss_hand_size_sub is not None
+    ):
+        raise HeadlessTransitionError(
+            "Wheel discard requires ordinary Red Deck resource state"
+        )
+
+
 def _require_baseline_discard_callbacks_exact(run: HeadlessRunState) -> None:
     state = run.public
     if state.boss_name == "The Manacle":
         require_active_manacle_state(run)
     elif state.boss_name == "The Psychic":
         _require_active_psychic_discard_state(run)
+    elif state.boss_name == "The Wheel":
+        _require_active_wheel_discard_state(run)
     elif state.boss_name in _ORDINARY_DISCARD_BOSS_NAMES:
         _require_active_ordinary_discard_boss_state(run)
     elif state.boss_name is not None:
@@ -164,9 +200,10 @@ def apply_supported_tactical_discard(
 
     ``card_indices`` are zero-based positions in the currently visible hand. The
     input state is never mutated. This R4 slice admits source-audited ordinary
-    Boss redraw behavior, Fish's explicit face-up post-discard draw, The Psychic,
-    and The Manacle's exact active hand-size reduction. It rejects unowned Boss
-    redraws, every Joker discard callback, and Purple-seal generation.
+    Boss redraw behavior, Fish's explicit face-up post-discard draw, Wheel's
+    keyed per-card facing draw, The Psychic, and The Manacle's exact active
+    hand-size reduction. It rejects unowned Boss redraws, every Joker discard
+    callback, and Purple-seal generation.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -214,6 +251,8 @@ def apply_supported_tactical_discard(
     # canonicalizes the public deck without exposing hidden draw order.
     if next_state.boss_name == "The Fish":
         next_run = draw_fish_post_discard_cards(next_run)
+    elif next_state.boss_name == "The Wheel":
+        next_run = draw_wheel_post_discard_cards(next_run)
     else:
         while len(next_run.public.hand) < next_run.public.hand_size and next_run.draw_pile:
             next_run = draw_one_supported_card_to_hand(next_run)
