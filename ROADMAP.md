@@ -333,23 +333,46 @@ Exact-card helper optimization gate:
 - GitHub Actions run `37422274157`, job `112134052768`.
 - Actual job log: **3159 passed, 1613 deselected in 195.33s**.
 
+The post-helper schema-v16 report is committed at
+`docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16_POST_HELPERS.json`.
+Its canonical 4,659-byte report has SHA-256
+`005a07acde897f4f9a0a7852d5e5f0ad44fd5e83b9c6234a69a3a3d6d40c7f00`;
+the repository copy includes a terminal newline (4,660 bytes, SHA-256
+`f2343df1f456b1adaa65cc75f70393d04408e1e0e3caa68752eb665eebd3f4a3`).
+The complete frozen target identity and accounting remain unchanged.
+
+Post-helper before/after results:
+
+- Total target time: 324.3295658999996 -> **271.2601521000033 seconds**
+  (**16.3628% lower**).
+- Candidate generation: 291.82993469967914 -> **236.5192761994258
+  seconds** (**18.9530% lower**).
+- Card-collection detachment: 142.32064609440567 ->
+  **83.54616560605064 seconds** (**41.2972% lower**).
+- First-100,000 validation samples fell from 0.12925959857238922 to
+  0.09267869967152365 seconds; exact-copy samples fell from
+  0.09220489767903928 to 0.04373009837581776 seconds.
+- Relative to the initial schema-v16 baseline, total target time is now
+  **35.5542% lower**, candidate generation **39.2585% lower**, and card
+  detachment **65.7711% lower**.
+
 ## Exact active task
 
-Run the schema-v16 diagnostic once against the frozen episode-43 decision-11
-target after commit `898ac9cb`, and preserve its atomic report. Confirm the
-exact identity contract and quantify the helper optimization before selecting
-the next measured owner.
+Extend the existing schema-v16 candidate-subowner diagnostic only enough to
+target episode 43 decision 12, the remaining dominant outlier in the committed
+episode trace. Reuse the verified decision-11 prefix and append the exact
+decision-12 contract; do not change runtime mechanics.
 
 Requirements:
 
-- Continue to require digest
-  `7fb297b6f491b1618c66c449c74d1bbb184559af6f9f8b99a55601758c07a21d`,
-  `DISCARD_CARDS(5)`, and attempts `(h2,n252,max2000,complete)` then
-  `(h3,n2000,max2000,budget-exceeded)`.
-- Require unchanged schema-v16 target identity, card attribution, and named
-  collection attribution.
-- Publish the report atomically and commit the canonical evidence plus exact
-  before/after interpretation.
+- Require digest
+  `9231aae5f2605e76643e38b36b74289533e11813c5f0304e0c8cf6f6d11fe23e`,
+  `DISCARD_CARDS(1)`, and attempts `(h2,n252,max2000,complete)` then
+  `(h3,n2000,max2000,budget-exceeded)` at decision index 12.
+- Add focused routing, identity-drift, instrumentation-accounting, restoration,
+  CLI, and atomic-publication regressions as applicable.
+- Run the single decision-12 target only after the diagnostic change is green
+  in GitHub Actions, then preserve and interpret its atomic report.
 - Do not optimize any named non-card collection.
 - Do not profile decision 12, resume a second optimizer batch, start full
   training, change policy/hyperparameters/search schedule, or widen mechanics
@@ -360,8 +383,7 @@ Requirements:
 - Natural Money Tree live parity evidence is explicitly on hold by user
   direction. It is not passed and must not be inferred.
 - No live Balatro run is currently required.
-- Decision 12 and the remaining slow-tail episodes are deferred until decision
-  11 is repaired and re-profiled.
+- Remaining slow-tail episodes are deferred until decision 12 is attributed.
 - Higher stakes and other decks begin only after controlled Red/White promotion.
 
 ## Resume evidence index
@@ -369,5 +391,8 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_EPISODE_43_TACTICAL_COST.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_SUBOWNERS.json`
 - `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_SUBOWNERS_POST_INERT.json`
+- `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16.json`
+- `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16_POST_FAST.json`
+- `docs/balatro/BALATRO_PPO_EPISODE_43_DECISION_11_DETACHMENT_V16_POST_HELPERS.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
