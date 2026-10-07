@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`0b10b495138114158a0461e4321aa7fccee5922e`.
+`0520e22bb108003ec3105c3dabc9bd8a1e4949b2`.
 
 ## Objective
 
@@ -949,27 +949,53 @@ Bounded batch-3 attempt boundary:
   boundary. Isolation did not change checkpoint or progress bytes, hashes,
   sizes, or timestamps.
 
+The Mark tactical-facing gate:
+
+- Commit `0520e22bb108003ec3105c3dabc9bd8a1e4949b2` owns the pinned
+  deterministic Mark redraw lifecycle at the canonical facing, play, and
+  discard boundaries. Physical deck-tail draw order is preserved; each newly
+  drawn face card is hidden without RNG, retained cards keep their facing, and
+  selected played cards are revealed before hand classification and scoring.
+  Unsupported callback, resource, zone, and facing drift remains atomic and
+  fail-closed.
+- Focused Mark validation: **6 passed in 0.65s**. Broader affected R2/R4/PPO
+  backend validation: **1106 passed, 3716 deselected in 27.81s**.
+- GitHub Actions run `37575036618`, job `112641906914`.
+  Actual job log: **3206 passed, 1616 deselected in 162.83s**.
+- The exact read-only trained-policy replay now completes episode 674 / stream
+  2 / seed `977AD3AC` as a 12-transition loss with 32 tactical decisions and
+  episode SHA-256
+  `d47ea76db7fe0d67b8dc365617b2eb6dfc083ad7a88a213a07e8b9b63c92bfbf`.
+  The canonical 15,310-byte report has SHA-256
+  `4cdac8a1b14cfc79e16683db608eb7122ca7512a03e287021d405bdf54820746`;
+  the repository copy at
+  `docs/balatro/BALATRO_PPO_BATCH3_EPISODE_674_MARK_FIXED.json` includes a
+  terminal newline (15,311 bytes, SHA-256
+  `5b60615ba0d1d08286a912c6d3dd82377b535b3d08ce39621cda107f74a9dd04`).
+- Replay session hashes before and after are both
+  `be44b4817bc994002353c9149a902c2e147695a1239eb8d365750811f0dfc338`;
+  `committed=false`. Checkpoint and progress sizes and hashes remain exactly
+  unchanged from the valid 632..671 boundary above.
+
 ## Exact active task
 
-Implement the exact headless tactical discard callback/redraw semantics for
-`The Mark`, prove episode 674 / stream 2 / seed `977AD3AC` completes from the
-verified checkpoint, then resume only the interrupted bounded batch-3 attempt.
+Resume only the interrupted bounded batch-3 attempt from the verified durable
+checkpoint after episode 671.
 
 Requirements:
 
-- Read the pinned vanilla Mark callbacks and the existing R2 facing lifecycle
-  before changing the canonical tactical transition owner. Preserve physical
-  draw order, face-down identity masking, selected-card reveal semantics, RNG,
-  zones, and input immutability; unsupported drift must remain atomic and fail
-  closed.
-- Add deterministic regressions for Mark play/discard facing and the exact
-  episode-674 boundary. Use GitHub Actions as the implementation gate.
-- After green and exact episode-674 completion, resume only the existing
-  `--maximum-episodes 512 --maximum-batches 1 --maximum-workers 8` command from
-  the verified durable checkpoint. Do not start unbounded training.
+- Run only the existing `--maximum-episodes 512 --maximum-batches 1
+  --maximum-workers 8` command against the verified campaign artifact. Do not
+  start unbounded training.
+- If another fail-closed boundary appears, preserve the latest durable
+  checkpoint, isolate the earliest ordered failure read-only, and make that
+  exact canonical owner the next task.
+- If the bounded optimizer batch completes, record its exact counters,
+  checkpoint/progress hashes, elapsed time, and timing evidence before deciding
+  whether any further batch is authorized.
 - Do not start unbounded/full training, inspect promotion results, change
-  policy/hyperparameters/search schedule, or start batch 3 before the timing
-  evidence identifies the next canonical owner.
+  policy/hyperparameters/search schedule, or authorize another batch without
+  new timing evidence.
 
 ## Held and deferred work
 
