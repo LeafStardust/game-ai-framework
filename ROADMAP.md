@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`f0a662af60cefe9c2cb35aeca069952ebbedcf72`.
+`dc26f7381654281d3abbc1fc2063c1085ce11746`.
 
 ## Objective
 
@@ -1291,20 +1291,49 @@ Episode-976 Needle replay evidence:
   `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_976_NEEDLE_FIXED.json` has SHA-256
   `92806cc8e52154b1077c4b831437776b94e491a19365bf25bf43aeb2f049c524`.
 
+Bounded batch-4 Wheel-facing boundary and mechanics gate:
+
+- The resumed campaign cleared the Needle wave and atomically advanced to
+  7,761 collected / 6,144 optimizer-consumed transitions before stopping
+  fail-closed at a Wheel play. Durable state remains 3 completed batches, Adam
+  step 240, next episode indices `(1080,1081,1082,1083,1084,1077,1078,1079)`,
+  and per-stream carryovers `(220,267,179,222,163,202,203,161)` (1,617 total).
+- The linked checkpoint is 61,317,217 bytes with SHA-256
+  `fb99e87f6b969d91a2a9e102d5ad23b59ea8df72d96df782336a5b5451df9d3e`.
+  Its 678-byte progress manifest has SHA-256
+  `e02dd5eac490a3a7a51fa447ad589c9483f819106e22f0bb46db59829a7fdb90`.
+  Policy SHA-256 remains
+  `e7530802f3458cb21d088c8ccf33075d8b017581ca2e1e3a265a4d3d8fac72cc`.
+- Ordered isolation proves episode 1080 / stream 0 / seed `51547AD6`
+  completes, while episode 1081 / stream 1 / seed `3F78BC58` is the first
+  failure. At the exact boundary The Wheel has zero hidden cards in hand/deck,
+  two authoritative face-down cards in both public/private discard, and no
+  unobserved facing. Those are cards legitimately discarded face-down before a
+  later play; the old play validator incorrectly admitted face-down cards only
+  in the current hand.
+- Commit `dc26f7381654281d3abbc1fc2063c1085ce11746` admits authoritative
+  face-down cards in the exact hand or discard zones for facing Boss play.
+  Face-down cards in draw/deck and unobserved face-down discard state remain
+  atomic and fail-closed. Physical identity, keyed Wheel RNG, public masking,
+  draw order, and discard orientation are unchanged.
+- Focused local validation: **66 passed in 1.22s**. GitHub Actions run
+  `37672011538`, job `112965867177`. Actual job log: **3221 passed, 1618
+  deselected in 209.70s**.
+
 ## Exact active task
 
-Resume the same authorized eight-worker campaign from the durable 7,038-
-transition boundary and stop at completed optimizer batch 4.
+Replay exact episode 1081 / stream 1 / seed `3F78BC58` read-only from the
+durable 7,761-transition boundary after the Wheel discard-facing fix.
 
 Requirements:
 
-- Use root seed `RED-WHITE-PPO-V1`, the existing canonical artifact directory,
-  `--maximum-batches 4`, `--maximum-workers 8`, and the existing fail-closed
-  episode cap. Do not create a replacement campaign or alter the frozen
-  training contract.
-- Preserve every atomically published boundary and stop again on any new
-  fail-closed mechanic. Diagnose the first current pending stream episode from
-  the latest linked checkpoint/progress pair rather than stale indices.
+- Use the canonical checkpoint tactical trace and require a complete terminal
+  episode with exact checkpoint/policy/session provenance and `committed=false`.
+  Commit the report only if the Wheel boundary and the rest of the episode
+  complete without another unsupported mechanic.
+- If the replay is green, resume the same authorized campaign with
+  `--maximum-batches 4`, eight workers, and the existing episode cap. Preserve
+  every atomic boundary and stop on any new fail-closed mechanic.
 - On batch completion, verify checkpoint/progress canonical linkage, completed
   batch count 4, Adam step 320, optimizer-consumed transitions 8,192, policy
   digest, next episode indices, carryovers, and artifact hashes before choosing
