@@ -21,6 +21,35 @@ from games.balatro.env.voucher_capabilities import (
 _RESOURCE_BOSS_NAMES = frozenset({"The Water", "The Needle", "The Manacle"})
 
 
+def require_active_water_state(run: HeadlessRunState) -> None:
+    """Require the exact active Red/White Water discard removal."""
+    state = run.public
+    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
+    if (
+        state.boss_name != "The Water"
+        or state.blind is None
+        or getattr(state.blind, "type", None) is not BlindType.BOSS
+        or bool(getattr(state.blind, "disabled", False))
+    ):
+        raise HeadlessTransitionError("Water action requires its active Boss blind")
+    if (
+        state.round_reset_discards_observed is not True
+        or type(state.round_reset_discards) is not int
+        or state.round_reset_discards < 0
+        or expected_hand_size is None
+        or type(run.boss_discards_sub) is not int
+        or run.boss_discards_sub < 0
+        or run.boss_hands_sub is not None
+        or run.boss_hand_size_sub is not None
+        or type(state.discards_remaining) is not int
+        or state.discards_remaining != 0
+        or state.hand_size != expected_hand_size
+    ):
+        raise HeadlessTransitionError(
+            "Water action requires its exact stored discard adjustment"
+        )
+
+
 def require_active_manacle_state(run: HeadlessRunState) -> None:
     """Require the exact active Red/White Manacle one-slot reduction."""
     state = run.public

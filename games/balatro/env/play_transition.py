@@ -3,7 +3,8 @@
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
 narrow Psychic / Flint / Tooth / Hook / Pillar / Arm / House / Fish / Wheel /
-Mark / Mouth / Needle / Manacle / Verdant Leaf / static suit-debuff Boss paths,
+Mark / Mouth / Water / Needle / Manacle / Verdant Leaf / static suit-debuff Boss
+paths,
 with an unmodified base playing-card deck and no Joker, Tag, random-card, or
 other unowned callbacks. Held profile Tarot/Planet cards and already-applied
 supported Vouchers are explicit play-time no-ops.
@@ -34,7 +35,10 @@ from games.balatro.env.boss_play import (
     apply_hook_press_play_discards_from_played_pile,
     apply_tooth_press_play_economy_from_played_pile,
 )
-from games.balatro.env.boss_resources import require_active_manacle_state
+from games.balatro.env.boss_resources import (
+    require_active_manacle_state,
+    require_active_water_state,
+)
 from games.balatro.env.consumable_centers import (
     VANILLA_PLANET_CENTER_ORDER,
     VANILLA_TAROT_CENTER_ORDER,
@@ -261,6 +265,7 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         "The Wheel",
         "The Mark",
         "The Mouth",
+        "The Water",
         "The Needle",
         "The Manacle",
         "Verdant Leaf",
@@ -276,6 +281,8 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         )
     if boss_name == "The Manacle":
         require_active_manacle_state(run)
+    if boss_name == "The Water":
+        require_active_water_state(run)
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
             "R4 baseline Play does not yet own additional blind modifiers"
