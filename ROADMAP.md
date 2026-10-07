@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`1b7306ef1f31314c105b780d0b4c2584099482f6`.
+`0b10b495138114158a0461e4321aa7fccee5922e`.
 
 ## Objective
 
@@ -860,24 +860,40 @@ Batch-2 decision-11 estimator deepcopy call-site evidence:
 - Checkpoint and progress sizes, SHA-256 hashes, timestamps, counters, and next
   indices remained unchanged.
 
+Recursive terminal-play clone optimization gate:
+
+- Implementation commit `e2581cdc490b278c2074fe3469a9cd906145a4d5`;
+  CI-selector correction commit `0b10b495138114158a0461e4321aa7fccee5922e`.
+- Only the demonstrated recursive depth-one play-outcome clone now uses an
+  isolated shallow `BalatroState` shell before changing score and remaining
+  hands. The canonical terminal evaluator is read-only over the nested graph;
+  the input state and all nested aliases therefore remain unchanged.
+- State subclasses and overridden terminal evaluators retain the original
+  graph-preserving deepcopy fallback. Malformed unsupported objects continue to
+  fail closed rather than entering the exact-state fast path.
+- Focused CI-filter validation: **4 passed in 0.37s**. Broader affected local
+  validation: **78 passed in 9.37s**.
+- GitHub Actions run `37572976261`, job `112635524272`.
+- Actual job log: **3201 passed, 1616 deselected in 121.69s**. An earlier run
+  deselected the four new tests; renaming their nodes to the existing `env_ppo`
+  selector corrected the gate before this checkpoint was admitted.
+
 ## Exact active task
 
-Optimize only the demonstrated recursive depth-one play-outcome clone in
-`D1LiveBlindClearPlanner._estimate_play`, then remeasure the same bounded episode
-637 / stream 5 / zero-based tactical decision 11 before resuming batch 3.
+Remeasure and preserve the same bounded episode 637 / stream 5 / zero-based
+tactical decision 11 after the recursive terminal-play clone optimization, then
+use the measured result to decide whether another clone owner or batch 3 is next.
 
 Requirements:
 
-- Replace only the exact depth-one clone with a canonical semantic owner that
-  preserves every field observed by `_terminal_value`, including subclass and
-  malformed-state fail-closed behavior. Do not broaden the optimization to the
-  other nine measured call-site/path groups.
-- Add focused deterministic equivalence, input-immutability, alias-safety, and
-  conservative-fallback regressions; use GitHub Actions as the implementation
-  gate.
-- After green, rerun the same checkpoint-backed trace and require identical
-  prefix/action/search/terminal provenance plus balanced copy attribution before
-  deciding whether another clone owner or batch 3 is next.
+- Reuse the unchanged restored checkpoint, trained policy, pinned prefix,
+  complete terminal replay, and campaign immutability gates.
+- Require identical prefix/action/search/terminal provenance and exactly
+  balanced remaining estimator-copy attribution. Commit the canonical report.
+- Compare the post-optimization search and deepcopy totals to the committed
+  pre-optimization trace. Authorize another optimization only if a remaining
+  measured owner is still material; otherwise advance to the bounded batch-3
+  decision in the roadmap.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
