@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`6923361ceea2a0e7cd7c36b3fb1d9c73c87223fa`.
+`1b7306ef1f31314c105b780d0b4c2584099482f6`.
 
 ## Objective
 
@@ -819,23 +819,37 @@ Batch-2 decision-11 estimate-path evidence:
   **0.00013689999468624592 seconds**. Checkpoint/progress hashes, sizes,
   timestamps, counters, and indices remained unchanged.
 
+Estimator deepcopy call-site attribution gate:
+
+- Commit `1b7306ef1f31314c105b780d0b4c2584099482f6`.
+- Checkpoint search schema v2 classifies every timed estimator state deepcopy
+  by its runtime module, qualified function, source line, and active production
+  estimate stack. Each sample is timed once and charged to both the existing
+  canonical deepcopy owner and exactly one call-site record, without changing
+  planner or environment behavior.
+- Publication fails closed unless call-site calls and elapsed time exactly
+  reconcile with the canonical `_estimate_state_deepcopy` helper owner. The
+  checkpoint, pinned prefix, trained policy, complete terminal replay, and
+  campaign immutability gates remain unchanged.
+- Focused local validation: **42 passed in 7.28s**. Broader affected local
+  validation: **55 passed in 26.81s**.
+- GitHub Actions run `37571734757`, job `112631669469`.
+- Actual job log: **3197 passed, 1616 deselected in 138.78s**.
+
 ## Exact active task
 
-Add exact call-site attribution for estimator state deep-copying at episode 637 /
-stream 5 / zero-based tactical decision 11, then run and preserve that bounded
-trained-policy trace before optimizing cloning or resuming batch 3.
+Run and preserve the exact estimator deepcopy call-site trace at episode 637 /
+stream 5 / zero-based tactical decision 11, then optimize only its demonstrated
+dominant call-site owner before resuming batch 3.
 
 Requirements:
 
-- Extend the existing exclusive instrumentation to classify every estimator
-  deepcopy by its active production estimate call path/call site. Preserve the
-  exact 3,403-call total and balanced elapsed accounting; do not infer ownership
-  from source inspection or call counts alone.
 - Reuse the restored checkpoint policy, pinned prefix, complete terminal replay,
-  and immutability/provenance gates. Add focused deterministic tests and use
-  GitHub Actions as the implementation gate.
-- After green, run and commit the canonical bounded report, then optimize only
-  the demonstrated deepcopy call-site owner with exact semantic regressions.
+  and immutability/provenance gates. The bounded report must preserve the exact
+  3,403-call total and balanced elapsed accounting.
+- Commit the canonical bounded report, identify the measured dominant production
+  call site, then optimize only that owner with exact semantic regressions and a
+  GitHub Actions implementation gate.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
