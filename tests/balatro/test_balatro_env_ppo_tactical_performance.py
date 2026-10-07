@@ -408,6 +408,7 @@ def test_env_ppo_search_subowner_scope_excludes_candidate_and_policy_helpers(
 
     def estimate_action(target, action, depth):
         engine.planner._candidate_actions(target)
+        tactical_performance.blind_clear_planner_module.deepcopy(target)
         return engine.planner.evaluator.evaluate(target, action)
 
     engine.planner._estimate_action = estimate_action
@@ -455,7 +456,24 @@ def test_env_ppo_search_subowner_scope_excludes_candidate_and_policy_helpers(
     costs = {item.name: item for item in result.report.helper_costs}
     assert costs["_estimate_action"].calls == 1
     assert costs["_evaluator_evaluate"].calls == 1
+    assert costs["_estimate_state_deepcopy"].calls == 1
     assert "_candidate_actions" not in costs
+    assert result.estimate_state_deepcopy_calls == 1
+    assert result.estimate_state_deepcopy_elapsed_seconds == costs[
+        "_estimate_state_deepcopy"
+    ].exclusive_elapsed_seconds
+    assert result.residual_estimate_state_deepcopy_elapsed_seconds == 0.0
+    assert len(result.estimate_state_deepcopy_callsites) == 1
+    callsite = result.estimate_state_deepcopy_callsites[0]
+    assert callsite.module == __name__
+    assert callsite.function.endswith(
+        "test_env_ppo_search_subowner_scope_excludes_candidate_and_policy_helpers.<locals>.estimate_action"
+    )
+    assert callsite.active_estimate_path == ("_estimate_action",)
+    assert callsite.calls == 1
+    assert callsite.exclusive_elapsed_seconds == (
+        result.estimate_state_deepcopy_elapsed_seconds
+    )
     assert result.search_evaluation_elapsed_seconds > 0.0
     assert result.policy_arbitration_elapsed_seconds > 0.0
     assert result.residual_search_evaluation_elapsed_seconds >= 0.0

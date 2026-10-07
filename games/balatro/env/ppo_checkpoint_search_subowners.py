@@ -27,13 +27,14 @@ from games.balatro.env.ppo_contract import (
 from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.ppo_tactical_performance import (
     PPOTacticalCandidateSubownerReport,
+    PPOTacticalEstimateDeepcopyCallsiteCost,
     _PPOTacticalScopedSubownerTrace,
     _trace_candidate_subowners,
 )
 
 
 PPO_CHECKPOINT_SEARCH_SUBOWNER_SCHEMA = (
-    "balatro-red-white-ppo-checkpoint-search-subowner-v1"
+    "balatro-red-white-ppo-checkpoint-search-subowner-v2"
 )
 EPISODE_INDEX = 637
 TARGET_DECISION_INDEX = 11
@@ -74,6 +75,12 @@ class PPOCheckpointSearchSubownerReport:
     policy_arbitration_elapsed_seconds: float
     other_elapsed_seconds: float
     residual_search_evaluation_elapsed_seconds: float
+    estimate_state_deepcopy_calls: int
+    estimate_state_deepcopy_elapsed_seconds: float
+    estimate_state_deepcopy_callsites: tuple[
+        PPOTacticalEstimateDeepcopyCallsiteCost, ...
+    ]
+    residual_estimate_state_deepcopy_elapsed_seconds: float
     target: PPOTacticalCandidateSubownerReport
 
     def as_dict(self) -> dict[str, object]:
@@ -160,9 +167,44 @@ def trace_checkpoint_search_subowners(
         scoped.policy_arbitration_elapsed_seconds,
         scoped.other_elapsed_seconds,
         scoped.residual_search_evaluation_elapsed_seconds,
+        scoped.estimate_state_deepcopy_elapsed_seconds,
+        scoped.residual_estimate_state_deepcopy_elapsed_seconds,
     )
     if any(not math.isfinite(value) or value < 0.0 for value in timings):
         raise PPOContractError("checkpoint search diagnostic timing is invalid")
+    deepcopy_cost = next(
+        (
+            item
+            for item in target.helper_costs
+            if item.name == "_estimate_state_deepcopy"
+        ),
+        None,
+    )
+    if (
+        deepcopy_cost is None
+        or deepcopy_cost.calls != scoped.estimate_state_deepcopy_calls
+        or abs(
+            deepcopy_cost.exclusive_elapsed_seconds
+            - scoped.estimate_state_deepcopy_elapsed_seconds
+        )
+        > 1e-9
+        or sum(
+            item.calls for item in scoped.estimate_state_deepcopy_callsites
+        )
+        != scoped.estimate_state_deepcopy_calls
+        or abs(
+            sum(
+                item.exclusive_elapsed_seconds
+                for item in scoped.estimate_state_deepcopy_callsites
+            )
+            - scoped.estimate_state_deepcopy_elapsed_seconds
+        )
+        > 1e-9
+        or scoped.residual_estimate_state_deepcopy_elapsed_seconds > 1e-9
+    ):
+        raise PPOContractError(
+            "checkpoint estimator deepcopy call-site accounting drifted"
+        )
 
     return PPOCheckpointSearchSubownerReport(
         schema=PPO_CHECKPOINT_SEARCH_SUBOWNER_SCHEMA,
@@ -185,6 +227,16 @@ def trace_checkpoint_search_subowners(
         other_elapsed_seconds=scoped.other_elapsed_seconds,
         residual_search_evaluation_elapsed_seconds=(
             scoped.residual_search_evaluation_elapsed_seconds
+        ),
+        estimate_state_deepcopy_calls=scoped.estimate_state_deepcopy_calls,
+        estimate_state_deepcopy_elapsed_seconds=(
+            scoped.estimate_state_deepcopy_elapsed_seconds
+        ),
+        estimate_state_deepcopy_callsites=(
+            scoped.estimate_state_deepcopy_callsites
+        ),
+        residual_estimate_state_deepcopy_elapsed_seconds=(
+            scoped.residual_estimate_state_deepcopy_elapsed_seconds
         ),
         target=target,
     )

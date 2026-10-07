@@ -9,6 +9,7 @@ from hashlib import sha256
 import json
 import math
 from pathlib import Path
+import sys
 from time import perf_counter
 from typing import Callable
 
@@ -384,6 +385,16 @@ class PPOTacticalCandidateHelperCost:
 
 
 @dataclass(frozen=True)
+class PPOTacticalEstimateDeepcopyCallsiteCost:
+    module: str
+    function: str
+    line: int
+    active_estimate_path: tuple[str, ...]
+    calls: int
+    exclusive_elapsed_seconds: float
+
+
+@dataclass(frozen=True)
 class PPOTacticalInertAliasReport:
     schema: str
     public_input_sha256: str
@@ -510,6 +521,12 @@ class _PPOTacticalScopedSubownerTrace:
     policy_arbitration_elapsed_seconds: float
     other_elapsed_seconds: float
     residual_search_evaluation_elapsed_seconds: float
+    estimate_state_deepcopy_calls: int
+    estimate_state_deepcopy_elapsed_seconds: float
+    estimate_state_deepcopy_callsites: tuple[
+        PPOTacticalEstimateDeepcopyCallsiteCost, ...
+    ]
+    residual_estimate_state_deepcopy_elapsed_seconds: float
 
 
 def write_ppo_tactical_candidate_subowner_report(
@@ -557,6 +574,32 @@ class _ExclusiveHelperAccumulator:
                 exclusive = max(0.0, total - float(frame[2]))
                 self.calls[name] = self.calls.get(name, 0) + 1
                 self.elapsed[name] = self.elapsed.get(name, 0.0) + exclusive
+                if self.stack:
+                    self.stack[-1][2] = float(self.stack[-1][2]) + total
+
+        return timed
+
+    def wrap_classified(self, name: str, function, classifier, classified):
+        """Time one helper once while assigning that exact sample to a callsite."""
+
+        def timed(*args, **kwargs):
+            if not self.enabled:
+                return function(*args, **kwargs)
+            classification = classifier(sys._getframe(1))
+            frame: list[object] = [name, float(self.clock()), 0.0]
+            self.stack.append(frame)
+            try:
+                return function(*args, **kwargs)
+            finally:
+                total = max(0.0, float(self.clock()) - float(frame[1]))
+                if not self.stack or self.stack.pop() is not frame:
+                    raise RuntimeError("candidate helper timing stack drifted")
+                exclusive = max(0.0, total - float(frame[2]))
+                self.calls[name] = self.calls.get(name, 0) + 1
+                self.elapsed[name] = self.elapsed.get(name, 0.0) + exclusive
+                record = classified.setdefault(classification, [0, 0.0])
+                record[0] = int(record[0]) + 1
+                record[1] = float(record[1]) + exclusive
                 if self.stack:
                     self.stack[-1][2] = float(self.stack[-1][2]) + total
 
@@ -1439,6 +1482,9 @@ def _trace_candidate_subowners(
         "shallow_copy_calls": 0,
         "shallow_copy_seconds": 0.0,
     }
+    estimate_deepcopy_callsites: dict[
+        tuple[str, str, int, tuple[str, ...]], list[object]
+    ] = {}
     reconstruct_type_sampler = _ReconstructTypeSampler(
         clock=clock,
         limit=_RECONSTRUCT_TYPE_SAMPLE_LIMIT,
@@ -1997,6 +2043,37 @@ def _trace_candidate_subowners(
             residual_candidate_elapsed_seconds=residual,
         )
         if helper_scope == "search_evaluation":
+            deepcopy_callsites = tuple(
+                PPOTacticalEstimateDeepcopyCallsiteCost(
+                    module=module,
+                    function=function,
+                    line=line,
+                    active_estimate_path=active_path,
+                    calls=int(accounting[0]),
+                    exclusive_elapsed_seconds=float(accounting[1]),
+                )
+                for (
+                    module,
+                    function,
+                    line,
+                    active_path,
+                ), accounting in sorted(estimate_deepcopy_callsites.items())
+            )
+            deepcopy_calls = helper_accumulator.calls.get(
+                "_estimate_state_deepcopy", 0
+            )
+            deepcopy_elapsed = helper_accumulator.elapsed.get(
+                "_estimate_state_deepcopy", 0.0
+            )
+            classified_calls = sum(item.calls for item in deepcopy_callsites)
+            classified_elapsed = sum(
+                item.exclusive_elapsed_seconds for item in deepcopy_callsites
+            )
+            deepcopy_residual = deepcopy_elapsed - classified_elapsed
+            if classified_calls != deepcopy_calls or abs(deepcopy_residual) > 1e-9:
+                raise PPOContractError(
+                    "estimator deepcopy call-site accounting did not balance"
+                )
             search_evaluation = search_elapsed["seconds"] - candidate
             other = total - search_elapsed["seconds"] - policy_elapsed["seconds"]
             helper_total = sum(
@@ -2024,6 +2101,12 @@ def _trace_candidate_subowners(
                     other_elapsed_seconds=max(0.0, other),
                     residual_search_evaluation_elapsed_seconds=max(
                         0.0, residual_search
+                    ),
+                    estimate_state_deepcopy_calls=deepcopy_calls,
+                    estimate_state_deepcopy_elapsed_seconds=deepcopy_elapsed,
+                    estimate_state_deepcopy_callsites=deepcopy_callsites,
+                    residual_estimate_state_deepcopy_elapsed_seconds=max(
+                        0.0, deepcopy_residual
                     ),
                 )
             )
@@ -2150,10 +2233,32 @@ def _trace_candidate_subowners(
                     return _original(model, hand, state, cards, *args, **kwargs)
 
                 instrumented = counted_generated_transition
+            if report_name == "_estimate_state_deepcopy":
+                def classify_estimate_deepcopy(frame):
+                    active_path = tuple(
+                        str(active_frame[0])
+                        for active_frame in helper_accumulator.stack
+                        if str(active_frame[0]) in _SEARCH_EVALUATION_HELPER_NAMES
+                    )
+                    return (
+                        str(frame.f_globals.get("__name__", "")),
+                        str(frame.f_code.co_qualname),
+                        int(frame.f_lineno),
+                        active_path,
+                    )
+
+                instrumented = helper_accumulator.wrap_classified(
+                    report_name,
+                    instrumented,
+                    classify_estimate_deepcopy,
+                    estimate_deepcopy_callsites,
+                )
+            else:
+                instrumented = helper_accumulator.wrap(report_name, instrumented)
             setattr(
                 owner,
                 name,
-                helper_accumulator.wrap(report_name, instrumented),
+                instrumented,
             )
             installed_class_instrumentation.append((owner, name, original))
         named_detachment_wrappers = {

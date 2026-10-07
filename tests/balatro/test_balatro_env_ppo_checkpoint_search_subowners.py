@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from hashlib import sha256
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from games.balatro.env.ppo_tactical_performance import (
     PPO_TACTICAL_CANDIDATE_SUBOWNER_SCHEMA,
     PPOTacticalCandidateHelperCost,
     PPOTacticalCandidateSubownerReport,
+    PPOTacticalEstimateDeepcopyCallsiteCost,
     _PPOTacticalScopedSubownerTrace,
 )
 from games.balatro.env.ppo_training_session import PPOTrainingSession
@@ -69,7 +71,12 @@ def _target_report(root_seed="CHECKPOINT-SEARCH"):
         discard_jokers_applied=0,
         total_elapsed_seconds=8.0,
         candidate_generation_elapsed_seconds=3.0,
-        helper_costs=(PPOTacticalCandidateHelperCost("_evaluator_evaluate", 5, 2.5),),
+        helper_costs=(
+            PPOTacticalCandidateHelperCost("_evaluator_evaluate", 5, 2.5),
+            PPOTacticalCandidateHelperCost(
+                "_estimate_state_deepcopy", 3, 1.25
+            ),
+        ),
         reconstruct_type_sample_limit=100_000,
         reconstruct_type_sampled_calls=0,
         reconstruct_type_samples=(),
@@ -89,6 +96,19 @@ def _scoped(root_seed="CHECKPOINT-SEARCH"):
         policy_arbitration_elapsed_seconds=0.75,
         other_elapsed_seconds=0.25,
         residual_search_evaluation_elapsed_seconds=1.5,
+        estimate_state_deepcopy_calls=3,
+        estimate_state_deepcopy_elapsed_seconds=1.25,
+        estimate_state_deepcopy_callsites=(
+            PPOTacticalEstimateDeepcopyCallsiteCost(
+                module="games.balatro.live.hand_action_planner",
+                function="LiveHandActionPlanner._estimate_discard",
+                line=567,
+                active_estimate_path=("_estimate_action", "_estimate_discard"),
+                calls=3,
+                exclusive_elapsed_seconds=1.25,
+            ),
+        ),
+        residual_estimate_state_deepcopy_elapsed_seconds=0.0,
     )
 
 
@@ -138,6 +158,8 @@ def test_checkpoint_search_subowners_are_exact_read_only_and_provenanced(tmp_pat
     assert report.environment_transitions == 3
     assert report.committed is False
     assert report.search_evaluation_elapsed_seconds == 4.0
+    assert report.estimate_state_deepcopy_calls == 3
+    assert report.estimate_state_deepcopy_callsites[0].calls == 3
     assert report.target == _target_report()
     assert observed["expected_prefix"] == EXPECTED_PREFIX
     assert observed["target_index"] == 11
@@ -176,6 +198,20 @@ def test_checkpoint_search_subowners_fail_closed_on_scope_and_session_drift(
             "CHECKPOINT-SEARCH-DRIFT",
             path,
             subowner_tracer=mutate,
+            episode_collector=lambda *_args, **_kwargs: _episode(run, 637, length=1),
+        )
+
+
+def test_checkpoint_search_subowners_reject_unbalanced_deepcopy_callsites(tmp_path):
+    run, path, _ = _checkpoint(tmp_path, seed="CHECKPOINT-SEARCH-CALLSITES")
+    scoped = _scoped("CHECKPOINT-SEARCH-CALLSITES")
+    drifted = replace(scoped, estimate_state_deepcopy_calls=4)
+
+    with pytest.raises(PPOContractError, match="deepcopy call-site accounting drifted"):
+        trace_checkpoint_search_subowners(
+            "CHECKPOINT-SEARCH-CALLSITES",
+            path,
+            subowner_tracer=lambda **_kwargs: drifted,
             episode_collector=lambda *_args, **_kwargs: _episode(run, 637, length=1),
         )
 
