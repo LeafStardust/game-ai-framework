@@ -27,7 +27,7 @@ def _state() -> BalatroState:
     return state
 
 
-def test_terminal_play_projection_matches_deepcopy_without_mutating_aliases():
+def test_env_ppo_terminal_play_projection_matches_deepcopy_without_mutating_aliases():
     state = _state()
     planner = D1LiveBlindClearPlanner(horizon=1)
     planner._round_end_play_action = BalatroAction(
@@ -57,7 +57,7 @@ def test_terminal_play_projection_matches_deepcopy_without_mutating_aliases():
     assert state.consumables is original_consumables
 
 
-def test_depth_one_estimate_uses_terminal_shell_without_deepcopy(monkeypatch):
+def test_env_ppo_depth_one_estimate_uses_terminal_shell_without_deepcopy(monkeypatch):
     state = _state()
     action = BalatroAction(PLAY_CARDS, cards=[state.hand[0]])
     outcome = SimpleNamespace(
@@ -85,7 +85,9 @@ def test_depth_one_estimate_uses_terminal_shell_without_deepcopy(monkeypatch):
     assert state.hands_remaining == 3
 
 
-def test_terminal_play_projection_keeps_state_subclasses_on_deepcopy(monkeypatch):
+def test_env_ppo_terminal_play_projection_keeps_state_subclasses_on_deepcopy(
+    monkeypatch,
+):
     class ExtendedState(BalatroState):
         pass
 
@@ -112,7 +114,7 @@ def test_terminal_play_projection_keeps_state_subclasses_on_deepcopy(monkeypatch
     assert state.hands_remaining == 4
 
 
-def test_terminal_play_projection_keeps_overrides_and_malformed_state_fail_closed(
+def test_env_ppo_terminal_play_projection_keeps_overrides_and_malformed_state_fail_closed(
     monkeypatch,
 ):
     class OverriddenPlanner(D1LiveBlindClearPlanner):
