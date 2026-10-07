@@ -1194,22 +1194,57 @@ Candidate-subowner accounting gate:
 - GitHub Actions run `37665189968`, job `112942496811`.
   Actual job log: **3212 passed, 1618 deselected in 217.91s**.
 
+Post-scoring-shell episode-908 evidence:
+
+- The exact checkpoint-backed diagnostic again preserves episode 908 / stream
+  4 / seed `FF9E2691`, the complete 14-decision prefix, target digest,
+  `DISCARD_CARDS(2,3,5)`, all three search attempts, the eight-transition
+  terminal loss, episode/policy/checkpoint hashes, and identical before/after
+  session SHA-256; `committed=false`.
+- Correct candidate-only instrumentation records 1,312,374 exact inert
+  generated-consumable transitions, 159,970 Hook branch sets, 1,312,374 Hook
+  branches, and 3,490/1,745 evaluator cache hits/misses. The earlier report's
+  1,319,642 transitions included 7,268 calls outside `_candidate_actions`
+  (**0.550755%**); the episode SHA is unchanged, so this is the repaired
+  diagnostic boundary rather than gameplay drift.
+- Candidate generation fell from **453.6136594003183** to
+  **279.36648330051685 seconds** (**38.413124% lower**). Total instrumented
+  target time fell from **474.64604490000056** to **295.0614466999832
+  seconds** (**37.835478% lower**). Corrected helper accounting closes exactly
+  at 278.624115797225 measured seconds plus a 0.7423675032914616-second
+  residual.
+- `_generated_joker_projector_score` records 31.08582649967866 seconds versus
+  the prior 92.99003390062717 seconds. That helper comparison includes the
+  0.550755% scope correction above; the directly comparable outer candidate
+  boundary is the authoritative improvement measure. Card detachment remains
+  the largest corrected helper at 115.24145650560968 seconds, but its safe
+  optimization audit already rejected all measured alternatives.
+- The canonical 6,508-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH3_EPISODE_908_DECISION_13_CANDIDATE_SUBOWNERS_POST_SCORING_SHELL.json`
+  has SHA-256
+  `96935cab396f123e0ad4aa1e672ff3a3931965c410164a75f397b558477c8ab5`.
+  Checkpoint/progress hashes remain exactly
+  `70b6d867f0a0a63beb3a69e938b3557637f951de0edce12735cff017808ad340`
+  and `7ab00acc8b71bc17b0782d03bdd1679eb8a56538ae3b41c613428f532943dca0`.
+
 ## Exact active task
 
-Rerun the exact checkpoint-backed episode-908 tactical decision-13 candidate
-subowner diagnostic after the Joker-scoring shell optimization.
+Rerun the exact read-only eight-worker next-wave timing measurement from the
+unchanged completed-batch-3 checkpoint after the discard and Joker-scoring
+shell optimizations.
 
 Requirements:
 
-- Use the unchanged completed-batch-3 checkpoint/progress artifacts and pinned
-  episode 908 / stream 4 / seed `FF9E2691` decision-13 route. Prefix, target,
-  search attempts, episode/policy/session hashes, branch accounting, and
-  `committed=false` must remain exact or the run fails closed.
-- Commit the canonical report and compare `_generated_joker_projector_score`,
-  candidate time, total target time, and complete helper accounting against the
-  post-discard-shell report. Do not infer improvement from unit timing alone.
-- Only after exact evidence may the roadmap select another owner or authorize
-  any additional bounded batch.
+- Reuse the canonical campaign-wave timing owner with eight workers. The
+  ordered pending episodes must remain `(904,905,906,907,908,901,902,903)`;
+  every seed, terminal status, action count, episode digest, policy/checkpoint
+  hash, session-immutability proof, and `committed=false` must remain exact or
+  the run fails closed.
+- Commit the canonical report and compare wall/episode timing against
+  `BALATRO_PPO_BATCH3_WAVE_901_908_TIMING.json`. Establish whether episode 908
+  remains the slow tail under production (non-diagnostic) execution.
+- Only this exact complete-wave evidence may authorize one additional bounded
+  optimizer batch or select another demonstrated slow owner.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or authorize another batch without
   new timing evidence.
@@ -1239,5 +1274,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_TACTICAL.json`
 - `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_SEARCH_SUBOWNERS.json`
 - `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_ESTIMATE_SUBOWNERS.json`
+- `docs/balatro/BALATRO_PPO_BATCH3_EPISODE_908_DECISION_13_CANDIDATE_SUBOWNERS_POST_SCORING_SHELL.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
