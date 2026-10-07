@@ -1022,21 +1022,50 @@ Batch-3 next-wave timing evidence:
   completed batch-3 state above. No additional batch is authorized from this
   evidence.
 
+Batch-3 episode-908 tactical evidence:
+
+- The exact checkpoint-backed trace reproduced episode 908 / stream 4 / seed
+  `FF9E2691` as the same eight-transition loss with episode SHA-256
+  `bd07be95d4c817029704391f5c4cbcc61b8d914356239c4060bc81c34ab92115`.
+  It contains 22 tactical decisions, took **440.5229011000192 seconds** end to
+  end, and attributes **440.107706699986 seconds** to tactical decisions.
+- Zero-based tactical decision 13, public input SHA-256
+  `ab0790fbe59d21e18c52077a6894a4f7a4145d32901c94b39e35e1027bc346c7`,
+  selects `DISCARD_CARDS` indices `(2, 3, 5)` after search attempts
+  `(h2,n420,max2000,complete)`, `(h3,n1122,max2000,complete)`, and
+  `(h3,n1000,max1000,budget-exceeded)`.
+- Decision 13 takes **426.3605272999848 seconds**: **96.876406%** of tactical
+  time and **96.785099%** of complete episode time. Its demonstrated dominant
+  subowner is candidate generation at **408.3104317999969 seconds
+  (95.766471%)**, ahead of search evaluation at 16.12419919995591 seconds and
+  policy arbitration at 1.9241610000026412 seconds.
+- The canonical 10,850-byte report has SHA-256
+  `cb8cf52a3ed790940a2cc16936d89ac2eb6a28b35ee026cc2eb4e9f3aa48c22b`;
+  the repository copy at
+  `docs/balatro/BALATRO_PPO_BATCH3_EPISODE_908_TACTICAL.json` includes a
+  terminal newline (10,851 bytes, SHA-256
+  `d3394c59c1b2e41d64750dc3fd5c99c7e6db474d48c4d054402c8e14588d2855`).
+- Session hashes before and after are both
+  `cb226e5192c23fa465574b198bc8f093c93703b402c5a5e29e0b4a1efa07d487`;
+  `committed=false`. Checkpoint and progress sizes and hashes remain unchanged.
+
 ## Exact active task
 
-Capture an exact read-only tactical trace for episode 908 / stream 4 / seed
-`FF9E2691` from the completed batch-3 checkpoint and identify its dominant
-tactical decision/subowner.
+Attribute candidate-generation subowners for exact episode-908 tactical
+decision 13 from the completed batch-3 checkpoint.
 
 Requirements:
 
-- Use the canonical checkpoint tactical-performance owner pinned to episode
-  index 908. Preserve the eight-action terminal loss, episode digest, trained
-  policy, checkpoint/progress bytes, and before/after session hash; remain
-  explicitly uncommitted.
-- Rank the trace's exact tactical decisions by elapsed time and select only the
-  demonstrated dominant subowner for the next diagnostic or optimization.
-- Do not authorize another bounded batch from aggregate timing alone.
+- Extend the existing checkpoint-backed diagnostic at its canonical owner so it
+  can pin episode 908's first 14 tactical decision signatures and attribute
+  only target decision 13 candidate generation. Do not add report-side timing
+  estimates or duplicate production mechanics.
+- Reuse the existing exclusive candidate-helper instrumentation and require
+  exact accounting, terminal episode/policy/session provenance, explicit
+  `committed=false`, and checkpoint/progress immutability.
+- Add focused deterministic regressions and pass GitHub Actions before running
+  the long checkpoint diagnostic. Optimize only the demonstrated dominant
+  candidate subowner; do not authorize another bounded batch yet.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or authorize another batch without
   new timing evidence.
