@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`9b7d0cca985ff82858e4ecdda7f46538686edae4`.
+`0bd0948eb2154e1538db94478f5eb6e35fd22412`.
 
 ## Objective
 
@@ -1165,24 +1165,38 @@ Post-discard-shell episode-908 evidence:
   `b822838a7548c278a99ac53d3898c355850e8f2ac26b230006f24f0de5c87c87`.
   Checkpoint/progress sizes, hashes, and timestamps remain unchanged.
 
+Exact Joker-scoring shell optimization gate:
+
+- Commit `0bd0948eb2154e1538db94478f5eb6e35fd22412` routes only exact
+  `BalatroState` inputs at `LiveJokerScoreProjector._copy_projection_state`
+  through the proven tactical shell owner. State subclasses retain their
+  overridden `copy()` behavior, while exact field/container drift still falls
+  back inside the shell owner.
+- Scoring parity, scoring-card identity, mutable gameplay-container isolation,
+  Joker graph isolation, supported Joker mutation, and frozen generation
+  evidence semantics are unchanged. No generated-consumable, scoring, or search
+  approximation was introduced.
+- Focused local validation: **61 passed in 0.80s**. Broader affected Joker
+  projection validation: **179 passed in 3.91s**.
+- GitHub Actions run `37611617691`, job `112759942258`.
+  Actual job log: **3212 passed, 1618 deselected in 186.35s**.
+
 ## Exact active task
 
-Optimize the demonstrated `_generated_joker_projector_score` owner for
-episode-908 tactical decision 13 without weakening scoring isolation.
+Rerun the exact checkpoint-backed episode-908 tactical decision-13 candidate
+subowner diagnostic after the Joker-scoring shell optimization.
 
 Requirements:
 
-- Inspect `LiveJokerScoreProjector._copy_projection_state`, the exact generated
-  inert transition call path, and the new tactical shell owner before changing
-  them. Remove only redundant exact-state shell work; retain Joker graph
-  isolation, scoring-card mapping, every supported Joker mutation, and public
-  state parity.
-- Any narrow reuse of `copy_for_tactical_shell` must retain conservative
-  behavior for state subclasses, shape drift, malformed containers, overridden
-  copy behavior, and unsupported Joker/scoring paths.
-- Add focused deterministic parity/isolation regressions, pass GitHub Actions,
-  and rerun the exact decision-13 diagnostic before selecting another owner or
-  authorizing any additional bounded batch.
+- Use the unchanged completed-batch-3 checkpoint/progress artifacts and pinned
+  episode 908 / stream 4 / seed `FF9E2691` decision-13 route. Prefix, target,
+  search attempts, episode/policy/session hashes, branch accounting, and
+  `committed=false` must remain exact or the run fails closed.
+- Commit the canonical report and compare `_generated_joker_projector_score`,
+  candidate time, total target time, and complete helper accounting against the
+  post-discard-shell report. Do not infer improvement from unit timing alone.
+- Only after exact evidence may the roadmap select another owner or authorize
+  any additional bounded batch.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or authorize another batch without
   new timing evidence.
