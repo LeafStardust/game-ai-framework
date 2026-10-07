@@ -153,17 +153,19 @@ def _require_plain_base_cards(
     else:
         facing_boss_name = _boss_name(run.public)
         hand_ids = {id(card) for card in run.public.hand}
+        discard_ids = {id(card) for card in run.public.discard_pile}
+        admitted_facing_ids = hand_ids | discard_ids
         if any(not card.facing_observed for card in run.public.hand):
             raise HeadlessTransitionError(
                 f"{facing_boss_name} Play requires authoritative current-hand facing state"
             )
         if any(
             card.face_down
-            and (not card.facing_observed or id(card) not in hand_ids)
+            and (not card.facing_observed or id(card) not in admitted_facing_ids)
             for card in order
         ):
             raise HeadlessTransitionError(
-                f"{facing_boss_name} Play encountered face-down state outside the current hand"
+                f"{facing_boss_name} Play encountered face-down state outside the current hand/discard zones"
             )
 
     if allow_verdant_leaf_debuffs:

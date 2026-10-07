@@ -272,3 +272,38 @@ def test_env_r4_wheel_play_reveals_played_cards_and_polls_replacements():
     assert {
         index: result_order[index].face_down for index in retained_facing
     } == retained_facing
+
+
+def test_env_r4_wheel_play_accepts_authoritative_hidden_discard_history():
+    run = start_supported_wheel(_run("WHEEL-HIDDEN-DISCARD-PLAY"))
+    run.public.hand[0].face_down = True
+    run.public.hand[0].facing_observed = True
+    discarded = apply_supported_tactical_discard(run, (0,))
+
+    assert discarded.public.discard_pile[-1].face_down is True
+    assert discarded.public.discard_pile[-1].facing_observed is True
+
+    result = apply_supported_ordinary_play(discarded, (0,))
+
+    assert result.public.phase == "SELECTING_HAND"
+    assert result.public.discard_pile[0].face_down is True
+    assert result.public.discard_pile[0].facing_observed is True
+
+
+@pytest.mark.parametrize("zone", ["deck", "discard_pile"])
+def test_env_r4_wheel_play_rejects_unowned_hidden_zone_state_atomically(zone):
+    run = start_supported_wheel(_run(f"WHEEL-HIDDEN-ZONE-{zone}"))
+    if zone == "discard_pile":
+        run = apply_supported_tactical_discard(run, (0,))
+    card = getattr(run.public, zone)[0]
+    card.face_down = True
+    card.facing_observed = zone == "deck"
+    before = serialize_headless_run_state(run)
+
+    with pytest.raises(
+        HeadlessTransitionError,
+        match="outside the current hand/discard zones",
+    ):
+        apply_supported_ordinary_play(run, (0,))
+
+    assert serialize_headless_run_state(run) == before
