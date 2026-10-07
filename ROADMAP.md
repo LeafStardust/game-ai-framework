@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`0bd0948eb2154e1538db94478f5eb6e35fd22412`.
+`7ca268244a8f02ea6c610b391635c8003bbd27fe`.
 
 ## Objective
 
@@ -1180,6 +1180,19 @@ Exact Joker-scoring shell optimization gate:
   projection validation: **179 passed in 3.91s**.
 - GitHub Actions run `37611617691`, job `112759942258`.
   Actual job log: **3212 passed, 1618 deselected in 186.35s**.
+
+Candidate-subowner accounting gate:
+
+- Commit `7ca268244a8f02ea6c610b391635c8003bbd27fe` scopes candidate-helper
+  instrumentation to the canonical `_candidate_actions` boundary. Helper calls
+  elsewhere in the same tactical decision are no longer charged against
+  candidate-only elapsed time; search-evaluation instrumentation retains its
+  existing nested exclusion behavior.
+- The deterministic regression invokes an additional generated-Joker score
+  after candidate generation and proves it is excluded from all three pinned
+  candidate-subowner routes. Focused local validation: **3 passed in 0.58s**.
+- GitHub Actions run `37665189968`, job `112942496811`.
+  Actual job log: **3212 passed, 1618 deselected in 217.91s**.
 
 ## Exact active task
 
