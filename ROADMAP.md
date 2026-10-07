@@ -1237,7 +1237,7 @@ Post-scoring-shell batch-3 wave evidence:
 - Wave wall time fell from **461.17360730000655** to
   **249.28650410001865 seconds** (**45.945193% lower**). Episode 908 fell from
   **460.3707985999936** to **248.45095130000846 seconds** (**46.032426%
-  lower**) and still owns 99.664015% of wave wall time. The other seven
+  lower**) and still owns 99.664822% of wave wall time. The other seven
   episodes remain bounded between 1.660514 and 15.888090 seconds; episode 904's
   0.059566-second increase is timing noise, not behavioral drift.
 - The canonical 3,248-byte report at
