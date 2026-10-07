@@ -925,23 +925,48 @@ Post-terminal-shell batch-2 wave timing evidence:
   indices remained unchanged. The improved representative wave authorizes one
   bounded additional optimizer batch, not unbounded training.
 
+Bounded batch-3 attempt boundary:
+
+- The exact eight-worker one-batch command stopped fail-closed after
+  **280.2249957 seconds** at the unowned `The Mark` tactical discard
+  callback/redraw boundary. The failed ordered wave was not admitted.
+- Forty complete episodes, 632 through 671 inclusive, were durably committed
+  before that boundary, adding 313 environment transitions. The valid checkpoint
+  is 53,349,447 bytes with SHA-256
+  `95d178c8731c4b9b2b41f597e9753d4c191a891465b914ee66f4dddcf18f5e79`.
+  The 670-byte progress manifest has SHA-256
+  `cf02d9e046efb93a5e97d77d7e4a29cbb2fae59c79dad22033aaed489daaf998`
+  and names the same checkpoint hash.
+- Exact durable state remains two completed optimizer batches, 4,938 collected /
+  4,096 optimizer-consumed transitions, Adam step 160, next episode indices
+  672..679, and per-stream carryovers `(128, 174, 99, 86, 71, 106, 128, 50)`
+  (842 total). Policy SHA-256 remains
+  `bfb43f14285cd724c54f90f3132f61dc0f67817be47347b3194b286e13154fa4`.
+- Read-only ordered isolation from that exact checkpoint proves episode 672 /
+  stream 0 / seed `AC0F67EC` and episode 673 / stream 1 / seed `8E3054C4`
+  complete as losses in eight and three actions. Episode 674 / stream 2 / seed
+  `977AD3AC` is the earliest failure and raises the exact `The Mark` discard
+  boundary. Isolation did not change checkpoint or progress bytes, hashes,
+  sizes, or timestamps.
+
 ## Exact active task
 
-Run exactly one additional eight-worker optimizer batch from the verified
-batch-2 checkpoint, preserve its durable campaign boundary, and stop at the
-first fail-closed mechanics error if one occurs.
+Implement the exact headless tactical discard callback/redraw semantics for
+`The Mark`, prove episode 674 / stream 2 / seed `977AD3AC` completes from the
+verified checkpoint, then resume only the interrupted bounded batch-3 attempt.
 
 Requirements:
 
-- Use the existing campaign-v12 checkpoint/progress pair and the canonical
-  `--maximum-episodes 512 --maximum-batches 1 --maximum-workers 8` resume path.
-  Verify exact preflight provenance before mutation.
-- On success, record exact completed batches, collected/consumed transitions,
-  optimizer step, next episode indices, carryovers, checkpoint/progress sizes
-  and hashes, policy digest, and elapsed time. On failure, admit no failed wave
-  and isolate only the earliest ordered mechanics boundary.
-- Do not continue automatically into another optimizer batch or unbounded
-  training after this one-batch boundary.
+- Read the pinned vanilla Mark callbacks and the existing R2 facing lifecycle
+  before changing the canonical tactical transition owner. Preserve physical
+  draw order, face-down identity masking, selected-card reveal semantics, RNG,
+  zones, and input immutability; unsupported drift must remain atomic and fail
+  closed.
+- Add deterministic regressions for Mark play/discard facing and the exact
+  episode-674 boundary. Use GitHub Actions as the implementation gate.
+- After green and exact episode-674 completion, resume only the existing
+  `--maximum-episodes 512 --maximum-batches 1 --maximum-workers 8` command from
+  the verified durable checkpoint. Do not start unbounded training.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
