@@ -1,6 +1,7 @@
 from games.balatro.actions import BalatroAction, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
+from games.balatro.env.parity import canonical_public_state_signature
 from games.balatro.hand import PokerHand
 from games.balatro.joker import Joker
 from games.balatro.jokers.bootstraps import BootstrapsJoker
@@ -95,6 +96,66 @@ def test_joker_projector_routes_default_state_copy_through_canonical_hook():
     assert observed.state_after_scoring is not state
     assert observed.state_after_scoring.hand is not state.hand
     assert observed.state_after_scoring.hand[0] is card
+
+
+def test_exact_joker_projection_uses_tactical_shell_with_full_parity(monkeypatch):
+    card = BalatroCard("A", "Spades")
+    state = _state([card])
+    state.owned_deck = [card]
+    state.joker_unlocks = {"j_joker": {"unlocked": True}}
+    state.joker_generation_pools = {"Common": [{"key": "j_joker"}]}
+    state.consumable_generation_pools = {"Tarot": [{"key": "c_fool"}]}
+    state.voucher_generation_pool = [{"key": "v_overstock", "requires": []}]
+    projector = LiveJokerScoreProjector()
+    baseline = projector.score(PokerHand.HIGH_CARD, state, [card])
+    ordinary_copy = BalatroState.copy
+
+    def reject_ordinary_copy(self):
+        raise AssertionError("exact Joker projection must use the tactical shell")
+
+    monkeypatch.setattr(BalatroState, "copy", reject_ordinary_copy)
+    optimized = projector.score(PokerHand.HIGH_CARD, state, [card])
+    monkeypatch.setattr(BalatroState, "copy", ordinary_copy)
+
+    assert optimized.score == baseline.score
+    assert optimized.unsupported_jokers == baseline.unsupported_jokers
+    assert optimized.cards_after_copy == baseline.cards_after_copy
+    assert canonical_public_state_signature(optimized.state_after_scoring) == (
+        canonical_public_state_signature(baseline.state_after_scoring)
+    )
+    assert optimized.state_after_scoring is not state
+    assert optimized.state_after_scoring.hand is not state.hand
+    assert optimized.state_after_scoring.hand[0] is card
+    for name in (
+        "joker_unlocks",
+        "joker_generation_pools",
+        "consumable_generation_pools",
+        "voucher_generation_pool",
+    ):
+        assert getattr(optimized.state_after_scoring, name) is getattr(state, name)
+
+
+def test_joker_projection_state_subclasses_keep_overridden_copy_behavior():
+    copied = []
+
+    class StateSubclass(BalatroState):
+        def copy(self):
+            copied.append(self)
+            return super().copy()
+
+    state = StateSubclass()
+    state.phase = "SELECTING_HAND"
+    card = BalatroCard("A", "Spades")
+    state.hand = [card]
+
+    projected = LiveJokerScoreProjector().score(
+        PokerHand.HIGH_CARD,
+        state,
+        [card],
+    )
+
+    assert copied == [state]
+    assert projected.state_after_scoring is not state
 
 
 def test_green_joker_projection_starts_from_hydrated_mult_and_updates_only_copy():

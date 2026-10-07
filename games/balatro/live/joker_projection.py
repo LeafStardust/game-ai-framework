@@ -13,6 +13,7 @@ from games.balatro.live.copy_projection import (
     resolve_copy_target,
 )
 from games.balatro.scoring import BalatroScorer, HandScore
+from games.balatro.state import BalatroState
 
 
 @dataclass(frozen=True)
@@ -404,6 +405,8 @@ class LiveJokerScoreProjector:
         )
 
     def _copy_projection_state(self, state):
+        if type(state) is BalatroState:
+            return state.copy_for_tactical_shell()
         return state.copy()
 
     def _prepare_hand_play(
