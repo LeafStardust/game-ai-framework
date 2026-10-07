@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from copy import deepcopy
+from copy import copy, deepcopy
 from itertools import combinations
 
 from games.balatro.actions import (
@@ -12,13 +12,18 @@ from games.balatro.actions import (
 from games.balatro.blinds.blind import BlindType
 from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.live.blind_clear_planner import LiveBlindPlanValue, _ActionEstimate
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindClearPlanner,
+    LiveBlindPlanValue,
+    _ActionEstimate,
+)
 from games.balatro.live.boss_blind_integration import boss_play_action_is_legal
 from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
 from games.balatro.live.draw_model import PublicDeckComposition
 from games.balatro.live.hand_action_planner_core import (
     D1LiveBlindClearPlanner as _CoreD1LiveBlindClearPlanner,
 )
+from games.balatro.state import BalatroState
 
 
 def _cerulean_future_forced_branches(state):
@@ -429,11 +434,10 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
                     score_outcome,
                     projected_state,
                 )
-                branch_state = deepcopy(outcome_state)
-                branch_state.score = score_after
-                branch_state.hands_remaining = hands_after
-                value = self._terminal_value(
-                    branch_state,
+                value = self._terminal_play_outcome_value(
+                    outcome_state,
+                    score_after=score_after,
+                    hands_after=hands_after,
                     clear=(target > 0 and score_after >= target),
                 )
                 total_value = total_value.plus(
@@ -520,6 +524,33 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
                 total_value = total_value.plus(value.weighted(probability))
 
         return _ActionEstimate(action, total_value, exact)
+
+    def _terminal_play_outcome_value(
+        self,
+        outcome_state,
+        *,
+        score_after: int,
+        hands_after: int,
+        clear: bool,
+    ) -> LiveBlindPlanValue:
+        """Evaluate one terminal play branch on an isolated state shell.
+
+        The canonical terminal evaluator only reads nested state. An exact
+        ``BalatroState`` can therefore share that graph while isolating the two
+        scalar transition fields. State subclasses and terminal-evaluator
+        overrides retain the conservative graph-preserving deepcopy path.
+        """
+        terminal_function = getattr(self._terminal_value, "__func__", None)
+        if (
+            type(outcome_state) is BalatroState
+            and terminal_function is LiveBlindClearPlanner._terminal_value
+        ):
+            branch_state = copy(outcome_state)
+        else:
+            branch_state = deepcopy(outcome_state)
+        branch_state.score = score_after
+        branch_state.hands_remaining = hands_after
+        return self._terminal_value(branch_state, clear=clear)
 
     def _estimate_discard(
         self,
