@@ -836,20 +836,48 @@ Estimator deepcopy call-site attribution gate:
 - GitHub Actions run `37571734757`, job `112631669469`.
 - Actual job log: **3197 passed, 1616 deselected in 138.78s**.
 
+Batch-2 decision-11 estimator deepcopy call-site evidence:
+
+- The exact checkpoint-backed schema-v2 trace preserved the pinned 12-decision
+  prefix, target action/indices/search attempt, trained policy, and complete
+  terminal episode SHA
+  `0899f4127cfa8f6094ba49692215bde2c091af73d3bda5c0a02c70ad63eebc98`.
+  It remained explicitly uncommitted with seven environment transitions.
+- The canonical 8,797-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_DEEPCOPY_CALLSITES.json`
+  has SHA-256
+  `aa76ff7740e72daf3bfdebd2854fc3776354a16798a6a005ceafe1d157b9c69e`.
+- All **3,403** estimator deep copies are classified across ten exact runtime
+  call-site/path groups. Their elapsed time sums exactly to the canonical
+  deepcopy owner at **5.342927900492214 seconds**; residual is **0.0**.
+- The demonstrated dominant owner is the recursive depth-one play-outcome clone
+  in `D1LiveBlindClearPlanner._estimate_play` at
+  `games/balatro/live/hand_action_planner.py:432`, on active path
+  `_estimate_action > _estimate_play > _best_value > _estimate_action >
+  _estimate_play`: **2,666 calls** and **4.305431399989175 seconds**. It owns
+  **80.581873%** of estimator-copy time and **77.476645%** of measured search
+  evaluation time.
+- Checkpoint and progress sizes, SHA-256 hashes, timestamps, counters, and next
+  indices remained unchanged.
+
 ## Exact active task
 
-Run and preserve the exact estimator deepcopy call-site trace at episode 637 /
-stream 5 / zero-based tactical decision 11, then optimize only its demonstrated
-dominant call-site owner before resuming batch 3.
+Optimize only the demonstrated recursive depth-one play-outcome clone in
+`D1LiveBlindClearPlanner._estimate_play`, then remeasure the same bounded episode
+637 / stream 5 / zero-based tactical decision 11 before resuming batch 3.
 
 Requirements:
 
-- Reuse the restored checkpoint policy, pinned prefix, complete terminal replay,
-  and immutability/provenance gates. The bounded report must preserve the exact
-  3,403-call total and balanced elapsed accounting.
-- Commit the canonical bounded report, identify the measured dominant production
-  call site, then optimize only that owner with exact semantic regressions and a
-  GitHub Actions implementation gate.
+- Replace only the exact depth-one clone with a canonical semantic owner that
+  preserves every field observed by `_terminal_value`, including subclass and
+  malformed-state fail-closed behavior. Do not broaden the optimization to the
+  other nine measured call-site/path groups.
+- Add focused deterministic equivalence, input-immutability, alias-safety, and
+  conservative-fallback regressions; use GitHub Actions as the implementation
+  gate.
+- After green, rerun the same checkpoint-backed trace and require identical
+  prefix/action/search/terminal provenance plus balanced copy attribution before
+  deciding whether another clone owner or batch 3 is next.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
