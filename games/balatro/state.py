@@ -244,6 +244,77 @@ class BalatroState(GameState):
                     memo[id(card)] = _copy_exact_scalar_card(card)
         return deepcopy(self, memo)
 
+    def copy_for_tactical_shell(self):
+        """Copy an exact tactical state shell without rebuilding immutable evidence.
+
+        Tactical projection already treats the observed generation pools as
+        immutable evidence.  Exact states can therefore copy their attribute
+        table once and replace only mutable gameplay containers.  Any state or
+        container shape drift retains the ordinary ``copy`` owner.
+        """
+        if not self._has_exact_tactical_shell_shape():
+            return self.copy()
+
+        new_state = BalatroState.__new__(BalatroState)
+        new_state.__dict__ = vars(self).copy()
+        if self.blind is not None:
+            copy_method = getattr(self.blind, "copy", None)
+            new_state.blind = (
+                copy_method() if callable(copy_method) else deepcopy(self.blind)
+            )
+        new_state.boss_blind_hands = self.boss_blind_hands.copy()
+        new_state.deck = self.deck.copy()
+        new_state.owned_deck = (
+            self.owned_deck.copy() if self.owned_deck is not None else None
+        )
+        new_state.hand = self.hand.copy()
+        new_state.discard_pile = self.discard_pile.copy()
+        new_state.jokers = self.jokers.copy()
+        new_state.consumables = self.consumables.copy()
+        new_state.shop_jokers = self.shop_jokers.copy()
+        new_state.shop_consumables = self.shop_consumables.copy()
+        new_state.shop_boosters = self.shop_boosters.copy()
+        new_state.shop_vouchers = self.shop_vouchers.copy()
+        new_state.hand_levels = self.hand_levels.copy()
+        new_state.hand_play_counts = self.hand_play_counts.copy()
+        new_state.round_hand_play_counts = self.round_hand_play_counts.copy()
+        new_state.vouchers = self.vouchers.copy()
+        return new_state
+
+    def _has_exact_tactical_shell_shape(self) -> bool:
+        if type(self) is not BalatroState:
+            return False
+        if vars(self).keys() != _BALATRO_STATE_FIELDS:
+            return False
+        if self.owned_deck is not None and type(self.owned_deck) is not list:
+            return False
+        return (
+            type(self.deck) is list
+            and type(self.hand) is list
+            and type(self.discard_pile) is list
+            and type(self.jokers) is list
+            and type(self.consumables) is list
+            and type(self.shop_jokers) is list
+            and type(self.shop_consumables) is list
+            and type(self.shop_boosters) is list
+            and type(self.shop_vouchers) is list
+            and type(self.vouchers) is list
+            and type(self.voucher_generation_pool) is list
+            and type(self.boss_blind_hands) is set
+            and type(self.hand_levels) is dict
+            and type(self.hand_play_counts) is dict
+            and type(self.round_hand_play_counts) is dict
+            and type(self.joker_unlocks) is dict
+            and type(self.joker_generation_pools) is dict
+            and type(self.consumable_generation_pools) is dict
+            and type(self.antimatter_unlock_observed) is bool
+            and type(self.antimatter_unlocked) is bool
+            and type(self.omen_globe_active) is bool
+            and type(self.consumable_generation_showman) is bool
+            and type(self.soul_generation_available) is bool
+            and type(self.black_hole_generation_available) is bool
+        )
+
     def detach_tactical_mutable_aliases(self):
         """Detach mutable values intentionally shared by ``copy()``.
 
@@ -308,3 +379,19 @@ class BalatroState(GameState):
             return False
         self.consumables.remove(consumable)
         return True
+
+
+_BALATRO_STATE_FIELDS = frozenset(vars(BalatroState())) | frozenset(
+    {
+        # Installed live-state policies extend the canonical state with these
+        # immutable public booleans after this module loads. Their copy wrappers
+        # merely reassign bool values, so the tactical shell can retain them in
+        # its copied attribute table without introducing a mutable alias.
+        "antimatter_unlock_observed",
+        "antimatter_unlocked",
+        "omen_globe_active",
+        "consumable_generation_showman",
+        "soul_generation_available",
+        "black_hole_generation_available",
+    }
+)

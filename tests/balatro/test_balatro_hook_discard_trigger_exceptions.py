@@ -158,6 +158,86 @@ def test_discard_projection_helper_pipeline_preserves_order_and_isolation() -> N
     assert projected.discards_used == 0
 
 
+def test_exact_discard_shell_matches_copy_and_shares_only_frozen_evidence(
+    monkeypatch,
+) -> None:
+    state = _state()
+    card = BalatroCard("A", "Spades", live_id="ace")
+    state.deck = [card]
+    state.hand = [card]
+    state.owned_deck = [card]
+    state.consumables = [{"history": ["held"]}]
+    state.joker_unlocks = {"j_joker": {"unlocked": True}}
+    state.joker_generation_pools = {"Common": [{"key": "j_joker"}]}
+    state.consumable_generation_pools = {"Tarot": [{"key": "c_fool"}]}
+    state.voucher_generation_pool = [{"key": "v_overstock", "requires": []}]
+    baseline = state.copy()
+    ordinary_copy = BalatroState.copy
+
+    def reject_ordinary_copy(self):
+        raise AssertionError("exact discard shell must not rebuild the ordinary copy")
+
+    monkeypatch.setattr(BalatroState, "copy", reject_ordinary_copy)
+    shell = LiveDiscardJokerProjector._copy_state_shell(state)
+    monkeypatch.setattr(BalatroState, "copy", ordinary_copy)
+
+    assert canonical_public_state_signature(shell) == (
+        canonical_public_state_signature(baseline)
+    )
+    assert shell is not state
+    assert shell.hand is not state.hand
+    assert shell.deck is not state.deck
+    assert shell.owned_deck is not state.owned_deck
+    assert shell.hand[0] is shell.deck[0] is shell.owned_deck[0] is card
+    for name in (
+        "joker_unlocks",
+        "joker_generation_pools",
+        "consumable_generation_pools",
+        "voucher_generation_pool",
+    ):
+        assert getattr(shell, name) is getattr(state, name)
+
+    shell.hand.clear()
+    shell.consumables.append({"history": ["projected"]})
+    shell.hand_levels["HIGH_CARD"] = 9
+    assert state.hand == [card]
+    assert state.consumables == [{"history": ["held"]}]
+    assert state.hand_levels["HIGH_CARD"] == 1
+
+
+def test_discard_shell_shape_drift_and_subclasses_keep_conservative_copy(
+    monkeypatch,
+) -> None:
+    ordinary_copy = BalatroState.copy
+    copied = []
+
+    def observed_copy(self):
+        copied.append(self)
+        return ordinary_copy(self)
+
+    monkeypatch.setattr(BalatroState, "copy", observed_copy)
+
+    extra = _state()
+    extra.unowned_mutable_state = []
+    LiveDiscardJokerProjector._copy_state_shell(extra)
+
+    malformed = _state()
+    malformed.deck = type("DeckSubclass", (list,), {})(malformed.deck)
+    LiveDiscardJokerProjector._copy_state_shell(malformed)
+
+    malformed_extension = _state()
+    malformed_extension.antimatter_unlocked = []
+    LiveDiscardJokerProjector._copy_state_shell(malformed_extension)
+
+    class StateSubclass(BalatroState):
+        pass
+
+    subclass = StateSubclass()
+    LiveDiscardJokerProjector._copy_state_shell(subclass)
+
+    assert copied == [extra, malformed, malformed_extension, subclass]
+
+
 def test_empty_active_path_skips_hand_evaluation_but_keeps_discard_effects() -> None:
     class ExplodingHandEvaluator:
         @staticmethod

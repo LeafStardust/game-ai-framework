@@ -12,6 +12,7 @@ from games.balatro.live.copy_projection import (
     resolve_copy_target,
 )
 from games.balatro.live.generated_consumable_outcomes import ProjectedGeneratedConsumable
+from games.balatro.state import BalatroState
 
 
 class UnsupportedDiscardProjection(RuntimeError):
@@ -91,6 +92,8 @@ class LiveDiscardJokerProjector:
 
     @staticmethod
     def _copy_state_shell(state):
+        if type(state) is BalatroState:
+            return state.copy_for_tactical_shell()
         return state.copy()
 
     @staticmethod
