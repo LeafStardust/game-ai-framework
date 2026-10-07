@@ -934,8 +934,8 @@ first fail-closed mechanics error if one occurs.
 Requirements:
 
 - Use the existing campaign-v12 checkpoint/progress pair and the canonical
-  `--additional-batches 1 --maximum-workers 8` resume path. Verify exact
-  preflight provenance before mutation.
+  `--maximum-episodes 512 --maximum-batches 1 --maximum-workers 8` resume path.
+  Verify exact preflight provenance before mutation.
 - On success, record exact completed batches, collected/consumed transitions,
   optimizer step, next episode indices, carryovers, checkpoint/progress sizes
   and hashes, policy digest, and elapsed time. On failure, admit no failed wave
