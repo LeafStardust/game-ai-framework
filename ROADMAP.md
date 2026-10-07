@@ -1227,27 +1227,47 @@ Post-scoring-shell episode-908 evidence:
   `70b6d867f0a0a63beb3a69e938b3557637f951de0edce12735cff017808ad340`
   and `7ab00acc8b71bc17b0782d03bdd1679eb8a56538ae3b41c613428f532943dca0`.
 
+Post-scoring-shell batch-3 wave evidence:
+
+- The exact read-only eight-worker production wave reproduced ordered episodes
+  `(904,905,906,907,908,901,902,903)` on streams 0..7. Every seed, action
+  count `(5,11,5,6,8,7,5,8)`, terminal loss, episode digest, checkpoint,
+  policy, and before/after session hash matches the pre-optimization report;
+  every episode remains explicitly uncommitted.
+- Wave wall time fell from **461.17360730000655** to
+  **249.28650410001865 seconds** (**45.945193% lower**). Episode 908 fell from
+  **460.3707985999936** to **248.45095130000846 seconds** (**46.032426%
+  lower**) and still owns 99.664015% of wave wall time. The other seven
+  episodes remain bounded between 1.660514 and 15.888090 seconds; episode 904's
+  0.059566-second increase is timing noise, not behavioral drift.
+- The canonical 3,248-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH3_WAVE_901_908_TIMING_POST_SCORING_SHELL.json`
+  has SHA-256
+  `30d6feac77d83ce75c5bc4997e70b2e823b3ec878ced6e15b836362520c8849c`.
+  Checkpoint/progress sizes and hashes remain unchanged. This exact production
+  evidence authorizes one bounded optimizer batch, not unbounded training.
+
 ## Exact active task
 
-Rerun the exact read-only eight-worker next-wave timing measurement from the
-unchanged completed-batch-3 checkpoint after the discard and Joker-scoring
-shell optimizations.
+Resume the canonical campaign from the unchanged completed-batch-3 artifacts
+for exactly one additional optimizer batch with eight workers.
 
 Requirements:
 
-- Reuse the canonical campaign-wave timing owner with eight workers. The
-  ordered pending episodes must remain `(904,905,906,907,908,901,902,903)`;
-  every seed, terminal status, action count, episode digest, policy/checkpoint
-  hash, session-immutability proof, and `committed=false` must remain exact or
-  the run fails closed.
-- Commit the canonical report and compare wall/episode timing against
-  `BALATRO_PPO_BATCH3_WAVE_901_908_TIMING.json`. Establish whether episode 908
-  remains the slow tail under production (non-diagnostic) execution.
-- Only this exact complete-wave evidence may authorize one additional bounded
-  optimizer batch or select another demonstrated slow owner.
+- Use root seed `RED-WHITE-PPO-V1`, the existing canonical artifact directory,
+  `--maximum-batches 4`, `--maximum-workers 8`, and a fail-closed episode cap
+  large enough to complete only that batch. Do not create a replacement
+  campaign or alter the frozen training contract.
+- Treat each atomically published checkpoint/progress pair as durable. If an
+  unowned mechanic fails, preserve the latest valid boundary and diagnose the
+  earliest failing pending episode before resuming.
+- On clean completion, verify checkpoint/progress canonical linkage, completed
+  batch count 4, Adam step 320, optimizer-consumed transitions 8,192, policy
+  digest, next episode indices, carryovers, and artifact hashes before choosing
+  the next task.
 - Do not start unbounded/full training, inspect promotion results, change
-  policy/hyperparameters/search schedule, or authorize another batch without
-  new timing evidence.
+  policy/hyperparameters/search schedule, or continue beyond this single
+  newly authorized batch.
 
 ## Held and deferred work
 
@@ -1275,5 +1295,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_SEARCH_SUBOWNERS.json`
 - `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_ESTIMATE_SUBOWNERS.json`
 - `docs/balatro/BALATRO_PPO_BATCH3_EPISODE_908_DECISION_13_CANDIDATE_SUBOWNERS_POST_SCORING_SHELL.json`
+- `docs/balatro/BALATRO_PPO_BATCH3_WAVE_901_908_TIMING_POST_SCORING_SHELL.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
