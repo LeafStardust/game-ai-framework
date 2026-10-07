@@ -2,11 +2,11 @@
 
 This owner intentionally admits only deterministic Red Deck / White Stake slices
 whose action-time semantics are already exact: ordinary Small/Big blinds and the
-narrow Psychic / Flint / Tooth / Hook / Pillar / Arm / House / Fish / Wheel / Mouth / Needle /
-Manacle / Verdant Leaf / static suit-debuff Boss paths, with an unmodified base
-playing-card deck and no Joker, Tag, random-card, or other unowned callbacks. Held
-profile Tarot/Planet cards and already-applied supported Vouchers are explicit
-play-time no-ops.
+narrow Psychic / Flint / Tooth / Hook / Pillar / Arm / House / Fish / Wheel /
+Mark / Mouth / Needle / Manacle / Verdant Leaf / static suit-debuff Boss paths,
+with an unmodified base playing-card deck and no Joker, Tag, random-card, or
+other unowned callbacks. Held profile Tarot/Planet cards and already-applied
+supported Vouchers are explicit play-time no-ops.
 The boundary can widen only when those source-order mechanics have canonical
 environment owners.
 """
@@ -26,6 +26,7 @@ from games.balatro.env.boss_debuffs import (
 )
 from games.balatro.env.boss_facing import (
     draw_fish_post_play_cards,
+    draw_mark_post_play_cards,
     draw_wheel_post_play_cards,
 )
 from games.balatro.env.boss_hand import apply_arm_debuff_hand_level
@@ -229,6 +230,13 @@ def _is_wheel_context(state) -> bool:
     )
 
 
+def _is_mark_context(state) -> bool:
+    return (
+        getattr(state.blind, "type", None) == BlindType.BOSS
+        and _boss_name(state) == "The Mark"
+    )
+
+
 def _require_supported_context(run: HeadlessRunState) -> None:
     state = run.public
     if state.phase != "SELECTING_HAND":
@@ -249,6 +257,7 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         "The House",
         "The Fish",
         "The Wheel",
+        "The Mark",
         "The Mouth",
         "The Needle",
         "The Manacle",
@@ -336,7 +345,7 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         ),
         allow_facing_boss=(
             blind_type is BlindType.BOSS
-            and boss_name in {"The House", "The Fish", "The Wheel"}
+            and boss_name in {"The House", "The Fish", "The Wheel", "The Mark"}
         ),
         allow_static_suit_debuffs=(
             blind_type is BlindType.BOSS
@@ -388,12 +397,14 @@ def apply_supported_ordinary_play(
     next_run.played_pile.extend(selected)
 
     # Pinned vanilla moves highlighted cards to G.play facing up. This reveals
-    # House/Fish/Wheel-hidden identities to mechanics before hand classification
-    # while the policy only ever saw their masked public observation.
+    # House/Fish/Wheel/Mark-hidden identities to mechanics before hand
+    # classification while the policy only ever saw their masked public
+    # observation.
     if (
         _is_house_context(next_state)
         or _is_fish_context(next_state)
         or _is_wheel_context(next_state)
+        or _is_mark_context(next_state)
     ):
         for card in selected:
             card.face_down = False
@@ -492,6 +503,8 @@ def apply_supported_ordinary_play(
         return draw_fish_post_play_cards(next_run)
     if _is_wheel_context(next_state):
         return draw_wheel_post_play_cards(next_run)
+    if _is_mark_context(next_state):
+        return draw_mark_post_play_cards(next_run)
     while len(next_run.public.hand) < next_run.public.hand_size:
         next_run = draw_one_supported_card_to_hand(next_run)
 

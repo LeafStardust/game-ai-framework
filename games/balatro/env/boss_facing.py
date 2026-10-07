@@ -338,6 +338,54 @@ def draw_wheel_post_discard_cards(run: HeadlessRunState) -> HeadlessRunState:
     return _draw_wheel_replenishment(run)
 
 
+def _draw_mark_replenishment(run: HeadlessRunState) -> HeadlessRunState:
+    """Draw Mark replacements and apply its deterministic predicate per card."""
+    draw_indices = _replenishment_creation_indices(run, boss_name="The Mark")
+    next_run = run.copy()
+    for _ in draw_indices:
+        next_run = draw_one_supported_card_to_hand(next_run)
+
+    disabled = bool(getattr(next_run.public.blind, "disabled", False))
+    next_order = next_run.require_playing_card_order()
+    for creation_index in draw_indices:
+        try:
+            card = next_order[creation_index]
+        except IndexError as exc:
+            raise HeadlessTransitionError(
+                "Mark physical draw index is invalid"
+            ) from exc
+        card.face_down = (
+            False
+            if disabled
+            else deterministic_card_stays_face_down(next_run.public, card)
+        )
+        card.facing_observed = True
+    return next_run
+
+
+def draw_mark_post_play_cards(run: HeadlessRunState) -> HeadlessRunState:
+    """Draw Mark replacements after one accepted played hand."""
+    if _require_round_play_history(run.public) <= 0:
+        raise HeadlessTransitionError(
+            "Mark post-play draw requires authoritative evidence of a played hand"
+        )
+    return _draw_mark_replenishment(run)
+
+
+def draw_mark_post_discard_cards(run: HeadlessRunState) -> HeadlessRunState:
+    """Draw Mark replacements after one accepted discard."""
+    discards_used = run.public.discards_used
+    if (
+        isinstance(discards_used, bool)
+        or not isinstance(discards_used, int)
+        or discards_used <= 0
+    ):
+        raise HeadlessTransitionError(
+            "Mark post-discard draw requires authoritative evidence of a discard"
+        )
+    return _draw_mark_replenishment(run)
+
+
 def clear_facing_boss_hand(run: HeadlessRunState) -> HeadlessRunState:
     """Mirror facing cleanup performed by ``Blind:disable``/Boss defeat."""
     if run.public.boss_name not in _FACING_BOSS_NAMES:
