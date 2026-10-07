@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`0520e22bb108003ec3105c3dabc9bd8a1e4949b2`.
+`e322767e0e6e58069ea47a1f96c6da0a70a74593`.
 
 ## Objective
 
@@ -1048,6 +1048,20 @@ Batch-3 episode-908 tactical evidence:
 - Session hashes before and after are both
   `cb226e5192c23fa465574b198bc8f093c93703b402c5a5e29e0b4a1efa07d487`;
   `committed=false`. Checkpoint and progress sizes and hashes remain unchanged.
+
+Episode-908 candidate-subowner diagnostic gate:
+
+- Commit `e322767e0e6e58069ea47a1f96c6da0a70a74593` extends the existing
+  checkpoint attribution owner with a candidate-scope route pinned to episode
+  908's first 14 tactical decision signatures and target decision 13.
+- The route reuses production candidate-helper instrumentation, replays the
+  complete terminal episode, and fails closed on pending-index, prefix/target,
+  policy, terminal provenance, session mutation, scope, non-finite timing, or
+  unbalanced helper accounting drift. It remains explicitly uncommitted.
+- Focused local validation: **10 passed in 14.29s**. Broader PPO diagnostic
+  validation: **59 passed in 35.78s**.
+- GitHub Actions run `37604291611`, job `112735914206`.
+  Actual job log: **3210 passed, 1616 deselected in 117.51s**.
 
 ## Exact active task
 
