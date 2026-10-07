@@ -1063,23 +1063,59 @@ Episode-908 candidate-subowner diagnostic gate:
 - GitHub Actions run `37604291611`, job `112735914206`.
   Actual job log: **3210 passed, 1616 deselected in 117.51s**.
 
+Episode-908 decision-13 candidate-subowner evidence:
+
+- The exact checkpoint-backed diagnostic reproduced the pinned 14-decision
+  prefix, target digest/action/indices/three search attempts, trained policy,
+  and eight-transition terminal episode SHA
+  `bd07be95d4c817029704391f5c4cbcc61b8d914356239c4060bc81c34ab92115`.
+  Session hashes before and after are both
+  `cb226e5192c23fa465574b198bc8f093c93703b402c5a5e29e0b4a1efa07d487`;
+  `committed=false`.
+- Under exclusive helper instrumentation the target took
+  **736.3106001999986 seconds** and candidate generation took
+  **709.3464598998253 seconds**. Helper accounting closes to a residual of
+  only **0.18333580199396238 seconds**.
+- The demonstrated dominant owner is `_state_detach_card_collections` at
+  **187.44446322350996 seconds** across **1,319,642 calls** (**26.424952%**
+  of candidate time). `_discard_state_shell_copy` is next at
+  147.97607499462902 seconds and `_generated_joker_projector_score` at
+  103.49483380399761 seconds.
+- All **1,319,642** generated-consumable transitions are exact inert; the same
+  number of Hook forced branches is projected, while discard-Joker applications
+  remain zero. Evaluator cache accounting is 3,500 hits / 1,765 misses.
+- The first 100,000 exact-card scalar-validation samples cost only
+  0.16106300035608 seconds and shallow copies only 0.08510200277669355 seconds;
+  no extended-card reconstruction was observed. The dominant card-detachment
+  cost is therefore repeated whole-collection traversal/identity reconstruction,
+  not the already-optimized scalar helpers.
+- The canonical 6,502-byte report has SHA-256
+  `8b7a42e533bdb4b1b4356b6f0f05476bbd5ee3c17b0a2db3e5804c8a8ebee5a7`;
+  the repository copy at
+  `docs/balatro/BALATRO_PPO_BATCH3_EPISODE_908_DECISION_13_CANDIDATE_SUBOWNERS.json`
+  includes a terminal newline (6,503 bytes, SHA-256
+  `6235e153703f8eff6620aeeb1e2c1dae131cdb6ecb7f1fe01a4762f6289ec00b`).
+- Checkpoint and progress sizes and hashes remain exactly unchanged from the
+  completed batch-3 state. No additional batch is authorized.
+
 ## Exact active task
 
-Attribute candidate-generation subowners for exact episode-908 tactical
-decision 13 from the completed batch-3 checkpoint.
+Optimize the demonstrated repeated exact-card collection detachment owner for
+episode-908 tactical decision 13, without weakening alias isolation.
 
 Requirements:
 
-- Extend the existing checkpoint-backed diagnostic at its canonical owner so it
-  can pin episode 908's first 14 tactical decision signatures and attribute
-  only target decision 13 candidate generation. Do not add report-side timing
-  estimates or duplicate production mechanics.
-- Reuse the existing exclusive candidate-helper instrumentation and require
-  exact accounting, terminal episode/policy/session provenance, explicit
-  `committed=false`, and checkpoint/progress immutability.
-- Add focused deterministic regressions and pass GitHub Actions before running
-  the long checkpoint diagnostic. Optimize only the demonstrated dominant
-  candidate subowner; do not authorize another bounded batch yet.
+- Inspect the canonical `BalatroState` tactical alias-detachment owner and the
+  exact inert generated-consumable/discard shell call path before changing it.
+  Remove only repeated exact-state traversal whose replacement preserves the
+  same graph identity, card isolation, public-state hashes, and input
+  immutability.
+- State/card subclasses, extra or mutable card fields, cross-collection shared
+  identity, and malformed unsupported containers must retain graph-preserving
+  fail-closed behavior. Do not cache by hidden identity across state changes.
+- Add focused deterministic alias/parity regressions, pass GitHub Actions, and
+  rerun the exact decision-13 diagnostic before considering the next owner or
+  any additional bounded batch.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or authorize another batch without
   new timing evidence.
