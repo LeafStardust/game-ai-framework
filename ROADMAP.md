@@ -1275,20 +1275,36 @@ Bounded batch-4 Needle boundary and mechanics gate:
   `37670304885`, job `112960066745`. Actual job log: **3218 passed, 1618
   deselected in 219.15s**.
 
+Episode-976 Needle replay evidence:
+
+- The exact read-only replay now completes episode 976 / stream 0 / seed
+  `EDF19EC1` as a 13-transition terminal loss with 34 tactical decisions and
+  episode SHA-256
+  `c5848f0161d1652cb4632db9e4687bbdf50442d31052da55f1b875e9188d43d4`.
+  Total elapsed time is 3.282007799978601 seconds, including
+  2.7117509000818245 tactical seconds.
+- Before/after session SHA-256 values are both
+  `6420cc3c49b40eb61718d47b88ab3d104bb680bd84fa832e3656f04948ee4caf`;
+  `committed=false`. The durable checkpoint/progress files remain byte-for-byte
+  unchanged at their hashes above.
+- The canonical 16,254-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_976_NEEDLE_FIXED.json` has SHA-256
+  `92806cc8e52154b1077c4b831437776b94e491a19365bf25bf43aeb2f049c524`.
+
 ## Exact active task
 
-Replay exact episode 976 / stream 0 / seed `EDF19EC1` read-only from the durable
-batch-4 boundary after the Needle tactical-discard fix.
+Resume the same authorized eight-worker campaign from the durable 7,038-
+transition boundary and stop at completed optimizer batch 4.
 
 Requirements:
 
-- Use the canonical checkpoint tactical trace and require a complete terminal
-  episode with exact checkpoint/policy/session provenance and `committed=false`.
-  Commit the report only if the Needle boundary and the rest of the episode
-  complete without another unsupported mechanic.
-- If the replay is green, resume the same already-authorized campaign with
-  `--maximum-batches 4` and eight workers. Preserve every atomically published
-  boundary and stop again on any new fail-closed mechanic.
+- Use root seed `RED-WHITE-PPO-V1`, the existing canonical artifact directory,
+  `--maximum-batches 4`, `--maximum-workers 8`, and the existing fail-closed
+  episode cap. Do not create a replacement campaign or alter the frozen
+  training contract.
+- Preserve every atomically published boundary and stop again on any new
+  fail-closed mechanic. Diagnose the first current pending stream episode from
+  the latest linked checkpoint/progress pair rather than stale indices.
 - On batch completion, verify checkpoint/progress canonical linkage, completed
   batch count 4, Adam step 320, optimizer-consumed transitions 8,192, policy
   digest, next episode indices, carryovers, and artifact hashes before choosing
@@ -1324,5 +1340,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_ESTIMATE_SUBOWNERS.json`
 - `docs/balatro/BALATRO_PPO_BATCH3_EPISODE_908_DECISION_13_CANDIDATE_SUBOWNERS_POST_SCORING_SHELL.json`
 - `docs/balatro/BALATRO_PPO_BATCH3_WAVE_901_908_TIMING_POST_SCORING_SHELL.json`
+- `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_976_NEEDLE_FIXED.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
