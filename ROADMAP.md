@@ -1140,23 +1140,49 @@ Exact discard-shell optimization gate:
 - GitHub Actions run `37609021365`, job `112751462512`.
   Actual job log: **3210 passed, 1618 deselected in 224.85s**.
 
+Post-discard-shell episode-908 evidence:
+
+- The exact checkpoint-backed diagnostic preserved episode 908 / stream 4 /
+  seed `FF9E2691`, the complete 14-decision prefix, target digest,
+  `DISCARD_CARDS(2,3,5)`, all three search attempts, 3,500/1,765 evaluator
+  cache accounting, 1,319,642 Hook branches, the eight-transition terminal
+  loss, episode/policy/checkpoint hashes, and identical before/after session
+  SHA-256; `committed=false`.
+- `_discard_state_shell_copy` fell from **147.97607499462902** to
+  **10.291453918529442 seconds** (**93.045191% lower**). Candidate generation
+  fell from **709.3464598998253** to **453.6136594003183 seconds**
+  (**36.051889% lower**), and total target time fell from
+  **736.3106001999986** to **474.64604490000056 seconds** (**35.537252%
+  lower**). Helper accounting residual is only 0.08355880016461015 seconds.
+- Card detachment remains largest at 168.73725790064782 seconds, but the safe
+  implementation audit above rejected every measured alternative. The next
+  actionable demonstrated owner is `_generated_joker_projector_score` at
+  **92.99003390062717 seconds**; all 1,319,642 generated-consumable transitions
+  remain exact inert.
+- The canonical 6,509-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH3_EPISODE_908_DECISION_13_CANDIDATE_SUBOWNERS_POST_DISCARD_SHELL.json`
+  has SHA-256
+  `b822838a7548c278a99ac53d3898c355850e8f2ac26b230006f24f0de5c87c87`.
+  Checkpoint/progress sizes, hashes, and timestamps remain unchanged.
+
 ## Exact active task
 
-Rerun the exact checkpoint-backed episode-908 tactical decision-13 candidate
-subowner diagnostic after the discard-shell optimization.
+Optimize the demonstrated `_generated_joker_projector_score` owner for
+episode-908 tactical decision 13 without weakening scoring isolation.
 
 Requirements:
 
-- Use the unchanged completed-batch-3 checkpoint/progress artifacts and the
-  pinned episode 908 / stream 4 / seed `FF9E2691` decision-13 route. The complete
-  14-decision prefix, target digest/action/indices/attempts, terminal episode,
-  policy hash, session immutability, and uncommitted artifact hashes must remain
-  exact or the run fails closed.
-- Commit the canonical report and compare `_discard_state_shell_copy`, total
-  candidate time, target time, and all helper accounting against the pre-change
-  report. Do not infer improvement from the microbenchmark alone.
-- Only after exact evidence may the roadmap select the next demonstrated owner
-  or authorize another bounded batch.
+- Inspect `LiveJokerScoreProjector._copy_projection_state`, the exact generated
+  inert transition call path, and the new tactical shell owner before changing
+  them. Remove only redundant exact-state shell work; retain Joker graph
+  isolation, scoring-card mapping, every supported Joker mutation, and public
+  state parity.
+- Any narrow reuse of `copy_for_tactical_shell` must retain conservative
+  behavior for state subclasses, shape drift, malformed containers, overridden
+  copy behavior, and unsupported Joker/scoring paths.
+- Add focused deterministic parity/isolation regressions, pass GitHub Actions,
+  and rerun the exact decision-13 diagnostic before selecting another owner or
+  authorizing any additional bounded batch.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or authorize another batch without
   new timing evidence.
