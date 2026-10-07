@@ -1320,20 +1320,35 @@ Bounded batch-4 Wheel-facing boundary and mechanics gate:
   `37672011538`, job `112965867177`. Actual job log: **3221 passed, 1618
   deselected in 209.70s**.
 
+Episode-1081 Wheel replay evidence:
+
+- The exact read-only replay now completes episode 1081 / stream 1 / seed
+  `3F78BC58` as a 14-transition terminal loss with 36 tactical decisions and
+  episode SHA-256
+  `27025bc643cf03e4d099e8dbc30641ff05d5761a460702904f8cc9a240baf1cc`.
+  Total elapsed time is 4.208208900003228 seconds, including
+  3.606286100053694 tactical seconds.
+- Before/after session SHA-256 values are both
+  `234fa39261db94cc54e0e5d6daad9eabe087105c419fb0cb9907007f196789b7`;
+  `committed=false`. Checkpoint and progress bytes/hashes remain exactly at the
+  durable 7,761-transition boundary above.
+- The canonical 17,186-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1081_WHEEL_FIXED.json` has SHA-256
+  `a3127804ea765d767206c1f4c3f001efbc21412b3615eeeb0e64dac97160ecca`.
+
 ## Exact active task
 
-Replay exact episode 1081 / stream 1 / seed `3F78BC58` read-only from the
-durable 7,761-transition boundary after the Wheel discard-facing fix.
+Resume the same authorized eight-worker campaign from the durable 7,761-
+transition boundary and stop at completed optimizer batch 4.
 
 Requirements:
 
-- Use the canonical checkpoint tactical trace and require a complete terminal
-  episode with exact checkpoint/policy/session provenance and `committed=false`.
-  Commit the report only if the Wheel boundary and the rest of the episode
-  complete without another unsupported mechanic.
-- If the replay is green, resume the same authorized campaign with
-  `--maximum-batches 4`, eight workers, and the existing episode cap. Preserve
-  every atomic boundary and stop on any new fail-closed mechanic.
+- Use root seed `RED-WHITE-PPO-V1`, the existing canonical artifact directory,
+  `--maximum-batches 4`, `--maximum-workers 8`, and the existing episode cap.
+  Do not replace the campaign or alter the frozen training contract.
+- Preserve every atomic boundary and stop on any new fail-closed mechanic.
+  Diagnose from the latest linked checkpoint/progress pair rather than stale
+  pending indices.
 - On batch completion, verify checkpoint/progress canonical linkage, completed
   batch count 4, Adam step 320, optimizer-consumed transitions 8,192, policy
   digest, next episode indices, carryovers, and artifact hashes before choosing
@@ -1370,5 +1385,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH3_EPISODE_908_DECISION_13_CANDIDATE_SUBOWNERS_POST_SCORING_SHELL.json`
 - `docs/balatro/BALATRO_PPO_BATCH3_WAVE_901_908_TIMING_POST_SCORING_SHELL.json`
 - `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_976_NEEDLE_FIXED.json`
+- `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1081_WHEEL_FIXED.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
