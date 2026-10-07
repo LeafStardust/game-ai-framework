@@ -47,6 +47,7 @@ from games.balatro.env.voucher_capabilities import (
 # removes every current discard at blind start, so no legal discard exists.
 _ORDINARY_DISCARD_BOSS_NAMES = frozenset(BOSS_KEY_BY_NAME) - {
     "The Manacle",
+    "The Needle",
     "The Psychic",
     "The Water",
     "The Serpent",
@@ -141,6 +142,42 @@ def _require_active_psychic_discard_state(run: HeadlessRunState) -> None:
         )
 
 
+def _require_active_needle_discard_state(run: HeadlessRunState) -> None:
+    """Require Needle's exact stored hands reduction for an ordinary redraw."""
+    state = run.public
+    blind = state.blind
+    if (
+        state.boss_name != "The Needle"
+        or blind is None
+        or getattr(blind, "type", None) is not BlindType.BOSS
+        or bool(getattr(blind, "disabled", False))
+    ):
+        raise HeadlessTransitionError("Needle discard requires its active Boss blind")
+    if (
+        getattr(blind, "modifiers", None)
+        or getattr(blind, "tag_key", None) is not None
+    ):
+        raise HeadlessTransitionError(
+            "Needle discard does not own additional blind modifiers"
+        )
+    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
+    reset_hands = state.round_reset_hands
+    if (
+        state.round_reset_hands_observed is not True
+        or isinstance(reset_hands, bool)
+        or not isinstance(reset_hands, int)
+        or reset_hands < 0
+        or expected_hand_size is None
+        or state.hand_size != expected_hand_size
+        or run.boss_hands_sub != reset_hands - 1
+        or run.boss_discards_sub is not None
+        or run.boss_hand_size_sub is not None
+    ):
+        raise HeadlessTransitionError(
+            "Needle discard requires its exact stored hands adjustment"
+        )
+
+
 def _require_active_wheel_discard_state(run: HeadlessRunState) -> None:
     """Require Wheel's exact keyed-facing discard boundary."""
     state = run.public
@@ -207,6 +244,8 @@ def _require_baseline_discard_callbacks_exact(run: HeadlessRunState) -> None:
     state = run.public
     if state.boss_name == "The Manacle":
         require_active_manacle_state(run)
+    elif state.boss_name == "The Needle":
+        _require_active_needle_discard_state(run)
     elif state.boss_name == "The Psychic":
         _require_active_psychic_discard_state(run)
     elif state.boss_name == "The Wheel":

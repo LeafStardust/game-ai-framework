@@ -9,6 +9,7 @@ from games.balatro.env.serialization import (
     serialize_headless_run_state,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.tactical_transition import apply_supported_tactical_discard
 from games.balatro.state import BalatroState
 
 
@@ -45,6 +46,57 @@ def test_env_r4_needle_restores_stored_one_hand_round_and_clears_on_defeat():
     assert result.boss_hands_sub == 3
     assert defeated.boss_hands_sub is None
     assert serialize_headless_run_state(run) == snapshot
+
+
+def test_env_r4_needle_discard_preserves_exact_stored_hands_adjustment():
+    run = _needle_run(requirement=99_999)
+    snapshot = serialize_headless_run_state(run)
+    before_rng = run.rng_snapshot()
+
+    result = apply_supported_tactical_discard(run, (0, 2))
+
+    assert result.public.hands_remaining == 1
+    assert result.boss_hands_sub == 3
+    assert result.public.discards_remaining == 2
+    assert result.public.discards_used == 1
+    assert len(result.public.hand) == result.public.hand_size == 8
+    assert len(result.public.discard_pile) == 2
+    assert result.rng_snapshot() == before_rng
+    assert serialize_headless_run_state(run) == snapshot
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("boss_hands_sub", None),
+        ("boss_hands_sub", 2),
+        ("boss_discards_sub", 1),
+        ("boss_hand_size_sub", 1),
+    ],
+)
+def test_env_r4_needle_discard_rejects_inexact_resource_state_atomically(
+    field,
+    value,
+):
+    run = _needle_run(requirement=99_999)
+    setattr(run, field, value)
+    before = serialize_headless_run_state(run)
+
+    with pytest.raises(HeadlessTransitionError, match="Needle discard"):
+        apply_supported_tactical_discard(run, (0,))
+
+    assert serialize_headless_run_state(run) == before
+
+
+def test_env_r4_needle_discard_rejects_inexact_public_resources_atomically():
+    run = _needle_run(requirement=99_999)
+    run.public.round_reset_hands_observed = False
+    before = serialize_headless_run_state(run)
+
+    with pytest.raises(HeadlessTransitionError, match="Needle discard"):
+        apply_supported_tactical_discard(run, (0,))
+
+    assert serialize_headless_run_state(run) == before
 
 
 @pytest.mark.parametrize(
