@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`7ca268244a8f02ea6c610b391635c8003bbd27fe`.
+`f0a662af60cefe9c2cb35aeca069952ebbedcf72`.
 
 ## Objective
 
@@ -1247,21 +1247,49 @@ Post-scoring-shell batch-3 wave evidence:
   Checkpoint/progress sizes and hashes remain unchanged. This exact production
   evidence authorizes one bounded optimizer batch, not unbounded training.
 
+Bounded batch-4 Needle boundary and mechanics gate:
+
+- The authorized eight-worker campaign resumed from completed batch 3 and
+  atomically committed 489 additional transitions before stopping fail-closed
+  at the next unowned boundary. Durable state remains 3 completed batches,
+  7,038 collected / 6,144 optimizer-consumed transitions, Adam step 240, next
+  episode indices `(976,977,978,979,980,973,974,975)`, and per-stream
+  carryovers `(128,193,104,104,79,98,121,67)` (894 total). Policy SHA-256
+  remains `e7530802f3458cb21d088c8ccf33075d8b017581ca2e1e3a265a4d3d8fac72cc`.
+- The exact durable checkpoint is 53,883,699 bytes with SHA-256
+  `085c1b104b606d91fd361c8c8fdc13471e0a3f745b8b82fd3d40ca2b819925f8`.
+  Its linked 670-byte progress manifest has SHA-256
+  `a09d96b2552d28b51b4dd1cc30659c44c3a402de54d6b74bc349d326d71dde79`.
+- Read-only isolation proves the first pending stream episode 976 / stream 0 /
+  seed `EDF19EC1` reaches active `The Needle` with exact public hand size 8,
+  expected Voucher hand size 8, `boss_hands_sub=3`, and both other Boss deltas
+  absent. Needle had incorrectly remained in the ordinary-discard Boss set,
+  whose guard rejects every active resource delta.
+- Commit `f0a662af60cefe9c2cb35aeca069952ebbedcf72` gives Needle its exact tactical
+  discard guard. It requires the active unmodified Boss, authoritative
+  round-reset hands, `boss_hands_sub == round_reset_hands - 1`, ordinary exact
+  Voucher hand size, and absent discard/hand-size Boss deltas. Discard/redraw
+  preserves the stored hands adjustment and deterministic RNG; all malformed
+  states remain atomic and fail-closed.
+- Focused local validation: **52 passed in 0.91s**. GitHub Actions run
+  `37670304885`, job `112960066745`. Actual job log: **3218 passed, 1618
+  deselected in 219.15s**.
+
 ## Exact active task
 
-Resume the canonical campaign from the unchanged completed-batch-3 artifacts
-for exactly one additional optimizer batch with eight workers.
+Replay exact episode 976 / stream 0 / seed `EDF19EC1` read-only from the durable
+batch-4 boundary after the Needle tactical-discard fix.
 
 Requirements:
 
-- Use root seed `RED-WHITE-PPO-V1`, the existing canonical artifact directory,
-  `--maximum-batches 4`, `--maximum-workers 8`, and a fail-closed episode cap
-  large enough to complete only that batch. Do not create a replacement
-  campaign or alter the frozen training contract.
-- Treat each atomically published checkpoint/progress pair as durable. If an
-  unowned mechanic fails, preserve the latest valid boundary and diagnose the
-  earliest failing pending episode before resuming.
-- On clean completion, verify checkpoint/progress canonical linkage, completed
+- Use the canonical checkpoint tactical trace and require a complete terminal
+  episode with exact checkpoint/policy/session provenance and `committed=false`.
+  Commit the report only if the Needle boundary and the rest of the episode
+  complete without another unsupported mechanic.
+- If the replay is green, resume the same already-authorized campaign with
+  `--maximum-batches 4` and eight workers. Preserve every atomically published
+  boundary and stop again on any new fail-closed mechanic.
+- On batch completion, verify checkpoint/progress canonical linkage, completed
   batch count 4, Adam step 320, optimizer-consumed transitions 8,192, policy
   digest, next episode indices, carryovers, and artifact hashes before choosing
   the next task.
