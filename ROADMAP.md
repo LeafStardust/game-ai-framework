@@ -878,22 +878,47 @@ Recursive terminal-play clone optimization gate:
   deselected the four new tests; renaming their nodes to the existing `env_ppo`
   selector corrected the gate before this checkpoint was admitted.
 
+Post-terminal-shell estimator call-site evidence:
+
+- The exact post-optimization schema-v2 trace preserved the pinned prefix,
+  target action/indices/search attempt, trained policy, seven-transition terminal
+  loss, terminal episode SHA
+  `0899f4127cfa8f6094ba49692215bde2c091af73d3bda5c0a02c70ad63eebc98`,
+  and identical before/after session hashes; `committed=false`.
+- The canonical 8,011-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH2_EPISODE_637_DECISION_11_DEEPCOPY_CALLSITES_POST_TERMINAL_SHELL.json`
+  has SHA-256
+  `3a0b7a0ed5115efa3a93203757b043e6d36b8ccf2d3c65d5f92954291fbcbca2`.
+- Estimator deep copies fell from **3,403 to 624 calls** (**81.663238% lower**)
+  and from **5.342927900492214 to 0.8477093002584297 seconds**
+  (**84.133993% lower**), with exact **0.0** attribution residual. The optimized
+  source owner covered 2,779 executions across its three observed parent paths;
+  no other deepcopy source site was changed.
+- Search evaluation fell from **5.557069999485975 to 0.9710263999004383
+  seconds** (**82.526288% lower**). Total instrumented target time fell from
+  **12.287601799995173 to 7.209747599990806 seconds** (**41.325022% lower**).
+- The largest remaining individual clone site costs only
+  **0.4370175001968164 seconds** (6.061481% of target time). No remaining clone
+  is a demonstrated multi-second owner, so another clone optimization is not
+  authorized from this evidence.
+- Checkpoint and progress sizes, SHA-256 hashes, timestamps, counters, and next
+  indices remained unchanged.
+
 ## Exact active task
 
-Remeasure and preserve the same bounded episode 637 / stream 5 / zero-based
-tactical decision 11 after the recursive terminal-play clone optimization, then
-use the measured result to decide whether another clone owner or batch 3 is next.
+Rerun and preserve the exact read-only eight-stream timing wave for episodes
+632..639 from the unchanged batch-2 checkpoint, then use representative wave
+wall time to decide whether one bounded additional optimizer batch is authorized.
 
 Requirements:
 
-- Reuse the unchanged restored checkpoint, trained policy, pinned prefix,
-  complete terminal replay, and campaign immutability gates.
-- Require identical prefix/action/search/terminal provenance and exactly
-  balanced remaining estimator-copy attribution. Commit the canonical report.
-- Compare the post-optimization search and deepcopy totals to the committed
-  pre-optimization trace. Authorize another optimization only if a remaining
-  measured owner is still material; otherwise advance to the bounded batch-3
-  decision in the roadmap.
+- Reuse the unchanged restored checkpoint, trained policy, exact episode/stream
+  indices, complete terminal episodes, and campaign immutability gates.
+- Commit the canonical timing report and compare all eight episode times plus
+  total wave wall time to the pre-optimization wave. Do not infer campaign
+  throughput from the instrumented diagnostic alone.
+- If the wave confirms the slow tail is bounded, authorize only the existing
+  one-additional-batch campaign command. Do not start unbounded training.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
