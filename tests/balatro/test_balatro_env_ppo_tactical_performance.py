@@ -957,6 +957,14 @@ def test_env_ppo_candidate_subowner_stops_at_verified_target(
         ((digest, "PLAY_CARDS", (0,), ()),),
     )
     engine = _FakeEngine()
+    original_engine_decide = engine.decide
+
+    def decide_with_out_of_candidate_score(observed):
+        decision = original_engine_decide(observed)
+        engine.planner.evaluator.score_outcomes.joker_projector.score()
+        return decision
+
+    engine.decide = decide_with_out_of_candidate_score
     environment = SimpleNamespace(
         _backend=SimpleNamespace(_tactical_decision_engine=engine)
     )

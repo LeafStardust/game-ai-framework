@@ -1802,12 +1802,17 @@ def _trace_candidate_subowners(
         original_candidates = planner._candidate_actions
 
         def timed_candidates(*args, **kwargs):
-            if not helper_accumulator.enabled:
+            search_scope = helper_scope == "search_evaluation"
+            active = (
+                helper_accumulator.enabled
+                if search_scope
+                else target_active["value"]
+            )
+            if not active:
                 return original_candidates(*args, **kwargs)
             started = float(clock())
-            search_scope = helper_scope == "search_evaluation"
-            if search_scope:
-                helper_accumulator.enabled = False
+            previous_enabled = helper_accumulator.enabled
+            helper_accumulator.enabled = not search_scope
             try:
                 return original_candidates(*args, **kwargs)
             finally:
@@ -1822,8 +1827,7 @@ def _trace_candidate_subowners(
                     helper_accumulator.stack[-1][2] = (
                         float(helper_accumulator.stack[-1][2]) + elapsed
                     )
-                if search_scope:
-                    helper_accumulator.enabled = True
+                helper_accumulator.enabled = previous_enabled
 
         planner._candidate_actions = timed_candidates
 
@@ -1891,9 +1895,7 @@ def _trace_candidate_subowners(
 
         is_target = decision_index == target_index
         target_active["value"] = is_target
-        helper_accumulator.enabled = (
-            is_target and helper_scope != "search_evaluation"
-        )
+        helper_accumulator.enabled = False
         started = float(clock())
         try:
             decision = original_decide(state)
