@@ -904,21 +904,44 @@ Post-terminal-shell estimator call-site evidence:
 - Checkpoint and progress sizes, SHA-256 hashes, timestamps, counters, and next
   indices remained unchanged.
 
+Post-terminal-shell batch-2 wave timing evidence:
+
+- The exact read-only eight-worker wave reproduced episodes 632..639 with the
+  same streams, seeds, action counts `(8, 5, 4, 11, 5, 7, 7, 10)`, terminal
+  losses, episode digests, trained policy, and uncommitted/session-immutability
+  evidence as the pre-optimization wave.
+- The canonical 3,246-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH2_WAVE_632_639_TIMING_POST_TERMINAL_SHELL.json`
+  has SHA-256
+  `0afc1252592bbec6e6ce8fe57773130201d465bd7c37a129f3dd75e32094e6f6`.
+- Eight-worker wall time fell from **30.619382000004407 to
+  17.673559499991825 seconds** (**42.279829% lower**). Every episode improved;
+  individual reductions range from 18.830400% to 43.399100%.
+- Episode 637 fell from **29.75549409998348 to 16.841877500002738 seconds**
+  (**43.399100% lower**). It still owns 95.294202% of wave wall time, but the
+  demonstrated multi-second estimator-copy owner is removed and no remaining
+  clone site exceeds 0.438 seconds in the bounded attribution trace.
+- Checkpoint and progress sizes, SHA-256 hashes, timestamps, counters, and next
+  indices remained unchanged. The improved representative wave authorizes one
+  bounded additional optimizer batch, not unbounded training.
+
 ## Exact active task
 
-Rerun and preserve the exact read-only eight-stream timing wave for episodes
-632..639 from the unchanged batch-2 checkpoint, then use representative wave
-wall time to decide whether one bounded additional optimizer batch is authorized.
+Run exactly one additional eight-worker optimizer batch from the verified
+batch-2 checkpoint, preserve its durable campaign boundary, and stop at the
+first fail-closed mechanics error if one occurs.
 
 Requirements:
 
-- Reuse the unchanged restored checkpoint, trained policy, exact episode/stream
-  indices, complete terminal episodes, and campaign immutability gates.
-- Commit the canonical timing report and compare all eight episode times plus
-  total wave wall time to the pre-optimization wave. Do not infer campaign
-  throughput from the instrumented diagnostic alone.
-- If the wave confirms the slow tail is bounded, authorize only the existing
-  one-additional-batch campaign command. Do not start unbounded training.
+- Use the existing campaign-v12 checkpoint/progress pair and the canonical
+  `--additional-batches 1 --maximum-workers 8` resume path. Verify exact
+  preflight provenance before mutation.
+- On success, record exact completed batches, collected/consumed transitions,
+  optimizer step, next episode indices, carryovers, checkpoint/progress sizes
+  and hashes, policy digest, and elapsed time. On failure, admit no failed wave
+  and isolate only the earliest ordered mechanics boundary.
+- Do not continue automatically into another optimizer batch or unbounded
+  training after this one-batch boundary.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or start batch 3 before the timing
   evidence identifies the next canonical owner.
