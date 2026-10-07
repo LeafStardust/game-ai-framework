@@ -1098,24 +1098,46 @@ Episode-908 decision-13 candidate-subowner evidence:
 - Checkpoint and progress sizes and hashes remain exactly unchanged from the
   completed batch-3 state. No additional batch is authorized.
 
+Exact-card detachment optimization audit:
+
+- The canonical owner and its exact inert generated-consumable/Hook discard
+  call path were inspected without accepting a production change. The current
+  owner already performs the minimum required fresh graph copy: one new exact
+  card per unique input card plus remapping of every card-collection reference.
+- An owned-deck-first two-pass implementation preserved isolation but measured
+  **1.2526780999905895 seconds** versus **1.1135649999778252 seconds** for the
+  current owner over 20,000 representative exact-state copies (**12.493%
+  slower**). It was rejected and removed.
+- C-backed mapping/list-comprehension variants were also slower. Replacing
+  references in the list shells already allocated by `BalatroState.copy()`
+  measured **6.43140949998633 seconds** versus **6.038698399992427 seconds**
+  over 100,000 copies (**6.503% slower**). Generic graph-preserving `deepcopy`
+  measured **45.450786100002006 seconds** versus **6.230268799990881 seconds**
+  (**7.295x slower**).
+- No cache, hidden-identity shortcut, lazy alias, production code, or test was
+  retained. The worktree returned clean, so the exact decision-13 diagnostic
+  and GitHub Actions were not rerun or claimed. The demonstrated detachment
+  cost remains real, but no measured safe implementation improves it under the
+  required per-output card-isolation contract.
+
 ## Exact active task
 
-Optimize the demonstrated repeated exact-card collection detachment owner for
-episode-908 tactical decision 13, without weakening alias isolation.
+Optimize the next demonstrated owner, `_discard_state_shell_copy`, for
+episode-908 tactical decision 13 without weakening projection isolation.
 
 Requirements:
 
-- Inspect the canonical `BalatroState` tactical alias-detachment owner and the
-  exact inert generated-consumable/discard shell call path before changing it.
-  Remove only repeated exact-state traversal whose replacement preserves the
-  same graph identity, card isolation, public-state hashes, and input
-  immutability.
-- State/card subclasses, extra or mutable card fields, cross-collection shared
-  identity, and malformed unsupported containers must retain graph-preserving
-  fail-closed behavior. Do not cache by hidden identity across state changes.
-- Add focused deterministic alias/parity regressions, pass GitHub Actions, and
-  rerun the exact decision-13 diagnostic before considering the next owner or
-  any additional bounded batch.
+- Inspect `LiveDiscardJokerProjector._copy_state_shell`, `BalatroState.copy`,
+  and the exact Hook forced-discard caller before changing them. Remove only
+  demonstrated redundant shell work; retain every discard side effect and
+  exact active-Joker/copy-Joker behavior.
+- Exact `BalatroState` may receive a narrow fast path only with identical public
+  state, input immutability, Joker isolation, card graph identity, and discard
+  semantics. State subclasses, malformed containers, and overridden behavior
+  must retain the conservative path.
+- Add focused deterministic parity/isolation regressions, pass GitHub Actions,
+  and rerun the exact decision-13 diagnostic before considering the generated
+  Joker scorer owner or any additional bounded batch.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or authorize another batch without
   new timing evidence.
