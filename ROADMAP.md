@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`e322767e0e6e58069ea47a1f96c6da0a70a74593`.
+`9b7d0cca985ff82858e4ecdda7f46538686edae4`.
 
 ## Objective
 
@@ -1120,24 +1120,43 @@ Exact-card detachment optimization audit:
   cost remains real, but no measured safe implementation improves it under the
   required per-output card-isolation contract.
 
+Exact discard-shell optimization gate:
+
+- Commit `9b7d0cca985ff82858e4ecdda7f46538686edae4` adds an exact
+  `BalatroState.copy_for_tactical_shell` owner and routes only exact discard
+  projections through it. One attribute-table copy plus explicit mutable
+  gameplay-container copies replaces repeated scalar assignment and rebuilding
+  of generation evidence already frozen by tactical projection.
+- The fast path requires the exact state class, canonical field set, exact
+  mutable-container shapes, and exact immutable policy-extension booleans.
+  State subclasses, unknown fields, container subclasses, malformed extension
+  values, and later shape drift retain the ordinary copy path. Blind, card-list,
+  Joker-list, hand-level, discard, and shop shell semantics are unchanged;
+  Joker graph cloning remains owned by the discard projector.
+- A 200,000-copy runtime microbenchmark with the installed state-policy wrappers
+  measured **0.4644548000069335 seconds** versus **0.5872723000065889 seconds**
+  for ordinary copy (**20.912% lower**).
+- Focused local alias/parity/fallback validation: **40 passed in 0.62s**.
+- GitHub Actions run `37609021365`, job `112751462512`.
+  Actual job log: **3210 passed, 1618 deselected in 224.85s**.
+
 ## Exact active task
 
-Optimize the next demonstrated owner, `_discard_state_shell_copy`, for
-episode-908 tactical decision 13 without weakening projection isolation.
+Rerun the exact checkpoint-backed episode-908 tactical decision-13 candidate
+subowner diagnostic after the discard-shell optimization.
 
 Requirements:
 
-- Inspect `LiveDiscardJokerProjector._copy_state_shell`, `BalatroState.copy`,
-  and the exact Hook forced-discard caller before changing them. Remove only
-  demonstrated redundant shell work; retain every discard side effect and
-  exact active-Joker/copy-Joker behavior.
-- Exact `BalatroState` may receive a narrow fast path only with identical public
-  state, input immutability, Joker isolation, card graph identity, and discard
-  semantics. State subclasses, malformed containers, and overridden behavior
-  must retain the conservative path.
-- Add focused deterministic parity/isolation regressions, pass GitHub Actions,
-  and rerun the exact decision-13 diagnostic before considering the generated
-  Joker scorer owner or any additional bounded batch.
+- Use the unchanged completed-batch-3 checkpoint/progress artifacts and the
+  pinned episode 908 / stream 4 / seed `FF9E2691` decision-13 route. The complete
+  14-decision prefix, target digest/action/indices/attempts, terminal episode,
+  policy hash, session immutability, and uncommitted artifact hashes must remain
+  exact or the run fails closed.
+- Commit the canonical report and compare `_discard_state_shell_copy`, total
+  candidate time, target time, and all helper accounting against the pre-change
+  report. Do not infer improvement from the microbenchmark alone.
+- Only after exact evidence may the roadmap select the next demonstrated owner
+  or authorize another bounded batch.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or authorize another batch without
   new timing evidence.
