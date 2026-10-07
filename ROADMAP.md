@@ -977,22 +977,40 @@ The Mark tactical-facing gate:
   `committed=false`. Checkpoint and progress sizes and hashes remain exactly
   unchanged from the valid 632..671 boundary above.
 
+Bounded batch-3 completion:
+
+- The resumed eight-worker one-batch command completed cleanly after the Mark
+  gate. The observed worker-start to final-checkpoint interval was approximately
+  **1660.8 seconds (27:40.8)**; the campaign CLI does not publish a canonical
+  elapsed-time field, so this wall interval is explicitly observational.
+- Durable state is now **3 completed optimizer batches**, **6549 collected /
+  6144 optimizer-consumed transitions**, Adam step **240**, and next episode
+  indices `(904, 905, 906, 907, 908, 901, 902, 903)`.
+- Per-stream carryovers are `(71, 120, 54, 40, 4, 43, 65, 8)` (**405 total**).
+  The trained policy SHA-256 is
+  `e7530802f3458cb21d088c8ccf33075d8b017581ca2e1e3a265a4d3d8fac72cc`.
+- The final checkpoint is 48,856,453 bytes with SHA-256
+  `70b6d867f0a0a63beb3a69e938b3557637f951de0edce12735cff017808ad340`.
+  The 670-byte progress manifest has SHA-256
+  `7ab00acc8b71bc17b0782d03bdd1679eb8a56538ae3b41c613428f532943dca0`
+  and names the same checkpoint hash. The campaign remains incomplete by
+  design; only one additional optimizer batch was authorized.
+
 ## Exact active task
 
-Resume only the interrupted bounded batch-3 attempt from the verified durable
-checkpoint after episode 671.
+Capture read-only timing evidence for the exact next eight-worker wave from the
+completed batch-3 checkpoint before authorizing any further training.
 
 Requirements:
 
-- Run only the existing `--maximum-episodes 512 --maximum-batches 1
-  --maximum-workers 8` command against the verified campaign artifact. Do not
-  start unbounded training.
-- If another fail-closed boundary appears, preserve the latest durable
-  checkpoint, isolate the earliest ordered failure read-only, and make that
-  exact canonical owner the next task.
-- If the bounded optimizer batch completes, record its exact counters,
-  checkpoint/progress hashes, elapsed time, and timing evidence before deciding
-  whether any further batch is authorized.
+- Use the canonical checkpoint wave-timing owner with eight workers against
+  next indices `(904, 905, 906, 907, 908, 901, 902, 903)`. Preserve checkpoint,
+  progress, policy, and session immutability and commit the report.
+- If the read-only wave fails closed, isolate its earliest ordered failure and
+  make that exact canonical owner the next task.
+- If it completes, compare its wall and per-episode timing with the admitted
+  batch-2 evidence and identify the next demonstrated owner before deciding
+  whether any additional bounded batch is authorized.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or authorize another batch without
   new timing evidence.
