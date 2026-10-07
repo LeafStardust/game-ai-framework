@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`dc26f7381654281d3abbc1fc2063c1085ce11746`.
+`93f0a00bda15c9d80e9da4b93120ac1f4798583f`.
 
 ## Objective
 
@@ -1336,9 +1336,53 @@ Episode-1081 Wheel replay evidence:
   `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1081_WHEEL_FIXED.json` has SHA-256
   `a3127804ea765d767206c1f4c3f001efbc21412b3615eeeb0e64dac97160ecca`.
 
+Bounded batch-4 Water boundary and mechanics gate:
+
+- The resumed campaign cleared the Wheel boundary and atomically advanced to
+  8,324 collected / 6,144 optimizer-consumed transitions before stopping
+  fail-closed at a Water play. Durable state remains 3 completed batches, Adam
+  step 240, next episode indices `(1168,1169,1170,1171,1172,1165,1166,1167)`,
+  and per-stream carryovers `(292,349,238,276,244,273,277,231)` (2,180 total).
+- The linked checkpoint is 67,105,631 bytes with SHA-256
+  `44e9ffc39fbabc745f7ffeb0f6b25f6a84ef6419b4839baa7560ec20bda29e14`.
+  Its 678-byte progress manifest has SHA-256
+  `c570200d26b1ac0865321c92b88be6a16757bbd99f64b730cfc78d439d545314`.
+  Policy SHA-256 remains
+  `e7530802f3458cb21d088c8ccf33075d8b017581ca2e1e3a265a4d3d8fac72cc`.
+- Ordered read-only isolation proves pending episodes 1165 through 1168
+  complete, while episode 1169 / stream 1 / seed `191C744D` is the first
+  failure. Its exact Water state has zero current discards, authoritative reset
+  discards 3, stored `boss_discards_sub=3`, ordinary Voucher-derived hand size
+  8, and no Jokers or Tags.
+- Commit `93f0a00bda15c9d80e9da4b93120ac1f4798583f` adds the canonical active-Water
+  resource guard beside the existing resource-Boss owners and admits Water play
+  only through that guard. It requires an active unmodified Boss, authoritative
+  nonnegative reset discards, an exact nonnegative stored discard adjustment,
+  zero current discards, exact Voucher hand size, and absent hands/hand-size
+  Boss deltas. Malformed states remain atomic and fail closed.
+- Focused local validation: **61 passed in 1.01s**. GitHub Actions run
+  `37673817051`, job `112972039756`. Actual job log: **3232 passed, 1618
+  deselected in 127.03s**.
+
+Episode-1169 Water replay evidence:
+
+- The exact read-only replay now completes episode 1169 / stream 1 / seed
+  `191C744D` as a 14-transition terminal loss with 23 tactical decisions and
+  episode SHA-256
+  `f38a16c411de221b1b294db160aa15592f3f1f9a8b147cd1097afa947967fc7d`.
+  Total elapsed time is 2.2936752999958117 seconds, including
+  1.8018532000132836 tactical seconds.
+- Before/after session SHA-256 values are both
+  `644c9a3406256ee2e6a34ee77f8c4d108f3735cf50b4b57e1618a2213ce92dfd`;
+  `committed=false`. Checkpoint and progress bytes/hashes remain exactly at the
+  durable 8,324-transition boundary above.
+- The canonical 11,288-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1169_WATER_FIXED.json` has SHA-256
+  `ba8f4715e6269c81ac7554811f8e759469313442d54b8f986467d08780c9b49f`.
+
 ## Exact active task
 
-Resume the same authorized eight-worker campaign from the durable 7,761-
+Resume the same authorized eight-worker campaign from the durable 8,324-
 transition boundary and stop at completed optimizer batch 4.
 
 Requirements:
@@ -1386,5 +1430,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH3_WAVE_901_908_TIMING_POST_SCORING_SHELL.json`
 - `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_976_NEEDLE_FIXED.json`
 - `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1081_WHEEL_FIXED.json`
+- `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1169_WATER_FIXED.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
