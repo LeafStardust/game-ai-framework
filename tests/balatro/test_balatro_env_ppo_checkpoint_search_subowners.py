@@ -12,9 +12,13 @@ from games.balatro.env.ppo_campaign import (
     make_ppo_training_environment,
 )
 from games.balatro.env.ppo_checkpoint_search_subowners import (
+    EPISODE_908_EXPECTED_PREFIX,
     EXPECTED_PREFIX,
+    PPO_CHECKPOINT_CANDIDATE_SUBOWNER_SCHEMA,
     PPO_CHECKPOINT_SEARCH_SUBOWNER_SCHEMA,
+    trace_checkpoint_candidate_subowners,
     trace_checkpoint_search_subowners,
+    write_checkpoint_candidate_subowner_report,
     write_checkpoint_search_subowner_report,
 )
 from games.balatro.env.ppo_contract import PPOContractError, PPOTrainingRun
@@ -29,10 +33,15 @@ from games.balatro.env.ppo_training_session import PPOTrainingSession
 from tests.balatro.test_balatro_env_ppo_batch import _episode
 
 
-def _checkpoint(tmp_path, seed="CHECKPOINT-SEARCH"):
+def _checkpoint(
+    tmp_path,
+    seed="CHECKPOINT-SEARCH",
+    *,
+    next_episode_indices=range(632, 640),
+):
     run = PPOTrainingRun.from_seed(seed)
     session = PPOTrainingSession(run, make_ppo_training_environment)
-    session.learner.assembler._next_episode_indices = list(range(632, 640))
+    session.learner.assembler._next_episode_indices = list(next_episode_indices)
     path = tmp_path / "checkpoint.json"
     content = _canonical_bytes(_checkpoint_payload(run, session))
     path.write_bytes(content)
@@ -112,6 +121,23 @@ def _scoped(root_seed="CHECKPOINT-SEARCH"):
     )
 
 
+def _episode_908_target_report(root_seed="CHECKPOINT-SEARCH"):
+    digest, action, indices, attempts = EPISODE_908_EXPECTED_PREFIX[-1]
+    return replace(
+        _target_report(root_seed),
+        episode_index=908,
+        stream_index=4,
+        game_seed=PPOTrainingRun.from_seed(root_seed).game_seed(908),
+        verified_prefix_decisions=14,
+        target_decision_index=13,
+        public_input_sha256=digest,
+        action=action,
+        selected_hand_indices=indices,
+        search_attempts=attempts,
+        candidate_generation_elapsed_seconds=3.75,
+    )
+
+
 def test_checkpoint_search_prefix_is_pinned_to_committed_tactical_report():
     payload = json.loads(
         Path(
@@ -131,6 +157,122 @@ def test_checkpoint_search_prefix_is_pinned_to_committed_tactical_report():
     assert payload["episode_index"] == 637
     assert payload["stream_index"] == 5
     assert EXPECTED_PREFIX == prefix
+
+
+def test_checkpoint_candidate_prefix_is_pinned_to_episode_908_tactical_report():
+    payload = json.loads(
+        Path(
+            "docs/balatro/BALATRO_PPO_BATCH3_EPISODE_908_TACTICAL.json"
+        ).read_text(encoding="utf-8")
+    )
+    prefix = tuple(
+        (
+            decision["public_input_sha256"],
+            decision["action"],
+            tuple(decision["selected_hand_indices"]),
+            tuple(tuple(attempt) for attempt in decision["search_attempts"]),
+        )
+        for decision in payload["decisions"][:14]
+    )
+
+    assert payload["episode_index"] == 908
+    assert payload["stream_index"] == 4
+    assert EPISODE_908_EXPECTED_PREFIX == prefix
+
+
+def test_checkpoint_candidate_subowners_are_exact_read_only_and_provenanced(
+    tmp_path,
+):
+    indices = (904, 905, 906, 907, 908, 901, 902, 903)
+    run, path, checkpoint_bytes = _checkpoint(
+        tmp_path,
+        next_episode_indices=indices,
+    )
+    observed = {}
+
+    def trace(**kwargs):
+        observed.update(kwargs)
+        return _episode_908_target_report()
+
+    report = trace_checkpoint_candidate_subowners(
+        "CHECKPOINT-SEARCH",
+        path,
+        subowner_tracer=trace,
+        episode_collector=lambda *_args, **_kwargs: _episode(run, 908, length=8),
+    )
+
+    episode = _episode(run, 908, length=8)
+    assert report.schema == PPO_CHECKPOINT_CANDIDATE_SUBOWNER_SCHEMA
+    assert report.checkpoint_sha256 == sha256(checkpoint_bytes).hexdigest()
+    assert report.training_run_sha256 == run.sha256
+    assert report.session_sha256_before == report.session_sha256_after
+    assert report.episode_sha256 == sha256(episode.to_json().encode()).hexdigest()
+    assert report.environment_transitions == 8
+    assert report.committed is False
+    assert report.target == _episode_908_target_report()
+    assert observed["expected_prefix"] == EPISODE_908_EXPECTED_PREFIX
+    assert observed["target_index"] == 13
+    assert observed["helper_scope"] == "candidate"
+    assert callable(observed["policy"])
+
+
+def test_checkpoint_candidate_subowner_report_is_atomically_canonical(tmp_path):
+    indices = (904, 905, 906, 907, 908, 901, 902, 903)
+    run, path, _ = _checkpoint(
+        tmp_path,
+        seed="CHECKPOINT-CANDIDATE-WRITE",
+        next_episode_indices=indices,
+    )
+    report = trace_checkpoint_candidate_subowners(
+        "CHECKPOINT-CANDIDATE-WRITE",
+        path,
+        subowner_tracer=lambda **_kwargs: _episode_908_target_report(
+            "CHECKPOINT-CANDIDATE-WRITE"
+        ),
+        episode_collector=lambda *_args, **_kwargs: _episode(run, 908, length=1),
+    )
+    output = tmp_path / "candidate.json"
+    digest = write_checkpoint_candidate_subowner_report(output, report)
+
+    assert output.read_bytes() == report.to_json().encode()
+    assert digest == sha256(output.read_bytes()).hexdigest()
+    assert json.loads(output.read_text())["target"]["target_decision_index"] == 13
+
+
+def test_checkpoint_candidate_subowners_fail_closed_on_scope_and_accounting(
+    tmp_path,
+):
+    indices = (904, 905, 906, 907, 908, 901, 902, 903)
+    run, path, _ = _checkpoint(
+        tmp_path,
+        seed="CHECKPOINT-CANDIDATE-DRIFT",
+        next_episode_indices=indices,
+    )
+    with pytest.raises(PPOContractError, match="invalid scope"):
+        trace_checkpoint_candidate_subowners(
+            "CHECKPOINT-CANDIDATE-DRIFT",
+            path,
+            subowner_tracer=lambda **_kwargs: _scoped(
+                "CHECKPOINT-CANDIDATE-DRIFT"
+            ),
+            episode_collector=lambda *_args, **_kwargs: _episode(
+                run, 908, length=1
+            ),
+        )
+
+    drifted = replace(
+        _episode_908_target_report("CHECKPOINT-CANDIDATE-DRIFT"),
+        residual_candidate_elapsed_seconds=1.0,
+    )
+    with pytest.raises(PPOContractError, match="helper accounting drifted"):
+        trace_checkpoint_candidate_subowners(
+            "CHECKPOINT-CANDIDATE-DRIFT",
+            path,
+            subowner_tracer=lambda **_kwargs: drifted,
+            episode_collector=lambda *_args, **_kwargs: _episode(
+                run, 908, length=1
+            ),
+        )
 
 
 def test_checkpoint_search_subowners_are_exact_read_only_and_provenanced(tmp_path):
