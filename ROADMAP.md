@@ -1380,21 +1380,45 @@ Episode-1169 Water replay evidence:
   `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1169_WATER_FIXED.json` has SHA-256
   `ba8f4715e6269c81ac7554811f8e759469313442d54b8f986467d08780c9b49f`.
 
+Completed optimizer batch 4:
+
+- The bounded campaign completed optimizer batch 4 with Adam step 320 and
+  exactly 8,192 optimizer-consumed transitions. The trained policy parameter
+  SHA-256 is
+  `7591307d0d81c26febaf5dd8faafa1f39bfcada14e85342c52ccf90c366f108e`.
+- Canonical `--maximum-batches` semantics are incremental per invocation, not
+  an absolute completed-batch target. The roadmap-prescribed value 4 therefore
+  left the resumed process eligible for three more updates. It was interrupted
+  after two post-update episode waves had committed, before any fifth optimizer
+  update. Those 106 valid post-batch-4-policy transitions are retained rather
+  than destructively rewriting the artifact history.
+- The authoritative durable state is consequently 4 completed batches, 8,738
+  collected / 8,192 optimizer-consumed transitions, Adam step 320, next episode
+  indices `(1216,1217,1218,1219,1220,1221,1222,1223)`, and per-stream
+  carryovers `(90,147,22,66,35,77,82,27)` (546 total).
+- The linked checkpoint is 50,306,968 bytes with SHA-256
+  `f5f71cbe8afa8800f6f9d62e4a910b954f703bfe1ddc0d507ce49b5b9abb181f`.
+  Its 678-byte progress manifest has SHA-256
+  `7d131681a49c4ebda8a1d3cde870d743b733233cf13fc23189723dc82234c154`.
+  The progress manifest links that exact checkpoint digest; no campaign process
+  remains active.
+
 ## Exact active task
 
-Resume the same authorized eight-worker campaign from the durable 8,324-
-transition boundary and stop at completed optimizer batch 4.
+Resume the same eight-worker campaign from the durable completed-batch-4 /
+8,738-transition boundary and stop at completed optimizer batch 5.
 
 Requirements:
 
 - Use root seed `RED-WHITE-PPO-V1`, the existing canonical artifact directory,
-  `--maximum-batches 4`, `--maximum-workers 8`, and the existing episode cap.
-  Do not replace the campaign or alter the frozen training contract.
+  `--maximum-batches 1`, `--maximum-workers 8`, and the existing episode cap.
+  The batch bound is intentionally 1 because the CLI value is incremental per
+  invocation. Do not replace the campaign or alter the frozen training contract.
 - Preserve every atomic boundary and stop on any new fail-closed mechanic.
   Diagnose from the latest linked checkpoint/progress pair rather than stale
   pending indices.
 - On batch completion, verify checkpoint/progress canonical linkage, completed
-  batch count 4, Adam step 320, optimizer-consumed transitions 8,192, policy
+  batch count 5, Adam step 400, optimizer-consumed transitions 10,240, policy
   digest, next episode indices, carryovers, and artifact hashes before choosing
   the next task.
 - Do not start unbounded/full training, inspect promotion results, change
