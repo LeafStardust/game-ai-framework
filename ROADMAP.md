@@ -996,21 +996,47 @@ Bounded batch-3 completion:
   and names the same checkpoint hash. The campaign remains incomplete by
   design; only one additional optimizer batch was authorized.
 
+Batch-3 next-wave timing evidence:
+
+- The exact read-only eight-worker wave covered stream-ordered episodes
+  `(904, 905, 906, 907, 908, 901, 902, 903)` under trained policy SHA-256
+  `e7530802f3458cb21d088c8ccf33075d8b017581ca2e1e3a265a4d3d8fac72cc`.
+  All eight completed as uncommitted losses with action counts
+  `(5, 11, 5, 6, 8, 7, 5, 8)`.
+- Wall time was **461.17360730000655 seconds**, 26.093986 times the admitted
+  batch-2 post-terminal-shell wave. This is a different trained policy and
+  episode set, so the comparison identifies a new slow tail rather than a
+  same-seed regression.
+- Episode 908 / stream 4 / seed `FF9E2691` is dominant at
+  **460.3707985999936 seconds** (**99.825921%** of wave wall time), eight
+  actions, terminal loss, episode SHA-256
+  `bd07be95d4c817029704391f5c4cbcc61b8d914356239c4060bc81c34ab92115`.
+  Episode 907 is next at only 21.829461600020295 seconds.
+- The canonical 3,246-byte report has SHA-256
+  `669189e15fd8881de836959c0c0fde6f7832781d04b8835e94fa8aa1b6a339c4`;
+  the repository copy at
+  `docs/balatro/BALATRO_PPO_BATCH3_WAVE_901_908_TIMING.json` includes a
+  terminal newline (3,247 bytes, SHA-256
+  `663dcef326a3f9b5ff649741bd80c22beed4c4c136ff3b9585223dc55eea1d7c`).
+- Checkpoint and progress sizes and hashes remain exactly unchanged from the
+  completed batch-3 state above. No additional batch is authorized from this
+  evidence.
+
 ## Exact active task
 
-Capture read-only timing evidence for the exact next eight-worker wave from the
-completed batch-3 checkpoint before authorizing any further training.
+Capture an exact read-only tactical trace for episode 908 / stream 4 / seed
+`FF9E2691` from the completed batch-3 checkpoint and identify its dominant
+tactical decision/subowner.
 
 Requirements:
 
-- Use the canonical checkpoint wave-timing owner with eight workers against
-  next indices `(904, 905, 906, 907, 908, 901, 902, 903)`. Preserve checkpoint,
-  progress, policy, and session immutability and commit the report.
-- If the read-only wave fails closed, isolate its earliest ordered failure and
-  make that exact canonical owner the next task.
-- If it completes, compare its wall and per-episode timing with the admitted
-  batch-2 evidence and identify the next demonstrated owner before deciding
-  whether any additional bounded batch is authorized.
+- Use the canonical checkpoint tactical-performance owner pinned to episode
+  index 908. Preserve the eight-action terminal loss, episode digest, trained
+  policy, checkpoint/progress bytes, and before/after session hash; remain
+  explicitly uncommitted.
+- Rank the trace's exact tactical decisions by elapsed time and select only the
+  demonstrated dominant subowner for the next diagnostic or optimization.
+- Do not authorize another bounded batch from aggregate timing alone.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or authorize another batch without
   new timing evidence.
