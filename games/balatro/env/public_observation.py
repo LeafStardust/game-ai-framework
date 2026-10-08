@@ -95,16 +95,18 @@ def _public_jokers(state: BalatroState) -> list:
 
 
 def _public_deck_cards(cards: list) -> list:
-    """Detach canonical deck cards from transient physical face orientation."""
+    """Detach only cards carrying transient physical back-facing state."""
     public = []
     for card in cards:
-        clone = copy(card)
-        if isinstance(clone, BalatroCard):
+        if isinstance(card, BalatroCard) and card.face_down:
+            clone = copy(card)
             # Permanent/current deck composition is public, but a back-facing
             # physical card's identity-to-orientation assignment is not. The
             # retained draw order is private elsewhere and is never exposed here.
             clone.face_down = False
-        public.append(clone)
+            public.append(clone)
+        else:
+            public.append(card)
     return public
 
 
