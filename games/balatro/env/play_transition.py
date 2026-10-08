@@ -150,7 +150,17 @@ def _require_plain_base_cards(
             )
 
     if not allow_facing_boss:
-        if any(card.face_down for card in order):
+        public_deck_ids = {id(card) for card in run.public.deck}
+        private_draw_ids = {id(card) for card in run.draw_pile}
+        if any(
+            card.face_down
+            and (
+                not card.facing_observed
+                or id(card) not in public_deck_ids
+                or id(card) not in private_draw_ids
+            )
+            for card in order
+        ):
             raise HeadlessTransitionError(
                 "R4 baseline Play does not yet own modified/debuffed/forced/face-down card effects"
             )

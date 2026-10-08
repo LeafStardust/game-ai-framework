@@ -94,6 +94,20 @@ def _public_jokers(state: BalatroState) -> list:
     return sorted(masked, key=_joker_public_fingerprint)
 
 
+def _public_deck_cards(cards: list) -> list:
+    """Detach canonical deck cards from transient physical face orientation."""
+    public = []
+    for card in cards:
+        clone = copy(card)
+        if isinstance(clone, BalatroCard):
+            # Permanent/current deck composition is public, but a back-facing
+            # physical card's identity-to-orientation assignment is not. The
+            # retained draw order is private elsewhere and is never exposed here.
+            clone.face_down = False
+        public.append(clone)
+    return public
+
+
 def public_observation_state(state: BalatroState) -> BalatroState:
     """Return an isolated policy observation with hidden identities/orders masked.
 
@@ -102,6 +116,11 @@ def public_observation_state(state: BalatroState) -> BalatroState:
     and permanent-card metadata are deliberately withheld because any of them can
     reveal the hidden card's identity. Forced-selection remains visible because
     it is an explicit controller constraint the player can see.
+
+    ``deck`` and ``owned_deck`` are canonical composition views, not physical
+    card positions. Their known identities remain visible while transient
+    back-facing assignments are removed, preventing a defeated facing Boss from
+    linking one known permanent card to its private physical orientation.
 
     During active Amber Acorn, the Joker multiset remains visible but its hidden
     physical permutation does not. The source state is never mutated.
@@ -125,5 +144,8 @@ def public_observation_state(state: BalatroState) -> BalatroState:
             )
         )
     observation.hand = masked_hand
+    observation.deck = _public_deck_cards(observation.deck)
+    if observation.owned_deck is not None:
+        observation.owned_deck = _public_deck_cards(observation.owned_deck)
     observation.jokers = _public_jokers(state)
     return observation

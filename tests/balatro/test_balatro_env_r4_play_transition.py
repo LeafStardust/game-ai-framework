@@ -3,6 +3,7 @@ import pytest
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.play_transition import apply_supported_ordinary_play
+from games.balatro.env.serialization import serialize_headless_run_state
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.scoring import BalatroScorer
@@ -89,6 +90,37 @@ def test_env_r4_ordinary_play_recognizes_and_scores_pair_exactly():
     assert result.public.round_hand_play_counts["PAIR"] == 1
     assert result.public.last_played_hand == "PAIR"
     assert "PAIR" in result.public.visible_poker_hands
+
+
+def test_env_r4_ordinary_play_flips_authoritative_stale_draw_facing_on_entry():
+    run = _play_run(seed="R4-STALE-DRAW-FACING")
+    stale = run.draw_pile[-1]
+    stale.face_down = True
+    stale.facing_observed = True
+    before = serialize_headless_run_state(run)
+
+    result = apply_supported_ordinary_play(run, (0,))
+
+    drawn = next(
+        card
+        for card in result.public.hand
+        if card.rank == stale.rank and card.suit == stale.suit
+    )
+    assert drawn.face_down is False
+    assert drawn.facing_observed is True
+    assert serialize_headless_run_state(run) == before
+
+
+def test_env_r4_ordinary_play_rejects_unobserved_stale_draw_facing_atomically():
+    run = _play_run(seed="R4-STALE-DRAW-UNOBSERVED")
+    run.draw_pile[-1].face_down = True
+    run.draw_pile[-1].facing_observed = False
+    before = serialize_headless_run_state(run)
+
+    with pytest.raises(HeadlessTransitionError, match="face-down card effects"):
+        apply_supported_ordinary_play(run, (0,))
+
+    assert serialize_headless_run_state(run) == before
 
 
 def test_env_r4_ordinary_play_clear_stops_at_pre_cashout_round_eval_without_redraw():

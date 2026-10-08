@@ -12,6 +12,7 @@ from games.balatro.env.observation_encoding import (
     VOUCHER_KEYS,
     encode_public_observation,
 )
+from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.env.shop_items import GeneratedShopJokerItem
@@ -144,6 +145,30 @@ def test_env_o_owned_deck_order_is_canonical_but_composition_remains_visible():
     assert encode_public_observation(first) == encode_public_observation(second)
     second.state.owned_deck[0] = BalatroCard("A", "Spades", enhancement="Bonus")
     assert encode_public_observation(first) != encode_public_observation(second)
+
+
+def test_env_o_canonical_deck_views_hide_transient_facing_assignment():
+    first = _frame()
+    second = _frame()
+    for frame in (first, second):
+        frame.state.owned_deck[0].facing_observed = True
+        frame.state.owned_deck[1].facing_observed = True
+
+    first.state.owned_deck[0].face_down = True
+    second.state.owned_deck[1].face_down = True
+    first.state.deck = first.state.owned_deck.copy()
+    second.state.deck = second.state.owned_deck.copy()
+
+    first_public = public_observation_state(first.state)
+    second_public = public_observation_state(second.state)
+
+    assert encode_public_observation(first) == encode_public_observation(second)
+    assert all(not card.face_down for card in first_public.owned_deck)
+    assert all(not card.face_down for card in first_public.deck)
+    assert first_public.owned_deck[0].rank == first.state.owned_deck[0].rank
+    assert first_public.owned_deck[0] is not first.state.owned_deck[0]
+    assert first.state.owned_deck[0].face_down is True
+    assert second.state.owned_deck[1].face_down is True
 
 
 def test_env_o_shop_and_generation_authority_have_stable_values():
