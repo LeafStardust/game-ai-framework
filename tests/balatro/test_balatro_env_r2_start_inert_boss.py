@@ -2,12 +2,12 @@ import pytest
 
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.blind_start import (
-    _REQUIREMENT_ONLY_BOSS_NAMES,
     _START_INERT_BOSS_NAMES,
     prepare_supported_requirement_only_boss_start,
     prepare_supported_start_inert_boss_start,
     start_supported_start_inert_boss,
 )
+from games.balatro.env.boss_selection import REQUIREMENT_ONLY_BOSS_NAMES
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
 
@@ -80,7 +80,7 @@ def test_env_r2_start_inert_boss_composes_with_exact_shuffle_and_deal(boss_name)
 
 def test_env_r2_start_inert_boss_set_is_semantically_distinct_from_requirement_only():
     assert _START_INERT_BOSS_NAMES == frozenset(START_INERT_BOSSES)
-    assert _START_INERT_BOSS_NAMES.isdisjoint(_REQUIREMENT_ONLY_BOSS_NAMES)
+    assert _START_INERT_BOSS_NAMES.isdisjoint(REQUIREMENT_ONLY_BOSS_NAMES)
 
     with pytest.raises(HeadlessTransitionError, match="requirement-only"):
         prepare_supported_requirement_only_boss_start(_run("The Psychic"))
