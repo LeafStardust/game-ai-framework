@@ -1536,16 +1536,19 @@ Completed optimizer batches 7 through 9:
 
 ## Exact active task
 
-Run the next controlled headless PPO training chunk from completed batch 9 to at
-most completed batch 13. This is a training continuation, not a live Balatro run
+Run the operator-managed headless PPO campaign continuously from completed batch
+9 until either the frozen 1,024-batch schedule completes or the first command
+failure stops the loop. This is a training continuation, not a live Balatro run
 or a new development phase.
 
 Requirements:
 
 - Use root seed `RED-WHITE-PPO-V1`, the existing canonical artifact directory,
   `--maximum-batches 4`, `--maximum-workers 8`, and the existing episode cap.
-  The batch bound is incremental, so this invocation can complete batches 10
-  through 13 only. Do not replace the campaign or alter the frozen contract.
+  Each invocation remains bounded to four incremental batches. The operator's
+  PowerShell loop may start the next invocation automatically only after the
+  preceding invocation exits successfully and `progress.json` remains
+  incomplete. Do not replace the campaign or alter the frozen contract.
 - Preserve every atomic boundary and stop on any new fail-closed mechanic.
   Diagnose from the latest linked checkpoint/progress pair rather than stale
   pending indices.
@@ -1553,17 +1556,20 @@ Requirements:
   linkage, completed batch count, Adam step, optimizer-consumed transitions,
   policy digest, next episode indices, carryovers, and artifact hashes before
   choosing the next task.
-- Do not start unbounded/full training, inspect promotion results, change
-  policy/hyperparameters/search schedule, or continue beyond this single
-  four-batch chunk.
+- Successful intermediate four-batch exits are ordinary atomic training
+  progress, not separate development checkpoints. Update this roadmap at the
+  first failure, deliberate operator stop, or full completion rather than
+  requiring a manual handoff after every green invocation.
+- Do not inspect promotion results or change policy, hyperparameters, or search
+  schedule before the frozen training schedule completes validly.
 
 ## Held and deferred work
 
 - Natural Money Tree live parity evidence is explicitly on hold by user
   direction. It is not passed and must not be inferred.
 - No live Balatro run is currently required.
-- Remaining slow-tail episodes are admitted only through the bounded campaign
-  task above.
+- Remaining slow-tail episodes are admitted only through the bounded-invocation
+  campaign loop above.
 - Higher stakes and other decks begin only after controlled Red/White promotion.
 
 ## Resume evidence index
