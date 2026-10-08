@@ -16,6 +16,7 @@ from games.balatro.env.boss_debuffs import (
 )
 from games.balatro.env.boss_draw import apply_cerulean_bell_drawn_to_hand
 from games.balatro.env.boss_resources import apply_resource_boss_start
+from games.balatro.env.boss_selection import REQUIREMENT_ONLY_BOSS_NAMES
 from games.balatro.env.card_history import initialize_pristine_played_this_ante_history
 from games.balatro.env.deal import (
     deal_pristine_round_start,
@@ -31,7 +32,6 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.env.voucher_capabilities import blind_start_vouchers_are_exact
 
 
-_REQUIREMENT_ONLY_BOSS_NAMES = frozenset({"The Wall", "Violet Vessel"})
 _START_INERT_BOSS_NAMES = frozenset({
     "The Psychic",
     "The Flint",
@@ -137,7 +137,7 @@ def start_supported_nonboss_blind_pristine_deck(run: HeadlessRunState) -> Headle
 def prepare_supported_requirement_only_boss_start(run: HeadlessRunState) -> HeadlessRunState:
     """Own Boss starts whose only start-time mechanic is their requirement."""
     _require_boss_blind(run, label="requirement-only boss start")
-    if run.public.boss_name not in _REQUIREMENT_ONLY_BOSS_NAMES:
+    if run.public.boss_name not in REQUIREMENT_ONLY_BOSS_NAMES:
         raise HeadlessTransitionError(
             "boss is not in the audited requirement-only start set"
         )

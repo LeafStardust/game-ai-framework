@@ -89,12 +89,12 @@ def test_env_r4_tooth_play_applies_economy_on_final_hand_loss():
 
 
 def test_env_r4_unowned_boss_play_remains_fail_closed():
-    run = _boss_play_run(boss_name="The Wall", seed="R4-WALL-CLOSED")
+    run = _boss_play_run(boss_name="Modded Boss", seed="R4-BOSS-CLOSED")
     rng_before = run.rng_snapshot()
 
     with pytest.raises(
         HeadlessTransitionError,
-        match="does not yet support active Boss 'The Wall'",
+        match="does not yet support active Boss 'Modded Boss'",
     ):
         apply_supported_ordinary_play(run, (0,))
 

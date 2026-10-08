@@ -29,12 +29,14 @@ from games.balatro.env.boss_facing import (
     start_supported_fish,
     start_supported_wheel,
 )
-from games.balatro.env.boss_selection import BOSS_KEY_BY_NAME
+from games.balatro.env.boss_selection import (
+    BOSS_KEY_BY_NAME,
+    REQUIREMENT_ONLY_BOSS_NAMES,
+)
 from games.balatro.env.crimson_heart import start_supported_crimson_heart
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
-_REQUIREMENT_ONLY = frozenset({"The Wall", "Violet Vessel"})
 _START_INERT = frozenset(
     {
         "The Psychic",
@@ -64,7 +66,7 @@ _SINGLE_ROUTE_NAMES = frozenset(
 )
 
 SUPPORTED_SELECT_BLIND_BOSS_NAMES = (
-    _REQUIREMENT_ONLY
+    REQUIREMENT_ONLY_BOSS_NAMES
     | _START_INERT
     | _MUTABLE_HAND_RULE
     | _RESOURCE_MUTATING
@@ -85,7 +87,7 @@ if SUPPORTED_SELECT_BLIND_BOSS_NAMES != frozenset(BOSS_KEY_BY_NAME):
 
 
 def _boss_start_owner(name: str) -> Callable[[HeadlessRunState], HeadlessRunState]:
-    if name in _REQUIREMENT_ONLY:
+    if name in REQUIREMENT_ONLY_BOSS_NAMES:
         return start_supported_requirement_only_boss
     if name in _START_INERT:
         return start_supported_start_inert_boss

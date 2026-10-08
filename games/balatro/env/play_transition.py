@@ -39,6 +39,10 @@ from games.balatro.env.boss_resources import (
     require_active_manacle_state,
     require_active_water_state,
 )
+from games.balatro.env.boss_selection import (
+    REQUIREMENT_ONLY_BOSS_NAMES,
+    require_active_requirement_only_boss_state,
+)
 from games.balatro.env.consumable_centers import (
     VANILLA_PLANET_CENTER_ORDER,
     VANILLA_TAROT_CENTER_ORDER,
@@ -278,6 +282,8 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         "The Water",
         "The Needle",
         "The Manacle",
+        "The Wall",
+        "Violet Vessel",
         "Verdant Leaf",
         "The Goad",
         "The Window",
@@ -293,6 +299,8 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         require_active_manacle_state(run)
     if boss_name == "The Water":
         require_active_water_state(run)
+    if boss_name in REQUIREMENT_ONLY_BOSS_NAMES:
+        require_active_requirement_only_boss_state(run)
     if getattr(state.blind, "modifiers", None):
         raise HeadlessTransitionError(
             "R4 baseline Play does not yet own additional blind modifiers"

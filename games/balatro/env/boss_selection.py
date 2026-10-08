@@ -68,6 +68,7 @@ BOSS_METADATA_BY_KEY = {meta.key: meta for meta in _BOSS_METADATA}
 BOSS_KEY_BY_NAME = {meta.name: meta.key for meta in _BOSS_METADATA}
 ALL_BOSS_KEYS = frozenset(BOSS_METADATA_BY_KEY)
 VANILLA_BOSS_NAMES = tuple(meta.name for meta in _BOSS_METADATA)
+REQUIREMENT_ONLY_BOSS_NAMES = frozenset({"The Wall", "Violet Vessel"})
 
 
 class BossSelectionError(ValueError):
@@ -126,6 +127,43 @@ def red_white_boss_requirement(boss_name: str, ante: int) -> int:
     if key is None:
         raise BossSelectionError("Boss requirement needs a vanilla Boss identity")
     return red_white_base_blind_amount(ante) * BOSS_METADATA_BY_KEY[key].multiplier
+
+
+def require_active_requirement_only_boss_state(run: "HeadlessRunState") -> None:
+    """Require the exact active target owned by Wall/Violet's sole mechanic."""
+    from games.balatro.blinds.blind import BlindType
+    from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+
+    if not isinstance(run, HeadlessRunState):
+        raise TypeError("run must be HeadlessRunState")
+    state = run.public
+    blind = state.blind
+    name = str(getattr(state, "boss_name", "") or "")
+    if (
+        name not in REQUIREMENT_ONLY_BOSS_NAMES
+        or blind is None
+        or getattr(blind, "type", None) is not BlindType.BOSS
+    ):
+        raise HeadlessTransitionError(
+            "requirement-only Boss state requires its audited active Boss"
+        )
+    expected = red_white_boss_requirement(name, state.ante)
+    requirement = getattr(blind, "requirement", None)
+    blind_score = getattr(state, "blind_score", None)
+    if (
+        isinstance(requirement, bool)
+        or not isinstance(requirement, int)
+        or requirement != expected
+        or isinstance(blind_score, bool)
+        or not isinstance(blind_score, int)
+        or blind_score != expected
+        or run.boss_hands_sub is not None
+        or run.boss_discards_sub is not None
+        or run.boss_hand_size_sub is not None
+    ):
+        raise HeadlessTransitionError(
+            "requirement-only Boss state requires its exact active target state"
+        )
 
 
 def _eligible_keys(state: BossSelectionState, ante: int) -> list[str]:
