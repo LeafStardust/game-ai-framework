@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`93f0a00bda15c9d80e9da4b93120ac1f4798583f`.
+`d5cec03db5b63b618ecf63a196f29091f58ceddd`.
 
 ## Objective
 
@@ -1403,6 +1403,49 @@ Completed optimizer batch 4:
   The progress manifest links that exact checkpoint digest; no campaign process
   remains active.
 
+Bounded batch-5 Mark-facing boundary and mechanics gate:
+
+- The first batch-5 wave stopped before any commit with the completed-batch-4
+  checkpoint unchanged. Ordered read-only isolation proves episodes 1216 through
+  1222 complete, while episode 1223 / stream 7 / seed `5F612C4C` is the first
+  failure.
+- At the first boundary, the defeated Mark had left three authoritative
+  back-facing face cards in the repopulated shop deck. Permanent `owned_deck`
+  aliases exposed those transient facing assignments beside known rank/suit and
+  the encoder correctly failed closed. After shop exit, two were dealt face-up;
+  the remaining authoritative back-facing draw card was inert but the ordinary
+  Play guard rejected it before the canonical draw owner could flip it on hand
+  entry.
+- Commits `dd366cd2d88f8231053636a00ac4a6fa1bd9ae6b` and
+  `d5cec03db5b63b618ecf63a196f29091f58ceddd` repair the two canonical owners.
+  Public deck-composition views clone and clear only back-facing card orientation,
+  preserving known composition, private identity-to-orientation masking, source
+  immutability, and the established alias contract for ordinary face-up cards.
+  Ordinary Play admits authoritative observed back-facing cards only while they
+  remain in both public/private draw zones; the existing deal owner flips them
+  face-up on entry. Hidden hand/discard state and unobserved or zone-inconsistent
+  facing remain fail closed.
+- Focused local validation after the CI compatibility correction: **77 passed in
+  1.34s**. GitHub Actions run `37718739384`, job `113121225831`. Actual job log:
+  **3235 passed, 1618 deselected in 216.08s**.
+
+Episode-1223 Mark-facing replay evidence:
+
+- The exact read-only replay now completes episode 1223 / stream 7 / seed
+  `5F612C4C` as a 17-transition terminal loss with 31 tactical decisions and
+  episode SHA-256
+  `95ecfac115e89f87fd61ab85915f0eb024e6be3507521075f36204e12810d830`.
+  Total elapsed time is 2.778464000002714 seconds, including
+  2.1484955001214985 tactical seconds.
+- Before/after session SHA-256 values are both
+  `5af9b810cd5283a48110384b30944fc7f12ce935dcdc96d92c22bd2c9d9d3265`;
+  `committed=false`. The completed-batch-4 checkpoint/progress pair remains
+  byte-for-byte unchanged at the hashes above.
+- The canonical 14,905-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH5_EPISODE_1223_MARK_FACING_FIXED.json` has
+  SHA-256
+  `822e20a6cbe39acdc507a8dcaba9f45c98412da673130a02456565d9b429a84e`.
+
 ## Exact active task
 
 Resume the same eight-worker campaign from the durable completed-batch-4 /
@@ -1455,5 +1498,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_976_NEEDLE_FIXED.json`
 - `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1081_WHEEL_FIXED.json`
 - `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1169_WATER_FIXED.json`
+- `docs/balatro/BALATRO_PPO_BATCH5_EPISODE_1223_MARK_FACING_FIXED.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
