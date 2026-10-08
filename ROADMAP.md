@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`d5cec03db5b63b618ecf63a196f29091f58ceddd`.
+`db1dbd44cb8855ae8556a408e667f8825513558a`.
 
 ## Objective
 
@@ -75,7 +75,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | Development green through optimizer batch 5; long training pending |
+| PPO learner and training path | Development green through optimizer batch 6; long training pending |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -1464,22 +1464,72 @@ Completed optimizer batch 5 / development handoff checkpoint:
   `b72ef8d3af3183a82691081f991aa74299693e86987508f39aa68f9b975ccece`
   and links that exact checkpoint digest.
 - The Red/White headless PPO implementation is now green for controlled training
-  continuation. This does not mean the policy is trained or promoted: 5 of the
+  continuation. This does not mean the policy is trained or promoted: 6 of the
   frozen 1,024 optimizer batches are complete. Later training may still expose a
   rare fail-closed mechanic, which reopens development at that exact boundary.
 
+Completed optimizer batch 6 / batch-7 Wall boundary:
+
+- The authorized four-batch training chunk completed optimizer batch 6, then
+  atomically committed additional batch-7-policy waves before stopping
+  fail-closed at active `The Wall`. Durable state is 6 completed batches, 13,765
+  collected / 12,288 optimizer-consumed transitions, Adam step 480, next episode
+  indices `(1912,1913,1914,1907,1908,1909,1910,1911)`, and per-stream
+  carryovers `(190,276,124,212,122,200,220,133)` (1,477 total).
+- The trained policy parameter SHA-256 is
+  `3639ab71f4fad1c38b67a2223c87076790a0930987940c0513e46e024c664fef`.
+  The linked checkpoint is 59,878,714 bytes with SHA-256
+  `332a57fe5a1c4a424683ce4353e89a970e1037e4f4b1e88e9f9e3c438242bb90`.
+  Its 680-byte progress manifest has SHA-256
+  `f470fe3bcc3ab998e9f7cda0d27bbeeb0cd6582bdecffadd0e56602fdb277e4a`
+  and links that exact checkpoint digest.
+- Ordered read-only isolation proves episodes 1907 through 1910 complete, while
+  episode 1911 / stream 7 / seed `604F1347` is the first failure. Wall's only
+  active mechanic is its already-generated 4x blind requirement; its start,
+  discard, defeat, and requirement generation were already exact, but Play had
+  remained absent from the admitted Boss set.
+- Commits `44daadf3b7b0f3440cec2530739bc14ab381d787` and
+  `db1dbd44cb8855ae8556a408e667f8825513558a` centralize the canonical
+  Wall/Violet requirement-only family at the Boss-requirement owner and admit
+  Play only when the active requirement and `blind_score` equal the exact
+  Red/White target and all Boss resource adjustments are absent. Unknown Bosses
+  and malformed targets remain atomic and fail closed.
+- Focused local validation: **111 passed in 1.79s**. The first Actions run
+  `37725408400` correctly failed collection because one existing test still
+  imported the retired private constant (**1618 deselected, 1 error in
+  12.26s**). After the canonical-import correction, GitHub Actions run
+  `37725669607`, job `113143140647`, passed with **3242 passed, 1618 deselected
+  in 214.76s**.
+
+Episode-1911 Wall replay evidence:
+
+- The exact read-only replay now completes episode 1911 / stream 7 / seed
+  `604F1347` as a 14-transition terminal loss with 33 tactical decisions and
+  episode SHA-256
+  `36beb3d6b96e6c0c0042906c37df80a46a65050747863c3dc4f690988efd7982`.
+  Total elapsed time is 4.317668699979549 seconds, including
+  3.7212461000308394 tactical seconds.
+- Before/after session SHA-256 values are both
+  `5134bf980fdbe990454efc293e06104dc98125e580334df246263c65b6f56303`;
+  `committed=false`. The batch-6 checkpoint/progress pair remains byte-for-byte
+  unchanged at the hashes above.
+- The canonical 15,820-byte report at
+  `docs/balatro/BALATRO_PPO_BATCH7_EPISODE_1911_WALL_FIXED.json` has SHA-256
+  `c16046ca90ead07dc4165f1f7c402c2d5b659c54fc1f39c2121ce54825e9c52c`.
+
 ## Exact active task
 
-Run the next controlled headless PPO training chunk from completed batch 5 to at
-most completed batch 9. This is a training handoff, not a live Balatro run or a
-new development phase.
+Resume the interrupted controlled headless PPO training chunk from completed
+batch 6 to at most completed batch 9. This is a training continuation, not a
+live Balatro run or a new development phase.
 
 Requirements:
 
 - Use root seed `RED-WHITE-PPO-V1`, the existing canonical artifact directory,
-  `--maximum-batches 4`, `--maximum-workers 8`, and the existing episode cap.
-  The batch bound is incremental, so this invocation can complete batches 6
-  through 9 only. Do not replace the campaign or alter the frozen contract.
+  `--maximum-batches 3`, `--maximum-workers 8`, and the existing episode cap.
+  The batch bound is incremental, so this invocation can complete the remaining
+  batches 7 through 9 only. Do not replace the campaign or alter the frozen
+  contract.
 - Preserve every atomic boundary and stop on any new fail-closed mechanic.
   Diagnose from the latest linked checkpoint/progress pair rather than stale
   pending indices.
@@ -1522,5 +1572,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1081_WHEEL_FIXED.json`
 - `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1169_WATER_FIXED.json`
 - `docs/balatro/BALATRO_PPO_BATCH5_EPISODE_1223_MARK_FACING_FIXED.json`
+- `docs/balatro/BALATRO_PPO_BATCH7_EPISODE_1911_WALL_FIXED.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
