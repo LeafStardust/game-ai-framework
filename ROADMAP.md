@@ -75,7 +75,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | In progress |
+| PPO learner and training path | Development green through optimizer batch 5; long training pending |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -1446,27 +1446,50 @@ Episode-1223 Mark-facing replay evidence:
   SHA-256
   `822e20a6cbe39acdc507a8dcaba9f45c98412da673130a02456565d9b429a84e`.
 
+Completed optimizer batch 5 / development handoff checkpoint:
+
+- The corrected one-batch resume completed optimizer batch 5 and exited without
+  collecting beyond its authorized optimizer boundary. It crossed episodes
+  1216 through 1482 after the Mark-facing repair without another unsupported
+  mechanic.
+- Authoritative state is 5 completed batches, 10,706 collected / 10,240
+  optimizer-consumed transitions, Adam step 400, next episode indices
+  `(1488,1489,1490,1483,1484,1485,1486,1487)`, and per-stream carryovers
+  `(75,138,5,57,3,88,80,20)` (466 total).
+- The trained policy parameter SHA-256 is
+  `0844424f528c14d52943319697321292b7f7bd9663fd871cf4a9fc3c0c5c580b`.
+  The linked checkpoint is 49,484,440 bytes with SHA-256
+  `56150ee4f64b382e5912b3898b940294bebc2bed15343a8145b025c361208df7`.
+  Its 680-byte progress manifest has SHA-256
+  `b72ef8d3af3183a82691081f991aa74299693e86987508f39aa68f9b975ccece`
+  and links that exact checkpoint digest.
+- The Red/White headless PPO implementation is now green for controlled training
+  continuation. This does not mean the policy is trained or promoted: 5 of the
+  frozen 1,024 optimizer batches are complete. Later training may still expose a
+  rare fail-closed mechanic, which reopens development at that exact boundary.
+
 ## Exact active task
 
-Resume the same eight-worker campaign from the durable completed-batch-4 /
-8,738-transition boundary and stop at completed optimizer batch 5.
+Run the next controlled headless PPO training chunk from completed batch 5 to at
+most completed batch 9. This is a training handoff, not a live Balatro run or a
+new development phase.
 
 Requirements:
 
 - Use root seed `RED-WHITE-PPO-V1`, the existing canonical artifact directory,
-  `--maximum-batches 1`, `--maximum-workers 8`, and the existing episode cap.
-  The batch bound is intentionally 1 because the CLI value is incremental per
-  invocation. Do not replace the campaign or alter the frozen training contract.
+  `--maximum-batches 4`, `--maximum-workers 8`, and the existing episode cap.
+  The batch bound is incremental, so this invocation can complete batches 6
+  through 9 only. Do not replace the campaign or alter the frozen contract.
 - Preserve every atomic boundary and stop on any new fail-closed mechanic.
   Diagnose from the latest linked checkpoint/progress pair rather than stale
   pending indices.
-- On batch completion, verify checkpoint/progress canonical linkage, completed
-  batch count 5, Adam step 400, optimizer-consumed transitions 10,240, policy
-  digest, next episode indices, carryovers, and artifact hashes before choosing
-  the next task.
+- On completion or failure, inspect the latest checkpoint/progress canonical
+  linkage, completed batch count, Adam step, optimizer-consumed transitions,
+  policy digest, next episode indices, carryovers, and artifact hashes before
+  choosing the next task.
 - Do not start unbounded/full training, inspect promotion results, change
   policy/hyperparameters/search schedule, or continue beyond this single
-  newly authorized batch.
+  four-batch chunk.
 
 ## Held and deferred work
 
