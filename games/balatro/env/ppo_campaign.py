@@ -41,6 +41,22 @@ PPO_CAMPAIGN_FINAL_VERSION = "balatro-red-white-ppo-final-v12"
 CHECKPOINT_NAME = "checkpoint.json"
 PROGRESS_NAME = "progress.json"
 FINAL_NAME = "final.json"
+_PROGRESS_FIELDS = frozenset(
+    {
+        "version",
+        "campaign_version",
+        "tactical_factory_version",
+        "parallel_collection_version",
+        "session_version",
+        "training_run_sha256",
+        "checkpoint_sha256",
+        "completed_batch_count",
+        "optimizer_consumed_transitions",
+        "collected_environment_transitions",
+        "next_episode_indices",
+        "complete",
+    }
+)
 
 
 def make_ppo_training_environment(stream_index: int) -> BalatroHeadlessEnvironment:
@@ -193,6 +209,114 @@ def _state_manifest(
     }
 
 
+def _is_exact_immediately_stale_progress(
+    previous: object,
+    expected: dict[str, Any],
+) -> bool:
+    """Recognize only the checkpoint-written/progress-not-written crash window."""
+    if not isinstance(previous, dict) or set(previous) != _PROGRESS_FIELDS:
+        return False
+    fixed = {
+        "version",
+        "campaign_version",
+        "tactical_factory_version",
+        "parallel_collection_version",
+        "session_version",
+        "training_run_sha256",
+    }
+    if any(previous[field] != expected[field] for field in fixed):
+        return False
+    prior_digest = previous["checkpoint_sha256"]
+    if (
+        not isinstance(prior_digest, str)
+        or len(prior_digest) != 64
+        or any(character not in "0123456789abcdef" for character in prior_digest)
+        or prior_digest == expected["checkpoint_sha256"]
+        or previous["complete"] is not False
+    ):
+        return False
+
+    integer_fields = (
+        "completed_batch_count",
+        "optimizer_consumed_transitions",
+        "collected_environment_transitions",
+    )
+    if any(
+        isinstance(previous[field], bool)
+        or not isinstance(previous[field], int)
+        or previous[field] < 0
+        for field in integer_fields
+    ):
+        return False
+    batch_delta = (
+        expected["completed_batch_count"] - previous["completed_batch_count"]
+    )
+    if batch_delta not in {0, 1}:
+        return False
+    if (
+        expected["optimizer_consumed_transitions"]
+        - previous["optimizer_consumed_transitions"]
+        != batch_delta * PPO_TRAINING_CONTRACT.rollout_batch_size
+    ):
+        return False
+    transition_delta = (
+        expected["collected_environment_transitions"]
+        - previous["collected_environment_transitions"]
+    )
+    if not 1 <= transition_delta <= PPO_TRAINING_CONTRACT.maximum_episode_actions:
+        return False
+
+    previous_indices = previous["next_episode_indices"]
+    expected_indices = expected["next_episode_indices"]
+    stream_count = PPO_TRAINING_CONTRACT.parallel_environments
+    if (
+        not isinstance(previous_indices, list)
+        or len(previous_indices) != stream_count
+        or any(
+            isinstance(value, bool) or not isinstance(value, int) or value < 0
+            for value in previous_indices
+        )
+    ):
+        return False
+    differences = [
+        index
+        for index, (old, new) in enumerate(zip(previous_indices, expected_indices))
+        if old != new
+    ]
+    return (
+        len(differences) == 1
+        and expected_indices[differences[0]]
+        == previous_indices[differences[0]] + stream_count
+    )
+
+
+def _reconcile_progress_artifact(
+    run: PPOTrainingRun,
+    session: PPOTrainingSession,
+    checkpoint_bytes: bytes,
+    progress_path: Path,
+) -> dict[str, Any]:
+    """Repair only an exact interrupted two-file publication boundary."""
+    expected = _state_manifest(run, session, sha256(checkpoint_bytes).hexdigest())
+    expected_bytes = _canonical_bytes(expected)
+    if not progress_path.exists():
+        _atomic_write(progress_path, expected_bytes)
+        return expected
+    try:
+        progress_bytes = progress_path.read_bytes()
+        previous = json.loads(progress_bytes.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise PPOContractError("PPO campaign progress artifact is unreadable") from error
+    if _canonical_bytes(previous) != progress_bytes:
+        raise PPOContractError("PPO campaign progress artifact is not canonical JSON")
+    if previous == expected:
+        return expected
+    if not _is_exact_immediately_stale_progress(previous, expected):
+        raise PPOContractError("PPO campaign progress does not match checkpoint")
+    _atomic_write(progress_path, expected_bytes)
+    return expected
+
+
 def run_ppo_campaign(
     root_seed: str | int,
     artifact_directory: str | Path,
@@ -245,6 +369,19 @@ def run_ppo_campaign(
         )
     else:
         session = session_opener(run, existing, environment_factory)
+    if existing is not None:
+        try:
+            checkpoint_bytes = checkpoint_path.read_bytes()
+        except OSError as error:
+            raise PPOContractError("PPO campaign checkpoint is unreadable") from error
+        if _canonical_bytes(existing) != checkpoint_bytes:
+            raise PPOContractError("PPO campaign checkpoint is not canonical JSON")
+        _reconcile_progress_artifact(
+            run,
+            session,
+            checkpoint_bytes,
+            progress_path,
+        )
     if final_path.exists() and not session.complete:
         raise PPOContractError(
             "PPO campaign final artifact contradicts an incomplete checkpoint"

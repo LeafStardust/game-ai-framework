@@ -1,4 +1,5 @@
 import json
+from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,7 +15,10 @@ from games.balatro.env.ppo_campaign import (
     PPO_TACTICAL_FACTORY_VERSION,
     PROGRESS_NAME,
     _atomic_write,
+    _is_exact_immediately_stale_progress,
+    _reconcile_progress_artifact,
     _restore_session,
+    _state_manifest,
     make_ppo_training_environment,
     run_ppo_campaign,
 )
@@ -154,6 +158,102 @@ def test_env_ppo_campaign_rebuilds_progress_from_checkpoint_on_resume(tmp_path):
 
     assert progress["completed_batch_count"] == 2
     assert (tmp_path / PROGRESS_NAME).exists()
+
+
+def test_env_ppo_campaign_repairs_exact_one_episode_interrupted_progress(tmp_path):
+    run = PPOTrainingRun.from_seed("INTERRUPTED")
+    checkpoint_bytes = b'{}'
+    session = SimpleNamespace(
+        learner=SimpleNamespace(
+            completed_batch_count=1,
+            total_consumed_environment_transitions=2048,
+            assembler=SimpleNamespace(
+                next_episode_indices=(8, 1, 2, 3, 4, 5, 6, 7)
+            ),
+        ),
+        optimizer_consumed_transitions=2048,
+        complete=False,
+    )
+    expected = _state_manifest(
+        run,
+        session,
+        sha256(checkpoint_bytes).hexdigest(),
+    )
+    previous = dict(expected)
+    previous["checkpoint_sha256"] = "a" * 64
+    previous["completed_batch_count"] = 0
+    previous["optimizer_consumed_transitions"] = 0
+    previous["collected_environment_transitions"] = 0
+    previous["next_episode_indices"] = list(range(8))
+    previous["complete"] = False
+    progress_path = tmp_path / PROGRESS_NAME
+    progress_path.write_text(
+        json.dumps(previous, sort_keys=True, separators=(",", ":")),
+        encoding="utf-8",
+    )
+
+    assert _is_exact_immediately_stale_progress(previous, expected)
+    repaired = _reconcile_progress_artifact(
+        run,
+        session,
+        checkpoint_bytes,
+        progress_path,
+    )
+
+    assert repaired == expected
+    assert repaired == json.loads(progress_path.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    (
+        lambda value: value.update(training_run_sha256="c" * 64),
+        lambda value: value.update(collected_environment_transitions=4097),
+        lambda value: value.update(next_episode_indices=[8, 1, 2, 3, 4, 5, 6, 7]),
+        lambda value: value.update(completed_batch_count=2),
+        lambda value: value.update(complete=True),
+    ),
+)
+def test_env_ppo_campaign_rejects_nonexact_progress_mismatch(tmp_path, mutate):
+    run = PPOTrainingRun.from_seed("MISMATCH")
+    checkpoint_bytes = b'{}'
+    session = SimpleNamespace(
+        learner=SimpleNamespace(
+            completed_batch_count=1,
+            total_consumed_environment_transitions=2048,
+            assembler=SimpleNamespace(
+                next_episode_indices=(8, 1, 2, 3, 4, 5, 6, 7)
+            ),
+        ),
+        optimizer_consumed_transitions=2048,
+        complete=False,
+    )
+    expected = _state_manifest(
+        run,
+        session,
+        sha256(checkpoint_bytes).hexdigest(),
+    )
+    previous = dict(expected)
+    previous["checkpoint_sha256"] = "a" * 64
+    previous["completed_batch_count"] = 0
+    previous["optimizer_consumed_transitions"] = 0
+    previous["collected_environment_transitions"] = 0
+    previous["next_episode_indices"] = list(range(8))
+    previous["complete"] = False
+    mutate(previous)
+    progress_path = tmp_path / PROGRESS_NAME
+    original = json.dumps(previous, sort_keys=True, separators=(",", ":"))
+    progress_path.write_text(original, encoding="utf-8")
+
+    with pytest.raises(PPOContractError, match="does not match checkpoint"):
+        _reconcile_progress_artifact(
+            run,
+            session,
+            checkpoint_bytes,
+            progress_path,
+        )
+
+    assert progress_path.read_text(encoding="utf-8") == original
 
 
 def test_env_ppo_campaign_atomic_write_preserves_previous_artifact(
