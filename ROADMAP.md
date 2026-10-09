@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`db1dbd44cb8855ae8556a408e667f8825513558a`.
+`e33c422d6b8f3b47e9a6257135a2d77957d896a0`.
 
 ## Objective
 
@@ -75,7 +75,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | Development green through optimizer batch 9; long training pending |
+| PPO learner and training path | Development green through optimizer batch 37; long training pending |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -1464,7 +1464,7 @@ Completed optimizer batch 5 / development handoff checkpoint:
   `b72ef8d3af3183a82691081f991aa74299693e86987508f39aa68f9b975ccece`
   and links that exact checkpoint digest.
 - The Red/White headless PPO implementation is now green for controlled training
-  continuation. This does not mean the policy is trained or promoted: 9 of the
+  continuation. This does not mean the policy is trained or promoted: 37 of the
   frozen 1,024 optimizer batches are complete. Later training may still expose a
   rare fail-closed mechanic, which reopens development at that exact boundary.
 
@@ -1534,10 +1534,44 @@ Completed optimizer batches 7 through 9:
   and links that exact checkpoint digest. The campaign remains incomplete, as
   required; no final artifact exists and no campaign process remains active.
 
+Continuous-training deliberate stop / batch-37 recovery checkpoint:
+
+- The operator-managed loop advanced without an unsupported mechanic from batch
+  9 through completed batch 37. The process was no longer active when inspected;
+  this was an interrupted publication boundary rather than a gameplay failure.
+- `checkpoint.json` had atomically committed one more episode than
+  `progress.json`: the stale manifest reported 78,014 collected transitions and
+  stream-6 next index 10,070 while pointing at checkpoint SHA-256
+  `93c38051bd6c897d987db1146ae52e6e2d661e6061a09ed90349ffc74dc0c25e`.
+  The newer checkpoint restored canonically with 78,021 transitions and stream-6
+  next index 10,078. Every other stream index, batch/optimizer count, and
+  provenance field was unchanged.
+- Commit `e33c422d6b8f3b47e9a6257135a2d77957d896a0` closes this exact
+  two-file crash window at the campaign artifact owner. Resume now rebuilds a
+  missing manifest and repairs only an exact one-episode-stale canonical
+  manifest: one stream advances by eight, transition delta is 1..4,096, and
+  optimizer/batch deltas are exactly consistent. Cross-run, noncanonical,
+  multi-episode, ahead-of-checkpoint, or otherwise malformed mismatches remain
+  fail closed and unchanged.
+- Focused local validation: **19 passed in 0.75s**. GitHub Actions run
+  `37917460295`, job `113777025191`, passed with **3248 passed, 1618 deselected
+  in 216.99s**.
+- The repaired authoritative state is 37 completed batches, 78,021 collected /
+  75,776 optimizer-consumed transitions, Adam step 2,960, next episode indices
+  `(10072,10073,10074,10075,10076,10077,10078,10071)`, and per-stream
+  carryovers `(533,391,236,350,137,361,98,139)` (2,245 total). Policy parameter
+  SHA-256 is
+  `3c17edf8ae600d419293545266f78185e7b83700692e9c8fb9c10be81a880f32`.
+- The canonical checkpoint is 67,776,281 bytes with SHA-256
+  `f16b4f0c05d1c1810182b5bdfc82736e854776e7ce018c1c76bae0690995326d`.
+  The atomically repaired 689-byte progress manifest has SHA-256
+  `871b569aca3881262a8f3d278fad921e70f9f458dc8af745af8b01e6c4ab60de`
+  and links that exact checkpoint digest. No final artifact exists.
+
 ## Exact active task
 
 Run the operator-managed headless PPO campaign continuously from completed batch
-9 until either the frozen 1,024-batch schedule completes or the first command
+37 until either the frozen 1,024-batch schedule completes or the first command
 failure stops the loop. This is a training continuation, not a live Balatro run
 or a new development phase.
 
