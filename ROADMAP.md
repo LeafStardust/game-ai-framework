@@ -75,7 +75,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | Development green through optimizer batch 42; long training pending |
+| PPO learner and training path | Development green through optimizer batch 81; long training pending |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -1618,10 +1618,37 @@ Continuous-training interrupted batch-42 checkpoint:
   `c985ceae8decdeb984213a9bf9765da73f63dd7e321c90f9bc7e33dfc01c1a27`
   and links that exact checkpoint digest. No final artifact exists.
 
+Continuous-training interrupted batch-81 checkpoint:
+
+- The continuous operator loop advanced from batch 42 through batch 81 without
+  exposing a new unsupported mechanic, then ended during a later
+  episode-publication boundary. The checkpoint had committed stream 2 episode
+  21,682 while the progress manifest remained one episode stale. Canonical
+  reconciliation added one transition and advanced only stream 2 from 21,682
+  to 21,690; batch and optimizer counters were unchanged. No campaign process
+  remained active when inspected.
+- The earliest pending episode 21,683 / stream 3 replayed read-only to a
+  complete terminal episode with 14 tactical decisions in
+  1.8507737000036286 seconds. Its episode SHA-256 is
+  `a7ff570a6d48501a9e3fc572edb5c4f2afb217f17042a8aa72490c831274f37b`;
+  the checkpoint remained unchanged. There is no deterministic gameplay
+  failure at the resume boundary.
+- Authoritative state is 81 completed batches, 169,582 collected / 165,888
+  optimizer-consumed transitions, Adam step 6,480, next episode indices
+  `(21688,21689,21690,21683,21684,21685,21686,21687)`, and per-stream
+  carryovers `(604,585,493,781,193,180,481,377)` (3,694 total). Policy
+  parameter SHA-256 is
+  `80e4f50c9257e17d955a8e619d3c925e1d7cc37eb45d5e83784fb00b0d4ca2c1`.
+- The canonical checkpoint is 82,678,810 bytes with SHA-256
+  `aaafbd988de567e3cfc9bdef321a3b5297fd7894b47fc36331894a44212308e2`.
+  The reconciled 691-byte progress manifest has SHA-256
+  `58d1d29a6e6fa8554eb7af77b6719b432052a87e446612e49fce4f9634a3f410`
+  and links that exact checkpoint digest. No final artifact exists.
+
 ## Exact active task
 
 Run the operator-managed headless PPO campaign continuously from completed batch
-42 until either the frozen 1,024-batch schedule completes or the first command
+81 until either the frozen 1,024-batch schedule completes or the first command
 failure stops the loop. This is a training continuation, not a live Balatro run
 or a new development phase.
 
