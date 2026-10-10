@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`e33c422d6b8f3b47e9a6257135a2d77957d896a0`.
+`97594716dd2542553ac32cb6c648229e4da32fac`.
 
 ## Objective
 
@@ -1670,6 +1670,26 @@ Continuous-training interrupted batch-87 checkpoint:
   The reconciled 691-byte progress manifest has SHA-256
   `c4e4e265fbf1689b7c120f9750187fdf9934aa0e518d2e61a466a94899772174`
   and links that exact checkpoint digest. No final artifact exists.
+
+Windows atomic-publication access-denial fix:
+
+- The next attempted resume made no artifact progress and exposed the actual
+  recurring stop cause: Windows raised `PermissionError: [WinError 5] Access
+  is denied` while replacing `.progress.json.tmp` with `progress.json`. The
+  previously observed one-episode-stale manifests were therefore interrupted
+  two-file publications, not gameplay failures. All eight episodes in the
+  pending batch-87 wave replayed successfully and left the checkpoint
+  unchanged.
+- Commit `97594716dd2542553ac32cb6c648229e4da32fac` fixes the canonical atomic
+  artifact writer. A completed and fsynced temporary file now retries only
+  `PermissionError` from `os.replace`, for at most 20 attempts with bounded
+  exponential delays totaling 4.125 seconds. Other errors remain immediate;
+  persistent access denial preserves the prior destination, removes the
+  temporary file, and fails closed.
+- Focused local validation: **21 passed in 0.77s**. GitHub Actions run
+  `38058016898`, job `114230353655`, passed with **3250 passed, 1618 deselected
+  in 224.11s**. The authoritative campaign remains at the exact batch-87
+  checkpoint above and is ready to resume.
 
 ## Exact active task
 
