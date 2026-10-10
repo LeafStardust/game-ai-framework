@@ -9,6 +9,7 @@ import json
 import multiprocessing
 import os
 from pathlib import Path
+from time import sleep
 from typing import Any, Callable
 
 from games.balatro.env.environment import BalatroHeadlessEnvironment
@@ -41,6 +42,9 @@ PPO_CAMPAIGN_FINAL_VERSION = "balatro-red-white-ppo-final-v12"
 CHECKPOINT_NAME = "checkpoint.json"
 PROGRESS_NAME = "progress.json"
 FINAL_NAME = "final.json"
+_ATOMIC_REPLACE_ATTEMPTS = 20
+_ATOMIC_REPLACE_INITIAL_DELAY_SECONDS = 0.025
+_ATOMIC_REPLACE_MAX_DELAY_SECONDS = 0.25
 _PROGRESS_FIELDS = frozenset(
     {
         "version",
@@ -136,7 +140,16 @@ def _atomic_write(path: Path, content: bytes) -> None:
             output.write(content)
             output.flush()
             os.fsync(output.fileno())
-        os.replace(temporary, path)
+        delay = _ATOMIC_REPLACE_INITIAL_DELAY_SECONDS
+        for attempt in range(_ATOMIC_REPLACE_ATTEMPTS):
+            try:
+                os.replace(temporary, path)
+                break
+            except PermissionError:
+                if attempt + 1 == _ATOMIC_REPLACE_ATTEMPTS:
+                    raise
+                sleep(delay)
+                delay = min(delay * 2, _ATOMIC_REPLACE_MAX_DELAY_SECONDS)
     except BaseException:
         try:
             temporary.unlink(missing_ok=True)

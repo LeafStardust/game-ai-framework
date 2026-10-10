@@ -274,6 +274,62 @@ def test_env_ppo_campaign_atomic_write_preserves_previous_artifact(
     assert not (tmp_path / ".artifact.json.tmp").exists()
 
 
+def test_env_ppo_campaign_atomic_write_retries_transient_access_denial(
+    tmp_path, monkeypatch
+):
+    destination = tmp_path / "artifact.json"
+    destination.write_bytes(b"old")
+    real_replace = __import__("os").replace
+    attempts = []
+    delays = []
+
+    def transiently_denied(source, target):
+        attempts.append((Path(source), Path(target)))
+        if len(attempts) < 3:
+            raise PermissionError(13, "access denied", target)
+        real_replace(source, target)
+
+    monkeypatch.setattr(
+        "games.balatro.env.ppo_campaign.os.replace", transiently_denied
+    )
+    monkeypatch.setattr("games.balatro.env.ppo_campaign.sleep", delays.append)
+
+    _atomic_write(destination, b"new")
+
+    assert destination.read_bytes() == b"new"
+    assert len(attempts) == 3
+    assert delays == [0.025, 0.05]
+    assert not (tmp_path / ".artifact.json.tmp").exists()
+
+
+def test_env_ppo_campaign_atomic_write_fails_closed_after_access_denial_limit(
+    tmp_path, monkeypatch
+):
+    destination = tmp_path / "artifact.json"
+    destination.write_bytes(b"old")
+    attempts = []
+    delays = []
+
+    def persistently_denied(source, target):
+        attempts.append((Path(source), Path(target)))
+        raise PermissionError(13, "access denied", target)
+
+    monkeypatch.setattr(
+        "games.balatro.env.ppo_campaign.os.replace", persistently_denied
+    )
+    monkeypatch.setattr("games.balatro.env.ppo_campaign.sleep", delays.append)
+
+    with pytest.raises(PermissionError, match="access denied"):
+        _atomic_write(destination, b"new")
+
+    assert destination.read_bytes() == b"old"
+    assert len(attempts) == 20
+    assert len(delays) == 19
+    assert delays[:4] == [0.025, 0.05, 0.1, 0.2]
+    assert delays[4:] == [0.25] * 15
+    assert not (tmp_path / ".artifact.json.tmp").exists()
+
+
 def test_env_ppo_campaign_rejects_stale_and_cross_run_artifacts(tmp_path):
     (tmp_path / PROGRESS_NAME).write_text("{}", encoding="utf-8")
     with pytest.raises(PPOContractError, match="without a checkpoint"):
