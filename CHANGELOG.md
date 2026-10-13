@@ -4,6 +4,7 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Mahjong Soul Steam capture foundation: loopback proxy launcher, JSONL recording, Liqi envelope/action metadata inspection, and offline capture tests. Live Steam verification and full game-state decoding remain pending.
 - Red Deck stake progression begins with v1.1.
 - Fresh-profile collection progression remains active but is non-blocking for the v1.0.0 competence release.
 
