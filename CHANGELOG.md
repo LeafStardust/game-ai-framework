@@ -4,6 +4,7 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added concealed/added kan state reduction with red-five preservation, reconnect snapshot restoration before action replay, and duplicate round-start protection for Mahjong Soul capture.
 - Added schema-driven Mahjong Soul event decoding, connection-scoped RPC matching, seat inference, offline capture replay, and conservative visible-state tracking. Live Steam verification and complete kan/reconnect state reduction remain pending.
 - Mahjong Soul Steam capture foundation: loopback proxy launcher, JSONL recording, Liqi envelope/action metadata inspection, and offline capture tests. Live Steam verification and full game-state decoding remain pending.
 - Red Deck stake progression begins with v1.1.

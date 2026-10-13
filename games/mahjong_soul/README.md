@@ -42,10 +42,19 @@ Each decoded row includes its events and a visible-state snapshot: own hand,
 discard rivers, meld events, north extractions, scores, dora, wall count, and
 available operations. Unknown opponent draws remain unknown. The tracker handles
 new round, draw, discard, chi/pon/open-kan, north extraction, and round-end events.
-Concealed/added kan reduction and snapshot-only reconnect restoration remain
-pending; affected state is marked `incomplete`. Step gaps and missing own tiles
-also mark state incomplete. A new round resets that status. Special game modes
-may contain unsupported events; do not use incomplete state for agent decisions.
+Concealed kan removes four matching own tiles while retaining red fives; added
+kan upgrades a matching pon and removes only the added own tile. Invalid kan
+events mark state incomplete without guessing which tiles to remove.
+
+Reconnect snapshots replace the tracked hand, scores, rivers, melds, round, and
+dora before following restore actions are applied. When no following action is
+provided, the next live action establishes the step baseline. Historical discard
+riichi/tsumogiri flags are left unknown when the snapshot does not supply them;
+snapshot player riichi positions are retained separately as metadata. Annotated
+snapshot discards and unsupported meld types (including special-mode or north
+extraction representations not yet verified) mark state incomplete. Step gaps
+and missing own tiles also mark state incomplete. A new round resets that status.
+Do not use incomplete state for agent decisions.
 
 Replay a raw capture offline into a **new** output file:
 
@@ -77,7 +86,7 @@ no longer needed. Captures are under the repository's ignored `logs/` directory.
 
 ## Validation status
 
-Offline tests cover framing, malformed fields, packed/signed values, live versus
+Offline tests cover kan/red-five handling, snapshot restoration, framing, malformed fields, packed/signed values, live versus
 reconnect encoding, connection/direction-scoped correlation, seat inference,
 hand updates, hidden draws, duplicate steps, gaps, and host filtering. The public
 reference schema has also been loaded and smoke-tested. Live Steam capture has

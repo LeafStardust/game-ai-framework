@@ -60,6 +60,8 @@ class LiqiDecoder:
             for action in restore.get("actions", []):
                 events.append(self._action(action, live=False))
             envelope["restore_has_snapshot"] = bool(restore.get("snapshot"))
+            if "snapshot" in restore:
+                envelope["restore_snapshot"] = restore["snapshot"]
         envelope["events"] = events
         return envelope
 

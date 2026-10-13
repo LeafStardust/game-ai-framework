@@ -45,6 +45,9 @@ class CaptureWriter:
                 record["liqi"] = decoded
                 if "own_seat" in decoded and self.seat is None:
                     state.seat = decoded["own_seat"]
+                if "restore_snapshot" in decoded:
+                    next_step = decoded["events"][0]["step"] if decoded["events"] else None
+                    state.restore(decoded["restore_snapshot"], next_step)
                 for event in decoded["events"]:
                     state.apply(event)
                 record["state"] = state.snapshot()
