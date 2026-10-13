@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added normalized visible-tile counts and explicit visibility completeness to the Mahjong Soul reader, preserving uncertainty in snapshots/concealed red fives and flagging invalid or physically impossible tile counts.
+
 - Added the shared Mahjong Soul game-reader API and live terminal viewer with per-connection diagnostics, match-end lifecycle, called-discard marking, riichi/drawn-tile/furiten state, and ordinary exhaustive-draw score handling.
 
 - Verified Steam capture on a complete three-player AI match; fixed process-scoped numeric-IP endpoint capture, three-seat state arrays, and match-start handling. All 77 game actions decoded and replayed without gaps; an unrelated lobby schema mismatch remains documented.

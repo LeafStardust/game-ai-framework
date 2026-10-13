@@ -128,6 +128,14 @@ and switches to newly created live captures. It does not send game actions.
 
 The reusable Python interface is `GameReader(schema, seat=None)`, then
 `consume(capture_row)` or `read(connection, content, from_client)`, and `snapshot()`.
+The state also includes normalized `visible_tile_counts` (red fives counted as
+fives) and `visibility_complete`. Opponent concealed hands are never counted.
+Called discards are counted in their meld only; north extractions and dora
+indicators are counted as visible tiles. Snapshot rivers with unknown called
+flags produce a lower bound with `visibility_complete=false`. Invalid tiles and
+more than four visible copies mark state incomplete. Opponent concealed kan
+retains its tile kind while explicitly leaving red-five composition unknown.
+
 It maintains per-connection decoders and separates lobby diagnostics from the
 latest game state. `NotifyGameEndResult` transitions the state to `match_ended`.
 Ordinary exhaustive draws restore scores using old-score/delta vectors; ambiguous

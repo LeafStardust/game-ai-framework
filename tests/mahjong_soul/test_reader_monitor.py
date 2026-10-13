@@ -124,3 +124,47 @@ def test_exhaustive_draw_without_deltas_keeps_scores():
     state.apply(event("ActionNoTile", {"gameend": False, "scores": [{"old_scores": [25000] * 4}]}, 1))
     assert state.scores == [25000] * 4
     assert state.status == "round_ended"
+
+
+def test_visible_tiles_do_not_double_count_called_river_tile():
+    state = GameState(0)
+    state.apply(event("ActionNewRound", {"tiles": ["3m", "4m", "0p"], "doras": ["9s"]}, 0))
+    state.apply(event("ActionDiscardTile", {"seat": 3, "tile": "2m"}, 1))
+    state.apply(event("ActionChiPengGang", {"seat": 0, "type": 0,
+                      "tiles": ["2m", "3m", "4m"], "froms": [3, 0, 0]}, 2))
+    counts, complete = state.visible_tiles()
+    assert counts == {"2m": 1, "3m": 1, "4m": 1, "5p": 1, "9s": 1}
+    assert complete is True
+
+
+def test_snapshot_unknown_called_flags_mark_visibility_incomplete():
+    from tests.mahjong_soul.test_kan_restore import snapshot
+    state = GameState(0)
+    state.restore(snapshot())
+    assert state.snapshot()["visibility_complete"] is False
+    assert state.snapshot()["visible_tile_counts"]["5s"] == 3
+
+
+def test_opponent_concealed_kan_does_not_invent_four_red_fives():
+    state = GameState(0)
+    state.apply(event("ActionNewRound", {"tiles": ["1m"]}, 0))
+    state.apply(event("ActionAnGangAddGang", {"seat": 1, "type": 3, "tiles": "0p"}, 1))
+    assert state.melds[1][0]["tiles"] == ["5p"] * 4
+    assert state.melds[1][0]["red_fives_known"] is False
+    assert state.visible_tiles()[0]["5p"] == 4
+
+
+def test_reader_flags_impossible_visible_tiles():
+    reader = GameReader(schema(), seat=0)
+    payload = blob(4, b"1m") * 5
+    reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", payload))))
+    state = reader.snapshot()["state"]
+    assert state["status"] == "incomplete"
+    assert "Visible tile count exceeds four copies" in state["issues"]
+    assert state["visibility_complete"] is False
+
+
+def test_reader_flags_invalid_tile_strings():
+    reader = GameReader(schema(), seat=0)
+    reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"0z")))))
+    assert "Visible state contains an invalid tile" in reader.snapshot()["state"]["issues"]

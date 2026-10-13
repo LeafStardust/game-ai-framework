@@ -1,6 +1,7 @@
 """Conservative visible-state tracker for ordinary three/four-player matches."""
 
 from copy import deepcopy
+from collections import Counter
 
 
 class GameState:
@@ -60,8 +61,8 @@ class GameState:
                     return
                 for item in removed:
                     self._remove(item)
-            self.melds[seat].append({"type": 3, "tiles": removed or [tile] * 4,
-                                     "froms": [seat] * 4, "raw": deepcopy(data)})
+            self.melds[seat].append({"type": 3, "tiles": removed or [normalized] * 4,
+                                     "froms": [seat] * 4, "red_fives_known": seat == self.seat, "raw": deepcopy(data)})
         elif kind == 2:  # Added kan upgrades an existing pon, not a new meld.
             pon = next((meld for meld in self.melds[seat]
                         if meld.get("type") == 1 and len(meld.get("tiles", [])) == 3
@@ -266,8 +267,41 @@ class GameState:
             self.invalidate(f"Unsupported action: {name}")
         return True
 
+    def validate(self):
+        valid = {str(number) + suit for suit in "mps" for number in range(1, 10)}
+        valid |= {"0" + suit for suit in "mps"}
+        valid |= {str(number) + "z" for number in range(1, 8)}
+        tiles = list(self.hand) + list(self.doras)
+        tiles.extend(item["tile"] for river in self.discards for item in river)
+        tiles.extend(tile for melds in self.melds for meld in melds for tile in meld.get("tiles", []))
+        if any(tile not in valid for tile in tiles):
+            self.invalidate("Visible state contains an invalid tile")
+            return
+        counts, _ = self.visible_tiles()
+        if any(count > 4 for count in counts.values()):
+            self.invalidate("Visible tile count exceeds four copies")
+
+    def visible_tiles(self):
+        counts = Counter(self._tile_kind(tile) for tile in self.hand)
+        complete = self.status in ("tracking", "round_ended", "match_ended")
+        for river in self.discards:
+            for discard in river:
+                if discard.get("called") is None:
+                    complete = False
+                elif not discard["called"]:
+                    counts[self._tile_kind(discard["tile"])] += 1
+        for melds in self.melds:
+            for meld in melds:
+                counts.update(self._tile_kind(tile) for tile in meld.get("tiles", []))
+        counts["4z"] += sum(self.norths)
+        counts.update(self._tile_kind(tile) for tile in self.doras)
+        # Snapshot rivers do not identify called tiles reliably. Counts then
+        # represent only a lower bound and are explicitly not complete.
+        return dict(sorted((tile, count) for tile, count in counts.items() if count)), complete
+
     def snapshot(self):
-        return deepcopy({"player_count": self.player_count, "status": self.status, "issues": self.issues, "seat": self.seat,
+        visible, complete = self.visible_tiles()
+        return deepcopy({"visible_tile_counts": visible, "visibility_complete": complete, "player_count": self.player_count, "status": self.status, "issues": self.issues, "seat": self.seat,
                          "step": self.last_step, "round": self.round, "hand": self.hand,
                          "discards": self.discards, "melds": self.melds, "norths": self.norths,
                          "scores": self.scores, "doras": self.doras,

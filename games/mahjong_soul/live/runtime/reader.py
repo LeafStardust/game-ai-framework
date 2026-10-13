@@ -54,6 +54,7 @@ class GameReader:
                 self.actions[event["name"]] += 1
                 state.apply(event)
                 self.last_event = {"name": event["name"], "step": event["step"]}
+            state.validate()
             if method == ".lq.NotifyGameEndResult":
                 state.operations = None
                 if state.status != "incomplete":
@@ -71,12 +72,16 @@ class GameReader:
         return result
 
     def consume(self, row):
+        if row["direction"] not in ("client", "server"):
+            raise ValueError("Invalid capture direction")
+        if not isinstance(row["connection"], str) or not row["connection"]:
+            raise ValueError("Invalid capture connection")
         return self.read(row["connection"], base64.b64decode(row["raw_base64"], validate=True),
                          row["direction"] == "client", row.get("is_text", False))
 
     def snapshot(self):
         entry = self.connections.get(self.latest_game_connection)
         state = entry[1].snapshot() if entry else deepcopy(getattr(self, "closed_state", None))
-        return {"frames": self.frames, "actions": dict(self.actions), "last_event": self.last_event,
+        return {"frames": self.frames, "actions": dict(self.actions), "last_event": deepcopy(self.last_event), "game_connection": self.latest_game_connection,
                 "decode_errors": [{"method": method, "error": error, "count": count}
                                   for (method, error), count in self.errors.items()], "state": state}
