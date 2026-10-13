@@ -2,6 +2,8 @@
 
 import base64
 import json
+import ipaddress
+import re
 import logging
 from pathlib import Path
 
@@ -101,7 +103,16 @@ class MahjongSoulCapture:
         host = flow.request.host.lower().rstrip(".")
         allowed = [item.strip().lower().rstrip(".")
                    for item in ctx.options.mahjong_capture_hosts.split(",") if item.strip()]
-        if not any(host == suffix or host.endswith("." + suffix) for suffix in allowed):
+        allowed_host = any(host == suffix or host.endswith("." + suffix) for suffix in allowed)
+        process_scoped = any(re.fullmatch(r"local:[A-Za-z0-9_.-]+", mode)
+                             for mode in getattr(ctx.options, "mode", []))
+        if not allowed_host and process_scoped:
+            try:
+                ipaddress.ip_address(host.strip("[]"))
+                allowed_host = True
+            except ValueError:
+                pass
+        if not allowed_host:
             return
         message = flow.websocket.messages[-1]
         try:

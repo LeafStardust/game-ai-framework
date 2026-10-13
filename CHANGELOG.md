@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified Steam capture on a complete three-player AI match; fixed process-scoped numeric-IP endpoint capture, three-seat state arrays, and match-start handling. All 77 game actions decoded and replayed without gaps; an unrelated lobby schema mismatch remains documented.
+
 - Added isolated Mahjong Soul Windows setup/capture launchers, explicit process capture, worktree-local schema/certificates, timestamped logs, startup validation, and a real loopback WebSocket proxy test.
 
 - Added concealed/added kan state reduction with red-five preservation, reconnect snapshot restoration before action replay, and duplicate round-start protection for Mahjong Soul capture.

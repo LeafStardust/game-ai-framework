@@ -4,15 +4,18 @@ from copy import deepcopy
 
 
 class GameState:
-    def __init__(self, seat=None):
+    def __init__(self, seat=None, player_count=4):
+        if player_count not in (3, 4):
+            raise ValueError("Only three/four-player matches are supported")
+        self.player_count = player_count
         self.seat = seat
         self.last_step = None
         self.status = "waiting_for_round"
         self.issues = []
         self.hand = []
-        self.discards = [[], [], [], []]
-        self.melds = [[], [], [], []]
-        self.norths = [0, 0, 0, 0]
+        self.discards = [[] for _ in range(player_count)]
+        self.melds = [[] for _ in range(player_count)]
+        self.norths = [0] * player_count
         self.scores = []
         self.doras = []
         self.operations = None
@@ -81,7 +84,8 @@ class GameState:
     def restore(self, snapshot, next_step=None):
         """Replace state from GameSnapshot before applying its following actions."""
         seat = self.seat
-        self.__init__(seat)
+        players = snapshot.get("players", [])
+        self.__init__(seat, len(players) if len(players) in (3, 4) else self.player_count)
         self.status = "tracking"
         if seat is None:
             self.invalidate("Own seat is unknown")
@@ -98,7 +102,7 @@ class GameState:
         self.scores = [player.get("score", 0) for player in players]
         self.player_metadata = [{"riichi_position": player.get("liqiposition"),
                                  "concealed_tile_count": player.get("tilenum")} for player in players]
-        for index, player in enumerate(players[:4]):
+        for index, player in enumerate(players[:self.player_count]):
             for tile in player.get("qipais", []):
                 # The snapshot does not carry live moqie/is_liqi booleans.
                 self.discards[index].append({"tile": tile, "riichi": None, "tsumogiri": None})
@@ -118,9 +122,15 @@ class GameState:
         identity = (name, step, data)
         if identity == self._last_event:
             return False
+        if name == "ActionMJStart":
+            self.__init__(self.seat, self.player_count)
+            self.last_step = step
+            self._last_event = deepcopy(identity)
+            return True
         if name == "ActionNewRound":
             seat = self.seat
-            self.__init__(seat)
+            scores = data.get("scores", [])
+            self.__init__(seat, len(scores) if len(scores) in (3, 4) else self.player_count)
             self.status = "tracking" if seat is not None else "incomplete"
             if seat is None:
                 self.issues.append("Own seat is unknown")
@@ -138,7 +148,7 @@ class GameState:
         self.last_step = step
         self._last_event = deepcopy(identity)
         seat = data.get("seat", 0)
-        if not isinstance(seat, int) or not 0 <= seat < 4:
+        if not isinstance(seat, int) or not 0 <= seat < self.player_count:
             self.invalidate("Invalid event seat")
             return False
         self.operations = deepcopy(data.get("operation"))
@@ -203,7 +213,7 @@ class GameState:
         return True
 
     def snapshot(self):
-        return deepcopy({"status": self.status, "issues": self.issues, "seat": self.seat,
+        return deepcopy({"player_count": self.player_count, "status": self.status, "issues": self.issues, "seat": self.seat,
                          "step": self.last_step, "round": self.round, "hand": self.hand,
                          "discards": self.discards, "melds": self.melds, "norths": self.norths,
                          "scores": self.scores, "doras": self.doras,

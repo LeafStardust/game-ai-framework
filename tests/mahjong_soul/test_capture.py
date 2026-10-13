@@ -65,3 +65,26 @@ def test_addon_filters_hosts_and_does_not_mutate(monkeypatch, tmp_path):
     addon.websocket_message(flow)
     assert path.exists()
     assert message.content == b"\x03\x01\x00"
+
+
+@pytest.mark.parametrize("host,mode,expected", [
+    ("139.95.4.41", "regular", False),
+    ("139.95.4.41", "local:53732", True),
+    ("2606:4700::6812:1d97", "local:Jantama_MahjongSoul.exe", True),
+    ("139.95.4.41", "local", False),
+    ("139.95.4.41", "local:!python", False),
+    ("139.95.4.41", "local:game,other", False),
+    ("unrelated.example", "local:53732", False),
+])
+def test_numeric_endpoints_require_one_explicit_process(monkeypatch, tmp_path, host, mode, expected):
+    import sys
+    path = tmp_path / "capture.jsonl"
+    options = SimpleNamespace(mahjong_capture_hosts="mahjongsoul.com",
+                              mahjong_capture_output=str(path), mode=[mode])
+    monkeypatch.setitem(sys.modules, "mitmproxy", SimpleNamespace(ctx=SimpleNamespace(options=options)))
+    message = SimpleNamespace(content=b"\x03\x01\x00", from_client=False,
+                              timestamp=1.0, is_text=False)
+    flow = SimpleNamespace(id="one", request=SimpleNamespace(host=host),
+                           websocket=SimpleNamespace(messages=[message]))
+    MahjongSoulCapture().websocket_message(flow)
+    assert path.exists() is expected

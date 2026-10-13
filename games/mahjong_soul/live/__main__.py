@@ -46,6 +46,7 @@ def main():
                "--listen-host", "127.0.0.1", "--listen-port", str(args.port),
                "--mode", "local:" + args.process if args.process else "regular",
                "-s", str(root / "games/mahjong_soul/live/external/capture.py"),
+               "--set", "flow_detail=0",
                "--set", f"confdir={confdir}",
                "--set", f"mahjong_capture_output={output}",
                "--set", f"mahjong_capture_hosts={args.hosts}",

@@ -119,3 +119,35 @@ def test_snapshot_response_flows_through_capture_writer(tmp_path):
     assert result["state"]["hand"] == []
     assert result["state"]["step"] == 20
     assert result["state"]["status"] == "tracking"
+
+
+def test_three_player_round_has_no_phantom_fourth_seat():
+    state = GameState(0)
+    state.apply(event("ActionNewRound", {"tiles": ["4z"], "scores": [35000] * 3}, 0))
+    state.apply(event("ActionBaBei", {"seat": 0}, 1))
+    assert state.snapshot()["player_count"] == 3
+    assert len(state.discards) == len(state.melds) == len(state.norths) == 3
+    assert state.norths == [1, 0, 0]
+    state.apply(event("ActionDealTile", {"seat": 3, "tile": ""}, 2))
+    assert state.status == "incomplete"
+
+
+def test_three_player_snapshot_and_next_round_preserve_player_count():
+    state = GameState(0)
+    value = snapshot()
+    value["players"] = value["players"][:3]
+    state.restore(value)
+    assert state.player_count == 3
+    assert len(state.melds) == 3
+    state.apply(event("ActionNewRound", {"tiles": ["1m"]}, 0))
+    assert state.player_count == 3
+
+
+def test_match_start_waits_for_round_without_invalidating_state():
+    state = GameState(0, 3)
+    state.apply(event("ActionMJStart", {}, 0))
+    assert state.status == "waiting_for_round"
+    assert state.issues == []
+    state.apply(event("ActionNewRound", {"tiles": ["1m"], "scores": [35000] * 3}, 1))
+    assert state.status == "tracking"
+    assert state.player_count == 3

@@ -33,7 +33,8 @@ To capture a specific Steam game process directly on Windows:
 
 Use the actual executable name shown in Task Manager, or its numeric PID. Only
 one explicit target is accepted; wildcard, exclusion and comma-separated target
-specifications are rejected. This uses mitmproxy local capture mode, avoiding an
+specifications are rejected. Numeric-IP WebSocket destinations are accepted in
+this explicitly process-scoped mode; regular mode retains hostname filtering. This uses mitmproxy local capture mode, avoiding an
 external process redirector. It may require Windows elevation. See
 https://docs.mitmproxy.org/stable/concepts/modes/#local-capture.
 
@@ -112,8 +113,11 @@ hand updates, hidden draws, duplicate steps, gaps, and host filtering. A real
 loopback WebSocket integration test verifies addon loading, unchanged bidirectional
 forwarding, schema decoding, state recording, and test-process cleanup. The public
 reference schema has also been loaded and smoke-tested. Live Steam capture has
-not yet been verified; current client schema/encoding and observed state must be
-checked against an AI match before connecting decision logic.
+been verified on one Steam three-player AI match: all 77 game actions decoded
+and replayed without gaps, with correct final scores and three-seat north counts.
+See [live validation](LIVE_VALIDATION.md). Four-player matches, kans, and reconnects
+still require live verification. One unrelated lobby activity reply did not match
+the reference schema; its raw frame and decoding error were retained.
 
 Protocol references:
 - https://github.com/MahjongRepository/mahjong_soul_api
