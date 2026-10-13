@@ -1,12 +1,14 @@
 # Mahjong Soul Steam capture
 
-## First milestone
+## Capture and decoding
 
 Capture-only local proxy. Writes append-only JSONL with timestamps, connection IDs,
 direction, original frame bytes (base64), and decoded Liqi envelope metadata.
-ActionPrototype notifications expose action names and step numbers. Inner action
-payloads remain opaque: tile/state decoding and request-response correlation are
-not implemented yet. Unknown or malformed frames are retained for diagnosis.
+Without a schema, ActionPrototype notifications expose action names and step
+numbers only. With the client's protobufjs `liqi.json`, the decoder also handles
+typed payloads, packed numeric fields, per-connection request/response matching,
+live action XOR encoding, and unencoded reconnect actions. Unknown or malformed
+frames are retained for diagnosis and mark state incomplete.
 
 ## Run
 
@@ -19,6 +21,40 @@ py -m games.mahjong_soul.live
 
 Proxy address: `127.0.0.1:8080`. Output: `logs/mahjong_soul/capture.jsonl`.
 Use `--port` and `--output` to override these defaults.
+
+For typed events and state snapshots, obtain the `liqi.json` schema matching your
+client and save it locally. A public reference schema is available at
+https://github.com/MahjongRepository/mahjong_soul_api/blob/master/ms/liqi.json;
+its compatibility with the current Steam build must still be verified. Then run:
+
+```powershell
+py -m games.mahjong_soul.live --schema path/to/liqi.json
+```
+
+Own absolute seat is inferred from captured `FastTest.authGame` traffic. Start
+capture before login/game entry so that request and response are both observed.
+If that exchange was missed, specify `--seat 0` (or 1, 2, 3) using the actual
+absolute seat. This is not simply the screen position of the player's hand.
+Use `--action-encoding plain` only for builds confirmed to send unencoded live
+actions; the default is `xor`. Reconnect actions always decode without XOR.
+
+Each decoded row includes its events and a visible-state snapshot: own hand,
+discard rivers, meld events, north extractions, scores, dora, wall count, and
+available operations. Unknown opponent draws remain unknown. The tracker handles
+new round, draw, discard, chi/pon/open-kan, north extraction, and round-end events.
+Concealed/added kan reduction and snapshot-only reconnect restoration remain
+pending; affected state is marked `incomplete`. Step gaps and missing own tiles
+also mark state incomplete. A new round resets that status. Special game modes
+may contain unsupported events; do not use incomplete state for agent decisions.
+
+Replay a raw capture offline into a **new** output file:
+
+```powershell
+py -m games.mahjong_soul.live.runtime.replay logs/mahjong_soul/capture.jsonl --schema path/to/liqi.json --output logs/mahjong_soul/decoded.jsonl
+```
+
+Replay accepts the same `--seat` and `--action-encoding` options. It never modifies
+the source capture and refuses an existing output path.
 
 Steam traffic must be routed explicitly through the proxy using an application
 redirector such as Proxifier. Target the actual Mahjong Soul executable, not Steam
@@ -41,12 +77,15 @@ no longer needed. Captures are under the repository's ignored `logs/` directory.
 
 ## Validation status
 
-Synthetic framing and capture tests cover malformed frames, append-only recording,
-host filtering, and unchanged forwarded content. Live Steam capture has not yet
-been verified. Full state decoding requires confirming the current client schema
-and action encoding from a real capture.
+Offline tests cover framing, malformed fields, packed/signed values, live versus
+reconnect encoding, connection/direction-scoped correlation, seat inference,
+hand updates, hidden draws, duplicate steps, gaps, and host filtering. The public
+reference schema has also been loaded and smoke-tested. Live Steam capture has
+not yet been verified; current client schema/encoding and observed state must be
+checked against an AI match before connecting decision logic.
 
 Protocol references:
 - https://github.com/MahjongRepository/mahjong_soul_api
 - https://github.com/747929791/majsoul_wrapper
 - https://docs.mitmproxy.org/stable/api/mitmproxy/websocket.html
+- https://github.com/shinkuan/Akagi/blob/v3/src/bridge/majsoul/parser.rs (wire-format reference)
