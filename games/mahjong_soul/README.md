@@ -105,6 +105,34 @@ can still contain credentials and account information, so keep captures local.
 Stop with Ctrl+C, remove the game routing rule, and remove certificate trust when
 no longer needed. Captures are under the repository's ignored `logs/` directory.
 
+## Live state reader
+
+In a second terminal in this worktree:
+
+```powershell
+.\MahjongSoulReader.bat
+```
+
+The viewer follows the newest timestamped capture, re-decodes it through the same
+`GameReader` used by the capture addon, and refreshes your hand, last drawn tile,
+furiten, rivers, melds, dora indicators, scores, norths, riichi status, and available
+operations. Called river tiles are marked `*` so consumers can avoid counting them
+again in melds. Known operation types have readable labels; unknown types retain
+their numeric codes. Diagnostics remain visible, and unrelated lobby errors do
+not invalidate a healthy game connection.
+
+Use `--file path/to/capture.jsonl` to inspect a saved capture, `--once` for one
+summary, or `--once --json` for a structured state/diagnostic report. The follower
+waits for complete JSONL rows, reports malformed rows, resets after truncation,
+and switches to newly created live captures. It does not send game actions.
+
+The reusable Python interface is `GameReader(schema, seat=None)`, then
+`consume(capture_row)` or `read(connection, content, from_client)`, and `snapshot()`.
+It maintains per-connection decoders and separates lobby diagnostics from the
+latest game state. `NotifyGameEndResult` transitions the state to `match_ended`.
+Ordinary exhaustive draws restore scores using old-score/delta vectors; ambiguous
+multiple nagashi settlements are flagged incomplete until live-verified.
+
 ## Validation status
 
 Offline tests cover kan/red-five handling, snapshot restoration, framing, malformed fields, packed/signed values, live versus

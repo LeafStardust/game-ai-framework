@@ -16,6 +16,9 @@ class GameState:
         self.discards = [[] for _ in range(player_count)]
         self.melds = [[] for _ in range(player_count)]
         self.norths = [0] * player_count
+        self.riichi = ["none"] * player_count
+        self.drawn_tile = None
+        self.furiten = None
         self.scores = []
         self.doras = []
         self.operations = None
@@ -81,6 +84,43 @@ class GameState:
         else:
             self.invalidate(f"Unsupported kan type: {kind}")
 
+    def _mark_called_discard(self, seat, tiles, froms):
+        called = [(tile, origin) for tile, origin in zip(tiles, froms) if origin != seat]
+        if len(called) != 1:
+            self.invalidate("Meld does not identify exactly one called discard")
+            return
+        tile, origin = called[0]
+        if not isinstance(origin, int) or not 0 <= origin < self.player_count:
+            self.invalidate("Called discard has an invalid source seat")
+            return
+        river = self.discards[origin]
+        if not river or river[-1]["tile"] != tile or river[-1].get("called"):
+            self.invalidate("Called tile does not match the source's last discard")
+            return
+        river[-1]["called"] = True
+
+    def _settle_scores(self, data, name):
+        scores = data.get("scores", [])
+        if scores and all(isinstance(score, int) for score in scores):
+            self.scores = list(scores)
+        elif name == "ActionNoTile" and scores:
+            # The usual exhaustive draw has one old-score/delta vector. Multiple
+            # nagashi settlements need a live example before their order is trusted.
+            if len(scores) != 1 or not isinstance(scores[0], dict):
+                self.invalidate("Multiple exhaustive-draw settlements need verification")
+                return
+            old = scores[0].get("old_scores", [])
+            delta = scores[0].get("delta_scores", []) or [0] * self.player_count
+            if len(old) != self.player_count or len(delta) != self.player_count:
+                self.invalidate("Exhaustive-draw score vectors are incomplete")
+                return
+            self.scores = [before + change for before, change in zip(old, delta)]
+        end = data.get("gameend")
+        if isinstance(end, dict) and end.get("scores"):
+            self.scores = list(end["scores"])
+        if self.scores and (len(self.scores) != self.player_count or not all(isinstance(score, int) for score in self.scores)):
+            self.invalidate("Scores do not match the player count")
+
     def restore(self, snapshot, next_step=None):
         """Replace state from GameSnapshot before applying its following actions."""
         seat = self.seat
@@ -100,12 +140,13 @@ class GameState:
         if seat is not None and seat >= len(players):
             self.invalidate("Own seat is outside snapshot player list")
         self.scores = [player.get("score", 0) for player in players]
+        self.riichi = ["unknown"] * self.player_count
         self.player_metadata = [{"riichi_position": player.get("liqiposition"),
                                  "concealed_tile_count": player.get("tilenum")} for player in players]
         for index, player in enumerate(players[:self.player_count]):
             for tile in player.get("qipais", []):
                 # The snapshot does not carry live moqie/is_liqi booleans.
-                self.discards[index].append({"tile": tile, "riichi": None, "tsumogiri": None})
+                self.discards[index].append({"tile": tile, "riichi": None, "tsumogiri": None, "called": None})
                 if len(tile) != 2:
                     self.invalidate("Snapshot discard uses an unsupported annotation")
             for meld in player.get("mings", []):
@@ -158,13 +199,19 @@ class GameState:
             self.doras = [data["dora"]]
         if "left_tile_count" in data:
             self.left_tile_count = data["left_tile_count"]
-        if data.get("scores"):
-            self.scores = list(data["scores"])
+        self._settle_scores(data, name)
+        if "zhenting" in data:
+            self.furiten = data["zhenting"]
         liqi = data.get("liqi")
+        if liqi and liqi.get("failed", False):
+            liqi_seat = liqi.get("seat", 0)
+            if 0 <= liqi_seat < self.player_count:
+                self.riichi[liqi_seat] = "none"
         if liqi and not liqi.get("failed", False) and self.scores:
             liqi_seat = liqi.get("seat", 0)
             if 0 <= liqi_seat < len(self.scores):
                 self.scores[liqi_seat] = liqi.get("score", 0)
+                self.riichi[liqi_seat] = "accepted"
             if "liqibang" in liqi:
                 self.round["liqibang"] = liqi["liqibang"]
         if name == "ActionDealTile":
@@ -173,6 +220,7 @@ class GameState:
                 tile = data.get("tile", "")
                 if tile:
                     self.hand.append(tile)
+                    self.drawn_tile = tile
                 else:
                     self.invalidate("Own draw tile is missing")
         elif name == "ActionDiscardTile":
@@ -180,31 +228,37 @@ class GameState:
             if not tile:
                 self.invalidate("Discard tile is missing")
             self.discards[seat].append({"tile": tile, "riichi": data.get("is_liqi", False),
-                                       "tsumogiri": data.get("moqie", False)})
+                                       "tsumogiri": data.get("moqie", False), "called": False})
+            if data.get("is_liqi", False):
+                self.riichi[seat] = "declared"
             if seat == self.seat:
                 self._remove(tile)
+                self.drawn_tile = None
             self.turn = seat
         elif name == "ActionChiPengGang":
             self.melds[seat].append(deepcopy(data))
             tiles, froms = data.get("tiles", []), data.get("froms", [])
             if len(tiles) != len(froms):
                 self.invalidate("Meld tile origins are missing")
-            elif seat == self.seat:
-                for tile, origin in zip(tiles, froms):
-                    if origin == seat:
-                        self._remove(tile)
+            else:
+                self._mark_called_discard(seat, tiles, froms)
+                if seat == self.seat:
+                    self.drawn_tile = None
+                    for tile, origin in zip(tiles, froms):
+                        if origin == seat:
+                            self._remove(tile)
             self.turn = seat
         elif name == "ActionBaBei":
             self.norths[seat] += 1
             if seat == self.seat:
                 self._remove("4z")
+                self.drawn_tile = None
         elif name == "ActionAnGangAddGang":
             self._kan(seat, data)
+            if seat == self.seat:
+                self.drawn_tile = None
             self.turn = seat
         elif name in ("ActionHule", "ActionNoTile", "ActionLiuJu"):
-            end = data.get("gameend", {})
-            if end.get("scores"):
-                self.scores = list(end["scores"])
             if self.status != "incomplete":
                 self.status = "round_ended"
             self.operations = None
@@ -218,4 +272,5 @@ class GameState:
                          "discards": self.discards, "melds": self.melds, "norths": self.norths,
                          "scores": self.scores, "doras": self.doras,
                          "left_tile_count": self.left_tile_count, "turn": self.turn,
-                         "operations": self.operations, "player_metadata": self.player_metadata})
+                         "operations": self.operations, "player_metadata": self.player_metadata,
+                         "riichi": self.riichi, "drawn_tile": self.drawn_tile, "furiten": self.furiten})

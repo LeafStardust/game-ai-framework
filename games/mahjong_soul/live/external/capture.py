@@ -8,9 +8,8 @@ import logging
 from pathlib import Path
 
 from games.mahjong_soul.live.external.liqi import decode_envelope
-from games.mahjong_soul.live.external.decoder import LiqiDecoder
 from games.mahjong_soul.live.external.schema import LiqiSchema
-from games.mahjong_soul.live.runtime.state import GameState
+from games.mahjong_soul.live.runtime.reader import GameReader
 
 
 class CaptureWriter:
@@ -19,10 +18,12 @@ class CaptureWriter:
         self.schema = schema
         self.seat = seat
         self.action_encoding = action_encoding
-        self.connections = {}
+        self.reader = GameReader(schema, seat, action_encoding) if schema is not None else None
+        self.connections = self.reader.connections if self.reader else {}
 
     def close_connection(self, connection):
-        self.connections.pop(connection, None)
+        if self.reader:
+            self.reader.close_connection(connection)
 
     def record(self, *, connection, host, content, from_client, timestamp, is_text=False):
         record = {
@@ -32,34 +33,18 @@ class CaptureWriter:
             "timestamp": timestamp,
             "direction": "client" if from_client else "server",
             "size": len(content),
+            "is_text": is_text,
             "raw_base64": base64.b64encode(content).decode("ascii"),
         }
         try:
-            if is_text:
-                raise ValueError("Text WebSocket message")
             if self.schema is None:
+                if is_text:
+                    raise ValueError("Text WebSocket message")
                 record["liqi"] = decode_envelope(content)
             else:
-                if connection not in self.connections:
-                    self.connections[connection] = (LiqiDecoder(self.schema, self.action_encoding), GameState(self.seat))
-                decoder, state = self.connections[connection]
-                decoded = decoder.decode(content, from_client)
-                record["liqi"] = decoded
-                if "own_seat" in decoded and self.seat is None:
-                    state.seat = decoded["own_seat"]
-                if "restore_snapshot" in decoded:
-                    next_step = decoded["events"][0]["step"] if decoded["events"] else None
-                    state.restore(decoded["restore_snapshot"], next_step)
-                for event in decoded["events"]:
-                    state.apply(event)
-                record["state"] = state.snapshot()
+                record.update(self.reader.read(connection, content, from_client, is_text))
         except (ValueError, UnicodeError) as error:
             record["decode_error"] = str(error)
-            if self.schema is not None and connection in self.connections:
-                state = self.connections[connection][1]
-                # A frame we cannot interpret might contain a missed game action.
-                state.invalidate("An undecoded frame was encountered")
-                record["state"] = state.snapshot()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(record, ensure_ascii=False) + "\n")

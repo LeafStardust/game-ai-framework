@@ -76,9 +76,9 @@ class LiqiSchema:
                             if len(item) != size:
                                 raise ValueError("Truncated packed field")
                             offset += size
-                        values.append(self._scalar(field_type, scalar_wire, item, depth))
+                        values.append(self._field_value(field_type, scalar_wire, item, depth, name + "." + field_name))
                 else:
-                    values.append(self._scalar(field_type, wire, value, depth))
+                    values.append(self._field_value(field_type, wire, value, depth, name + "." + field_name))
             if repeated:
                 result[field_name] = values
             elif values:
@@ -91,6 +91,12 @@ class LiqiSchema:
                 result[field_name] = False if field_type == "bool" else 0
             # Absent message fields remain absent, preserving presence semantics.
         return result
+
+    def _field_value(self, name, wire, value, depth, location):
+        try:
+            return self._scalar(name, wire, value, depth)
+        except (ValueError, UnicodeError, struct.error) as error:
+            raise ValueError(f"{location}: {error}") from error
 
     def _numeric(self, name):
         return name in {"int32", "int64", "uint32", "uint64", "sint32", "sint64", "bool",
