@@ -4,18 +4,20 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added isolated Mahjong Soul Windows setup/capture launchers, explicit process capture, worktree-local schema/certificates, timestamped logs, startup validation, and a real loopback WebSocket proxy test.
+
 - Added concealed/added kan state reduction with red-five preservation, reconnect snapshot restoration before action replay, and duplicate round-start protection for Mahjong Soul capture.
 - Added schema-driven Mahjong Soul event decoding, connection-scoped RPC matching, seat inference, offline capture replay, and conservative visible-state tracking. Live Steam verification and complete kan/reconnect state reduction remain pending.
 - Mahjong Soul Steam capture foundation: loopback proxy launcher, JSONL recording, Liqi envelope/action metadata inspection, and offline capture tests. Live Steam verification and full game-state decoding remain pending.
 - Red Deck stake progression begins with v1.1.
 - Fresh-profile collection progression remains active but is non-blocking for the v1.0.0 competence release.
 
-## v1.0.0 — Red Deck / White Stake competence — 2026-08-20
+## v1.0.0 â€” Red Deck / White Stake competence â€” 2026-08-20
 
 ### Added
 
 - Universal Balatro strategy-tree semantics with leaf-only ranking, parent-foundation evidence, descendant inheritance, fallback suppression, Ante pressure, and production diagnostics.
-- Complete production catalogue migration for strategy-tree Sections 1–12. The 136-node forest owns poker hands, ranks/faces, suits/held cards, enhancements, seals, destruction/thinning, deck growth/training, consumable engines, economy, Joker-board composition, discard rotation, and hand scheduling.
+- Complete production catalogue migration for strategy-tree Sections 1â€“12. The 136-node forest owns poker hands, ranks/faces, suits/held cards, enhancements, seals, destruction/thinning, deck growth/training, consumable engines, economy, Joker-board composition, discard rotation, and hand scheduling.
 - Conditional placement of Section 14 support Jokers into compatible existing routes, including Blueprint/Brainstorm copy support, Astronomer, Chaos the Clown, Drunkard/Merry Andy, Juggler/Troubadour, Splash, Showman, and Invisible Joker. These components do not seed unsupported standalone strategies.
 - Portable universal Joker value separated from route-bound strategy value, including dynamic off-path pressure and exclusive dominant-strategy behavior from Ante 6.
 - Strategy-aware decisions across hand play, discards, Joker acquisition/replacement, consumables, packs, Planets, rerolls, vouchers, boosters, and blind skips.
@@ -63,20 +65,20 @@ This file records notable development changes to the project. Active and future 
 - The winning run exposed the post-win `ROUND_EVAL` finalization gap; the resulting terminal-detection fix is covered by deterministic regressions.
 - v1.0.0 freezes the Red Deck / White Stake competence baseline. Further collection-system work is non-blocking, and stake-specific adaptation continues in v1.1+.
 
-## v0.9 — Autonomous live integration
+## v0.9 â€” Autonomous live integration
 
-- Completed the real-game observe → decide → execute → verify → log → restart/stop loop.
+- Completed the real-game observe â†’ decide â†’ execute â†’ verify â†’ log â†’ restart/stop loop.
 - Added authoritative Windows process-memory observation and first-party injected execution without hidden RNG or future draw-pile access.
 - Completed modeled behavior validation for all 150 Jokers and Boss Blind coverage.
 
-## v0.8 — Balatro planning and environment
+## v0.8 â€” Balatro planning and environment
 
 - Added Balatro search/planning, probability and expected-value analysis, blind-clear paths, stake rules, and deck architecture.
 
-## v0.7 — Balatro mechanics
+## v0.7 â€” Balatro mechanics
 
 - Added cards, hands, scoring, Jokers, consumables, editions, enhancements, and card modifiers.
 
-## v0.1–v0.6 — Framework foundation
+## v0.1â€“v0.6 â€” Framework foundation
 
 - Established repository structure, configuration, logging, metrics, events, agent and policy abstractions, heuristic evaluation, softmax selection, experiment execution, reproducible seeds, comparisons, and aggregate metrics.

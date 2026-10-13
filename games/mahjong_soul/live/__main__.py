@@ -1,38 +1,66 @@
-"""Start a loopback-only capture proxy for the Steam client."""
+"""Run Mahjong Soul capture with worktree-local schema, logs and certificates."""
 
 import argparse
+from datetime import datetime
 import importlib.util
 from pathlib import Path
+import re
 import subprocess
 import sys
 
+from games.mahjong_soul.live.external.schema import LiqiSchema
+
 
 def main():
+    root = Path(__file__).resolve().parents[3]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8080)
-    parser.add_argument("--output", default="logs/mahjong_soul/capture.jsonl")
-    parser.add_argument("--schema", help="Client protobufjs liqi.json schema")
+    parser.add_argument("--output", help="JSONL output; defaults to a new timestamped capture")
+    parser.add_argument("--schema", default=str(root / "liqi-reference.json"))
+    parser.add_argument("--raw-only", action="store_true", help="Record envelopes without typed decoding")
     parser.add_argument("--seat", type=int, choices=range(4), help="Own absolute seat, 0-3")
     parser.add_argument("--action-encoding", choices=("xor", "plain"), default="xor")
+    parser.add_argument("--process", help="Capture just this process name or PID using local mode")
+    parser.add_argument("--hosts", default="mahjongsoul.com,maj-soul.com,majsoul.com,yo-star.com")
+    parser.add_argument("--confdir", help="Proxy config/certificate directory; defaults to this worktree")
+    parser.add_argument("--check", action="store_true", help="Validate dependencies/schema without starting capture")
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error("port must be between 1 and 65535")
+    if args.process is not None and not re.fullmatch(r"[A-Za-z0-9_.-]+", args.process):
+        parser.error("process must be one explicit name or PID; lists and exclusions are unsupported")
     if importlib.util.find_spec("mitmproxy") is None:
-        parser.error("Install capture dependencies: py -m pip install -r games/mahjong_soul/setup/requirements.txt")
-    root = Path(__file__).resolve().parents[3]
-    addon = root / "games/mahjong_soul/live/external/capture.py"
-    # Use the installed entry point via a Python shim, preserving this interpreter.
+        parser.error("Run MahjongSoulSetup.bat to install capture dependencies in this worktree")
+    schema = None
+    if not args.raw_only:
+        schema = Path(args.schema).resolve()
+        try:
+            loaded = LiqiSchema.load(schema)
+            if "lq.ActionPrototype" not in loaded.types:
+                raise ValueError("schema lacks lq.ActionPrototype")
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            parser.error(f"Cannot load schema: {error}")
+    output = Path(args.output).resolve() if args.output else root / "logs/mahjong_soul" / ("capture-" + datetime.now().strftime("%Y%m%d-%H%M%S-%f") + ".jsonl")
+    confdir = Path(args.confdir).resolve() if args.confdir else root / "logs/mahjong_soul/proxy"
     command = [sys.executable, "-c", "from mitmproxy.tools.main import mitmdump; mitmdump()",
                "--listen-host", "127.0.0.1", "--listen-port", str(args.port),
-               "-s", str(addon), "--set",
-               f"mahjong_capture_output={Path(args.output).resolve()}"]
-    if args.schema:
-        if not Path(args.schema).is_file():
-            parser.error("schema file does not exist")
-        command.extend(["--set", f"mahjong_capture_schema={Path(args.schema).resolve()}"])
+               "--mode", "local:" + args.process if args.process else "regular",
+               "-s", str(root / "games/mahjong_soul/live/external/capture.py"),
+               "--set", f"confdir={confdir}",
+               "--set", f"mahjong_capture_output={output}",
+               "--set", f"mahjong_capture_hosts={args.hosts}",
+               "--set", f"mahjong_action_encoding={args.action_encoding}"]
+    if schema:
+        command.extend(["--set", f"mahjong_capture_schema={schema}"])
     if args.seat is not None:
         command.extend(["--set", f"mahjong_capture_seat={args.seat}"])
-    command.extend(["--set", f"mahjong_action_encoding={args.action_encoding}"])
+    print(f"Capture mode: {'process ' + args.process if args.process else 'regular proxy on 127.0.0.1:' + str(args.port)}", flush=True)
+    print(f"Schema: {schema or 'raw envelopes only'}", flush=True)
+    print(f"Output: {output}", flush=True)
+    print(f"Proxy certificate: {confdir / 'mitmproxy-ca-cert.cer'}", flush=True)
+    if args.check:
+        print("Dependency and schema checks passed. Live routing/TLS are not checked.")
+        return 0
     try:
         return subprocess.call(command, cwd=root)
     except KeyboardInterrupt:
