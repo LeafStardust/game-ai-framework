@@ -75,7 +75,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | Development green through optimizer batch 87; long training pending |
+| PPO learner and training path | Development green through optimizer batch 211; long training pending |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -1691,10 +1691,46 @@ Windows atomic-publication access-denial fix:
   in 224.11s**. The authoritative campaign remains at the exact batch-87
   checkpoint above and is ready to resume.
 
+Continuous-training batch-211 short-redraw gate:
+
+- The operator-managed loop advanced from batch 87 through batch 211, then
+  stopped fail-closed at the first unowned mid-blind short redraw. The linked
+  checkpoint/progress pair is canonical and unchanged by diagnosis: 211
+  completed batches, 437,416 collected / 432,128 optimizer-consumed
+  transitions, Adam step 16,880, next episode indices
+  `(55872,55873,55874,55875,55876,55869,55870,55871)`, and per-stream
+  carryovers `(731,590,788,1029,202,586,797,565)` (5,288 total). Policy
+  parameter SHA-256 is
+  `377cbe8a4ca1b31e49cda3cfb6a5efe71b556fde9a4b46597ff7d9e3b9790a86`.
+- The 99,069,702-byte checkpoint SHA-256 is
+  `d88110d75d0b284bb6e046237c96b4c59ff8cdaae1252274b903f037f1c992ef`.
+  The 692-byte progress manifest SHA-256 is
+  `235bd67687432322443e91f6d79fe9cfbae473ebd8ecc477ed0c58a2fee801b3`
+  and links that exact checkpoint digest. No final artifact exists.
+- Ordered read-only isolation proves episodes 55,872 / stream 0 and 55,873 /
+  stream 1 complete. Episode 55,874 / stream 2 / seed `17A791BE` is the first
+  failure. Against The Hook, a five-card play plus Hook's two exact forced
+  discards leaves one held card and five cards in the draw pile. Vanilla draws
+  those five remaining cards without a mid-blind reshuffle and continues with a
+  six-card final hand; the old Play owner incorrectly required a full
+  eight-card refill.
+- Commit `a59e3a964f80d77d4f33151800f5a0033e171557` makes the canonical Play
+  transition consume the available physical draw-pile tail up to hand capacity.
+  It preserves physical order, public canonicalization, RNG, input isolation,
+  and every existing Fish/Wheel/Mark facing owner. A deterministic Hook
+  regression pins the exact five-card remainder and six-card continuation.
+- Focused local validation: **62 passed in 3.84s**. Full R4 transition
+  validation: **177 passed in 8.13s**. The exact checkpoint-backed episode
+  55,874 replay now completes as a 13-transition loss with episode SHA-256
+  `1c773e62077c0242dc2b685cf756ada6b8020403de43e32d1d2a73409cd3ef51`;
+  `committed=false` and the campaign checkpoint remains unchanged.
+- GitHub Actions run `38431523581`, job `115414640257`. Actual job log:
+  **3251 passed, 1618 deselected in 210.14s**.
+
 ## Exact active task
 
 Run the operator-managed headless PPO campaign continuously from completed batch
-87 until either the frozen 1,024-batch schedule completes or the first command
+211 until either the frozen 1,024-batch schedule completes or the first command
 failure stops the loop. This is a training continuation, not a live Balatro run
 or a new development phase.
 
