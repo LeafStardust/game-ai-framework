@@ -402,7 +402,8 @@ def apply_supported_ordinary_play(
     are never mutated. A cleared blind stops at the established headless
     ``ROUND_EVAL`` boundary with zones still distributed; R2 cash-out owns later
     round-end repopulation. A failed final hand stops at ``GAME_OVER``. Otherwise
-    the retained physical draw order refills the visible hand exactly.
+    the retained physical draw order refills the visible hand up to capacity,
+    stopping at the exact remaining-deck boundary without a mid-blind reshuffle.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -521,18 +522,19 @@ def apply_supported_ordinary_play(
         next_state.phase = "GAME_OVER"
         return next_run
 
-    missing = next_state.hand_size - len(next_state.hand)
-    if missing > len(next_run.draw_pile):
-        raise HeadlessTransitionError(
-            "R4 baseline Play does not yet own deck-exhaustion redraw semantics"
-        )
     if _is_fish_context(next_state):
         return draw_fish_post_play_cards(next_run)
     if _is_wheel_context(next_state):
         return draw_wheel_post_play_cards(next_run)
     if _is_mark_context(next_state):
         return draw_mark_post_play_cards(next_run)
-    while len(next_run.public.hand) < next_run.public.hand_size:
+    # Vanilla draws only the available remainder when the deck contains fewer
+    # cards than the free hand capacity. Discarded/played cards do not reshuffle
+    # during the blind, so the next decision may legitimately have a short hand.
+    while (
+        len(next_run.public.hand) < next_run.public.hand_size
+        and next_run.draw_pile
+    ):
         next_run = draw_one_supported_card_to_hand(next_run)
 
     return next_run

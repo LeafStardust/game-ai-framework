@@ -70,6 +70,56 @@ def test_env_r4_hook_play_composes_forced_discards_before_scoring_and_redraw():
     assert run.rng_snapshot() == rng_before
 
 
+def test_env_r4_hook_play_draws_available_deck_tail_and_continues_with_short_hand():
+    run = _hook_play_run(
+        seed="R4-HOOK-SHORT-DRAW",
+        requirement=9999,
+        hands_remaining=2,
+    )
+    moved = run.draw_pile[:-5]
+    kept = run.draw_pile[-5:]
+    kept_ids = {id(card) for card in kept}
+    run.draw_pile = kept
+    run.public.deck = [card for card in run.public.deck if id(card) in kept_ids]
+    run.discard_pile.extend(moved)
+    run.public.discard_pile.extend(moved)
+
+    selected_indices = (1, 2, 3, 4, 5)
+    selected = [_card_signature(run.public.hand[index]) for index in selected_indices]
+    expected_discard, expected_rng = _expected_hook_press_play(run, selected_indices)
+    remaining_hand = {
+        _card_signature(card)
+        for index, card in enumerate(run.public.hand)
+        if index not in selected_indices
+    }
+    drawn = {_card_signature(card) for card in kept}
+    before_rng = run.rng_snapshot()
+
+    result = apply_supported_ordinary_play(run, selected_indices)
+
+    assert result.public.score < result.public.blind.requirement
+    assert result.public.phase == "SELECTING_HAND"
+    assert result.public.hands_remaining == 1
+    assert len(result.public.hand) == 6
+    assert {_card_signature(card) for card in result.public.hand} == (
+        remaining_hand - set(expected_discard)
+    ) | drawn
+    assert result.draw_pile == []
+    assert result.public.deck == []
+    assert [_card_signature(card) for card in result.public.discard_pile] == [
+        *expected_discard,
+        *selected,
+    ]
+    assert result.rng_snapshot() == expected_rng
+    assert result.rng_snapshot() != before_rng
+    assert result.played_pile == []
+
+    assert len(run.public.hand) == 8
+    assert len(run.draw_pile) == 5
+    assert len(run.discard_pile) == 39
+    assert run.rng_snapshot() == before_rng
+
+
 def test_env_r4_hook_play_applies_forced_discards_on_blind_clearing_hand_without_redraw():
     run = _hook_play_run(seed="R4-HOOK-CLEAR", requirement=1)
     selected = [_card_signature(run.public.hand[0])]
