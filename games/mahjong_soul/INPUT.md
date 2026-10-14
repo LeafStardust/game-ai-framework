@@ -179,3 +179,13 @@ creating another instance loses its in-memory duplicate ledger.
 
 The discard CLI now uses this controller. Native backend delivery still needs a
 live test; no additional real input was sent for controller validation.
+
+## Native backend validation
+
+On 2026-10-14, the repository WindowsMouse backend and InputController were
+verified in a fresh four-player Steam AI room at 925x520 client size. Native
+selection raised the separated drawn `4m` at seat 3, step 7. After screenshot
+verification, a native confirmation click produced live own discard at step 8
+and returned the controller to idle. The computer-use plugin supplied screenshots
+only; both mouse clicks were sent by the repository backend. This verifies this
+window/layout and two-click flow, not every DPI/window size or action button.

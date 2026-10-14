@@ -70,3 +70,13 @@ Live added/open kan, reconnect restoration, special modes, and action execution
 remain unverified. Offline tests cover kan variants and restoration. No agent
 decisions or automatic game actions were sent. Raw captures remain local in
 ignored logs; only this sanitized report is committed.
+
+## Native input validation
+
+A fresh four-player AI room verified repository-native mouse selection and
+confirmation through the shared controller. Own absolute seat 3 selected the
+drawn `4m` from step 7, then discarded it at step 8 after visual selection
+verification. The controller received the matching live event and returned idle.
+The client was 925x520. This was an explicit input test; no decision policy was
+connected. Screenshots came from computer-use, while both clicks came from the
+repository Windows backend.

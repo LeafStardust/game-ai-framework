@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified repository-native Mahjong Soul mouse delivery and shared-controller acknowledgement in a Steam AI room: selected and discarded the drawn tile using the observed two-click flow.
+
 - Added shared Mahjong Soul input coordination across discard/Pon/Chi with timeout/disconnect blocking, explicit newer-board recovery, and duplicate protection scoped to authenticated game generation and round.
 
 - Added visually verified multi-choice Chi selection with exact combination-order guards; a live three-choice Steam panel confirmed selection of a red-five meld without conflating the ordinary-five alternative.
