@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added visually verified multi-choice Chi selection with exact combination-order guards; a live three-choice Steam panel confirmed selection of a red-five meld without conflating the ordinary-five alternative.
+
 - Added guarded single-choice Chi input with exact tile/source confirmation; verified a Steam UI Chi through the live reader. Multiple-combination panels remain blocked pending calibration.
 
 - Added guarded single-choice Pon input and action-context-bound discard layouts; live UI tests confirmed a leftmost discard and Pon, while ambiguous call panels remain blocked.

@@ -98,7 +98,7 @@ class ChiPlan:
     expires: float
 
 
-def plan_chi(report, profile, *, now=None):
+def plan_chi(report, profile, *, combination=None, visible_combinations=None, now=None):
     if not report.get("state_ready"):
         raise ValueError("Reader is not ready")
     state = report["state"]
@@ -107,8 +107,21 @@ def plan_chi(report, profile, *, now=None):
     if operation.get("seat") != state["seat"] or len(choices) != 1:
         raise ValueError("No own Chi operation")
     combinations = choices[0].get("combination", [])
-    if len(combinations) != 1:
-        raise ValueError("Chi choice panel requires explicit mapping")
+    multi = len(combinations) > 1
+    if multi:
+        if (combination not in combinations or profile.get("stage") != "chi_choices"
+                or profile.get("combinations") != combinations or visible_combinations != combinations):
+            raise ValueError("Chi choice panel requires verified visible combination order")
+        points = profile.get("choice_points", [])
+        if len(points) != len(combinations):
+            raise ValueError("Chi choice coordinates do not match the panel")
+        selected = combinations.index(combination)
+    else:
+        if len(combinations) != 1 or combination not in (None, combinations[0]):
+            raise ValueError("No matching Chi combination")
+        if profile.get("stage") == "chi_choices":
+            raise ValueError("Choice panel profile cannot click a single-choice button")
+        selected = 0
     source = state["turn"]
     if (state["player_count"] != 4 or source != (state["seat"] - 1) % 4
             or (report.get("last_event") or {}).get("name") != "ActionDiscardTile"):
@@ -116,7 +129,7 @@ def plan_chi(report, profile, *, now=None):
     river = state["discards"][source]
     if not river or river[-1].get("called") is not False:
         raise ValueError("Chi source discard is uncertain")
-    own_tiles = combinations[0].split("|")
+    own_tiles = combinations[selected].split("|")
     hand = list(state["hand"])
     if len(own_tiles) != 2:
         raise ValueError("Unsupported Chi combination")
@@ -136,7 +149,7 @@ def plan_chi(report, profile, *, now=None):
             or profile.get("operation_types") != [item.get("type") for item in operation["operation_list"]]):
         raise ValueError("Call-button layout is not verified for this offer")
     width, height = profile["client_size"]
-    x, y = profile["chi"]
+    x, y = points[selected] if multi else profile["chi"]
     if type(width) is not int or type(height) is not int or min(width, height) <= 0 or not 0 < x < 1 or not 0 < y < 1:
         raise ValueError("Invalid call-button coordinates")
     return ChiPlan(board_token(report), report["game_connection"], state["step"], state["seat"],

@@ -80,3 +80,45 @@ def test_chi_rejects_ambiguous_or_inconsistent_offer(problem):
     if problem == "not_sequence": state["discards"][3][0]["tile"] = "9p"
     if problem == "unknown_discard": state["discards"][3][0]["called"] = None
     with pytest.raises(ValueError): plan_chi(report, profile, now=10)
+
+
+def multi_chi_offer():
+    report, _ = chi_offer()
+    state = report["state"]
+    state["hand"] = ["2m", "4m", "0m", "5m"]
+    state["discards"][3][0]["tile"] = "3m"
+    combinations = ["2m|4m", "4m|0m", "4m|5m"]
+    state["operations"]["operation_list"][0]["combination"] = combinations
+    profile = {"version": 1, "verified": True, "client_size": [925, 520],
+               "operation_types": [2], "stage": "chi_choices", "combinations": list(combinations),
+               "choice_points": [[0.38, 0.72], [0.49, 0.72], [0.60, 0.72]]}
+    return report, profile, combinations
+
+
+def test_multi_chi_chooses_exact_red_combination_and_coordinate():
+    from games.mahjong_soul.live.runtime.calls import plan_chi, ChiExecutor
+    report, profile, combinations = multi_chi_offer()
+    plan = plan_chi(report, profile, combination="4m|0m", visible_combinations=list(combinations), now=10)
+    assert plan.tiles == ("4m", "0m", "3m")
+    mouse = Mouse(); executor = ChiExecutor(mouse)
+    executor.execute(plan, report, enabled=True, now=11)
+    assert mouse.clicks == [(0.49, 0.72, 925, 520)]
+    event = {"name": "ActionChiPengGang", "step": 1, "source": "live",
+             "data": {"seat": 0, "tiles": ["4m", "5m", "3m"], "froms": [0, 0, 3]}}
+    assert not executor.observe("game", event)
+    event["data"]["tiles"][1] = "0m"
+    assert executor.observe("game", event)
+
+
+@pytest.mark.parametrize("problem", ["unobserved", "reordered", "profile_order", "missing_point", "unknown_choice"])
+def test_multi_chi_rejects_unverified_or_changed_panel(problem):
+    from games.mahjong_soul.live.runtime.calls import plan_chi
+    report, profile, combinations = multi_chi_offer()
+    visible, choice = list(combinations), "4m|0m"
+    if problem == "unobserved": visible = None
+    if problem == "reordered": visible.reverse()
+    if problem == "profile_order": profile["combinations"].reverse()
+    if problem == "missing_point": profile["choice_points"].pop()
+    if problem == "unknown_choice": choice = "5m|6m"
+    with pytest.raises(ValueError):
+        plan_chi(report, profile, combination=choice, visible_combinations=visible, now=10)

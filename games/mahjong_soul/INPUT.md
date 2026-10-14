@@ -114,11 +114,29 @@ Chi combination. Profiles use a `chi` point and the full `operation_types` offer
 order, following the same layout guards as Pon. Planning requires a known uncalled
 discard from the previous seat and the two exact contributed own tiles.
 Confirmation checks the resulting sequence, exact red-five identity, and tile
-source seats. Multiple combinations remain rejected until the choice panel is
-visually calibrated.
+source seats. Multiple combinations require an explicitly observed and calibrated choice panel.
 
 The live 925x520 Chi-only offer was clicked at the same button location as the
 Pon-only offer and immediately produced own `5s/6s/7s` Chi at step 80, with
 contributions from seats `0/0/3`. There was one combination and no intermediate
-choice panel. Native backend delivery, combined button offers, and multi-choice
-panels remain unverified.
+choice panel. Native backend delivery, combined button offers, and other choice-panel layouts remain unverified.
+
+## Multi-choice Chi panel
+
+For an already open panel, use
+`plan_chi(report, profile, combination="4m|0m", visible_combinations=observed_order)`.
+The profile must have `stage: "chi_choices"`, the exact ordered `combinations`,
+and one normalized `choice_points` coordinate per combination. Both the saved
+profile and the currently visually observed order must match the server offer.
+Do not supply the server list as a substitute for screen observation. A stale
+profile, reordered choices, missing points, or absent selected combination blocks
+input. `ChiExecutor` then clicks the selected point once and requires the exact
+meld, including red-five identity and source seats, as confirmation.
+
+A live three-choice panel showed `2m|4m`, `4m|0m`, and `4m|5m` from left to right.
+Selecting the middle group produced `4m/0m/3m` at own seat 0, step 89, with sources
+`0/0/3`. That validates this 925x520 layout and red/ordinary-five distinction.
+The user opened the panel before calibration; automatic menu opening has not
+been live-verified. Two-choice panels and other UI scales need separate profiles.
+Multi-choice Pon, kan, riichi/win/pass execution, native backend delivery, and a
+shared input coordinator remain outstanding. No decision policy is connected.
