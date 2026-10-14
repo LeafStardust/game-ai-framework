@@ -26,15 +26,23 @@ def main():
         for line_number, line in enumerate(stream, 1):
             try:
                 row = json.loads(line)
+                if not isinstance(row, dict):
+                    raise ValueError("Capture row must be an object")
+                if not isinstance(row.get("connection"), str) or not row["connection"]:
+                    raise ValueError("Invalid capture connection")
                 if row.get("event") == "connection_closed":
                     writer.close_connection(row["connection"], row.get("timestamp"))
                     closures += 1
                     continue
+                if row.get("event"):
+                    raise ValueError("Unknown capture control event")
+                if row["direction"] not in ("client", "server"):
+                    raise ValueError("Invalid capture direction")
                 record = writer.record(connection=row["connection"], host=row["host"],
                                        content=base64.b64decode(row["raw_base64"], validate=True),
                                        from_client=row["direction"] == "client",
-                                       timestamp=row["timestamp"])
-            except (ValueError, KeyError) as error:
+                                       timestamp=row["timestamp"], is_text=row.get("is_text", False))
+            except (ValueError, KeyError, TypeError) as error:
                 parser.error(f"Invalid capture row {line_number}: {error}")
             count += 1
             errors += "decode_error" in record

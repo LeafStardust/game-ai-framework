@@ -104,6 +104,9 @@ can still contain credentials and account information, so keep captures local.
 Stop with Ctrl+C, remove the game routing rule, and remove certificate trust when
 no longer needed. Captures are under the repository's ignored `logs/` directory.
 
+See [the reader interface guide](READER_API.md) for consumer fields, readiness,
+and lifecycle requirements.
+
 ## Live state reader
 
 In a second terminal in this worktree:

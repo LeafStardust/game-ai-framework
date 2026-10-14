@@ -110,7 +110,9 @@ class GameReader:
     def snapshot(self):
         entry = self.connections.get(self.latest_game_connection)
         state = entry[1].snapshot() if entry else deepcopy(getattr(self, "closed_state", None))
-        return {"frames": self.frames, "actions": dict(self.actions), "last_event": deepcopy(self.last_event), "game_connection": self.latest_game_connection,
+        ready = bool(entry and state and state["status"] == "tracking" and state["seat"] is not None
+                     and not state["issues"] and state["visibility_complete"])
+        return {"state_ready": ready, "frames": self.frames, "actions": dict(self.actions), "last_event": deepcopy(self.last_event), "game_connection": self.latest_game_connection,
                 "connection_open": bool(entry), "closed_connections": self.closed_connections,
                 "schema_warnings": [{"method": method, "warning": warning, "count": count} for (method, warning), count in self.warnings.items()],
                 "decode_errors": [{"method": method, "error": error, "count": count}

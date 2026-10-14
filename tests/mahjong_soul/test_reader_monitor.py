@@ -234,3 +234,22 @@ def test_authentication_resets_old_board_on_reused_connection():
     assert state["hand"] == [] and state["scores"] == []
     assert state["status"] == "waiting_for_round"
     assert reader.snapshot()["last_event"] is None
+
+
+def test_state_readiness_blocks_unknown_closed_and_incomplete_states():
+    start = record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"1m"))))
+    unknown = GameReader(schema())
+    assert not unknown.snapshot()["state_ready"]
+    unknown.consume(start)
+    assert not unknown.snapshot()["state_ready"]
+    reader = GameReader(schema(), seat=0)
+    reader.consume(start)
+    assert reader.snapshot()["state_ready"]
+    saved = reader.snapshot()
+    saved["state"]["hand"].clear()
+    assert reader.snapshot()["state"]["hand"] == ["1m"]
+    reader.consume(record(wrapper(1, ".lq.ActionUnknown", b"")))
+    assert not reader.snapshot()["state_ready"]
+    reader.consume(start)
+    reader.close_connection("game")
+    assert not reader.snapshot()["state_ready"]
