@@ -5,6 +5,7 @@ from threading import RLock
 import time
 
 from games.mahjong_soul.live.runtime.input import DiscardPlan, DiscardExecutor, board_token
+from games.mahjong_soul.live.runtime.skip import SkipPlan, SkipExecutor
 from games.mahjong_soul.live.runtime.calls import PonPlan, PonExecutor, ChiPlan, ChiExecutor
 
 
@@ -13,7 +14,7 @@ class InputController:
         if confirmation_timeout <= 0:
             raise ValueError("Confirmation timeout must be positive")
         self._executors = {DiscardPlan: DiscardExecutor(backend),
-                           PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend)}
+                           PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend), SkipPlan: SkipExecutor(backend)}
         self._lock = RLock()
         self._active = None
         self._active_key = None
@@ -92,6 +93,24 @@ class InputController:
                     and event.get("name") in ("ActionDiscardTile", "ActionChiPengGang", "ActionAnGangAddGang")
                     and event.get("data", {}).get("seat", 0) == plan.seat):
                 self._blocked = "A different own action was observed; inspect before recovery"
+            return False
+
+    def observe_message(self, connection, decoded, from_client, *, now=None):
+        """Feed RPC messages as well as action events for Skip confirmation."""
+        with self._lock:
+            executor = self._executors[SkipPlan]
+            if self._active is not executor or self._blocked:
+                return False
+            if self._deadline is not None and self._now(now) >= self._deadline:
+                self._blocked = "Action confirmation timed out; no automatic retry"
+                return False
+            if executor.observe_message(connection, decoded, from_client):
+                self._active = None
+                self._active_key = None
+                self._deadline = None
+                return True
+            if executor.failed:
+                self._blocked = "Skip cancellation was rejected by the server"
             return False
 
     def update(self, report, *, now=None):

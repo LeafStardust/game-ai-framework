@@ -193,3 +193,24 @@ window/layout and two-click flow, not every DPI/window size or action button.
 Pon planning also checks the latest known uncalled opponent discard. Matching
 only normalized tile kinds is insufficient: red-five contribution and source
 identity must match exactly, as in the Chi path.
+
+## Skip input
+
+`skip.plan_skip(report, profile)` supports declining a visible call offer. A
+profile uses `stage: "call_offer"`, the full ordered `operation_types`, and a
+normalized `skip` point. A choice-panel profile cannot act as an offer profile.
+Planning accepts Chi/Pon/open-kan/ron operation codes only when the exact offer
+layout is visually verified; the current live evidence covers Chi-only offers.
+
+Submit Skip through `InputController`. In addition to game events, feed each
+decoded RPC using `observe_message(connection, decoded, from_client)`. Confirmation
+requires the newly observed client `inputChiPengGang` cancellation request and
+its matching successful server response on the same connection and request ID.
+A later draw is not sufficient. Error replies block the controller.
+
+The reader clears operations only after successful acknowledgement of the
+current step's cancellation. Delayed acknowledgement cannot clear a later
+action's operations. A live Chi-only Skip at step 34 sent
+`cancel_operation=true`, received the successful matching response (request 78),
+and advanced to own draw at step 35. The click used computer-use; native Skip
+delivery remains unverified. Kan, riichi and win input still need calibration.

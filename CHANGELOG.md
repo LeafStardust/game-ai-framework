@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added guarded Mahjong Soul Skip input confirmed by a connection/request-matched cancellation acknowledgement; verified a live Chi-offer skip and prevented delayed acknowledgements from clearing newer operations.
+
 - Hardened Mahjong Soul Pon planning and confirmation to require the exact uncalled source discard, contributed red-five identities, and tile source seats.
 
 - Verified repository-native Mahjong Soul mouse delivery and shared-controller acknowledgement in a Steam AI room: selected and discarded the drawn tile using the observed two-click flow.

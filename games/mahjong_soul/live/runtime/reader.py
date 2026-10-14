@@ -24,10 +24,12 @@ class GameReader:
         self.connection_events = {}
         self.closed_connections = 0
         self.game_generations = Counter()
+        self.cancel_requests = {}
 
     def close_connection(self, connection):
         # Keep the last visible snapshot for display after the socket closes.
         entry = self.connections.pop(connection, None)
+        self.cancel_requests.pop(connection, None)
         if entry:
             self.closed_connections += 1
             if connection == self.latest_game_connection:
@@ -56,10 +58,21 @@ class GameReader:
                     method = pending[0]
             decoded = decoder.decode(content, from_client)
             result["liqi"] = decoded
+            cancellations = self.cancel_requests.setdefault(connection, {})
+            request_id = decoded.get("request_id")
+            if decoded["kind"] == "request" and from_client:
+                cancellations.pop(request_id, None)
+                if method == ".lq.FastTest.inputChiPengGang" and decoded.get("data", {}).get("cancel_operation") is True:
+                    cancellations[request_id] = state.last_step
+            elif decoded["kind"] == "response" and not from_client and method == ".lq.FastTest.inputChiPengGang":
+                request_step = cancellations.pop(request_id, None)
+                if request_step is not None and request_step == state.last_step and not decoded.get("data", {}).get("error", {}).get("code", 0):
+                    state.operations = None
             if decoded.get("schema_warning"):
                 self.warnings[(decoded["method"], decoded["schema_warning"])] += 1
             if decoded["method"] == ".lq.FastTest.authGame" and decoded["kind"] == "response":
                 self.game_generations[connection] += 1
+                cancellations.clear()
                 inferred_seat = self.seat if self.seat is not None else decoded.get("own_seat")
                 seats = decoded.get("data", {}).get("seat_list", [])
                 player_count = len(seats) if len(seats) in (3, 4) else state.player_count
