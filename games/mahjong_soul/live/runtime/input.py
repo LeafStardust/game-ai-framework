@@ -38,6 +38,8 @@ def plan_discard(report, profile, slot, tile, *, now=None):
         raise ValueError("Expected tile is not in the own hand")
     if profile.get("version") != 1 or profile.get("verified") is not True:
         raise ValueError("Layout has not been calibrated and verified")
+    if profile.get("trigger") != (report.get("last_event") or {}).get("name"):
+        raise ValueError("Layout action context does not match")
     if profile.get("hand_count") != len(state["hand"]):
         raise ValueError("Hand layout does not match")
     width, height = profile["client_size"]

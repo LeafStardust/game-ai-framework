@@ -8,7 +8,7 @@ handling. No coordinates are enabled by default.
 ## Calibrated layout
 
 A profile is a local JSON object with `version: 1`, `verified: true`,
-`client_size: [width, height]`, `hand_count`, and `slots: [[x, y], ...]`.
+`client_size: [width, height]`, `hand_count`, `trigger` (the reader last-event name), and `slots: [[x, y], ...]`.
 Coordinates are fractions inside the game client area, not the whole desktop.
 Each slot must be verified visually for that exact hand layout and window size,
 including the separated drawn tile. Profiles belong under ignored
@@ -89,3 +89,20 @@ It requires a capture modified within two seconds and never automatically sends
 a selection-confirmation click. Held turns may fail that conservative freshness
 check; the screenshot-aware consumer interface above is the appropriate path
 for explicit selection handling.
+
+## Pon input
+
+`calls.plan_pon(report, profile)` and `calls.PonExecutor(backend)` support a
+single server-provided Pon combination. Profiles contain `version: 1`,
+`verified: true`, `client_size`, `operation_types` matching the full offer order,
+and a normalized `pon` point. Multiple red-five combinations are rejected until
+their choice panel is calibrated. Confirmation requires a live own Pon with the
+expected tile kind. Keep a shared input coordinator when integrating executors;
+these primitives do not prevent another executor instance from sending input.
+
+Live UI calibration also verified leftmost `2m` discard at step 51 and a
+single-choice `9s` Pon at step 56. The Pon-only button layout differs from offers
+with multiple action buttons. Discard profiles must match the last-event trigger:
+an equal hand count after draw and after call does not imply equal positions.
+The native backend remains unverified for delivery; the UI tests used the
+computer-use plugin, with decoded live game events as confirmation.

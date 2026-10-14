@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added guarded single-choice Pon input and action-context-bound discard layouts; live UI tests confirmed a leftmost discard and Pon, while ambiguous call panels remain blocked.
+
 - Verified Mahjong Soul two-click discard selection/confirmation through the Steam UI and live game events; added explicit visual-confirmation guards and a dry-run input CLI. Native backend delivery and call-panel calibration remain pending.
 
 - Added opt-in Mahjong Soul discard planning and Windows mouse input with calibrated client coordinates, foreground/board checks, expiry, repeat prevention, and live-event confirmation; native clicks await live calibration.

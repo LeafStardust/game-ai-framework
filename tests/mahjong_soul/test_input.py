@@ -11,7 +11,7 @@ def inputs():
     reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"0p")))))
     reader.connections["game"][1].operations = {"seat": 0, "operation_list": [{"type": 1}]}
     return reader.snapshot(), {"version": 1, "verified": True, "client_size": [1280, 720],
-                               "hand_count": 1, "slots": [[0.5, 0.9]]}
+                               "trigger": "ActionNewRound", "hand_count": 1, "slots": [[0.5, 0.9]]}
 
 
 class Mouse:
@@ -117,3 +117,10 @@ def test_partial_input_failure_cannot_be_confirmed_as_selection():
     with pytest.raises(OSError): executor.execute(plan, report, enabled=True, now=11)
     with pytest.raises(ValueError, match="No delivered"):
         executor.confirm_selection(plan, report, "0p", enabled=True, now=11)
+
+
+def test_same_tile_count_with_different_action_context_is_rejected():
+    report, profile = inputs()
+    profile["trigger"] = "ActionChiPengGang"
+    with pytest.raises(ValueError, match="action context"):
+        plan_discard(report, profile, 0, "0p", now=10)
