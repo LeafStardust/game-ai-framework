@@ -21,11 +21,15 @@ def main():
     if source == output or output.exists():
         parser.error("output must be a new file distinct from the capture")
     writer = CaptureWriter(output, LiqiSchema.load(args.schema), args.seat, args.action_encoding)
-    count, errors = 0, 0
+    count, errors, closures = 0, 0, 0
     with source.open(encoding="utf-8") as stream:
         for line_number, line in enumerate(stream, 1):
             try:
                 row = json.loads(line)
+                if row.get("event") == "connection_closed":
+                    writer.close_connection(row["connection"], row.get("timestamp"))
+                    closures += 1
+                    continue
                 record = writer.record(connection=row["connection"], host=row["host"],
                                        content=base64.b64decode(row["raw_base64"], validate=True),
                                        from_client=row["direction"] == "client",
@@ -34,7 +38,7 @@ def main():
                 parser.error(f"Invalid capture row {line_number}: {error}")
             count += 1
             errors += "decode_error" in record
-    print(f"Decoded {count} frames; {errors} decode errors. Output: {output}")
+    print(f"Decoded {count} frames; {errors} decode errors; {closures} connection closures. Output: {output}")
 
 
 if __name__ == "__main__":

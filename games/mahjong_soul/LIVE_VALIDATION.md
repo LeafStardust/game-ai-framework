@@ -36,15 +36,37 @@ Raw captures and replay files remain local under ignored `logs/mahjong_soul/`.
 They are not committed. The test capture and redirector were stopped afterward;
 the game process remained running.
 
+## Four-player validation and restart
+
+A subsequent four-player AI room identified the human as absolute seat 2. Its
+first two rounds ended with 149 and 87 contiguous actions; a third round had
+82 contiguous actions before the client was closed. Four pons and two chis
+verified contributed-tile removal and called-discard marking. The room could
+not be rejoined, so this attempt did not validate live restoration.
+
+After restarting Steam Mahjong Soul, a fresh four-player AI match completed:
+
+| Round (wind, dealer, repeat) | Actions | End | Scores by absolute seat |
+| --- | ---: | --- | --- |
+| 0, 0, 0 | 147 | Exhaustive draw | 25,500 / 23,500 / 23,500 / 26,500 |
+| 0, 0, 1 | 39 | Win | 25,500 / 30,000 / 23,500 / 21,000 |
+| 0, 1, 0 | 124 | Win | 24,500 / 28,000 / 27,500 / 20,000 |
+| 0, 2, 0 | 131 | Win | 36,500 / 28,000 / 27,500 / 8,000 |
+| 0, 3, 0 | 144 | Win | 34,500 / 36,000 / 25,500 / 4,000 |
+
+All 685 actions were contiguous within their rounds, with no conflicting
+duplicates, game decoding errors, or historical state issues. The match included
+ten pons, five chis, and one concealed kan. Exhaustive-draw score settlement and
+final `match_ended` status were verified. Fresh authentication reset the old board.
+
 ## Limits
 
-One later `.lq.Lobby.fetchAccountActivityData` response failed typed decoding:
-`lq.ActivityShootData.level` is length-delimited on the current server, while
-this reference schema declares a scalar uint32. Its original frame and decoding
-error were retained. This was a lobby connection and did not interrupt game
-state reconstruction. The reference JSON has not been altered to guess its new
-meaning.
+The current server exposes lobby activity fields and an RPC absent from the
+reference schema. Those payloads remain opaque with explicit schema warnings;
+request/response correlation and original bytes are retained. Game decoding
+remains strict. The reference JSON has not been altered to guess field meanings.
 
-This test does not verify four-player play, concealed/added kan, reconnect
-snapshots, special modes, or action execution. Kan and reconnect handling remain
-covered by offline tests. No agent decisions or automatic game actions were sent.
+Live added/open kan, reconnect restoration, special modes, and action execution
+remain unverified. Offline tests cover kan variants and restoration. No agent
+decisions or automatic game actions were sent. Raw captures remain local in
+ignored logs; only this sanitized report is committed.

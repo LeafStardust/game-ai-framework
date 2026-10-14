@@ -31,7 +31,10 @@ class LiqiDecoder:
         if kind == "request":
             route = self.schema.methods.get(method)
             if route is None:
-                raise ValueError(f"Unknown RPC: {method}")
+                self.pending[(not from_client, request_id)] = (method, None)
+                if self._game_method(method):
+                    raise ValueError(f"Unknown game RPC: {method}")
+                return self._opaque(envelope, method, f"Unknown RPC: {method}")
             message_type, response_type = route
             # Response travels in the opposite direction, keyed independently.
             self.pending[(not from_client, request_id)] = (method, response_type)
@@ -42,7 +45,16 @@ class LiqiDecoder:
             method, message_type = route
         else:
             message_type = method.lstrip(".")
-        data = self.schema.decode(message_type, payload)
+        if message_type is None:
+            if self._game_method(method):
+                raise ValueError(f"Unknown response schema: {method}")
+            return self._opaque(envelope, method, f"Unknown response schema: {method}")
+        try:
+            data = self.schema.decode(message_type, payload)
+        except ValueError as error:
+            if self._game_method(method):
+                raise
+            return self._opaque(envelope, method, str(error))
         if method == ".lq.FastTest.authGame":
             if kind == "request" and from_client:
                 self.account_id = data.get("account_id")
@@ -63,6 +75,15 @@ class LiqiDecoder:
             if "snapshot" in restore:
                 envelope["restore_snapshot"] = restore["snapshot"]
         envelope["events"] = events
+        return envelope
+
+    @staticmethod
+    def _game_method(method):
+        return method.startswith(".lq.FastTest.") or method.startswith(".lq.Action") or method in (".lq.NotifyGameEndResult", ".lq.NotifyGameTerminate")
+
+    @staticmethod
+    def _opaque(envelope, method, warning):
+        envelope.update({"method": method, "data": {}, "events": [], "schema_warning": warning})
         return envelope
 
     def _action(self, action, live):

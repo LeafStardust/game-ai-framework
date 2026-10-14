@@ -38,7 +38,7 @@ class CaptureTail:
                 continue
             try:
                 row = json.loads(line)
-                if not isinstance(row, dict) or not all(key in row for key in ("connection", "raw_base64", "direction")):
+                if not isinstance(row, dict) or not (all(key in row for key in ("connection", "raw_base64", "direction")) or (row.get("event") == "connection_closed" and "connection" in row)):
                     raise ValueError("Invalid capture row")
                 rows.append(row)
             except (ValueError, UnicodeError):
@@ -48,12 +48,12 @@ class CaptureTail:
 
 def render(summary, path=None, bad_rows=0):
     lines = ["MAHJONG SOUL READER", f"Capture: {path or 'none yet'}",
-             f"Frames: {summary['frames']} | Game actions: {sum(summary['actions'].values())} | Decode errors: {sum(item['count'] for item in summary['decode_errors'])} | Malformed rows: {bad_rows}"]
+             f"Frames: {summary['frames']} | Game actions: {sum(summary['actions'].values())} | Decode errors: {sum(item['count'] for item in summary['decode_errors'])} | Schema warnings: {sum(item['count'] for item in summary['schema_warnings'])} | Malformed rows: {bad_rows}"]
     state = summary["state"]
     if not state:
         lines.append("Waiting for a game connection / round start.")
     else:
-        lines.extend([f"Status: {state['status']} | Players: {state['player_count']} | Own seat: {state['seat']} | Step: {state['step']}",
+        lines.extend([f"Status: {state['status']} | Connection: {'open' if summary['connection_open'] else 'closed'} | Players: {state['player_count']} | Own seat: {state['seat']} | Step: {state['step']}",
                       f"Round: {state['round']} | Last actor: {state['turn']} | Wall: {state['left_tile_count']}",
                       "Hand: " + " ".join(state['hand']), "Dora indicators: " + " ".join(state['doras'])])
         for seat in range(state['player_count']):
@@ -71,6 +71,8 @@ def render(summary, path=None, bad_rows=0):
             lines.append("State issues: " + "; ".join(state['issues']))
     if summary['decode_errors']:
         lines.append("Decode diagnostics: " + "; ".join(f"{item['method']}: {item['error']} ({item['count']})" for item in summary['decode_errors']))
+    if summary["schema_warnings"]:
+        lines.append("Opaque lobby diagnostics: " + "; ".join(f"{item['method']}: {item['warning']} ({item['count']})" for item in summary["schema_warnings"]))
     lines.append("Tiles: m=characters, p=circles, s=bamboo, z=honors; 0=red five. * = called discard; R = riichi discard.")
     return "\n".join(lines)
 

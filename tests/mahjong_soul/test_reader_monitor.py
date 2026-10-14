@@ -17,11 +17,11 @@ def test_reader_keeps_game_when_lobby_decoder_fails():
     frame = wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"1m")))
     reader.consume(record(frame))
     failure = reader.consume(record(wrapper(1, ".lq.UnknownLobby", b""), connection="lobby"))
-    assert "decode_error" in failure
+    assert "schema_warning" in failure["liqi"]
     summary = reader.snapshot()
     assert summary["state"]["status"] == "tracking"
     assert summary["state"]["hand"] == ["1m"]
-    assert summary["decode_errors"][0]["method"] == ".lq.UnknownLobby"
+    assert summary["schema_warnings"][0]["method"] == ".lq.UnknownLobby"
     reader.close_connection("game")
     assert reader.snapshot()["state"]["hand"] == ["1m"]
 
@@ -168,3 +168,69 @@ def test_reader_flags_invalid_tile_strings():
     reader = GameReader(schema(), seat=0)
     reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"0z")))))
     assert "Visible state contains an invalid tile" in reader.snapshot()["state"]["issues"]
+
+
+def test_old_connection_traffic_cannot_replace_new_active_game():
+    document = schema().document
+    document["nested"]["lq"]["nested"]["NotifyGameEndResult"] = {"fields": {}}
+    from games.mahjong_soul.live.external.schema import LiqiSchema
+    reader = GameReader(LiqiSchema(document), seat=0)
+    reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"1m"))), connection="old"))
+    reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"2p"))), connection="new"))
+    reader.consume(record(wrapper(2, ".lq.FastTest.syncGame", b""), connection="old", client=True))
+    reader.consume(record(wrapper(1, ".lq.NotifyGameEndResult", b""), connection="old"))
+    assert reader.snapshot()["game_connection"] == "new"
+    assert reader.snapshot()["state"]["hand"] == ["2p"]
+    assert reader.snapshot()["state"]["status"] == "tracking"
+
+
+def test_connection_close_clears_operations_and_keeps_last_hand():
+    reader = GameReader(schema(), seat=0)
+    reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"1m")))))
+    result = reader.consume({"event": "connection_closed", "connection": "game"})
+    assert result["state"]["status"] == "incomplete"
+    assert reader.snapshot()["connection_open"] is False
+    assert reader.snapshot()["state"]["hand"] == ["1m"]
+    assert reader.snapshot()["state"]["operations"] is None
+    assert reader.snapshot()["closed_connections"] == 1
+
+
+def test_tail_accepts_connection_control_rows(tmp_path):
+    path = tmp_path / "capture.jsonl"
+    row = {"event": "connection_closed", "connection": "game"}
+    path.write_text(json.dumps(row) + "\n")
+    assert CaptureTail(path).read() == [row]
+
+
+def test_unknown_lobby_rpc_response_keeps_method_correlation():
+    reader = GameReader(schema(), seat=0)
+    request = wrapper(2, ".lq.Lobby.newLobbyMethod", b"", request_id=17)
+    response = wrapper(3, "", b"", request_id=17)
+    reader.consume(record(request, connection="lobby", client=True))
+    result = reader.consume(record(response, connection="lobby"))
+    assert result["liqi"]["method"] == ".lq.Lobby.newLobbyMethod"
+    assert "schema_warning" in result["liqi"]
+    assert reader.snapshot()["decode_errors"] == []
+    assert len(reader.snapshot()["schema_warnings"]) == 2
+
+
+def test_unknown_game_rpc_is_not_downgraded_to_lobby_warning():
+    reader = GameReader(schema(), seat=0)
+    reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"1m")))))
+    result = reader.consume(record(wrapper(2, ".lq.FastTest.newGameMethod", b""), client=True))
+    assert "decode_error" in result
+    assert reader.snapshot()["state"]["status"] == "incomplete"
+
+
+def test_authentication_resets_old_board_on_reused_connection():
+    reader = GameReader(schema())
+    reader.consume(record(wrapper(2, ".lq.FastTest.authGame", b"\x08\x2a", request_id=1), client=True))
+    reader.consume(record(wrapper(3, "", blob(3, b"\x2a\x00\x00\x00"), request_id=1)))
+    reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"1m")))))
+    reader.consume(record(wrapper(2, ".lq.FastTest.authGame", b"\x08\x2a", request_id=2), client=True))
+    reader.consume(record(wrapper(3, "", blob(3, b"\x00\x2a\x00"), request_id=2)))
+    state = reader.snapshot()["state"]
+    assert state["seat"] == 1 and state["player_count"] == 3
+    assert state["hand"] == [] and state["scores"] == []
+    assert state["status"] == "waiting_for_round"
+    assert reader.snapshot()["last_event"] is None

@@ -127,6 +127,7 @@ def test_real_proxy_forwards_and_records_game_events(tmp_path):
             assert not failures
             assert received == [request]
             rows = [json.loads(line) for line in capture.read_text().splitlines()]
+            rows = [row for row in rows if not row.get("event")]
             assert len(rows) == 3
             assert [row["direction"] for row in rows] == ["server", "client", "server"]
             assert rows[0]["liqi"]["events"][0]["name"] == "ActionNewRound"

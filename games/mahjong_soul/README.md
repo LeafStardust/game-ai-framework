@@ -7,8 +7,8 @@ direction, original frame bytes (base64), and decoded Liqi envelope metadata.
 Without a schema, ActionPrototype notifications expose action names and step
 numbers only. With the client's protobufjs `liqi.json`, the decoder also handles
 typed payloads, packed numeric fields, per-connection request/response matching,
-live action XOR encoding, and unencoded reconnect actions. Unknown or malformed
-frames are retained for diagnosis and mark state incomplete.
+live action XOR encoding, and unencoded reconnect actions. Unknown lobby payloads are retained with schema warnings. Malformed or unsupported
+game payloads remain decoding errors and mark game state incomplete.
 
 ## Run
 
@@ -21,8 +21,7 @@ From the Mahjong Soul worktree root, using Python 3.12 or newer:
 
 Setup creates a worktree-local `.venv` and installs only the capture dependencies
 there. It does not alter Balatro's Python environment. The capture launcher uses
-the committed `liqi-reference.json` by default; its current Steam compatibility
-still needs live verification. Override it with `--schema path/to/liqi.json` or
+the committed `liqi-reference.json` by default; its gameplay decoding has been verified in three- and four-player Steam AI rooms. Override it with `--schema path/to/liqi.json` or
 use `--raw-only` for envelope-only recording.
 
 To capture a specific Steam game process directly on Windows:
@@ -151,12 +150,34 @@ forwarding, schema decoding, state recording, and test-process cleanup. The publ
 reference schema has also been loaded and smoke-tested. Live Steam capture has
 been verified on one Steam three-player AI match: all 77 game actions decoded
 and replayed without gaps, with correct final scores and three-seat north counts.
-See [live validation](LIVE_VALIDATION.md). Four-player matches, kans, and reconnects
-still require live verification. One unrelated lobby activity reply did not match
-the reference schema; its raw frame and decoding error were retained.
+A complete four-player AI match also verified chi/pon, concealed kan, exhaustive
+draw settlement, and match-end scores across 685 contiguous actions. Restarting
+and entering a new room verified board reset. Added/open kan and reconnect
+restoration remain covered offline but need live verification. Unsupported lobby
+activity replies are retained as opaque schema warnings. See
+[live validation](LIVE_VALIDATION.md).
 
 Protocol references:
 - https://github.com/MahjongRepository/mahjong_soul_api
 - https://github.com/747929791/majsoul_wrapper
 - https://docs.mitmproxy.org/stable/api/mitmproxy/websocket.html
 - https://github.com/shinkuan/Akagi/blob/v3/src/bridge/majsoul/parser.rs (wire-format reference)
+
+## Capture lifecycle and auditing
+
+Capture format version 2 includes `connection_closed` control rows. The reader
+clears available operations when a game connection closes and marks an unfinished
+game incomplete until restoration or a new round. Old connections cannot replace
+the active board. Authentication for a new game clears the previous board even
+when the client reuses a socket. Replay preserves closure markers and timestamps.
+
+Audit a saved capture using the worktree environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m games.mahjong_soul.live.runtime.audit logs/mahjong_soul/capture.jsonl --strict
+```
+
+The report groups action steps by match and round, reports gaps, conflicting
+duplicates, calls, settlements, game errors, and separate lobby schema warnings.
+`--strict` exits nonzero for incoherent game data. A coherent prefix does not
+prove that a match ended; check the separate `match_ended` field.

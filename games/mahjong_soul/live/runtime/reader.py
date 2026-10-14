@@ -18,14 +18,24 @@ class GameReader:
         self.latest_game_connection = None
         self.frames = 0
         self.errors = Counter()
+        self.warnings = Counter()
         self.actions = Counter()
         self.last_event = None
+        self.connection_events = {}
+        self.closed_connections = 0
 
     def close_connection(self, connection):
         # Keep the last visible snapshot for display after the socket closes.
         entry = self.connections.pop(connection, None)
-        if entry and connection == self.latest_game_connection:
-            self.closed_state = entry[1].snapshot()
+        if entry:
+            self.closed_connections += 1
+            if connection == self.latest_game_connection:
+                if entry[1].status not in ("match_ended", "round_ended"):
+                    entry[1].invalidate("Game connection closed; awaiting restoration")
+                entry[1].operations = None
+                self.closed_state = entry[1].snapshot()
+            return entry[1].snapshot()
+        return None
 
     def read(self, connection, content, from_client, is_text=False):
         self.frames += 1
@@ -45,22 +55,33 @@ class GameReader:
                     method = pending[0]
             decoded = decoder.decode(content, from_client)
             result["liqi"] = decoded
-            if "own_seat" in decoded and self.seat is None:
-                state.seat = decoded["own_seat"]
+            if decoded.get("schema_warning"):
+                self.warnings[(decoded["method"], decoded["schema_warning"])] += 1
+            if decoded["method"] == ".lq.FastTest.authGame" and decoded["kind"] == "response":
+                inferred_seat = self.seat if self.seat is not None else decoded.get("own_seat")
+                seats = decoded.get("data", {}).get("seat_list", [])
+                player_count = len(seats) if len(seats) in (3, 4) else state.player_count
+                state.__init__(inferred_seat, player_count)
+                self.connection_events.pop(connection, None)
+                if decoded.get("data", {}).get("error", {}).get("code", 0):
+                    state.invalidate("Game authentication failed")
             if "restore_snapshot" in decoded:
                 next_step = decoded["events"][0]["step"] if decoded["events"] else None
                 state.restore(decoded["restore_snapshot"], next_step)
             for event in decoded["events"]:
                 self.actions[event["name"]] += 1
                 state.apply(event)
-                self.last_event = {"name": event["name"], "step": event["step"]}
+                self.connection_events[connection] = {"name": event["name"], "step": event["step"]}
             state.validate()
             if method == ".lq.NotifyGameEndResult":
                 state.operations = None
                 if state.status != "incomplete":
                     state.status = "match_ended"
-            if decoded["events"] or "restore_snapshot" in decoded or method.startswith(".lq.FastTest.") or method == ".lq.NotifyGameEndResult":
+            strong_update = decoded["events"] or "restore_snapshot" in decoded or (method == ".lq.FastTest.authGame" and decoded["kind"] == "response")
+            end_update = method == ".lq.NotifyGameEndResult" and self.latest_game_connection in (None, connection)
+            if strong_update or end_update:
                 self.latest_game_connection = connection
+            self.last_event = deepcopy(self.connection_events.get(self.latest_game_connection))
         except (ValueError, UnicodeError) as error:
             result["decode_error"] = str(error)
             result["decode_method"] = method or None
@@ -72,6 +93,13 @@ class GameReader:
         return result
 
     def consume(self, row):
+        if row.get("event") == "connection_closed":
+            if not isinstance(row.get("connection"), str) or not row["connection"]:
+                raise ValueError("Invalid capture connection")
+            state = self.close_connection(row["connection"])
+            return {"event": "connection_closed", "state": state}
+        if row.get("event"):
+            raise ValueError("Unknown capture control event")
         if row["direction"] not in ("client", "server"):
             raise ValueError("Invalid capture direction")
         if not isinstance(row["connection"], str) or not row["connection"]:
@@ -83,5 +111,7 @@ class GameReader:
         entry = self.connections.get(self.latest_game_connection)
         state = entry[1].snapshot() if entry else deepcopy(getattr(self, "closed_state", None))
         return {"frames": self.frames, "actions": dict(self.actions), "last_event": deepcopy(self.last_event), "game_connection": self.latest_game_connection,
+                "connection_open": bool(entry), "closed_connections": self.closed_connections,
+                "schema_warnings": [{"method": method, "warning": warning, "count": count} for (method, warning), count in self.warnings.items()],
                 "decode_errors": [{"method": method, "error": error, "count": count}
                                   for (method, error), count in self.errors.items()], "state": state}

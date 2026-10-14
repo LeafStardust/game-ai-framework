@@ -260,6 +260,8 @@ class GameState:
                 self.drawn_tile = None
             self.turn = seat
         elif name in ("ActionHule", "ActionNoTile", "ActionLiuJu"):
+            if name == "ActionHule":
+                self.round["liqibang"] = 0
             if self.status != "incomplete":
                 self.status = "round_ended"
             self.operations = None
@@ -268,6 +270,8 @@ class GameState:
         return True
 
     def validate(self):
+        if self.seat is not None and not 0 <= self.seat < self.player_count:
+            self.invalidate("Own seat is outside the player count")
         valid = {str(number) + suit for suit in "mps" for number in range(1, 10)}
         valid |= {"0" + suit for suit in "mps"}
         valid |= {str(number) + "z" for number in range(1, 8)}

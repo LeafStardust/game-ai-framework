@@ -88,3 +88,15 @@ def test_numeric_endpoints_require_one_explicit_process(monkeypatch, tmp_path, h
                            websocket=SimpleNamespace(messages=[message]))
     MahjongSoulCapture().websocket_message(flow)
     assert path.exists() is expected
+
+
+def test_capture_appends_one_closure_marker_and_ignores_unknown_connections(tmp_path):
+    path = tmp_path / "capture.jsonl"
+    writer = CaptureWriter(path)
+    writer.record(connection="one", host="example", content=b"\x03\x01\x00", from_client=False, timestamp=1)
+    writer.close_connection("one", timestamp=2)
+    writer.close_connection("one", timestamp=3)
+    writer.close_connection("unrelated", timestamp=4)
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    assert len(rows) == 2
+    assert rows[1] == {"format_version": 2, "event": "connection_closed", "connection": "one", "timestamp": 2}

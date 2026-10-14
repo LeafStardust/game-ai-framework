@@ -5,6 +5,7 @@ import json
 import ipaddress
 import re
 import logging
+import time
 from pathlib import Path
 
 from games.mahjong_soul.live.external.liqi import decode_envelope
@@ -20,14 +21,28 @@ class CaptureWriter:
         self.action_encoding = action_encoding
         self.reader = GameReader(schema, seat, action_encoding) if schema is not None else None
         self.connections = self.reader.connections if self.reader else {}
+        self.captured_connections = set()
 
-    def close_connection(self, connection):
-        if self.reader:
-            self.reader.close_connection(connection)
+    def close_connection(self, connection, timestamp=None):
+        if connection not in self.captured_connections:
+            return
+        self.captured_connections.remove(connection)
+        state = self.reader.close_connection(connection) if self.reader else None
+        record = {"format_version": 2, "event": "connection_closed", "connection": connection,
+                  "timestamp": time.time() if timestamp is None else timestamp}
+        if state is not None:
+            record["state"] = state
+        self._append(record)
+        return record
+
+    def _append(self, record):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self.path.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     def record(self, *, connection, host, content, from_client, timestamp, is_text=False):
         record = {
-            "format_version": 1,
+            "format_version": 2,
             "connection": connection,
             "host": host,
             "timestamp": timestamp,
@@ -45,9 +60,8 @@ class CaptureWriter:
                 record.update(self.reader.read(connection, content, from_client, is_text))
         except (ValueError, UnicodeError) as error:
             record["decode_error"] = str(error)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+        self.captured_connections.add(connection)
+        self._append(record)
         return record
 
 
