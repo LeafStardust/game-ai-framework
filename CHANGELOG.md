@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added opt-in Mahjong Soul discard planning and Windows mouse input with calibrated client coordinates, foreground/board checks, expiry, repeat prevention, and live-event confirmation; native clicks await live calibration.
+
 - Added a versioned Mahjong Soul observation adapter with reader readiness, absolute seats, public board data, preserved server operation payloads, and independent snapshots; checked it against the completed live four-player capture.
 
 - Added explicit Mahjong Soul board readiness and a documented consumer interface; hardened replay metadata validation and preserved text-frame diagnostics.

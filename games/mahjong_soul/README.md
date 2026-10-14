@@ -184,3 +184,8 @@ The report groups action steps by match and round, reports gaps, conflicting
 duplicates, calls, settlements, game errors, and separate lobby schema warnings.
 `--strict` exits nonzero for incoherent game data. A coherent prefix does not
 prove that a match ended; check the separate `match_ended` field.
+
+## Mouse input
+
+See [Steam mouse input](INPUT.md) for the guarded discard executor, calibration
+requirements, and outstanding live validation. No decision policy is connected.
