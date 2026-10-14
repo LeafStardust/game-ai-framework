@@ -5,6 +5,7 @@ from threading import RLock
 import time
 
 from games.mahjong_soul.live.runtime.input import DiscardPlan, DiscardExecutor, board_token
+from games.mahjong_soul.live.runtime.riichi import RiichiPlan, RiichiExecutor
 from games.mahjong_soul.live.runtime.skip import SkipPlan, SkipExecutor
 from games.mahjong_soul.live.runtime.calls import PonPlan, PonExecutor, ChiPlan, ChiExecutor
 
@@ -14,7 +15,7 @@ class InputController:
         if confirmation_timeout <= 0:
             raise ValueError("Confirmation timeout must be positive")
         self._executors = {DiscardPlan: DiscardExecutor(backend),
-                           PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend), SkipPlan: SkipExecutor(backend)}
+                           PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend), SkipPlan: SkipExecutor(backend), RiichiPlan: RiichiExecutor(backend)}
         self._lock = RLock()
         self._active = None
         self._active_key = None
@@ -64,14 +65,28 @@ class InputController:
     def confirm_selection(self, plan, report, selected_tile, *, enabled=False, now=None):
         with self._lock:
             self.update(report, now=now)
-            executor = self._executors[DiscardPlan]
-            if self._blocked or self._active is not executor:
+            executor = self._active
+            if self._blocked or not isinstance(executor, DiscardExecutor):
                 raise ValueError("No active discard selection to confirm")
             try:
                 executor.confirm_selection(plan, report, selected_tile, enabled=enabled, now=now)
             except Exception:
                 if plan.token in executor.selection_confirmed:
                     self._blocked = "Selection input failed; inspect the game before recovery"
+                raise
+            self._deadline = self._now(now) + self.confirmation_timeout
+
+    def select_riichi_discard(self, plan, report, visible_allowed_tiles, *, enabled=False, now=None):
+        with self._lock:
+            self.update(report, now=now)
+            executor = self._executors[RiichiPlan]
+            if self._blocked or self._active is not executor:
+                raise ValueError("No active riichi menu")
+            try:
+                executor.select_discard(plan, report, visible_allowed_tiles, enabled=enabled, now=now)
+            except Exception:
+                if executor.phase == "tile_selection_attempted":
+                    self._blocked = "Riichi selection input failed; inspect before recovery"
                 raise
             self._deadline = self._now(now) + self.confirmation_timeout
 
@@ -87,6 +102,11 @@ class InputController:
                 self._active_key = None
                 self._deadline = None
                 return True
+            if getattr(self._active, "failed", False):
+                self._blocked = "Declaration was rejected by the server"
+                return False
+            if isinstance(self._active, RiichiExecutor) and self._active.declaration_step == event.get("step"):
+                return False
             plan = self._active.pending
             if (event.get("source") == "live" and connection == plan.connection
                     and event.get("step", -1) > plan.step

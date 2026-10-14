@@ -214,3 +214,30 @@ action's operations. A live Chi-only Skip at step 34 sent
 `cancel_operation=true`, received the successful matching response (request 78),
 and advanced to own draw at step 35. The click used computer-use; native Skip
 delivery remains unverified. Kan, riichi and win input still need calibration.
+
+## Riichi input
+
+`riichi.plan_riichi(report, profile, visual_slot, tile)` requires the exact tile
+in the server's type-7 discard list, a calibrated hand layout, the full ordered
+operation types, and a normalized `riichi` button point. Use the shared controller:
+
+1. Submit the plan to open the riichi selection mode.
+2. Visually verify the highlighted allowed tiles and rebuild a fresh plan. Call
+   `select_riichi_discard(plan, report, visible_allowed_tiles, enabled=True)`.
+3. Verify the selected tile visually and use `confirm_selection` if required
+   by the observed two-click mode.
+4. Feed live events until an exact own discard marked `is_liqi`/`is_wliqi` is
+   followed by successful server `liqi` acceptance.
+
+Ordinary discard confirmation does not complete riichi input. Wrong tiles,
+plain discards, failed declarations, stale boards and partial delivery block
+the controller. The highlighted tile set must match the offer including red
+fives; screen order need not match the server list. Opening the mode has no
+dedicated network event, so visual verification is required.
+
+Live calibration at 925x520 offered `7s` and `6s`. The riichi button opened
+highlighted-discard mode. The own `6s` declaration was captured at step 84, and
+server acceptance at step 85 reported seat 1 score 24,000 and one riichi stick.
+An initial click on the unoffered `3s` slot sent no declaration; the implemented
+planner rejects that tile before clicking. Calibration clicks used computer-use;
+native riichi delivery remains unverified. Next controls are kan and win.
