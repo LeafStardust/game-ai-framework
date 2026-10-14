@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Hardened Mahjong Soul Pon planning and confirmation to require the exact uncalled source discard, contributed red-five identities, and tile source seats.
+
 - Verified repository-native Mahjong Soul mouse delivery and shared-controller acknowledgement in a Steam AI room: selected and discarded the drawn tile using the observed two-click flow.
 
 - Added shared Mahjong Soul input coordination across discard/Pon/Chi with timeout/disconnect blocking, explicit newer-board recovery, and duplicate protection scoped to authenticated game generation and round.

@@ -58,11 +58,10 @@ the executor instance so attempted-board protection is not lost.
 
 Unit tests cover stale boards, expired plans, operation/seat checks, unverified
 layouts, exact red-five confirmation, repeat prevention, and partial input errors
-using a fake mouse. The native backend has not yet delivered a live click. A computer-use UI test verified
+using a fake mouse. Native discard delivery is verified below. An earlier computer-use UI test verified
 a discard at a 925x520 client size: the first click selected/raised the drawn
 `5m`, and a second click discarded it, confirmed by live seat-0 action step 11.
-The local 14-tile profile remains under ignored logs. Next: verify the native
-backend and extend the confirmation flow to call/choice panels.
+The local 14-tile profile remains under ignored logs. Native call-button delivery and remaining controls need further live verification.
 
 Win32 references: [SendInput](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput)
 and [MOUSEINPUT](https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-mouseinput).
@@ -97,15 +96,15 @@ single server-provided Pon combination. Profiles contain `version: 1`,
 `verified: true`, `client_size`, `operation_types` matching the full offer order,
 and a normalized `pon` point. Multiple red-five combinations are rejected until
 their choice panel is calibrated. Confirmation requires a live own Pon with the
-expected tile kind. Keep a shared input coordinator when integrating executors;
+exact contributed tiles, red-five identity, and source seats. Keep a shared input coordinator when integrating executors;
 these primitives do not prevent another executor instance from sending input.
 
 Live UI calibration also verified leftmost `2m` discard at step 51 and a
 single-choice `9s` Pon at step 56. The Pon-only button layout differs from offers
 with multiple action buttons. Discard profiles must match the last-event trigger:
 an equal hand count after draw and after call does not imply equal positions.
-The native backend remains unverified for delivery; the UI tests used the
-computer-use plugin, with decoded live game events as confirmation.
+The call UI tests used the computer-use plugin, with decoded live game events
+as confirmation. Native discard delivery was subsequently verified below.
 
 ## Chi input
 
@@ -119,7 +118,7 @@ source seats. Multiple combinations require an explicitly observed and calibrate
 The live 925x520 Chi-only offer was clicked at the same button location as the
 Pon-only offer and immediately produced own `5s/6s/7s` Chi at step 80, with
 contributions from seats `0/0/3`. There was one combination and no intermediate
-choice panel. Native backend delivery, combined button offers, and other choice-panel layouts remain unverified.
+choice panel. Native call-button delivery, combined button offers, and other choice-panel layouts remain unverified.
 
 ## Multi-choice Chi panel
 
@@ -138,8 +137,9 @@ Selecting the middle group produced `4m/0m/3m` at own seat 0, step 89, with sour
 `0/0/3`. That validates this 925x520 layout and red/ordinary-five distinction.
 The user opened the panel before calibration; automatic menu opening has not
 been live-verified. Two-choice panels and other UI scales need separate profiles.
-Multi-choice Pon, kan, riichi/win/pass execution, native backend delivery, and a
-shared input coordinator remain outstanding. No decision policy is connected.
+Multi-choice Pon, kan, and riichi/win/pass execution remain outstanding. Native
+discard delivery and shared input coordination are verified below. No decision
+policy is connected.
 
 ## Shared input controller
 
@@ -177,8 +177,8 @@ attempt history. It cannot unlock the same attempted round/step. A new round or
 authenticated game can reset step numbers. Retain the controller for the session;
 creating another instance loses its in-memory duplicate ledger.
 
-The discard CLI now uses this controller. Native backend delivery still needs a
-live test; no additional real input was sent for controller validation.
+The discard CLI uses this controller. The subsequent native input test below
+verified the full controller/backend discard flow.
 
 ## Native backend validation
 
@@ -189,3 +189,7 @@ verification, a native confirmation click produced live own discard at step 8
 and returned the controller to idle. The computer-use plugin supplied screenshots
 only; both mouse clicks were sent by the repository backend. This verifies this
 window/layout and two-click flow, not every DPI/window size or action button.
+
+Pon planning also checks the latest known uncalled opponent discard. Matching
+only normalized tile kinds is insufficient: red-five contribution and source
+identity must match exactly, as in the Chi path.

@@ -6,6 +6,9 @@ from tests.mahjong_soul.test_input import inputs, Mouse
 def offer():
     report, _ = inputs()
     report["state"]["hand"] = ["0p", "5p"]
+    report["last_event"] = {"name": "ActionDiscardTile", "step": 0}
+    report["state"]["turn"] = 3
+    report["state"]["discards"][3] = [{"tile": "5p", "called": False}]
     report["state"]["operations"] = {"seat": 0, "operation_list": [{"type": 3, "combination": ["0p|5p"]}]}
     return report, {"version": 1, "verified": True, "client_size": [925, 520],
                     "operation_types": [3], "pon": [0.53, 0.77]}
@@ -18,7 +21,7 @@ def test_single_choice_pon_click_and_exact_meld_confirmation():
     executor = PonExecutor(mouse)
     executor.execute(plan, report, enabled=True, now=11)
     event = {"name": "ActionChiPengGang", "step": 1, "source": "live",
-             "data": {"seat": 0, "type": 1, "tiles": ["0p", "5p", "5p"]}}
+             "data": {"seat": 0, "type": 1, "tiles": ["0p", "5p", "5p"], "froms": [0, 0, 3]}}
     assert not executor.observe("other", event)
     assert not executor.observe("game", dict(event, source="restore"))
     assert executor.observe("game", event)
@@ -122,3 +125,26 @@ def test_multi_chi_rejects_unverified_or_changed_panel(problem):
     if problem == "unknown_choice": choice = "5m|6m"
     with pytest.raises(ValueError):
         plan_chi(report, profile, combination=choice, visible_combinations=visible, now=10)
+
+
+def test_pon_rejects_wrong_red_contribution_and_source():
+    report, profile = offer(); executor = PonExecutor(Mouse())
+    executor.execute(plan_pon(report, profile, now=10), report, enabled=True, now=11)
+    event = {"name": "ActionChiPengGang", "step": 1, "source": "live",
+             "data": {"seat": 0, "type": 1, "tiles": ["5p", "5p", "5p"], "froms": [0, 0, 3]}}
+    assert not executor.observe("game", event)
+    event["data"]["tiles"][0] = "0p"
+    event["data"]["froms"] = [3, 0, 0]
+    assert not executor.observe("game", event)
+    event["data"]["froms"] = [0, 0, 3]
+    assert executor.observe("game", event)
+
+
+@pytest.mark.parametrize("problem", ["own_discard", "unknown_source", "called", "wrong_kind"])
+def test_pon_rejects_uncertain_source_discard(problem):
+    report, profile = offer(); state = report["state"]
+    if problem == "own_discard": state["turn"] = 0
+    if problem == "unknown_source": state["turn"] = None
+    if problem == "called": state["discards"][3][0]["called"] = None
+    if problem == "wrong_kind": state["discards"][3][0]["tile"] = "6p"
+    with pytest.raises(ValueError): plan_pon(report, profile, now=10)

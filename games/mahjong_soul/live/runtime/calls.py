@@ -12,6 +12,8 @@ class PonPlan:
     step: int
     seat: int
     tile_kind: str
+    tiles: tuple
+    source_seat: int
     x: float
     y: float
     width: int
@@ -40,6 +42,14 @@ def plan_pon(report, profile, *, now=None):
         if tile not in hand:
             raise ValueError("Pon contribution is missing from hand")
         hand.remove(tile)
+    source = state["turn"]
+    if (not isinstance(source, int) or not 0 <= source < state["player_count"] or source == state["seat"]
+            or (report.get("last_event") or {}).get("name") != "ActionDiscardTile"):
+        raise ValueError("Pon must follow a known opponent discard")
+    river = state["discards"][source]
+    if not river or river[-1].get("called") is not False or kind(river[-1]["tile"]) != kind(tiles[0]):
+        raise ValueError("Pon source discard is uncertain or mismatched")
+    expected_tiles = tuple(tiles + [river[-1]["tile"]])
     if (profile.get("version") != 1 or profile.get("verified") is not True
             or profile.get("operation_types") != [item.get("type") for item in operation["operation_list"]]):
         raise ValueError("Call-button layout is not verified for this offer")
@@ -48,7 +58,7 @@ def plan_pon(report, profile, *, now=None):
     if type(width) is not int or type(height) is not int or min(width, height) <= 0 or not 0 < x < 1 or not 0 < y < 1:
         raise ValueError("Invalid call-button coordinates")
     return PonPlan(board_token(report), report["game_connection"], state["step"], state["seat"],
-                   kind(tiles[0]), x, y, width, height,
+                   kind(tiles[0]), expected_tiles, source, x, y, width, height,
                    (time.monotonic() if now is None else now) + 2)
 
 
@@ -70,17 +80,19 @@ class PonExecutor:
         self.backend.click(plan.x, plan.y, plan.width, plan.height)
 
     def observe(self, connection, event):
+        from collections import Counter
         plan = self.pending
         data = event.get("data", {})
-        tiles = data.get("tiles", [])
-        kinds = ["5" + tile[1:] if tile.startswith("0") else tile for tile in tiles]
-        if (plan and connection == plan.connection and event.get("source") == "live"
-                and event.get("name") == "ActionChiPengGang" and event.get("step", -1) > plan.step
-                and data.get("seat", 0) == plan.seat and data.get("type", 0) == 1
-                and kinds == [plan.tile_kind] * 3):
-            self.pending = None
-            return True
-        return False
+        tiles, origins = data.get("tiles", []), data.get("froms", [])
+        if (not plan or connection != plan.connection or event.get("source") != "live"
+                or event.get("name") != "ActionChiPengGang" or event.get("step", -1) <= plan.step
+                or data.get("seat", 0) != plan.seat or data.get("type", 0) != 1
+                or Counter(tiles) != Counter(plan.tiles) or len(origins) != 3):
+            return False
+        if Counter(zip(tiles, origins)) != Counter(zip(plan.tiles, (plan.seat, plan.seat, plan.source_seat))):
+            return False
+        self.pending = None
+        return True
 
 
 @dataclass(frozen=True)
