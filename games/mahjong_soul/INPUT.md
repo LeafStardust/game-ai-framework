@@ -106,3 +106,19 @@ with multiple action buttons. Discard profiles must match the last-event trigger
 an equal hand count after draw and after call does not imply equal positions.
 The native backend remains unverified for delivery; the UI tests used the
 computer-use plugin, with decoded live game events as confirmation.
+
+## Chi input
+
+`calls.plan_chi(report, profile)` and `calls.ChiExecutor(backend)` support a single
+Chi combination. Profiles use a `chi` point and the full `operation_types` offer
+order, following the same layout guards as Pon. Planning requires a known uncalled
+discard from the previous seat and the two exact contributed own tiles.
+Confirmation checks the resulting sequence, exact red-five identity, and tile
+source seats. Multiple combinations remain rejected until the choice panel is
+visually calibrated.
+
+The live 925x520 Chi-only offer was clicked at the same button location as the
+Pon-only offer and immediately produced own `5s/6s/7s` Chi at step 80, with
+contributions from seats `0/0/3`. There was one combination and no intermediate
+choice panel. Native backend delivery, combined button offers, and multi-choice
+panels remain unverified.

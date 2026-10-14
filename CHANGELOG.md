@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added guarded single-choice Chi input with exact tile/source confirmation; verified a Steam UI Chi through the live reader. Multiple-combination panels remain blocked pending calibration.
+
 - Added guarded single-choice Pon input and action-context-bound discard layouts; live UI tests confirmed a leftmost discard and Pon, while ambiguous call panels remain blocked.
 
 - Verified Mahjong Soul two-click discard selection/confirmation through the Steam UI and live game events; added explicit visual-confirmation guards and a dry-run input CLI. Native backend delivery and call-panel calibration remain pending.
