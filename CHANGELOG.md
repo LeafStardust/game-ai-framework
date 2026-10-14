@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified Mahjong Soul two-click discard selection/confirmation through the Steam UI and live game events; added explicit visual-confirmation guards and a dry-run input CLI. Native backend delivery and call-panel calibration remain pending.
+
 - Added opt-in Mahjong Soul discard planning and Windows mouse input with calibrated client coordinates, foreground/board checks, expiry, repeat prevention, and live-event confirmation; native clicks await live calibration.
 
 - Added a versioned Mahjong Soul observation adapter with reader readiness, absolute seats, public board data, preserved server operation payloads, and independent snapshots; checked it against the completed live four-player capture.

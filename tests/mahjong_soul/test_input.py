@@ -77,3 +77,43 @@ def test_failed_backend_is_not_retried_and_blocks_further_clicks():
         executor.execute(plan, report, enabled=True, now=11)
     with pytest.raises(ValueError, match="awaiting"):
         executor.execute(plan, report, enabled=True, now=11)
+
+
+def test_explicit_visual_selection_confirmation_requires_fresh_matching_plan():
+    report, profile = inputs()
+    mouse = Mouse()
+    executor = DiscardExecutor(mouse)
+    first = plan_discard(report, profile, 0, "0p", now=10)
+    executor.execute(first, report, enabled=True, now=11)
+    refreshed = plan_discard(report, profile, 0, "0p", now=20)
+    with pytest.raises(ValueError, match="selected tile"):
+        executor.confirm_selection(refreshed, report, "5p", enabled=True, now=21)
+    executor.confirm_selection(refreshed, report, "0p", enabled=True, now=21)
+    assert len(mouse.clicks) == 2
+    with pytest.raises(ValueError):
+        executor.confirm_selection(refreshed, report, "0p", enabled=True, now=21)
+    assert executor.observe("game", {"name": "ActionDiscardTile", "step": 1,
+                           "source": "live", "data": {"seat": 0, "tile": "0p"}})
+
+
+def test_selection_confirmation_rejects_changed_board():
+    report, profile = inputs()
+    mouse = Mouse()
+    executor = DiscardExecutor(mouse)
+    plan = plan_discard(report, profile, 0, "0p", now=10)
+    executor.execute(plan, report, enabled=True, now=11)
+    report["state"]["step"] += 1
+    with pytest.raises(ValueError, match="changed"):
+        executor.confirm_selection(plan, report, "0p", enabled=True, now=11)
+    assert len(mouse.clicks) == 1
+
+
+def test_partial_input_failure_cannot_be_confirmed_as_selection():
+    class Failure:
+        def click(self, *args): raise OSError("partial input")
+    report, profile = inputs()
+    executor = DiscardExecutor(Failure())
+    plan = plan_discard(report, profile, 0, "0p", now=10)
+    with pytest.raises(OSError): executor.execute(plan, report, enabled=True, now=11)
+    with pytest.raises(ValueError, match="No delivered"):
+        executor.confirm_selection(plan, report, "0p", enabled=True, now=11)
