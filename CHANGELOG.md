@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added shared Mahjong Soul input coordination across discard/Pon/Chi with timeout/disconnect blocking, explicit newer-board recovery, and duplicate protection scoped to authenticated game generation and round.
+
 - Added visually verified multi-choice Chi selection with exact combination-order guards; a live three-choice Steam panel confirmed selection of a red-five meld without conflating the ordinary-five alternative.
 
 - Added guarded single-choice Chi input with exact tile/source confirmation; verified a Steam UI Chi through the live reader. Multiple-combination panels remain blocked pending calibration.

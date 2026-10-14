@@ -234,6 +234,7 @@ def test_authentication_resets_old_board_on_reused_connection():
     assert state["hand"] == [] and state["scores"] == []
     assert state["status"] == "waiting_for_round"
     assert reader.snapshot()["last_event"] is None
+    assert reader.snapshot()["game_generation"] == 2
 
 
 def test_state_readiness_blocks_unknown_closed_and_incomplete_states():

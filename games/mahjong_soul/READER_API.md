@@ -39,6 +39,7 @@ no action opportunity. No action executor is implemented.
 | Field | Meaning |
 | --- | --- |
 | `state` | Board dictionary, or null before any game is selected |
+| `game_generation` | Per-connection authentication generation for input identity; increases on each auth reply |
 | `game_connection`, `connection_open` | Selected socket identity and current lifecycle |
 | `frames`, `actions`, `closed_connections` | Accumulated counters for this reader instance |
 | `last_event` | Last selected-game action name and step, or null |

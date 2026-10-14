@@ -140,3 +140,42 @@ The user opened the panel before calibration; automatic menu opening has not
 been live-verified. Two-choice panels and other UI scales need separate profiles.
 Multi-choice Pon, kan, riichi/win/pass execution, native backend delivery, and a
 shared input coordinator remain outstanding. No decision policy is connected.
+
+## Shared input controller
+
+Use one `controller.InputController(backend)` instance for the game session.
+Submit all discard/Pon/Chi plans through `submit(plan, report, enabled=True)`;
+do not also send input through independent executors. The controller serializes
+submissions, allows one pending action, and reserves attempted game steps across
+all action types. Keys include connection, reader game generation, round and step
+so a new round or authenticated game may restart step numbering.
+
+```python
+from games.mahjong_soul.live.runtime.controller import InputController
+
+controller = InputController(backend, confirmation_timeout=5)
+controller.submit(plan, reader.snapshot(), enabled=True)
+# For each decoded event, before updating from the resulting board:
+controller.observe(connection_id, event)
+controller.update(reader.snapshot())
+```
+
+Call `update` periodically even with no new rows. Wrong own actions, confirmation
+timeouts, partial delivery, a closed/new connection or unready state block input.
+Late confirmations cannot silently unlock a timed-out controller. A successful
+matching event clears the pending action, allowing a plan at the next game step.
+The controller never retries or chooses another action.
+
+Discard selection uses the same controller's `confirm_selection` method after a
+fresh screenshot and rebuilt plan. Set a confirmation timeout long enough for
+the consumer's visual inspection; the default five seconds is intended for an
+automated local consumer, not slow manual calibration.
+
+Blocked recovery is explicit: `recover(report, visually_verified=True)` requires
+a newer ready board after visual inspection. It sends no input and retains
+attempt history. It cannot unlock the same attempted round/step. A new round or
+authenticated game can reset step numbers. Retain the controller for the session;
+creating another instance loses its in-memory duplicate ledger.
+
+The discard CLI now uses this controller. Native backend delivery still needs a
+live test; no additional real input was sent for controller validation.

@@ -7,7 +7,7 @@ import time
 
 
 def board_token(report):
-    return hashlib.sha256(json.dumps([report.get("game_connection"), report.get("state")],
+    return hashlib.sha256(json.dumps([report.get("game_connection"), report.get("game_generation", 0), report.get("state")],
                                     sort_keys=True).encode()).hexdigest()
 
 
@@ -154,12 +154,13 @@ def main():
         if time.time() - Path(args.capture).stat().st_mtime > 2:
             parser.error("Capture is not fresh; wait for the next action and rebuild the plan")
         from games.mahjong_soul.live.runtime.windows_input import WindowsMouse
-        executor = DiscardExecutor(WindowsMouse())
+        from games.mahjong_soul.live.runtime.controller import InputController
+        executor = InputController(WindowsMouse())
         for row in tail.read():
             reader.consume(row)
         if tail.bad_rows or tail.pending:
             parser.error("Capture changed to malformed or unfinished rows")
-        executor.execute(plan, reader.snapshot(), enabled=True)
+        executor.submit(plan, reader.snapshot(), enabled=True)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
             for row in tail.read():

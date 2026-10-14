@@ -23,6 +23,7 @@ class GameReader:
         self.last_event = None
         self.connection_events = {}
         self.closed_connections = 0
+        self.game_generations = Counter()
 
     def close_connection(self, connection):
         # Keep the last visible snapshot for display after the socket closes.
@@ -58,6 +59,7 @@ class GameReader:
             if decoded.get("schema_warning"):
                 self.warnings[(decoded["method"], decoded["schema_warning"])] += 1
             if decoded["method"] == ".lq.FastTest.authGame" and decoded["kind"] == "response":
+                self.game_generations[connection] += 1
                 inferred_seat = self.seat if self.seat is not None else decoded.get("own_seat")
                 seats = decoded.get("data", {}).get("seat_list", [])
                 player_count = len(seats) if len(seats) in (3, 4) else state.player_count
@@ -112,7 +114,7 @@ class GameReader:
         state = entry[1].snapshot() if entry else deepcopy(getattr(self, "closed_state", None))
         ready = bool(entry and state and state["status"] == "tracking" and state["seat"] is not None
                      and not state["issues"] and state["visibility_complete"])
-        return {"state_ready": ready, "frames": self.frames, "actions": dict(self.actions), "last_event": deepcopy(self.last_event), "game_connection": self.latest_game_connection,
+        return {"game_generation": self.game_generations[self.latest_game_connection], "state_ready": ready, "frames": self.frames, "actions": dict(self.actions), "last_event": deepcopy(self.last_event), "game_connection": self.latest_game_connection,
                 "connection_open": bool(entry), "closed_connections": self.closed_connections,
                 "schema_warnings": [{"method": method, "warning": warning, "count": count} for (method, warning), count in self.warnings.items()],
                 "decode_errors": [{"method": method, "error": error, "count": count}
