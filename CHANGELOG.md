@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added a versioned Mahjong Soul observation adapter with reader readiness, absolute seats, public board data, preserved server operation payloads, and independent snapshots; checked it against the completed live four-player capture.
+
 - Added explicit Mahjong Soul board readiness and a documented consumer interface; hardened replay metadata validation and preserved text-frame diagnostics.
 
 - Added Mahjong Soul capture auditing, connection-close handling, fresh-game board reset, and opaque lobby schema warnings; verified a complete four-player AI match including chi/pon, concealed kan, exhaustive draw, and final scores with 685 contiguous actions.

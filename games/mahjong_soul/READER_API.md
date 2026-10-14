@@ -78,3 +78,24 @@ exhaustive draw, score settlements, restart/new-game reset, and match end.
 Added/open kan and reconnect restoration are tested offline but remain
 unverified live. Special modes are outside the current verified scope.
 See [live evidence](LIVE_VALIDATION.md) and [capture commands](README.md).
+
+## Observation adapter
+
+```python
+from games.mahjong_soul.live.runtime.observation import observation_from_snapshot
+
+observation = observation_from_snapshot(reader.snapshot())
+if observation["ready"]:
+    hand = observation["board"]["self"]["hand"]
+```
+
+Version 1 observations contain `ready`, `status`, `issues`, `source`, and `board`.
+Before any game, `board` is null and status is `waiting_for_game`. Source records
+the selected connection, open/closed status, step, and last event. The board
+contains the own hand/drawn tile/furiten, seat-indexed public player information,
+round, wall, dora, visible counts, and unchanged server `available_operations`.
+Missing scores remain null; opponent concealed hands are omitted. Seat indices
+remain absolute, with `is_self` identifying the human seat. Unknown operation
+codes and combination strings are preserved. Returned objects are independent
+copies. The adapter selects no actions, expands no legal-action set, and sends
+no commands. The decision pipeline has not been implemented.
