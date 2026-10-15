@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified native fullscreen Pon in the combined Chi/Pon offer and added its exact-context layout.
+
 - Mahjong Soul: add the verified fullscreen eight-tile post-call discard layout.
 
 - Added and natively verified a fullscreen initial-dealer discard profile, keeping round-start and own-draw contexts distinct even at the same hand count.

@@ -465,3 +465,5 @@ returned idle. This calibration is not silently applied to unverified windowed
 round-start layouts.
 
 Fullscreen eight-tile post-call layout was visually checked after a second Chi in an AI room. The contiguous hand centers are 270 through 935 pixels at 95-pixel intervals; discarding the allowed 8m was confirmed by the following board update. This profile is distinct from the eight-tile draw layout, whose separated tile center is 963 pixels. Native execution of this particular post-call layout remains untested.
+
+Native fullscreen Pon was confirmed in the combined Chi/Pon/Skip offer: Pon at (1020,835), exact operation types [2,3]. The reader confirmed own 8p triplet with sources [1,1,0] and the shared controller returned idle. The profile certifies only Pon in this offer context.
