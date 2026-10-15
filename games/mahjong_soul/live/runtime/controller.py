@@ -5,6 +5,7 @@ from threading import RLock
 import time
 
 from games.mahjong_soul.live.runtime.input import DiscardPlan, DiscardExecutor, board_token
+from games.mahjong_soul.live.runtime.kan import ConcealedKanPlan, ConcealedKanExecutor
 from games.mahjong_soul.live.runtime.riichi import RiichiPlan, RiichiExecutor
 from games.mahjong_soul.live.runtime.skip import SkipPlan, SkipExecutor
 from games.mahjong_soul.live.runtime.calls import PonPlan, PonExecutor, ChiPlan, ChiExecutor
@@ -15,7 +16,8 @@ class InputController:
         if confirmation_timeout <= 0:
             raise ValueError("Confirmation timeout must be positive")
         self._executors = {DiscardPlan: DiscardExecutor(backend),
-                           PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend), SkipPlan: SkipExecutor(backend), RiichiPlan: RiichiExecutor(backend)}
+                           PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend), SkipPlan: SkipExecutor(backend), RiichiPlan: RiichiExecutor(backend),
+                           ConcealedKanPlan: ConcealedKanExecutor(backend)}
         self._lock = RLock()
         self._active = None
         self._active_key = None

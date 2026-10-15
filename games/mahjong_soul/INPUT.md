@@ -241,3 +241,26 @@ server acceptance at step 85 reported seat 1 score 24,000 and one riichi stick.
 An initial click on the unoffered `3s` slot sent no declaration; the implemented
 planner rejects that tile before clicking. Calibration clicks used computer-use;
 native riichi delivery remains unverified. Next controls are kan and win.
+
+## Concealed kan input
+
+`kan.plan_concealed_kan(report, profile)` supports one server-offered concealed
+kan (operation type 4). It requires the four exact contributed tiles in the own
+hand, including red-five identities. A verified profile uses `stage: "call_offer"`,
+the complete ordered `operation_types`, `client_size`, and a normalized `kan` point.
+Submit the plan through `InputController`; the usual expiry, duplicate, overlap,
+foreground and client-size checks apply.
+
+Confirmation requires a later own live `ActionAnGangAddGang` with concealed-kan
+event type 3 and the expected tile kind. The event identifies one tile kind,
+not the four-tile red composition; the planner checks those contributions before
+input and the reader removes the actual own tiles. A replacement draw alone,
+added-kan type, mismatched kind or restored action cannot confirm the click.
+
+Live validation at 925x520 offered `[discard, concealed kan]`, with one combination
+`6p|6p|6p|6p`. One Kan-button click produced own seat-2 concealed kan at step 35,
+then replacement draw `1s` at step 36 with a second dora indicator. These calibration
+clicks used computer-use. Native concealed-kan delivery remains unverified.
+Multiple kan candidates, open/added kan, and combined offers with other buttons
+require further calibration. Profiles still reject changed client sizes; resize,
+maximize and fullscreen layout support remains outstanding.

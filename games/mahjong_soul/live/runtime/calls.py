@@ -70,9 +70,9 @@ class PonExecutor:
 
     def execute(self, plan, report, *, enabled=False, now=None):
         if not enabled or self.pending is not None or plan.token in self.attempted:
-            raise ValueError("Pon input disabled, pending, or already attempted")
+            raise ValueError("Call input disabled, pending, or already attempted")
         if (time.monotonic() if now is None else now) >= plan.expires:
-            raise ValueError("Pon plan expired")
+            raise ValueError("Call plan expired")
         if not report.get("state_ready") or board_token(report) != plan.token:
             raise ValueError("Board changed")
         self.attempted.add(plan.token)

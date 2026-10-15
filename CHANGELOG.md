@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added guarded single-choice concealed-kan input with exact own contributions and live event confirmation; verified the Steam Kan button, replacement draw, and additional dora indicator.
+
 - Added staged Mahjong Soul riichi input with offered-discard and visual-selection checks, exact declaration matching, and server-acceptance confirmation; verified the Steam UI declaration and 1,000-point deposit.
 
 - Added guarded Mahjong Soul Skip input confirmed by a connection/request-matched cancellation acknowledgement; verified a live Chi-offer skip and prevented delayed acknowledgements from clearing newer operations.

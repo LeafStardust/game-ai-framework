@@ -80,3 +80,11 @@ verification. The controller received the matching live event and returned idle.
 The client was 925x520. This was an explicit input test; no decision policy was
 connected. Screenshots came from computer-use, while both clicks came from the
 repository Windows backend.
+
+## Concealed-kan input calibration (2026-10-15)
+
+In a four-player AI room, absolute seat 2 was offered a concealed `6p` kan.
+One UI button click produced `ActionAnGangAddGang` step 35 (type 3, `6p`), followed
+by replacement draw `1s` at step 36 and dora indicators `3p` and `9s`. The reader
+remained ready without issues. This verifies the single-choice Kan UI at 925x520;
+native Kan delivery and multiple-candidate panels remain unverified.

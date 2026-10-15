@@ -63,7 +63,7 @@ def render(summary, path=None, bad_rows=0):
             lines.extend([f"Seat {seat}: score {score} | Norths {state['norths'][seat]} | Riichi {state['riichi'][seat]}", f"  Discards: {river or '-'}", f"  Melds: {melds or '-'}"])
         lines.append(f"Drawn tile: {state['drawn_tile'] or '-'} | Furiten: {state['furiten']}")
         operation = state['operations'] or {}
-        labels = {1: 'discard', 2: 'chi', 3: 'pon', 5: 'open kan', 6: 'added kan', 7: 'riichi', 8: 'tsumo', 9: 'ron', 11: 'extract north'}
+        labels = {1: 'discard', 2: 'chi', 3: 'pon', 4: 'concealed kan', 5: 'open kan', 6: 'added kan', 7: 'riichi', 8: 'tsumo', 9: 'ron', 11: 'extract north'}
         choices = [labels.get(item['type'], 'type ' + str(item['type'])) + (":" + "/".join(item.get('combination', [])) if item.get('combination') else "") for item in operation.get('operation_list', [])]
         lines.append(f"Operations for seat {operation.get('seat', '?')}: " + (", ".join(choices) or "none"))
         lines.append("Visible tile counts: " + ", ".join(f"{tile}:{count}" for tile, count in state["visible_tile_counts"].items()) + ("" if state["visibility_complete"] else " (incomplete / lower bound)"))
