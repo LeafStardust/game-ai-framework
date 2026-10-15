@@ -475,3 +475,5 @@ Fullscreen Riichi [1,7] was verified at (1020,835) with the fourteen-tile own-dr
 The separate fullscreen Pon-only [3] offer was also natively confirmed at (1020,835): own 8m triplet, followed by the shared controller returning idle. This has its own profile rather than broadening the combined Chi/Pon profile.
 
 Native fullscreen two-choice Chi was verified end to end through one shared controller. The Chi-only offer opened the panel; visual inspection showed left 1p|3p and right 3p|4p. Binding that observed ordering to the calibrated two-choice geometry and selecting the left choice produced the expected own Chi at the following step, with the controller returning idle. No combination order was inferred without inspecting the panel.
+
+Native fullscreen added kan was verified for the own-turn [1,6] offer at (1020,835). Exact north (4z) was matched against the existing own Pon and concealed fourth tile; ActionAnGangAddGang type 2 confirmed the upgrade and the shared controller returned idle.
