@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "verified": true,
+  "stage": "call_offer",
+  "client_size": [
+    1920,
+    1080
+  ],
+  "operation_types": [
+    1,
+    8
+  ],
+  "tsumo": [
+    0.5315268368942158,
+    0.7738646895273401
+  ]
+}
