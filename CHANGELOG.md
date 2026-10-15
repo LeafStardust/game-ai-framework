@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added guarded win input requiring the exact winner, winning tile, and tsumo/ron type; verified the Steam Tsumo button and resulting scores, with Ron covered offline pending live calibration.
+
 - Verified the shifted Chi button in a combined Mahjong Soul Chi/Pon offer; added regression coverage for offer-specific coordinates, single-offer profile rejection, and shared-controller overlap prevention.
 
 - Added guarded single-choice concealed-kan input with exact own contributions and live event confirmation; verified the Steam Kan button, replacement draw, and additional dora indicator.

@@ -96,3 +96,10 @@ Pon and Skip. Clicking Chi on `7s|8s` produced live `7s/8s/9s` Chi at step 43
 with contributions from seats `2/2/1`. The alternate Pon combination was `9s|9s`.
 Only the Chi button was clicked; the other two positions were visually mapped.
 The client remained 925x520 and clicks used computer-use.
+
+## Tsumo UI calibration (2026-10-15)
+
+The own seat-2 prompt offered operations `[1, 8]` (discard and tsumo). Clicking
+Tsumo produced live `ActionHule` step 83 with own `zimo=true`, winning tile `9p`,
+and scores 22,600 / 27,100 / 38,000 / 12,300. This verifies the Tsumo button at
+925x520 through computer-use; native win clicks and live Ron remain unverified.

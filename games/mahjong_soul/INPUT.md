@@ -279,3 +279,21 @@ step 43, with sources `2/2/1`. The Pon and Skip positions were visually mapped
 in this offer; only the shifted Chi button was clicked in this validation.
 Regression tests cover distinct target points and shared-controller overlap
 prevention. Native combined-offer delivery remains unverified.
+
+## Win input
+
+`win.plan_win(report, profile, kind="tsumo")` requires the own win operation and
+a known own winning draw. `kind="ron"` requires the current known uncalled
+opponent discard; robbing-kan contexts remain unsupported. Profiles use
+`stage: "call_offer"`, complete ordered `operation_types`, `client_size`, and
+a `tsumo` or `ron` point. Submit through `InputController`.
+
+Confirmation requires a later live `ActionHule` containing the own seat, exact
+winning tile including red-five identity, and matching self-draw/ron flag. A
+round end or another player's win alone cannot confirm the action. Ron matching
+can find the own winner among multiple results but has offline coverage only.
+
+Live Tsumo calibration at 925x520 offered `[discard, tsumo]`. One button click
+produced own seat-2 `9p` self-draw at step 83, with final scores
+22,600 / 27,100 / 38,000 / 12,300. The UI test used computer-use; native win
+delivery and the Ron button remain unverified. No decision policy is connected.
