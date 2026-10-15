@@ -264,3 +264,18 @@ clicks used computer-use. Native concealed-kan delivery remains unverified.
 Multiple kan candidates, open/added kan, and combined offers with other buttons
 require further calibration. Profiles still reject changed client sizes; resize,
 maximize and fullscreen layout support remains outstanding.
+
+## Combined Chi/Pon offer
+
+At 925x520 the combined `[2, 3]` offer places Chi left of Pon and Skip. Its
+Chi coordinate differs from a Chi-only offer, even when the combination count
+is one. Profiles must retain the complete ordered `operation_types: [2, 3]`
+and independently calibrated `chi`, `pon`, and `skip` points. Existing planners
+reject a Chi-only or Pon-only profile against this combined offer.
+
+The observed live offer contained Chi `7s|8s` and Pon `9s|9s` on a discarded
+`9s`. Clicking the shifted Chi button produced own seat-2 `7s/8s/9s` Chi at
+step 43, with sources `2/2/1`. The Pon and Skip positions were visually mapped
+in this offer; only the shifted Chi button was clicked in this validation.
+Regression tests cover distinct target points and shared-controller overlap
+prevention. Native combined-offer delivery remains unverified.

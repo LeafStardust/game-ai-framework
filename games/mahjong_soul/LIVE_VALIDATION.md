@@ -88,3 +88,11 @@ One UI button click produced `ActionAnGangAddGang` step 35 (type 3, `6p`), follo
 by replacement draw `1s` at step 36 and dora indicators `3p` and `9s`. The reader
 remained ready without issues. This verifies the single-choice Kan UI at 925x520;
 native Kan delivery and multiple-candidate panels remain unverified.
+
+## Combined Chi/Pon UI calibration (2026-10-15)
+
+A combined Chi/Pon offer at own seat 2 showed a shifted Chi button, followed by
+Pon and Skip. Clicking Chi on `7s|8s` produced live `7s/8s/9s` Chi at step 43
+with contributions from seats `2/2/1`. The alternate Pon combination was `9s|9s`.
+Only the Chi button was clicked; the other two positions were visually mapped.
+The client remained 925x520 and clicks used computer-use.

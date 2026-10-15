@@ -148,3 +148,52 @@ def test_pon_rejects_uncertain_source_discard(problem):
     if problem == "called": state["discards"][3][0]["called"] = None
     if problem == "wrong_kind": state["discards"][3][0]["tile"] = "6p"
     with pytest.raises(ValueError): plan_pon(report, profile, now=10)
+
+
+def combined_offer():
+    report, _ = chi_offer()
+    state = report["state"]
+    state["hand"] = ["7s", "8s", "9s", "9s"]
+    state["discards"][3][0]["tile"] = "9s"
+    state["operations"]["operation_list"] = [
+        {"type": 2, "combination": ["7s|8s"]},
+        {"type": 3, "combination": ["9s|9s"]}]
+    profile = {"version": 1, "verified": True, "stage": "call_offer",
+               "client_size": [925, 520], "operation_types": [2, 3],
+               "chi": [(354-1)/924, (433-31)/519],
+               "pon": [(493-1)/924, (433-31)/519],
+               "skip": [(626-1)/924, (433-31)/519]}
+    return report, profile
+
+
+def test_combined_offer_uses_distinct_chi_pon_and_skip_points():
+    from games.mahjong_soul.live.runtime.calls import plan_chi
+    from games.mahjong_soul.live.runtime.skip import plan_skip
+    report, profile = combined_offer()
+    chi = plan_chi(report, profile, now=10)
+    pon = plan_pon(report, profile, now=10)
+    skip = plan_skip(report, profile, now=10)
+    assert chi.x < pon.x < skip.x
+    assert chi.tiles == ("7s", "8s", "9s")
+    assert pon.tiles == ("9s", "9s", "9s")
+
+
+@pytest.mark.parametrize("single_type", [2, 3])
+def test_single_button_calibration_cannot_be_reused_for_combined_offer(single_type):
+    from games.mahjong_soul.live.runtime.calls import plan_chi
+    report, profile = combined_offer()
+    profile["operation_types"] = [single_type]
+    for planner in (plan_chi, plan_pon):
+        with pytest.raises(ValueError, match="layout"): planner(report, profile, now=10)
+
+
+def test_combined_call_choice_is_serialized_and_chi_confirmation_is_exact():
+    from games.mahjong_soul.live.runtime.calls import plan_chi
+    from games.mahjong_soul.live.runtime.controller import InputController
+    report, profile = combined_offer(); mouse = Mouse(); controller = InputController(mouse)
+    controller.submit(plan_chi(report, profile, now=10), report, enabled=True, now=11)
+    with pytest.raises(ValueError, match="overlapping"):
+        controller.submit(plan_pon(report, profile, now=10), report, enabled=True, now=11)
+    assert controller.observe("game", {"name": "ActionChiPengGang", "step": 1, "source": "live",
+                              "data": {"seat": 0, "tiles": ["7s", "8s", "9s"], "froms": [0, 0, 3]}}, now=12)
+    assert mouse.clicks == [(*profile["chi"], 925, 520)]

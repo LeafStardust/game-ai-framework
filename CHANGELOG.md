@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified the shifted Chi button in a combined Mahjong Soul Chi/Pon offer; added regression coverage for offer-specific coordinates, single-offer profile rejection, and shared-controller overlap prevention.
+
 - Added guarded single-choice concealed-kan input with exact own contributions and live event confirmation; verified the Steam Kan button, replacement draw, and additional dora indicator.
 
 - Added staged Mahjong Soul riichi input with offered-discard and visual-selection checks, exact declaration matching, and server-acceptance confirmation; verified the Steam UI declaration and 1,000-point deposit.
