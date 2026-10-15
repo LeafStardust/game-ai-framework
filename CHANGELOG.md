@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified native fullscreen Chi menu opening and two-choice selection end to end through the shared controller.
+
 - Verified native fullscreen Pon-only offers with their own exact-context layout.
 
 - Calibrated fullscreen Riichi menu and discard selection, with server acceptance verified after manual final confirmation; full native acceptance retest remains outstanding.
