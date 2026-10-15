@@ -78,3 +78,14 @@ def test_fullscreen_skip_variant_keeps_exact_offer_context():
     assert result["operation_types"] == [2]
     assert result["stage"] == "call_offer"
     assert round(result["skip"][0] * 1919) == 1290
+
+
+def test_fullscreen_open_kan_and_eight_tile_layout_keep_offer_and_hand_context():
+    root = Path(__file__).resolve().parents[2] / "games/mahjong_soul/live/layouts"
+    kan = profile_for_size(json.loads((root / "open-kan-offer.json").read_text()), (1920, 1080))
+    assert kan["operation_types"] == [3, 5]
+    assert round(kan["kan"][0] * 1919) == 1020
+    hand = json.loads((root / "discard-8-draw-fullscreen.json").read_text())
+    assert len(hand["slots"]) == hand["hand_count"] == 8
+    assert hand["trigger"] == "ActionDealTile"
+    assert round(hand["slots"][-1][0] * 1919) == 963

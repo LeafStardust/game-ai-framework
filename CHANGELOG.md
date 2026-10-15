@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified native fullscreen open-kan delivery with exact source confirmation; added reusable open-kan offer variants and the fullscreen eight-tile draw layout.
+
 - Verified native fullscreen Skip acknowledgement and added calibrated eleven-tile draw/post-call layouts, preserving their distinct final-slot positions.
 
 - Added serialized Chi-menu opening and explicit visual-choice binding; verified fullscreen Chi menu/choice coordinates and committed reusable calibrated layouts.

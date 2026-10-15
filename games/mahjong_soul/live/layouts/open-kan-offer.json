@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "verified": true,
+  "stage": "call_offer",
+  "client_size": [
+    925,
+    520
+  ],
+  "operation_types": [
+    3,
+    5
+  ],
+  "kan": [
+    0.5324675324675324,
+    0.7745664739884393
+  ],
+  "size_variants": [
+    {
+      "verified": true,
+      "client_size": [
+        1920,
+        1080
+      ],
+      "kan": [
+        0.5315268368942158,
+        0.7738646895273401
+      ]
+    }
+  ]
+}

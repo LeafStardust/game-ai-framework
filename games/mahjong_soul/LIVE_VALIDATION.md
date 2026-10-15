@@ -156,3 +156,11 @@ using WindowsMouse and the shared controller at 1920x1080. The cancellation
 request and matching successful response (request 930) confirmed the action,
 returning the controller to idle after one attempt. Eleven-tile post-call and
 own-draw layouts were also exercised through computer-use discards.
+
+## Native fullscreen open kan (2026-10-15)
+
+During autonomous AI-room play, a combined Pon/Kan offer produced own seat-1
+open `4p` kan at step 57, sources `1/1/1/3`, through the repository's native
+backend and shared controller. Exact confirmation returned idle after one
+attempt. A replacement draw followed; the subsequent eight-tile draw layout
+was exercised via a computer-use discard. The client remained 1920x1080.

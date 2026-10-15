@@ -416,3 +416,17 @@ while the own draw is separated. Reusable profiles are
 They remain tied to their reader event trigger and exact client dimensions.
 These hand calibration clicks used computer-use; only Skip used the native
 backend in this additional test.
+
+## Native fullscreen open kan
+
+Autonomous AI-room calibration reached a combined Pon/open-kan offer at
+1920x1080. WindowsMouse clicked Kan through InputController; own seat-1 live
+open kan at step 57 contained four `4p` tiles with sources `1/1/1/3`. Exact
+confirmation returned the controller idle. A replacement draw followed.
+
+`live/layouts/open-kan-offer.json` provides calibrated Kan coordinates for
+`[3, 5]` offers at windowed and fullscreen sizes; it does not certify the
+alternate Pon button. The subsequent eight-tile own-draw layout was exercised
+with a computer-use discard and is saved as
+`discard-8-draw-fullscreen.json`. Fullscreen concealed/added-kan, Pon, riichi
+and win controls remain separate validation cases.
