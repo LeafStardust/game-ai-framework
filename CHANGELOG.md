@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified fullscreen Riichi natively through server acceptance; fixed generic discard lookup colliding with the Riichi hand profile.
+
 - Verified native fullscreen added kan with exact Pon/fourth-tile matching and added its own-turn offer layout.
 
 - Verified native fullscreen Chi menu opening and two-choice selection end to end through the shared controller.

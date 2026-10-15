@@ -41,6 +41,10 @@ def discard_profile(report, client_size, directory=None):
     matches = []
     for path in directory.glob("*.json"):
         profile = json.loads(path.read_text(encoding="utf-8"))
+        # Operation-specific layouts (for example Riichi) also contain hand
+        # slots, but must never compete with generic discard calibrations.
+        if "operation_types" in profile:
+            continue
         if profile.get("hand_count") != len(state.get("hand", [])) or profile.get("trigger") != trigger:
             continue
         try:
