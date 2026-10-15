@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified native fullscreen Skip acknowledgement and added calibrated eleven-tile draw/post-call layouts, preserving their distinct final-slot positions.
+
 - Added serialized Chi-menu opening and explicit visual-choice binding; verified fullscreen Chi menu/choice coordinates and committed reusable calibrated layouts.
 
 - Added explicit Mahjong Soul client-size profile variants, physical geometry inspection, minimized-window rejection, and pre-input geometry rechecks; verified a native discard at 1920x1080 fullscreen.

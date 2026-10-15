@@ -58,3 +58,23 @@ def test_client_geometry_tracks_window_origin_and_rejects_minimized_window():
     assert mouse._client_geometry(1)["left"] == -1000
     mouse.user.minimized = True
     with pytest.raises(ValueError, match="minimized"): mouse._client_geometry(1)
+
+
+def test_fullscreen_eleven_tile_draw_and_post_call_positions_are_distinct():
+    root = Path(__file__).resolve().parents[2] / "games/mahjong_soul/live/layouts"
+    draw = json.loads((root / "discard-11-draw-fullscreen.json").read_text())
+    call = json.loads((root / "discard-11-after-call-fullscreen.json").read_text())
+    assert draw["hand_count"] == call["hand_count"] == 11
+    assert draw["trigger"] != call["trigger"]
+    assert draw["slots"][:-1] == call["slots"][:-1]
+    assert round(draw["slots"][-1][0] * 1919) == 1248
+    assert round(call["slots"][-1][0] * 1919) == 1220
+
+
+def test_fullscreen_skip_variant_keeps_exact_offer_context():
+    root = Path(__file__).resolve().parents[2] / "games/mahjong_soul/live/layouts"
+    profile = json.loads((root / "skip-chi-offer.json").read_text())
+    result = profile_for_size(profile, (1920, 1080))
+    assert result["operation_types"] == [2]
+    assert result["stage"] == "call_offer"
+    assert round(result["skip"][0] * 1919) == 1290

@@ -148,3 +148,11 @@ During agent-driven AI-room calibration, a Chi-only offer at 1920x1080 opened
 a two-choice panel (`4p|5p`, `5p|7p`). Clicking the second choice produced own
 seat-1 Chi at step 27, tiles `5p/7p/6p`, sources `1/1/0`. Both menu opening and
 choice selection used computer-use. The reader reported no issues.
+
+## Native fullscreen Skip (2026-10-15)
+
+After continued autonomous AI-room play, a Chi-only offer at step 50 was skipped
+using WindowsMouse and the shared controller at 1920x1080. The cancellation
+request and matching successful response (request 930) confirmed the action,
+returning the controller to idle after one attempt. Eleven-tile post-call and
+own-draw layouts were also exercised through computer-use discards.

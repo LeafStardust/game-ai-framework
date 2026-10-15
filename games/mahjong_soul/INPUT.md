@@ -401,3 +401,18 @@ Reusable layouts are in `live/layouts/chi-offer.json` and
 same verified panel count, size and offer; actual tile order must be reobserved
 each time. Calibration used computer-use; native Chi-menu delivery remains
 unverified.
+
+## Fullscreen Skip and eleven-tile hands
+
+Native fullscreen Skip was verified on a Chi-only offer at step 50: the client
+sent a cancellation request and the matching server response returned the
+controller to idle. `live/layouts/skip-chi-offer.json` includes the tested
+925x520 and 1920x1080 coordinates.
+
+Agent-driven play also verified eleven-tile fullscreen hand layouts after a
+call and after a draw. Their last slots differ: the post-call hand is continuous,
+while the own draw is separated. Reusable profiles are
+`discard-11-after-call-fullscreen.json` and `discard-11-draw-fullscreen.json`.
+They remain tied to their reader event trigger and exact client dimensions.
+These hand calibration clicks used computer-use; only Skip used the native
+backend in this additional test.
