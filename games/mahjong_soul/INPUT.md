@@ -471,3 +471,5 @@ Native fullscreen Pon was confirmed in the combined Chi/Pon/Skip offer: Pon at (
 Native fullscreen Ron was confirmed on the final opponent discard in an AI round: the Ron-only offer [9] uses (1020,835). ActionHule confirmed own seat 1, winning tile 7p and non-tsumo win; the shared controller returned idle. This does not certify other win-button offer combinations.
 
 Fullscreen Riichi [1,7] was verified at (1020,835) with the fourteen-tile own-draw layout. The native controller opened the menu and selected the visually highlighted 2p at (460,1000), showing the 7m wait preview. The calibration helper timed out during review delays before final confirmation; a computer-use click completed that selection. Reader evidence confirmed is_liqi on the 2p discard and subsequent own-seat liqi acceptance with failed=false. Full native end-to-end Riichi acceptance remains to be repeated; the production confirmation timeout was not changed.
+
+The separate fullscreen Pon-only [3] offer was also natively confirmed at (1020,835): own 8m triplet, followed by the shared controller returning idle. This has its own profile rather than broadening the combined Chi/Pon profile.
