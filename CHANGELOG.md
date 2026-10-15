@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added guarded single-choice added-kan input using exact Pon/offer multiset matching; verified the Steam upgrade button and replacement draw while preserving red-five identity checks.
+
 - Added guarded single-choice open-kan input with exact own/source tile checks; verified the combined Pon/Kan UI and replacement draw through the live reader.
 
 - Verified native Mahjong Soul Ron input through the shared controller, including exact own winning tile, discard-win type, final scores, and return to idle after acknowledgement.

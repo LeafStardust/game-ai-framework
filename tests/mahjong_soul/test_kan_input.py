@@ -102,3 +102,49 @@ def test_wrong_open_kan_event_does_not_confirm(bad):
     if bad == "type": data["type"] = 1
     assert not controller.observe("game", {"name": "ActionChiPengGang", "step": 1, "source": "live", "data": data}, now=12)
     assert controller.snapshot()["status"] == "blocked"
+
+
+def added_offer():
+    report, _ = inputs(); state = report["state"]
+    state["hand"] = ["0p"]
+    state["melds"][0] = [{"type": 1, "tiles": ["5p"] * 3, "froms": [0, 0, 1]}]
+    state["operations"] = {"seat": 0, "operation_list": [{"type": 1},
+        {"type": 6, "combination": ["5p|5p|5p|0p"]}]}
+    return report, {"version": 1, "verified": True, "client_size": [925, 520],
+                    "stage": "call_offer", "operation_types": [1, 6], "kan": [0.53, 0.77]}
+
+
+def test_added_kan_derives_exact_fourth_tile_from_existing_pon():
+    from games.mahjong_soul.live.runtime.kan import plan_added_kan
+    report, profile = added_offer(); mouse = Mouse(); controller = InputController(mouse)
+    plan = plan_added_kan(report, profile, now=10)
+    assert plan.added_tile == "0p"
+    assert plan.pon_tiles == ("5p", "5p", "5p")
+    controller.submit(plan, report, enabled=True, now=11)
+    assert not controller.observe("other", event(kind=2, tile="0p"), now=12)
+    assert not controller.observe("game", event(kind=2, tile="0p", source="restore"), now=12)
+    assert controller.observe("game", event(kind=2, tile="0p"), now=12)
+    assert len(mouse.clicks) == 1
+
+
+@pytest.mark.parametrize("bad", ["no_pon", "already_kan", "missing_red", "pon_red_mismatch", "multiple", "wrong_layout"])
+def test_added_kan_rejects_inconsistent_offer(bad):
+    from games.mahjong_soul.live.runtime.kan import plan_added_kan
+    report, profile = added_offer(); state = report["state"]
+    if bad == "no_pon": state["melds"][0] = []
+    if bad == "already_kan": state["melds"][0][0]["type"] = 2
+    if bad == "missing_red": state["hand"] = ["5p"]
+    if bad == "pon_red_mismatch":
+        state["melds"][0][0]["tiles"][0] = "0p"
+        state["operations"]["operation_list"][1]["combination"] = ["5p|5p|5p|5p"]
+    if bad == "multiple": state["operations"]["operation_list"][1]["combination"].append("1m|1m|1m|1m")
+    if bad == "wrong_layout": profile["operation_types"] = [1, 4]
+    with pytest.raises(ValueError): plan_added_kan(report, profile, now=10)
+
+
+def test_added_kan_wrong_red_identity_blocks_confirmation():
+    from games.mahjong_soul.live.runtime.kan import plan_added_kan
+    report, profile = added_offer(); controller = InputController(Mouse())
+    controller.submit(plan_added_kan(report, profile, now=10), report, enabled=True, now=11)
+    assert not controller.observe("game", event(kind=2, tile="5p"), now=12)
+    assert controller.snapshot()["status"] == "blocked"

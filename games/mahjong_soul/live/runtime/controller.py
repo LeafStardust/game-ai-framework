@@ -6,7 +6,7 @@ import time
 
 from games.mahjong_soul.live.runtime.input import DiscardPlan, DiscardExecutor, board_token
 from games.mahjong_soul.live.runtime.win import WinPlan, WinExecutor
-from games.mahjong_soul.live.runtime.kan import ConcealedKanPlan, ConcealedKanExecutor, OpenKanPlan, OpenKanExecutor
+from games.mahjong_soul.live.runtime.kan import ConcealedKanPlan, ConcealedKanExecutor, OpenKanPlan, OpenKanExecutor, AddedKanPlan, AddedKanExecutor
 from games.mahjong_soul.live.runtime.riichi import RiichiPlan, RiichiExecutor
 from games.mahjong_soul.live.runtime.skip import SkipPlan, SkipExecutor
 from games.mahjong_soul.live.runtime.calls import PonPlan, PonExecutor, ChiPlan, ChiExecutor
@@ -18,7 +18,7 @@ class InputController:
             raise ValueError("Confirmation timeout must be positive")
         self._executors = {DiscardPlan: DiscardExecutor(backend),
                            PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend), SkipPlan: SkipExecutor(backend), RiichiPlan: RiichiExecutor(backend),
-                           ConcealedKanPlan: ConcealedKanExecutor(backend), OpenKanPlan: OpenKanExecutor(backend), WinPlan: WinExecutor(backend)}
+                           ConcealedKanPlan: ConcealedKanExecutor(backend), OpenKanPlan: OpenKanExecutor(backend), AddedKanPlan: AddedKanExecutor(backend), WinPlan: WinExecutor(backend)}
         self._lock = RLock()
         self._active = None
         self._active_key = None

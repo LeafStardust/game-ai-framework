@@ -121,3 +121,11 @@ A combined Pon/Kan offer (types 3 and 5) followed seat 1's `2p` discard at step
 sources `2/2/2/1`. Replacement draw `7s` followed at step 115. This verifies
 the single-choice combined Pon/Kan layout at 925x520 through computer-use.
 Native open-kan delivery and multiple-choice kan panels remain unverified.
+
+## Added-kan UI calibration (2026-10-15)
+
+An own seat-1 `[1, 6]` offer contained `9s|9s|9s|9s` while the existing own Pon
+contained three `9s`. A single Kan click produced added-kan event type 2 at
+step 33, followed by replacement draw `8m` at step 34. The reader remained ready
+without issues. The UI was 925x520 and clicks used computer-use; native added-kan
+delivery and multi-candidate selection remain unverified.

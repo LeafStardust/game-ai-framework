@@ -331,3 +331,23 @@ discard. Clicking Kan produced own seat-2 open kan at step 114, with four `2p`
 tiles and sources `2/2/2/1`. Replacement draw `7s` followed at step 115.
 The click used computer-use; native open-kan delivery remains unverified.
 Added kan and resize/fullscreen support remain outstanding.
+
+## Added kan input
+
+`kan.plan_added_kan(report, profile)` requires a single type-6 offer with four
+exact tiles, one matching own three-tile Pon, and the exact fourth tile in the
+own hand. Multiset subtraction identifies the added tile, preserving red-five
+identity. An existing kan, a missing or ambiguous Pon, inconsistent composition,
+or multiple candidates blocks planning. Use a verified `call_offer` profile
+with the full ordered operation types and normalized `kan` point.
+
+Through the shared controller, confirmation requires a later own live
+`ActionAnGangAddGang` type 2 naming the exact added tile. A concealed-kan event,
+a normalized substitute for a red five, or a restored action cannot confirm it.
+Unknown red-five encodings remain blocked pending live evidence.
+
+Live calibration at 925x520 offered `[1, 6]` (discard and added kan), upgrading
+a `9s` Pon. The Kan click produced own seat-1 upgrade at step 33 followed by an
+`8m` replacement draw at step 34, with no reader issues. Calibration used
+computer-use; native added-kan delivery and multi-candidate panels remain
+unverified. Resize/fullscreen handling remains a separate outstanding task.

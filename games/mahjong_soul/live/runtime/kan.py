@@ -1,4 +1,4 @@
-"""Guarded single-choice concealed and open kan; added kan is unsupported."""
+"""Guarded single-choice concealed, open and added kan."""
 
 from dataclasses import dataclass
 from collections import Counter
@@ -138,6 +138,72 @@ class OpenKanExecutor(PonExecutor):
                 or Counter(tiles) != Counter(plan.tiles) or len(origins) != 4):
             return False
         if Counter(zip(tiles, origins)) != Counter(zip(plan.tiles, (plan.seat, plan.seat, plan.seat, plan.source_seat))):
+            return False
+        self.pending = None
+        return True
+
+
+@dataclass(frozen=True)
+class AddedKanPlan:
+    token: str
+    connection: str
+    step: int
+    seat: int
+    added_tile: str
+    pon_tiles: tuple
+    x: float
+    y: float
+    width: int
+    height: int
+    expires: float
+
+
+def plan_added_kan(report, profile, *, now=None):
+    state = report.get("state") or {}
+    operation = state.get("operations") or {}
+    choices = [item for item in operation.get("operation_list", []) if item.get("type") == 6]
+    if not report.get("state_ready") or operation.get("seat") != state.get("seat") or len(choices) != 1:
+        raise ValueError("No own added-kan operation")
+    combinations = choices[0].get("combination", [])
+    if len(combinations) != 1:
+        raise ValueError("Kan choice panel requires explicit mapping")
+    tiles = combinations[0].split("|")
+    if len(tiles) != 4 or len({tile_kind(tile) for tile in tiles}) != 1:
+        raise ValueError("Invalid added-kan combination")
+    kind = tile_kind(tiles[0])
+    pons = [meld for meld in state["melds"][state["seat"]]
+            if meld.get("type") == 1 and len(meld.get("tiles", [])) == 3
+            and all(tile_kind(tile) == kind for tile in meld["tiles"])]
+    if len(pons) != 1:
+        raise ValueError("Added kan requires one matching own pon")
+    pon = pons[0]
+    extra = Counter(tiles) - Counter(pon["tiles"])
+    if Counter(pon["tiles"]) - Counter(tiles) or sum(extra.values()) != 1:
+        raise ValueError("Added-kan offer does not match the existing pon")
+    added = next(extra.elements())
+    if added not in state["hand"]:
+        raise ValueError("Exact added tile is missing from own hand")
+    if (profile.get("version") != 1 or profile.get("verified") is not True
+            or profile.get("stage") != "call_offer"
+            or profile.get("operation_types") != [item.get("type") for item in operation["operation_list"]]):
+        raise ValueError("Kan layout is not verified for this offer")
+    width, height = profile["client_size"]
+    x, y = profile["kan"]
+    if type(width) is not int or type(height) is not int or min(width, height) <= 0 or not 0 < x < 1 or not 0 < y < 1:
+        raise ValueError("Invalid kan coordinates")
+    return AddedKanPlan(board_token(report), report["game_connection"], state["step"], state["seat"],
+                        added, tuple(pon["tiles"]), x, y, width, height,
+                        (time.monotonic() if now is None else now) + 2)
+
+
+class AddedKanExecutor(PonExecutor):
+    def observe(self, connection, event):
+        plan = self.pending
+        data = event.get("data", {})
+        if (not plan or connection != plan.connection or event.get("source") != "live"
+                or event.get("name") != "ActionAnGangAddGang" or event.get("step", -1) <= plan.step
+                or data.get("seat", 0) != plan.seat or data.get("type", 0) != 2
+                or data.get("tiles") != plan.added_tile):
             return False
         self.pending = None
         return True
