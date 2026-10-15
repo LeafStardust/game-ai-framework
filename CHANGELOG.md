@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified native fullscreen Ron with exact winning-tile confirmation and added its Ron-only offer layout.
+
 - Verified native fullscreen Pon in the combined Chi/Pon offer and added its exact-context layout.
 
 - Mahjong Soul: add the verified fullscreen eight-tile post-call discard layout.
