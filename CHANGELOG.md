@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Confirmed native Pon at 1920x1200 and mapped existing action-button rows while preserving exact offer guards.
+
 - Added guarded viewport coordinate remapping and live-validated 1920x1200 fourteen-tile discard variants, with automatic size selection.
 
 - Verified native fullscreen Tsumo with exact self-draw confirmation and added its own-turn offer layout.
