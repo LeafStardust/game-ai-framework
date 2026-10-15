@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added and natively verified a fullscreen initial-dealer discard profile, keeping round-start and own-draw contexts distinct even at the same hand count.
+
 - Added automatic selection of uniquely calibrated Mahjong Soul discard geometry by size, hand count and action context, including observed five-tile fullscreen layouts.
 
 - Enforced Mahjong Soul post-call discard restrictions, including red-five equivalents and unknown-encoding rejection; verified native fullscreen Chi and the greyed-out forbidden discard UI.

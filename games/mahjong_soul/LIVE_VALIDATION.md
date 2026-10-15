@@ -172,3 +172,10 @@ Own seat-1 `3m/4m/5m` Chi was confirmed at step 66, sources `1/1/0`. The next
 discard operation prohibited `2m` and `5m`; the UI greyed out `2m`. An allowed
 `1s` discard continued calibration. The input planner now enforces these
 restrictions before sending any click.
+
+## Native initial dealer discard (2026-10-15)
+
+After the first autonomous calibration round ended, own seat 1 became dealer.
+The initial fourteen-tile hand followed ActionNewRound step 0. Native selection
+and visually verified confirmation discarded `7z` at step 1, returning the
+controller idle. The client remained 1920x1080.

@@ -104,3 +104,12 @@ def test_discard_layout_selection_uses_size_count_and_action_context():
     with pytest.raises(ValueError): discard_profile(report, (1920, 1080))
     report["state_ready"] = False
     with pytest.raises(ValueError): discard_profile(report, (1920, 1080))
+
+
+def test_initial_dealer_discard_has_an_explicit_round_start_profile():
+    from games.mahjong_soul.live.runtime.layout import discard_profile
+    report = {"state_ready": True, "last_event": {"name": "ActionNewRound"}, "state": {"hand": ["1m"] * 14}}
+    result = discard_profile(report, (1920, 1080))
+    assert result["trigger"] == "ActionNewRound"
+    assert round(result["slots"][-1][0] * 1919) == 1532
+    with pytest.raises(ValueError): discard_profile(report, (925, 520))

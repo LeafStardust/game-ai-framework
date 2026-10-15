@@ -454,3 +454,12 @@ also exercised during autonomous AI-room play and are now bundled.
 This selects geometry only. The caller must still identify the actual visual
 slot for the intended tile; reader hand order is not screen order. A matching
 layout does not choose a discard or replace restriction checks.
+
+## Initial dealer turn
+
+The initial dealer hand has fourteen tiles but follows `ActionNewRound`, not
+an own draw event. `discard-14-initial-fullscreen.json` explicitly covers that
+1920x1080 layout. During autonomous play, native selection and confirmation
+discarded the separated `7z` at step 1 after round-start step 0. The controller
+returned idle. This calibration is not silently applied to unverified windowed
+round-start layouts.
