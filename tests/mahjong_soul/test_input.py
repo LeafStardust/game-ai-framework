@@ -124,3 +124,25 @@ def test_same_tile_count_with_different_action_context_is_rejected():
     profile["trigger"] = "ActionChiPengGang"
     with pytest.raises(ValueError, match="action context"):
         plan_discard(report, profile, 0, "0p", now=10)
+
+
+@pytest.mark.parametrize("restriction", ["0p", "5p"])
+def test_discard_restrictions_block_red_and_normalized_tile_kind(restriction):
+    report, profile = inputs()
+    report["state"]["operations"]["operation_list"][0]["combination"] = [restriction]
+    with pytest.raises(ValueError, match="forbidden"):
+        plan_discard(report, profile, 0, "0p", now=10)
+
+
+def test_unrestricted_tile_remains_available_after_call():
+    report, profile = inputs()
+    report["state"]["operations"]["operation_list"][0]["combination"] = ["2m", "5m"]
+    assert plan_discard(report, profile, 0, "0p", now=10).tile == "0p"
+
+
+@pytest.mark.parametrize("restriction", [["2m|5m"], ["0z"], None])
+def test_unknown_discard_restriction_encoding_blocks_planning(restriction):
+    report, profile = inputs()
+    report["state"]["operations"]["operation_list"][0]["combination"] = restriction
+    with pytest.raises(ValueError, match="restriction"):
+        plan_discard(report, profile, 0, "0p", now=10)

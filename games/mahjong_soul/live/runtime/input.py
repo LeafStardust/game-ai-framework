@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 import hashlib
 import json
+import re
 import time
 
 
@@ -31,9 +32,17 @@ def plan_discard(report, profile, slot, tile, *, now=None):
         raise ValueError("Reader is not ready")
     state = report["state"]
     operation = state.get("operations") or {}
-    if operation.get("seat") != state["seat"] or not any(
-            choice.get("type") == 1 for choice in operation.get("operation_list", [])):
-        raise ValueError("No own discard operation")
+    choices = [choice for choice in operation.get("operation_list", []) if choice.get("type") == 1]
+    if operation.get("seat") != state["seat"] or len(choices) != 1:
+        raise ValueError("No unambiguous own discard operation")
+    restrictions = choices[0].get("combination", [])
+    if not isinstance(restrictions, list) or any(
+            not isinstance(value, str) or not re.fullmatch(r"(?:[0-9][mps]|[1-7]z)", value) for value in restrictions):
+        raise ValueError("Unsupported discard restriction encoding")
+    def kind(value):
+        return "5" + value[1:] if value.startswith("0") else value
+    if kind(tile) in {kind(value) for value in restrictions}:
+        raise ValueError("Tile is forbidden by the current discard operation")
     if tile not in state["hand"]:
         raise ValueError("Expected tile is not in the own hand")
     if profile.get("version") != 1 or profile.get("verified") is not True:

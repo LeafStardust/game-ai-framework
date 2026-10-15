@@ -430,3 +430,15 @@ alternate Pon button. The subsequent eight-tile own-draw layout was exercised
 with a computer-use discard and is saved as
 `discard-8-draw-fullscreen.json`. Fullscreen concealed/added-kan, Pon, riichi
 and win controls remain separate validation cases.
+
+## Post-call discard restrictions
+
+Discard planning treats the current type-1 operation's `combination` entries
+as forbidden tile kinds, including red/ordinary-five equivalents. Unsupported
+restriction encodings block planning. This guard also applies when the riichi
+planner delegates to discard planning.
+
+Autonomous fullscreen play verified native Chi `3m/4m/5m` at step 66. The
+subsequent discard offer listed `2m` and `5m` as forbidden, with `2m` visibly
+greyed out; an unrestricted `1s` was discarded instead. No blocked-tile click
+was attempted. Native Chi used the reusable fullscreen Chi-offer profile.
