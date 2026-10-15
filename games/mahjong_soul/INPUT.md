@@ -312,3 +312,22 @@ to idle. Computer-use supplied the initial screenshot only, not the click.
 This verifies native single-button Ron on an ordinary discard. Robbing kan,
 combined Ron/call buttons, and native Tsumo remain outside this live validation.
 Open/added-kan input and resize/fullscreen layout handling remain outstanding.
+
+## Open kan input
+
+`kan.plan_open_kan(report, profile)` requires one server type-5 combination,
+three exact contributed own tiles, and the latest known uncalled opponent
+discard of the same kind. A verified `call_offer` profile must match the full
+ordered offer types and supply the `kan` point. Multiple combinations remain
+blocked until their choice panel is calibrated.
+
+Submit through the shared controller. Confirmation requires own live
+`ActionChiPengGang` type 2 with all four exact tiles and their source seats.
+Red fives are not interchangeable with ordinary fives. Pon, concealed/added kan,
+wrong source assignments, and restored actions cannot confirm open kan.
+
+Live calibration at 925x520 offered `[3, 5]` (Pon and open kan) on a seat-1 `2p`
+discard. Clicking Kan produced own seat-2 open kan at step 114, with four `2p`
+tiles and sources `2/2/2/1`. Replacement draw `7s` followed at step 115.
+The click used computer-use; native open-kan delivery remains unverified.
+Added kan and resize/fullscreen support remain outstanding.

@@ -113,3 +113,11 @@ button through InputController. Live ActionHule step 88 confirmed own
 22,600 / 27,100 / 39,800 / 10,500. The controller returned idle with one attempt.
 The client was 925x520. This validates ordinary-discard native Ron; robbing kan
 and combined Ron offers remain unverified.
+
+## Open-kan UI calibration (2026-10-15)
+
+A combined Pon/Kan offer (types 3 and 5) followed seat 1's `2p` discard at step
+113. One Kan click produced own seat-2 open kan at step 114: four `2p` with
+sources `2/2/2/1`. Replacement draw `7s` followed at step 115. This verifies
+the single-choice combined Pon/Kan layout at 925x520 through computer-use.
+Native open-kan delivery and multiple-choice kan panels remain unverified.

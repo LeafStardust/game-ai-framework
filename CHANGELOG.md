@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added guarded single-choice open-kan input with exact own/source tile checks; verified the combined Pon/Kan UI and replacement draw through the live reader.
+
 - Verified native Mahjong Soul Ron input through the shared controller, including exact own winning tile, discard-win type, final scores, and return to idle after acknowledgement.
 
 - Added guarded win input requiring the exact winner, winning tile, and tsumo/ron type; verified the Steam Tsumo button and resulting scores, with Ron covered offline pending live calibration.
