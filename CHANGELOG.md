@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Calibrated fullscreen Riichi menu and discard selection, with server acceptance verified after manual final confirmation; full native acceptance retest remains outstanding.
+
 - Verified native fullscreen Ron with exact winning-tile confirmation and added its Ron-only offer layout.
 
 - Verified native fullscreen Pon in the combined Chi/Pon offer and added its exact-context layout.
