@@ -1,2 +1,0 @@
-
-Fullscreen eight-tile post-call layout was visually checked after a second Chi in an AI room. The contiguous hand centers are 270 through 935 pixels at 95-pixel intervals; discarding the allowed 8m was confirmed by the following board update. This profile is distinct from the eight-tile draw layout, whose separated tile center is 963 pixels. Native execution of this particular post-call layout remains untested.
