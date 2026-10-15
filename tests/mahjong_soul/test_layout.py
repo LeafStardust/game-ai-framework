@@ -89,3 +89,18 @@ def test_fullscreen_open_kan_and_eight_tile_layout_keep_offer_and_hand_context()
     assert len(hand["slots"]) == hand["hand_count"] == 8
     assert hand["trigger"] == "ActionDealTile"
     assert round(hand["slots"][-1][0] * 1919) == 963
+
+
+def test_discard_layout_selection_uses_size_count_and_action_context():
+    from games.mahjong_soul.live.runtime.layout import discard_profile
+    report = {"state_ready": True, "last_event": {"name": "ActionDealTile"}, "state": {"hand": ["1m"] * 5}}
+    draw = discard_profile(report, (1920, 1080))
+    assert round(draw["slots"][-1][0] * 1919) == 678
+    report["last_event"]["name"] = "ActionChiPengGang"
+    called = discard_profile(report, (1920, 1080))
+    assert round(called["slots"][-1][0] * 1919) == 650
+    with pytest.raises(ValueError): discard_profile(report, (1600, 900))
+    report["last_event"]["name"] = "ActionNewRound"
+    with pytest.raises(ValueError): discard_profile(report, (1920, 1080))
+    report["state_ready"] = False
+    with pytest.raises(ValueError): discard_profile(report, (1920, 1080))

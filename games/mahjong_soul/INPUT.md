@@ -442,3 +442,15 @@ Autonomous fullscreen play verified native Chi `3m/4m/5m` at step 66. The
 subsequent discard offer listed `2m` and `5m` as forbidden, with `2m` visibly
 greyed out; an unrestricted `1s` was discarded instead. No blocked-tile click
 was attempted. Native Chi used the reusable fullscreen Chi-offer profile.
+
+## Automatic calibrated hand-layout selection
+
+`layout.discard_profile(report, client_size)` chooses a unique bundled discard
+profile by client size, hand count and last-action trigger. It does not interpolate
+unknown sizes or reuse a post-call row for a separated draw. Missing or ambiguous
+calibrations block planning. Five-tile fullscreen draw/post-call layouts were
+also exercised during autonomous AI-room play and are now bundled.
+
+This selects geometry only. The caller must still identify the actual visual
+slot for the intended tile; reader hand order is not screen order. A matching
+layout does not choose a discard or replace restriction checks.
