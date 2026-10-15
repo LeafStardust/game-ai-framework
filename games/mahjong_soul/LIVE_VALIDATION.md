@@ -103,3 +103,13 @@ The own seat-2 prompt offered operations `[1, 8]` (discard and tsumo). Clicking
 Tsumo produced live `ActionHule` step 83 with own `zimo=true`, winning tile `9p`,
 and scores 22,600 / 27,100 / 38,000 / 12,300. This verifies the Tsumo button at
 925x520 through computer-use; native win clicks and live Ron remain unverified.
+
+## Native Ron input (2026-10-15)
+
+A Ron-only offer at own absolute seat 2 followed seat 3's `7m` discard at step
+87. The repository's native WindowsMouse backend clicked the calibrated Ron
+button through InputController. Live ActionHule step 88 confirmed own
+`zimo=false`, winning tile `7m`, and final scores
+22,600 / 27,100 / 39,800 / 10,500. The controller returned idle with one attempt.
+The client was 925x520. This validates ordinary-discard native Ron; robbing kan
+and combined Ron offers remain unverified.

@@ -291,9 +291,24 @@ a `tsumo` or `ron` point. Submit through `InputController`.
 Confirmation requires a later live `ActionHule` containing the own seat, exact
 winning tile including red-five identity, and matching self-draw/ron flag. A
 round end or another player's win alone cannot confirm the action. Ron matching
-can find the own winner among multiple results but has offline coverage only.
+can find the own winner among multiple results; multiple-winner handling has
+offline coverage only.
 
 Live Tsumo calibration at 925x520 offered `[discard, tsumo]`. One button click
 produced own seat-2 `9p` self-draw at step 83, with final scores
-22,600 / 27,100 / 38,000 / 12,300. The UI test used computer-use; native win
-delivery and the Ron button remain unverified. No decision policy is connected.
+22,600 / 27,100 / 38,000 / 12,300. The UI test used computer-use; native Tsumo
+delivery remained unverified in that test; native Ron is verified below. No decision policy is connected.
+
+## Native Ron validation
+
+On 2026-10-15 a live Ron-only offer (operation `[9]`) at own seat 2 concerned
+opponent seat 3's uncalled `7m` discard, step 87. A verified 925x520 Ron profile
+was passed to `plan_win(..., "ron")` and the shared controller. The repository's
+WindowsMouse backend clicked Ron once. Live `ActionHule` step 88 reported own
+seat 2, `zimo=false`, and `hu_tile=7m`, with final scores
+22,600 / 27,100 / 39,800 / 10,500. Exact confirmation returned the controller
+to idle. Computer-use supplied the initial screenshot only, not the click.
+
+This verifies native single-button Ron on an ordinary discard. Robbing kan,
+combined Ron/call buttons, and native Tsumo remain outside this live validation.
+Open/added-kan input and resize/fullscreen layout handling remain outstanding.

@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified native Mahjong Soul Ron input through the shared controller, including exact own winning tile, discard-win type, final scores, and return to idle after acknowledgement.
+
 - Added guarded win input requiring the exact winner, winning tile, and tsumo/ron type; verified the Steam Tsumo button and resulting scores, with Ron covered offline pending live calibration.
 
 - Verified the shifted Chi button in a combined Mahjong Soul Chi/Pon offer; added regression coverage for offer-specific coordinates, single-offer profile rejection, and shared-controller overlap prevention.
