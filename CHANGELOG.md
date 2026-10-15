@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified native fullscreen single-choice closed kan and added its exact own-turn offer layout.
+
 - Verified fullscreen Riichi natively through server acceptance; fixed generic discard lookup colliding with the Riichi hand profile.
 
 - Verified native fullscreen added kan with exact Pon/fourth-tile matching and added its own-turn offer layout.

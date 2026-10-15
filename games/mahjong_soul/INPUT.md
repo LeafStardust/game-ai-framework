@@ -479,3 +479,5 @@ Native fullscreen two-choice Chi was verified end to end through one shared cont
 Native fullscreen added kan was verified for the own-turn [1,6] offer at (1020,835). Exact north (4z) was matched against the existing own Pon and concealed fourth tile; ActionAnGangAddGang type 2 confirmed the upgrade and the shared controller returned idle.
 
 Fullscreen Riichi is now natively verified end to end: own-turn [1,7] menu at (1020,835), visually confirmed allowed discards [4p,6s], selection of the separated drawn 4p, and a second native click. The reader confirmed server acceptance at the following draw and the shared controller returned idle. This supersedes the earlier partial-native limitation for this calibrated offer. Generic discard lookup now excludes operation-specific hand layouts so Riichi geometry cannot make normal fourteen-tile draw selection ambiguous.
+
+Native fullscreen closed kan was verified for the own-turn [1,4] offer at (1020,835). Four concealed 6s were checked against the server offer and own hand; ActionAnGangAddGang type 3 confirmed the kan, and the shared controller returned idle. This profile covers a single kan choice only.
