@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added guarded viewport coordinate remapping and live-validated 1920x1200 fourteen-tile discard variants, with automatic size selection.
+
 - Verified native fullscreen Tsumo with exact self-draw confirmation and added its own-turn offer layout.
 
 - Verified native fullscreen single-choice closed kan and added its exact own-turn offer layout.

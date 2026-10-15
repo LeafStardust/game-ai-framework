@@ -123,3 +123,37 @@ def test_generic_discard_selection_excludes_riichi_hand_geometry():
     assert "operation_types" not in result
     assert "riichi" not in result
     assert round(result["slots"][-1][0] * 1919) == 1532
+
+
+def test_viewport_mapping_accounts_for_1920_1200_letterbox_and_blocks_unverified_input():
+    from games.mahjong_soul.live.runtime.layout import profile_for_viewport
+    source = {"verified": True, "client_size": [1920, 1080], "operation_types": [1, 8],
+              "tsumo": [1020/1919, 835/1079], "slots": [[1532/1919, 1000/1079]]}
+    result = profile_for_viewport(source, (1920, 1200), (0, 60, 1920, 1080))
+    assert round(result["tsumo"][0] * 1919) == 1020
+    assert round(result["tsumo"][1] * 1199) == 895
+    assert round(result["slots"][0][1] * 1199) == 1060
+    assert result["operation_types"] == [1, 8]
+    assert source["verified"] is True and source["client_size"] == [1920, 1080]
+    with pytest.raises(ValueError, match="not verified"):
+        profile_for_size(result, (1920, 1200))
+
+
+@pytest.mark.parametrize("viewport", [(-1, 0, 1920, 1080), (0, 121, 1920, 1080),
+                                      (0, 0, 1921, 1080), (0, 0, 0, 1080), (0, 0, 1920.0, 1080)])
+def test_invalid_viewport_never_generates_click_coordinates(viewport):
+    from games.mahjong_soul.live.runtime.layout import profile_for_viewport
+    with pytest.raises(ValueError):
+        profile_for_viewport(profile(), (1920, 1200), viewport)
+
+
+def test_1920_1200_discard_variants_resolve_automatically_without_enabling_other_controls():
+    from games.mahjong_soul.live.runtime.layout import discard_profile
+    root = Path(__file__).resolve().parents[2] / "games/mahjong_soul/live/layouts"
+    for trigger in ("ActionNewRound", "ActionDealTile"):
+        report = {"state_ready": True, "last_event": {"name": trigger}, "state": {"hand": ["1m"] * 14}}
+        selected = discard_profile(report, (1920, 1200))
+        assert round(selected["slots"][-1][0] * 1919) == 1532
+        assert round(selected["slots"][-1][1] * 1199) == 1060
+    with pytest.raises(ValueError):
+        profile_for_size(json.loads((root / "tsumo-offer-fullscreen.json").read_text()), (1920, 1200))

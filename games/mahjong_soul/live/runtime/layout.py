@@ -54,3 +54,43 @@ def discard_profile(report, client_size, directory=None):
     if len(matches) != 1:
         raise ValueError("No unique calibrated discard layout for this hand, trigger and client size")
     return matches[0]
+
+
+def profile_for_viewport(profile, client_size, viewport):
+    """Build an unverified candidate by fitting calibrated points to a viewport.
+
+    viewport is (left, top, width, height) in target-client physical pixels.
+    The caller must inspect the actual game viewport; no aspect ratio or bars
+    are inferred from the client dimensions. The result cannot enable input
+    until its points have been visually validated.
+    """
+    from math import isfinite
+    size = list(client_size)
+    if len(size) != 2 or any(type(v) is not int or v <= 1 for v in size):
+        raise ValueError("Invalid client size")
+    if (len(viewport) != 4 or any(type(v) is not int for v in viewport)):
+        raise ValueError("Viewport must contain four integer pixel dimensions")
+    left, top, width, height = viewport
+    if left < 0 or top < 0 or width <= 1 or height <= 1 or left + width > size[0] or top + height > size[1]:
+        raise ValueError("Viewport lies outside the target client")
+    source_size = profile.get("client_size", [])
+    source = profile_for_size(profile, source_size)
+    fields = POINT_FIELDS.intersection(source)
+    if not fields:
+        raise ValueError("Profile has no calibrated points")
+
+    def point(value):
+        if (not isinstance(value, (list, tuple)) or len(value) != 2
+                or any(type(v) not in (int, float) or not isfinite(v) or not 0 < v < 1 for v in value)):
+            raise ValueError("Invalid calibrated point")
+        x, y = value
+        return [(left + x * (width - 1)) / (size[0] - 1),
+                (top + y * (height - 1)) / (size[1] - 1)]
+
+    result = deepcopy(source)
+    for field in fields:
+        value = source[field]
+        result[field] = [point(p) for p in value] if field in {"slots", "choice_points"} else point(value)
+    result.update(client_size=size, verified=False,
+                  calibration_source={"client_size": source_size, "viewport": list(viewport)})
+    return result
