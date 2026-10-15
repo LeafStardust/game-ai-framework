@@ -155,5 +155,19 @@ def test_1920_1200_discard_variants_resolve_automatically_without_enabling_other
         selected = discard_profile(report, (1920, 1200))
         assert round(selected["slots"][-1][0] * 1919) == 1532
         assert round(selected["slots"][-1][1] * 1199) == 1060
+    result = profile_for_size(json.loads((root / "tsumo-offer-fullscreen.json").read_text()), (1920, 1200))
+    assert round(result["tsumo"][1] * 1199) == 895
+
+
+def test_1920_1200_shared_action_row_preserves_offer_context_and_choice_panels_stay_blocked():
+    root = Path(__file__).resolve().parents[2] / "games/mahjong_soul/live/layouts"
+    for filename, field in [("pon-only-offer-fullscreen.json", "pon"),
+                            ("closed-kan-offer-fullscreen.json", "kan"),
+                            ("ron-offer-fullscreen.json", "ron"),
+                            ("skip-chi-offer.json", "skip")]:
+        source = json.loads((root / filename).read_text())
+        result = profile_for_size(source, (1920, 1200))
+        assert result["operation_types"] == source["operation_types"]
+        assert round(result[field][1] * 1199) == 895
     with pytest.raises(ValueError):
-        profile_for_size(json.loads((root / "tsumo-offer-fullscreen.json").read_text()), (1920, 1200))
+        profile_for_size(json.loads((root / "chi-two-choices-fullscreen.json").read_text()), (1920, 1200))

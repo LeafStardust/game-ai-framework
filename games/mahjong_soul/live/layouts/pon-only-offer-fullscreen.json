@@ -12,5 +12,19 @@
   "pon": [
     0.5315268368942158,
     0.7738646895273401
+  ],
+  "size_variants": [
+    {
+      "pon": [
+        0.5315268368942158,
+        0.7464553794829024
+      ],
+      "verified": true,
+      "client_size": [
+        1920,
+        1200
+      ],
+      "validation_basis": "shared fullscreen action-row mapping, natively confirmed by Pon at 1020,895"
+    }
   ]
 }
