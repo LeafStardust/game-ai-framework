@@ -141,3 +141,10 @@ the pending action across visual inspection. The game stayed fullscreen.
 
 Only this hand layout is live-verified at fullscreen size. Other action buttons,
 choice panels, maximized sizes, and other resolutions remain unverified.
+
+## Fullscreen Chi menu (2026-10-15)
+
+During agent-driven AI-room calibration, a Chi-only offer at 1920x1080 opened
+a two-choice panel (`4p|5p`, `5p|7p`). Clicking the second choice produced own
+seat-1 Chi at step 27, tiles `5p/7p/6p`, sources `1/1/0`. Both menu opening and
+choice selection used computer-use. The reader reported no issues.

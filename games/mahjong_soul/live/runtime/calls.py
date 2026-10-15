@@ -186,3 +186,73 @@ class ChiExecutor(PonExecutor):
             return False
         self.pending = None
         return True
+
+
+@dataclass(frozen=True)
+class ChiMenuPlan:
+    token: str
+    connection: str
+    step: int
+    seat: int
+    combinations: tuple
+    x: float
+    y: float
+    width: int
+    height: int
+    expires: float
+
+
+def plan_chi_menu(report, profile, *, now=None):
+    state = report.get("state") or {}
+    operation = state.get("operations") or {}
+    choices = [item for item in operation.get("operation_list", []) if item.get("type") == 2]
+    if (not report.get("state_ready") or operation.get("seat") != state.get("seat")
+            or len(choices) != 1 or len(choices[0].get("combination", [])) < 2):
+        raise ValueError("No own multiple-choice Chi menu")
+    if (profile.get("version") != 1 or profile.get("verified") is not True
+            or profile.get("stage") != "call_offer"
+            or profile.get("operation_types") != [item.get("type") for item in operation["operation_list"]]):
+        raise ValueError("Chi menu layout is not verified for this offer")
+    width, height = profile["client_size"]
+    x, y = profile["chi"]
+    if type(width) is not int or type(height) is not int or min(width, height) <= 0 or not 0 < x < 1 or not 0 < y < 1:
+        raise ValueError("Invalid Chi menu coordinates")
+    return ChiMenuPlan(board_token(report), report["game_connection"], state["step"], state["seat"],
+                       tuple(choices[0]["combination"]), x, y, width, height,
+                       (time.monotonic() if now is None else now) + 2)
+
+
+class ChiMenuExecutor(PonExecutor):
+    def __init__(self, backend):
+        super().__init__(backend)
+        self.delivered = False
+
+    def execute(self, plan, report, *, enabled=False, now=None):
+        self.delivered = False
+        super().execute(plan, report, enabled=enabled, now=now)
+        self.delivered = True
+
+    def observe(self, connection, event):
+        return False  # Opening a choice panel is a visual state, not a game event.
+
+
+def bind_chi_choices(report, layout, visible_combinations):
+    """Bind a calibrated panel geometry to newly observed tile choices.
+
+    visible_combinations must come from current screen inspection, not be copied
+    from server data in place of inspection. No ordering is inferred here.
+    """
+    from copy import deepcopy
+    operation = (report.get("state") or {}).get("operations") or {}
+    choices = [item for item in operation.get("operation_list", []) if item.get("type") == 2]
+    if (not report.get("state_ready") or len(choices) != 1
+            or layout.get("verified") is not True or layout.get("stage") != "chi_choices"
+            or layout.get("operation_types") != [item.get("type") for item in operation.get("operation_list", [])]
+            or not isinstance(visible_combinations, list) or len(visible_combinations) < 2
+            or visible_combinations != choices[0].get("combination")
+            or layout.get("choice_count") != len(visible_combinations)
+            or len(layout.get("choice_points", [])) != len(visible_combinations)):
+        raise ValueError("Observed Chi panel does not match the calibrated layout and offer")
+    bound = deepcopy(layout)
+    bound["combinations"] = list(visible_combinations)
+    return bound

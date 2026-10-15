@@ -9,7 +9,7 @@ from games.mahjong_soul.live.runtime.win import WinPlan, WinExecutor
 from games.mahjong_soul.live.runtime.kan import ConcealedKanPlan, ConcealedKanExecutor, OpenKanPlan, OpenKanExecutor, AddedKanPlan, AddedKanExecutor
 from games.mahjong_soul.live.runtime.riichi import RiichiPlan, RiichiExecutor
 from games.mahjong_soul.live.runtime.skip import SkipPlan, SkipExecutor
-from games.mahjong_soul.live.runtime.calls import PonPlan, PonExecutor, ChiPlan, ChiExecutor
+from games.mahjong_soul.live.runtime.calls import PonPlan, PonExecutor, ChiPlan, ChiExecutor, ChiMenuPlan, ChiMenuExecutor
 
 
 class InputController:
@@ -17,7 +17,7 @@ class InputController:
         if confirmation_timeout <= 0:
             raise ValueError("Confirmation timeout must be positive")
         self._executors = {DiscardPlan: DiscardExecutor(backend),
-                           PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend), SkipPlan: SkipExecutor(backend), RiichiPlan: RiichiExecutor(backend),
+                           PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend), ChiMenuPlan: ChiMenuExecutor(backend), SkipPlan: SkipExecutor(backend), RiichiPlan: RiichiExecutor(backend),
                            ConcealedKanPlan: ConcealedKanExecutor(backend), OpenKanPlan: OpenKanExecutor(backend), AddedKanPlan: AddedKanExecutor(backend), WinPlan: WinExecutor(backend)}
         self._lock = RLock()
         self._active = None
@@ -77,6 +77,31 @@ class InputController:
                 if plan.token in executor.selection_confirmed:
                     self._blocked = "Selection input failed; inspect the game before recovery"
                 raise
+            self._deadline = self._now(now) + self.confirmation_timeout
+
+    def select_chi_combination(self, plan, report, *, enabled=False, now=None):
+        """Continue a visually verified menu with a fresh plan_chi choice plan."""
+        with self._lock:
+            self.update(report, now=now)
+            menu = self._executors[ChiMenuPlan]
+            if self._blocked or self._active is not menu or not menu.delivered or not enabled:
+                raise ValueError("No delivered Chi menu to continue")
+            pending = menu.pending
+            if (type(plan) is not ChiPlan or plan.token != pending.token
+                    or (plan.width, plan.height) != (pending.width, pending.height)
+                    or "|".join(plan.tiles[:2]) not in pending.combinations):
+                raise ValueError("Chi choice does not match the pending menu")
+            executor = self._executors[ChiPlan]
+            try:
+                executor.execute(plan, report, enabled=True, now=now)
+            except Exception:
+                if executor.pending is not None:
+                    self._active = executor
+                    self._blocked = "Chi choice input failed; inspect before recovery"
+                raise
+            menu.pending = None
+            menu.delivered = False
+            self._active = executor
             self._deadline = self._now(now) + self.confirmation_timeout
 
     def select_riichi_discard(self, plan, report, visible_allowed_tiles, *, enabled=False, now=None):

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "verified": true,
+  "stage": "chi_choices",
+  "client_size": [
+    1920,
+    1080
+  ],
+  "operation_types": [
+    2
+  ],
+  "choice_count": 2,
+  "choice_points": [
+    [
+      0.43772798332464824,
+      0.7136237256719185
+    ],
+    [
+      0.5419489317352788,
+      0.7136237256719185
+    ]
+  ]
+}

@@ -197,3 +197,49 @@ def test_combined_call_choice_is_serialized_and_chi_confirmation_is_exact():
     assert controller.observe("game", {"name": "ActionChiPengGang", "step": 1, "source": "live",
                               "data": {"seat": 0, "tiles": ["7s", "8s", "9s"], "froms": [0, 0, 3]}}, now=12)
     assert mouse.clicks == [(*profile["chi"], 925, 520)]
+
+
+def test_chi_menu_and_choice_are_one_serialized_controller_action():
+    from games.mahjong_soul.live.runtime.calls import plan_chi, plan_chi_menu
+    from games.mahjong_soul.live.runtime.controller import InputController
+    report, panel, combinations = multi_chi_offer()
+    menu = {"version": 1, "verified": True, "client_size": [925, 520],
+            "stage": "call_offer", "operation_types": [2], "chi": [.53, .77]}
+    mouse = Mouse(); controller = InputController(mouse)
+    controller.submit(plan_chi_menu(report, menu, now=10), report, enabled=True, now=11)
+    choice = plan_chi(report, panel, combination="4m|0m", visible_combinations=combinations, now=11)
+    with pytest.raises(ValueError, match="overlapping"):
+        controller.submit(choice, report, enabled=True, now=12)
+    controller.select_chi_combination(choice, report, enabled=True, now=12)
+    with pytest.raises(ValueError): controller.select_chi_combination(choice, report, enabled=True, now=12)
+    assert controller.observe("game", {"name": "ActionChiPengGang", "step": 1, "source": "live",
+                             "data": {"seat": 0, "tiles": ["4m", "0m", "3m"], "froms": [0, 0, 3]}}, now=13)
+    assert len(mouse.clicks) == 2
+    assert controller.snapshot()["attempted_steps"] == 1
+
+
+def test_chi_menu_partial_delivery_cannot_be_followed_by_choice():
+    from games.mahjong_soul.live.runtime.calls import plan_chi, plan_chi_menu
+    from games.mahjong_soul.live.runtime.controller import InputController
+    class Failure:
+        def click(self, *args): raise OSError("partial delivery")
+    report, panel, combinations = multi_chi_offer()
+    menu = {"version": 1, "verified": True, "client_size": [925, 520],
+            "stage": "call_offer", "operation_types": [2], "chi": [.53, .77]}
+    controller = InputController(Failure())
+    with pytest.raises(OSError): controller.submit(plan_chi_menu(report, menu, now=10), report, enabled=True, now=11)
+    choice = plan_chi(report, panel, combination="4m|0m", visible_combinations=combinations, now=11)
+    with pytest.raises(ValueError): controller.select_chi_combination(choice, report, enabled=True, now=12)
+    assert controller.snapshot()["status"] == "blocked"
+
+
+def test_panel_geometry_can_be_bound_to_fresh_visually_observed_choices():
+    from games.mahjong_soul.live.runtime.calls import bind_chi_choices, plan_chi
+    report, panel, combinations = multi_chi_offer()
+    panel.pop("combinations"); panel["choice_count"] = 3
+    bound = bind_chi_choices(report, panel, list(combinations))
+    assert "combinations" not in panel
+    assert plan_chi(report, bound, combination="4m|0m", visible_combinations=combinations, now=10).tiles == ("4m", "0m", "3m")
+    with pytest.raises(ValueError): bind_chi_choices(report, panel, list(reversed(combinations)))
+    panel["choice_count"] = 2
+    with pytest.raises(ValueError): bind_chi_choices(report, panel, combinations)

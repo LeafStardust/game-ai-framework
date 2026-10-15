@@ -377,3 +377,27 @@ executing. Dry-run `--client-size WIDTH HEIGHT` selects a target explicitly.
 Call/choice/riichi profiles, other hand layouts, other fullscreen resolutions,
 and maximized client sizes still need their own verified variants. Fullscreen
 validation of this discard layout does not certify every control at that size.
+
+## Serialized Chi menu opening
+
+For a multi-choice offer, submit `calls.plan_chi_menu(report, offer_profile)`
+through the shared controller. After taking a new screenshot of the open panel,
+use `bind_chi_choices(report, panel_layout, visible_combinations)` to bind the
+visually observed ordered combinations to calibrated geometry. Build a fresh
+`plan_chi` for the desired combination and call
+`controller.select_chi_combination(plan, report, enabled=True)`.
+
+The menu and choice share one attempted game step. Other actions stay blocked
+between them. A failed menu click cannot be followed by a choice click. The
+choice must match the original menu, board and client size, and successful
+confirmation still requires the exact live own meld. Opening a menu alone
+never counts as a confirmed game action.
+
+Fullscreen calibration at 1920x1080 verified the Chi-only button opening a
+two-choice panel. The observed choices were `4p|5p` and `5p|7p`; selecting the
+second produced own seat-1 `5p/7p/6p` Chi at step 27, sources `1/1/0`.
+Reusable layouts are in `live/layouts/chi-offer.json` and
+`live/layouts/chi-two-choices-fullscreen.json`. Geometry can be reused for the
+same verified panel count, size and offer; actual tile order must be reobserved
+each time. Calibration used computer-use; native Chi-menu delivery remains
+unverified.

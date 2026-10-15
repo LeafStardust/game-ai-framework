@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added serialized Chi-menu opening and explicit visual-choice binding; verified fullscreen Chi menu/choice coordinates and committed reusable calibrated layouts.
+
 - Added explicit Mahjong Soul client-size profile variants, physical geometry inspection, minimized-window rejection, and pre-input geometry rechecks; verified a native discard at 1920x1080 fullscreen.
 
 - Added guarded single-choice added-kan input using exact Pon/offer multiset matching; verified the Steam upgrade button and replacement draw while preserving red-five identity checks.
