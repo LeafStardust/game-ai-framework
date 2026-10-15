@@ -140,3 +140,5 @@ This file records notable development changes to the project. Active and future 
 ## v0.1â€“v0.6 â€” Framework foundation
 
 - Established repository structure, configuration, logging, metrics, events, agent and policy abstractions, heuristic evaluation, softmax selection, experiment execution, reproducible seeds, comparisons, and aggregate metrics.
+
+- Mahjong Soul: add the verified fullscreen eight-tile post-call discard layout.
