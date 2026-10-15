@@ -134,6 +134,7 @@ def main():
     parser.add_argument("--slot", type=int, required=True)
     parser.add_argument("--tile", required=True)
     parser.add_argument("--execute", action="store_true", help="Send one real click; default is dry run")
+    parser.add_argument("--client-size", type=int, nargs=2, metavar=("WIDTH", "HEIGHT"), help="Dry-run target size; execution reads actual client geometry")
     parser.add_argument("--schema", default=str(Path(__file__).resolve().parents[4] / "liqi-reference.json"))
     args = parser.parse_args()
     reader = GameReader(LiqiSchema.load(args.schema))
@@ -144,6 +145,16 @@ def main():
         parser.error("Capture contains malformed or unfinished rows")
     try:
         profile = json.loads(Path(args.profile).read_text(encoding="utf-8"))
+        from games.mahjong_soul.live.runtime.layout import profile_for_size
+        mouse = None
+        if args.execute:
+            from games.mahjong_soul.live.runtime.windows_input import WindowsMouse
+            mouse = WindowsMouse()
+            geometry = mouse.client_geometry()
+            target_size = [geometry["width"], geometry["height"]]
+        else:
+            target_size = args.client_size or profile["client_size"]
+        profile = profile_for_size(profile, target_size)
         plan = plan_discard(reader.snapshot(), profile, args.slot, args.tile)
         if not args.execute:
             print(json.dumps({"dry_run": True, "step": plan.step, "tile": plan.tile,
@@ -153,9 +164,8 @@ def main():
         # Require a recently appended live row, not merely an open saved socket.
         if time.time() - Path(args.capture).stat().st_mtime > 2:
             parser.error("Capture is not fresh; wait for the next action and rebuild the plan")
-        from games.mahjong_soul.live.runtime.windows_input import WindowsMouse
         from games.mahjong_soul.live.runtime.controller import InputController
-        executor = InputController(WindowsMouse())
+        executor = InputController(mouse)
         for row in tail.read():
             reader.consume(row)
         if tail.bad_rows or tail.pending:

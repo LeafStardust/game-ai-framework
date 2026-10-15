@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added explicit Mahjong Soul client-size profile variants, physical geometry inspection, minimized-window rejection, and pre-input geometry rechecks; verified a native discard at 1920x1080 fullscreen.
+
 - Added guarded single-choice added-kan input using exact Pon/offer multiset matching; verified the Steam upgrade button and replacement draw while preserving red-five identity checks.
 
 - Added guarded single-choice open-kan input with exact own/source tile checks; verified the combined Pon/Kan UI and replacement draw through the live reader.

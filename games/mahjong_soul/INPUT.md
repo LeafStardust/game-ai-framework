@@ -351,3 +351,29 @@ a `9s` Pon. The Kan click produced own seat-1 upgrade at step 33 followed by an
 `8m` replacement draw at step 34, with no reader issues. Calibration used
 computer-use; native added-kan delivery and multi-candidate panels remain
 unverified. Resize/fullscreen handling remains a separate outstanding task.
+
+## Window size variants and fullscreen
+
+Coordinates remain relative to the current game client origin. Moving the
+window between actions requires no recalibration. The backend now reads
+physical client geometry using `WindowsMouse.client_geometry()` and rechecks it
+immediately before sending input. A move or resize during click preparation
+blocks that attempt. Minimized windows are explicitly rejected.
+
+Use `layout.profile_for_size(profile, (width, height))` before planning. Each
+verified `size_variants` entry supplies its exact target dimensions and every
+coordinate field present in the base profile. Unknown sizes, duplicate variants,
+unverified variants, and missing coordinates are rejected. No interpolation or
+aspect-ratio guessing is used. Board/action context remains checked by planners.
+
+A reusable profile at `live/layouts/discard-14-draw.json` covers the observed
+14-tile hand after an own draw at 925x520 and fullscreen 1920x1080. On
+2026-10-15 the native backend selected and confirmed the separated `3z` tile
+using the fullscreen variant; the reader confirmed discard step 4 and the shared
+controller returned idle. Both clicks came from the repository backend.
+
+The discard CLI selects a verified variant from actual client geometry when
+executing. Dry-run `--client-size WIDTH HEIGHT` selects a target explicitly.
+Call/choice/riichi profiles, other hand layouts, other fullscreen resolutions,
+and maximized client sizes still need their own verified variants. Fullscreen
+validation of this discard layout does not certify every control at that size.

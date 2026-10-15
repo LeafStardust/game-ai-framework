@@ -129,3 +129,15 @@ contained three `9s`. A single Kan click produced added-kan event type 2 at
 step 33, followed by replacement draw `8m` at step 34. The reader remained ready
 without issues. The UI was 925x520 and clicks used computer-use; native added-kan
 delivery and multi-candidate selection remain unverified.
+
+## Native fullscreen discard (2026-10-15)
+
+The game was already fullscreen at 1920x1080. The 14-tile own-draw layout was
+compared with the 925x520 windowed calibration and given explicit fullscreen
+coordinates. Native selection raised the separated `3z` tile, verified by a
+screenshot. Native confirmation produced live discard step 4 and returned the
+controller idle. Both clicks used WindowsMouse, with InputController retaining
+the pending action across visual inspection. The game stayed fullscreen.
+
+Only this hand layout is live-verified at fullscreen size. Other action buttons,
+choice panels, maximized sizes, and other resolutions remain unverified.

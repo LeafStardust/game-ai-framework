@@ -13,6 +13,8 @@ class WindowsMouse:
         self.user = c.WinDLL("user32", use_last_error=True)
         self.kernel = c.WinDLL("kernel32", use_last_error=True)
         self.user.GetForegroundWindow.restype = w.HWND
+        self.user.IsIconic.argtypes = [w.HWND]
+        self.user.IsIconic.restype = w.BOOL
         self.user.GetWindowThreadProcessId.argtypes = [w.HWND, c.POINTER(w.DWORD)]
         self.user.GetClientRect.argtypes = [w.HWND, c.POINTER(w.RECT)]
         self.user.ClientToScreen.argtypes = [w.HWND, c.POINTER(w.POINT)]
@@ -40,18 +42,41 @@ class WindowsMouse:
             self.kernel.CloseHandle(handle)
         return hwnd
 
+    def _client_geometry(self, hwnd):
+        if self.user.IsIconic(hwnd):
+            raise ValueError("Game window is minimized")
+        rect, origin = w.RECT(), w.POINT()
+        if not self.user.GetClientRect(hwnd, c.byref(rect)) or not self.user.ClientToScreen(hwnd, c.byref(origin)):
+            raise c.WinError(c.get_last_error())
+        if rect.right <= 1 or rect.bottom <= 1:
+            raise ValueError("Game client has no usable area")
+        return {"width": rect.right, "height": rect.bottom, "left": origin.x, "top": origin.y}
+
+    def client_geometry(self):
+        """Read the foreground game's physical client dimensions without input."""
+        previous = self.user.SetThreadDpiAwarenessContext(w.HANDLE(-4))
+        if not previous:
+            raise c.WinError(c.get_last_error())
+        try:
+            hwnd = self._foreground()
+            result = self._client_geometry(hwnd)
+            if self._foreground() != hwnd:
+                raise ValueError("Foreground changed during geometry inspection")
+            return result
+        finally:
+            self.user.SetThreadDpiAwarenessContext(previous)
+
     def click(self, x, y, width, height):
         previous = self.user.SetThreadDpiAwarenessContext(w.HANDLE(-4))
         if not previous:
             raise c.WinError(c.get_last_error())
         try:
             hwnd = self._foreground()
-            rect, origin = w.RECT(), w.POINT()
-            if not self.user.GetClientRect(hwnd, c.byref(rect)) or not self.user.ClientToScreen(hwnd, c.byref(origin)):
-                raise c.WinError(c.get_last_error())
-            if (rect.right, rect.bottom) != (width, height):
-                raise ValueError("Game window size changed; recalibrate")
-            px, py = origin.x + round(x * (width - 1)), origin.y + round(y * (height - 1))
+            geometry = self._client_geometry(hwnd)
+            if (geometry["width"], geometry["height"]) != (width, height):
+                raise ValueError("Game window size changed; select a calibrated size profile")
+            px = geometry["left"] + round(x * (width - 1))
+            py = geometry["top"] + round(y * (height - 1))
             vx, vy = self.user.GetSystemMetrics(76), self.user.GetSystemMetrics(77)
             vw, vh = self.user.GetSystemMetrics(78), self.user.GetSystemMetrics(79)
             if not (vx <= px < vx + vw and vy <= py < vy + vh):
@@ -76,6 +101,8 @@ class WindowsMouse:
             inputs[2].data.mouse.dwFlags = 4
             if self._foreground() != hwnd:
                 raise ValueError("Foreground changed before click")
+            if self._client_geometry(hwnd) != geometry:
+                raise ValueError("Game window moved or resized before click; rebuild the plan")
             sent = self.user.SendInput(3, inputs, c.sizeof(Input))
             if sent != 3:
                 # Ensure a partially delivered press cannot leave the button held.
