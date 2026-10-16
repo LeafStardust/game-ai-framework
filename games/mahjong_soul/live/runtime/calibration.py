@@ -51,6 +51,8 @@ class EvidenceRecorder:
         digest = hashlib.sha256(png).hexdigest()
         key = (ctx["board_token"], json.dumps(geometry, sort_keys=True), digest)
         if key == self.last_key:
+            # This is a fresh capture of the same pixels, not an old observation.
+            self.last_image["monotonic"] = now
             return self.last_image
         if self.used + len(png) > self.max_bytes:
             raise RuntimeError("Recording size limit reached")

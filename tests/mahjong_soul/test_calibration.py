@@ -75,3 +75,15 @@ def test_png_preserves_rgb_channel_order():
         if png[offset+4:offset+8] == b"IDAT": compressed += png[offset+8:offset+8+size]
         offset += size+12
     assert zlib.decompress(compressed) == bytes([0, 3, 2, 1])
+
+
+def test_unchanged_recaptured_screen_refreshes_preclick_evidence(tmp_path):
+    path = tmp_path / "record"; r = EvidenceRecorder(path)
+    g = {"width": 100, "height": 100}
+    r.frame(report(), g, b"same pixels", 1)
+    r.frame(report(), g, b"same pixels", 10)
+    r.click(report(), g, 2, 3, 10.1)
+    r.close()
+    data = rows(path)
+    assert len(list(path.glob("*.png"))) == 1
+    assert data[-1]["preceding_image"] == data[0]["image"]

@@ -15,3 +15,5 @@ The recorder sends no clicks, never changes the foreground window and never inst
 The default run ends after one hour or at a 1 GiB session limit. Stop with Ctrl+C. Options: `--duration 600`, `--max-mb 512`, `--file <capture.jsonl>`, `--output <directory>`. Each run creates a new session and does not overwrite previous recordings. A full or exhausted output limit stops the recorder rather than deleting evidence.
 
 Recorded examples must be inspected before a layout is marked verified. The recorder does not automatically choose tiles, certify coordinates or enable profiles. Multi-choice panels can be collected while you interact normally; slower visible panels give more complete evidence.
+
+Live smoke validation confirmed readable 1920x1080 game PNGs, player click records and own-action candidate correlations while playing normally. Identical recaptured screens refresh evidence timestamps without writing duplicate images. Missing correlations remain explicitly unconfirmed.

@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Validated passive calibration against live play and fixed stale timestamps when unchanged screenshots are recaptured.
+
 - Added a passive local Mahjong Soul calibration recorder for client screenshots, player clicks and conservative server-event correlation, with bounded sessions and no automatic profile activation.
 
 - Confirmed native Pon at 1920x1200 and mapped existing action-button rows while preserving exact offer guards.
