@@ -57,3 +57,10 @@ Visually reviewed examples:
 The reader also recorded two-tile hands after the fourth Pon and on subsequent draws. Those contexts are useful evidence for the remaining two-tile discard layouts, but no new profile is enabled from transitional frames. There are no kan or multiple-combination Chi offers in this session, and no 1920x1200 frames.
 
 This completes live validation of sparse screenshot persistence and fresh click-image saving. It does not establish complete click coverage: rapid transitions and clicks without fresh images are still explicitly unavailable. No further special play session is required for this recorder milestone. Next development work is reviewing stable short-hand evidence and preserving exact-context guards for any additional layout profiles; the decision pipeline remains unconnected.
+
+
+## Two-tile discard layout review
+
+Added separate 1920x1080 two-tile profiles for `ActionChiPengGang` and `ActionDealTile`. In session `20261016-183751-482320`, frames 108/110 show the post-call 3p and 4p slots; candidate clicks 107/109 have fresh image evidence and are followed by the own 4p discard at step 110. Frames 111/113 show the draw-separated 3p and 9s slots; click 112 has fresh image evidence and is followed by the own 9s discard at step 118.
+
+Safe interior points are (269, 1000) for the first slot, (365, 1000) for the post-call second slot, and (394, 1000) for the drawn second slot. Both ordinary and raised/selected tile bounds contain those points. Profile verification is based on inspected images and manual click/server evidence, not a new native executor run. Slot indices still require visual tile identity; reader hand order must not be treated as screen order. Exact size/trigger guards and discard restrictions continue to apply. No 1920x1200 variant was inferred.

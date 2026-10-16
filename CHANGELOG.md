@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added separate 1920x1080 two-tile draw and post-call discard layouts from reviewed screenshots and manual click/server confirmations, preserving exact-context and forbidden-discard guards.
+
 - Completed live validation of sparse Mahjong calibration recording at 1920x1080, including Pon and Riichi click evidence; documented transitional win frames and remaining two-tile layout gaps.
 
 - Reduced passive Mahjong calibration screenshot storage by buffering animations and saving actionable checkpoints and fresh click evidence; measured 88.3% fewer PNG bytes on the existing recording and made size-limit shutdown clean.

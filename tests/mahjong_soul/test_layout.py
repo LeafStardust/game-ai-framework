@@ -171,3 +171,24 @@ def test_1920_1200_shared_action_row_preserves_offer_context_and_choice_panels_s
         assert round(result[field][1] * 1199) == 895
     with pytest.raises(ValueError):
         profile_for_size(json.loads((root / "chi-two-choices-fullscreen.json").read_text()), (1920, 1200))
+
+
+@pytest.mark.parametrize("trigger,second_x", [("ActionChiPengGang", 365), ("ActionDealTile", 394)])
+def test_two_tile_layout_selection_preserves_context_and_discard_guards(trigger, second_x):
+    from games.mahjong_soul.live.runtime.layout import discard_profile
+    from games.mahjong_soul.live.runtime.input import plan_discard
+    report = {"state_ready": True, "game_connection": "test", "game_generation": 1,
+              "last_event": {"name": trigger},
+              "state": {"step": 109, "seat": 3, "hand": ["4p", "3p"],
+                        "operations": {"seat": 3, "operation_list": [{"type": 1, "combination": ["3p"]}]}}}
+    profile = discard_profile(report, (1920, 1080))
+    # Slot order is a visual choice, not the unsorted reader hand order.
+    plan = plan_discard(report, profile, 1, "4p", now=1)
+    assert (round(plan.x * 1919), round(plan.y * 1079)) == (second_x, 1000)
+    with pytest.raises(ValueError, match="forbidden"):
+        plan_discard(report, profile, 0, "3p", now=1)
+    with pytest.raises(ValueError):
+        discard_profile(report, (1920, 1200))
+    report["last_event"]["name"] = "ActionNewRound"
+    with pytest.raises(ValueError):
+        discard_profile(report, (1920, 1080))

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "verified": true,
+  "client_size": [
+    1920,
+    1080
+  ],
+  "trigger": "ActionDealTile",
+  "hand_count": 2,
+  "slots": [
+    [
+      0.14017717561229806,
+      0.9267840593141798
+    ],
+    [
+      0.20531526836894215,
+      0.9267840593141798
+    ]
+  ],
+  "validation_basis": {
+    "method": "visual review and manual click/server-action correlation; native execution not retested",
+    "session": "20261016-183751-482320",
+    "frames": [
+      "frame-000111.png",
+      "frame-000113.png"
+    ],
+    "confirmed_discard": "9s",
+    "confirmed_step": 118
+  }
+}
