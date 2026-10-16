@@ -35,3 +35,25 @@ The first session exhausted its 1 GiB cap after only a few minutes: animated ful
 ## Storage improvement validation
 
 Replaying the recorded 1920x1080 session with sparse persistence reduced saved PNGs from 357 to 42 and PNG bytes from 1,072,733,372 to 125,286,123 (88.3%). This is a replay measurement, not a promise about every match or a new live input test. Full resolution and PNG encoding are unchanged. Fresh click evidence is saved from the sampled buffer before writing its click record; stale or geometrically mismatched images remain unavailable. The 1 GiB cap still applies, and reaching it now stops cleanly with the evidence directory printed.
+
+
+## Improved recorder live validation: 2026-10-16
+
+Reviewed session `20261016-183751-482320`, covering 10:42:24 through 10:51:12 UTC. It contains 138 full-resolution 1920x1080 frame records (415,079,742 PNG bytes, about 396 MiB), 265 click records and 83 own-action records. The session remained below its 1 GiB cap. These are live totals; the 88.3% reduction above is a separate replay comparison.
+
+The own actions comprise 72 ordinary discards, three Riichi discards, four Pon calls and four wins (two Tsumo, two Ron). Of all clicks, 49 have fresh preceding images; 71 actions have candidate click IDs. Multiple clicks may correspond to a single action, and candidates remain review evidence rather than execution certification.
+
+Visually reviewed examples:
+
+| Local frame | Observation | Supported conclusion |
+| --- | --- | --- |
+| `frame-000011.png` | Pon and Skip visible; click 10 at (1020, 815), followed by own 8m Pon | Readable offer, fresh click evidence and matching server call |
+| `frame-000182.png` | Riichi selection with the selected 3p and other tiles greyed; click 181 and subsequent Riichi discard | Selection-stage evidence; the menu-opening click has no fresh image |
+| `frame-000354.png` | Single-combination Chi and Skip visible | Visual offer evidence; no own Chi call in this session |
+| `frame-000117.png` | Four exposed melds and one visible concealed tile during a self-draw transition | Short-hand state captured, but not a stable two-slot discard layout |
+| `frame-000190.png` | Ron-context transition with a wait preview | Does not establish stable Ron button coordinates |
+| `frame-000402.png` | Tsumo-context transition before a stable prompt | Does not establish stable Tsumo button coordinates |
+
+The reader also recorded two-tile hands after the fourth Pon and on subsequent draws. Those contexts are useful evidence for the remaining two-tile discard layouts, but no new profile is enabled from transitional frames. There are no kan or multiple-combination Chi offers in this session, and no 1920x1200 frames.
+
+This completes live validation of sparse screenshot persistence and fresh click-image saving. It does not establish complete click coverage: rapid transitions and clicks without fresh images are still explicitly unavailable. No further special play session is required for this recorder milestone. Next development work is reviewing stable short-hand evidence and preserving exact-context guards for any additional layout profiles; the decision pipeline remains unconnected.

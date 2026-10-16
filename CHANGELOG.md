@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Completed live validation of sparse Mahjong calibration recording at 1920x1080, including Pon and Riichi click evidence; documented transitional win frames and remaining two-tile layout gaps.
+
 - Reduced passive Mahjong calibration screenshot storage by buffering animations and saving actionable checkpoints and fresh click evidence; measured 88.3% fewer PNG bytes on the existing recording and made size-limit shutdown clean.
 
 - Reviewed passive 1920x1080 calibration evidence and documented actual coverage, missing click confirmations and the recording storage limitation.
