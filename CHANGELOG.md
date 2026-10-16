@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Reduced passive Mahjong calibration screenshot storage by buffering animations and saving actionable checkpoints and fresh click evidence; measured 88.3% fewer PNG bytes on the existing recording and made size-limit shutdown clean.
+
 - Reviewed passive 1920x1080 calibration evidence and documented actual coverage, missing click confirmations and the recording storage limitation.
 
 - Validated passive calibration against live play and fixed stale timestamps when unchanged screenshots are recaptured.

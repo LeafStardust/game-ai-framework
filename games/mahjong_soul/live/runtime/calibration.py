@@ -25,6 +25,10 @@ def context(report):
             "last_event": deepcopy(report.get("last_event"))}
 
 
+class RecordingLimitReached(RuntimeError):
+    """Expected end of a bounded recording session."""
+
+
 class EvidenceRecorder:
     def __init__(self, directory, max_bytes=1024**3):
         self.directory = Path(directory)
@@ -35,6 +39,8 @@ class EvidenceRecorder:
         self.sequence = 0
         self.last_key = None
         self.last_image = None
+        self.last_saved_at = float("-inf")
+        self.last_saved_context = None
         self.clicks = deque(maxlen=100)
 
     def write(self, kind, **data):
@@ -42,7 +48,7 @@ class EvidenceRecorder:
         encoded = json.dumps(row, ensure_ascii=False) + "\n"
         self.used += len(encoded.encode("utf-8"))
         if self.used > self.max_bytes:
-            raise RuntimeError("Recording size limit reached")
+            raise RecordingLimitReached("Recording size limit reached")
         self.stream.write(encoded)
         self.stream.flush()
 
@@ -50,20 +56,35 @@ class EvidenceRecorder:
         ctx = context(report)
         digest = hashlib.sha256(png).hexdigest()
         key = (ctx["board_token"], json.dumps(geometry, sort_keys=True), digest)
-        if key == self.last_key:
+        if key == self.last_key and self.last_image is not None:
             # This is a fresh capture of the same pixels, not an old observation.
             self.last_image["monotonic"] = now
             return self.last_image
+        self.last_key = key
+        self.last_image = {"file": None, "png": png, "monotonic": now,
+                           "context": ctx, "geometry": dict(geometry)}
+        # Keep sampling at full cadence, but persist animation checkpoints sparsely.
+        evidence_context = (ctx["board_token"], json.dumps(geometry, sort_keys=True))
+        if evidence_context != self.last_saved_context or now-self.last_saved_at >= 5:
+            self.save_image()
+        return self.last_image
+
+    def save_image(self):
+        frame = self.last_image
+        if frame["file"] is not None:
+            return
+        png = frame["png"]
         if self.used + len(png) > self.max_bytes:
-            raise RuntimeError("Recording size limit reached")
+            raise RecordingLimitReached("Recording size limit reached")
         self.sequence += 1
         name = f"frame-{self.sequence:06d}.png"
         (self.directory / name).write_bytes(png)
         self.used += len(png)
-        self.last_key = key
-        self.last_image = {"file": name, "monotonic": now, "context": ctx, "geometry": dict(geometry)}
-        self.write("frame", image=name, geometry=geometry, context=ctx)
-        return self.last_image
+        frame["file"] = name
+        self.last_saved_at = frame["monotonic"]
+        self.last_saved_context = (frame["context"]["board_token"],
+                                   json.dumps(frame["geometry"], sort_keys=True))
+        self.write("frame", image=name, geometry=frame["geometry"], context=frame["context"])
 
     def click(self, report, geometry, x, y, now):
         self.sequence += 1
@@ -73,6 +94,8 @@ class EvidenceRecorder:
         fresh = bool(frame and 0 <= now - frame["monotonic"] <= .75
                      and frame["context"]["board_token"] == ctx["board_token"]
                      and frame["geometry"] == geometry)
+        if fresh:
+            self.save_image()
         item = {"id": click_id, "monotonic": now, "context": ctx}
         self.clicks.append(item)
         self.write("click", id=click_id, context=ctx, geometry=geometry,
@@ -167,7 +190,8 @@ def main():
             latest[0] = report if report.get("state_ready") and report.get("connection_open") else None
             # Main-thread polling is read-only; the dedicated sampler tracks edges.
             sampled = backend.geometry()
-            if sampled and latest[0]:
+            operations = ((report.get("state") or {}).get("operations") or {}).get("operation_list", [])
+            if sampled and latest[0] and operations:
                 geometry = sampled
                 if now >= next_frame:
                     image = backend.frame(geometry)
@@ -176,6 +200,8 @@ def main():
             else:
                 recorder.last_image = None
             time.sleep(.01)
+    except RecordingLimitReached as exc:
+        print(f"Recorder stopped: {exc}. Evidence preserved in {session}.", flush=True)
     except KeyboardInterrupt:
         pass
     finally:

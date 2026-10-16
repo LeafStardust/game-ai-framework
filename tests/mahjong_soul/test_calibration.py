@@ -87,3 +87,50 @@ def test_unchanged_recaptured_screen_refreshes_preclick_evidence(tmp_path):
     data = rows(path)
     assert len(list(path.glob("*.png"))) == 1
     assert data[-1]["preceding_image"] == data[0]["image"]
+
+
+def test_animation_is_buffered_but_fresh_click_saves_exact_preceding_frame(tmp_path):
+    path = tmp_path / "record"; r = EvidenceRecorder(path)
+    g = {"width": 100, "height": 100}
+    r.frame(report(), g, b"initial", 1)
+    r.frame(report(), g, b"animation", 1.25)
+    r.frame(report(), g, b"button visible", 1.5)
+    assert len(list(path.glob("*.png"))) == 1
+    r.click(report(), g, 2, 3, 1.6)
+    r.close()
+    click = next(x for x in rows(path) if x["kind"] == "click")
+    assert (path / click["preceding_image"]).read_bytes() == b"button visible"
+    assert len(list(path.glob("*.png"))) == 2
+
+
+def test_checkpoint_and_changed_geometry_or_board_preserve_evidence(tmp_path):
+    path = tmp_path / "record"; r = EvidenceRecorder(path)
+    g = {"width": 100, "height": 100}
+    r.frame(report(), g, b"initial", 1)
+    r.frame(report(), g, b"checkpoint", 6)
+    r.frame(report(5), g, b"new board", 6.1)
+    r.frame(report(5), {**g, "left": 10}, b"moved", 6.2)
+    r.close()
+    assert len(list(path.glob("*.png"))) == 4
+
+
+def test_stale_buffered_image_is_not_saved_for_click(tmp_path):
+    path = tmp_path / "record"; r = EvidenceRecorder(path)
+    g = {"width": 100, "height": 100}
+    r.frame(report(), g, b"initial", 1)
+    r.frame(report(), g, b"buffered", 1.25)
+    r.click(report(), g, 2, 3, 3)
+    r.close()
+    assert len(list(path.glob("*.png"))) == 1
+    assert rows(path)[-1]["preceding_image"] is None
+
+
+def test_identical_screen_after_capture_pause_is_recorded_again(tmp_path):
+    r = EvidenceRecorder(tmp_path / "record")
+    g = {"width": 100, "height": 100}
+    r.frame(report(), g, b"same", 1)
+    r.last_image = None
+    r.frame(report(), g, b"same", 2)
+    r.click(report(), g, 2, 3, 2.1)
+    r.close()
+    assert rows(tmp_path / "record")[-1]["preceding_image"] is not None
