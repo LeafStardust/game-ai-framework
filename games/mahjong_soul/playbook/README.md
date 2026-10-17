@@ -5,9 +5,10 @@ These are executable, versioned strategy settings, following Balatro's cartridge
 | Playbook | Selection | Version | Use |
 | --- | --- | --- | --- |
 | `yonma-manual-balanced` | Four players | `0.1` | Manual suggestion tests |
-| `sanma-manual-balanced` | Three players | `0.1` | Manual suggestion tests, with sanma tile-pool handling |
+| `sanma-manual-balanced` | Three players, balanced | `0.1` | Manual suggestion tests, with sanma tile-pool handling |
+| [`yonma-manual-atk`](yonma/ATK.md) | Four players, atk | `0.1` | Bounded value aggression and selective pushes |
 
-Both start with the same conservative thresholds; separate entries allow later evidence-based tuning. They are not tuned for particular ranks, room rules or match lengths. Selection uses the observation's player count and rejects unregistered counts.
+The two balanced cartridges start with the same conservative thresholds; separate entries allow later evidence-based tuning. The four-player attack cartridge has distinct offensive settings. They are not tuned for particular ranks, room rules or match lengths. Selection uses (player count, playstyle) and rejects unregistered pairs; there is no implicit attack-to-balanced fallback. Balanced remains the default.
 
 ## Modules
 
@@ -35,7 +36,7 @@ Shared rule reference for discarded-tile furiten and dora cycles: [World Riichi 
 .\.venv\Scripts\python.exe -u -m agents.mahjong_soul.shadow --policy playbook
 ```
 
-This prints only readable recommended actions by default. You perform them manually. Use `--json` for playbook name/version, fold/efficiency mode and selected candidate evidence; use `--policy efficiency` to compare against the earlier pure-efficiency policy. The new CLI default is `playbook`, but an already running process or an explicit `--policy efficiency` command does not switch by itself.
+This prints only readable recommended actions by default. You perform them manually. Use `--json` for playbook name/version, fold/efficiency mode and selected candidate evidence; use `--policy efficiency` to compare against the earlier pure-efficiency policy. Add `--playstyle atk` for the four-player attack cartridge. No three-player attack cartridge exists yet. The CLI default policy is `playbook` and style is `balanced`, but an already running process or an explicit `--policy efficiency` command does not switch by itself.
 
 ## Validation and tuning
 

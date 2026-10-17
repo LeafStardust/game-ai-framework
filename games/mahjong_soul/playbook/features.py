@@ -41,9 +41,16 @@ def discard_features(board, tile):
     honors = value_honors(board); kind = tile_kind(tile)
     dora = Counter(dora_kind(t,board["player_count"]) for t in board["dora_indicators"])
     fixed = Counter(tile_kind(t) for m in own["melds"] for t in m["tiles"])
+    all_after = after+fixed
+    retained_bonus = sum(c*dora[t] for t,c in all_after.items())
+    retained_bonus += sum(t.startswith("0") for t in hand)
+    retained_bonus += sum(t.startswith("0") for m in own["melds"] for t in m["tiles"])
+    yakuhai_units = sum(units for t,units in honors.items() if after[t] >= 3 or fixed[t] >= 3)
+    has_open_meld = any(m["type"] != 3 for m in own["melds"])
     # Structural evidence only; not a full hand value or yaku calculator.
     yakuhai = [t for t in honors if after[t] >= 3 or fixed[t] >= 3]
-    return {"dora_loss":dora[kind]+int(tile.startswith("0")),
+    return {"retained_bonus":retained_bonus,"yakuhai_units":yakuhai_units,
+            "has_open_meld":has_open_meld,"dora_loss":dora[kind]+int(tile.startswith("0")),
             "yakuhai_pair_loss":honors[kind] if before[kind] >= 2 and after[kind] < 2 else 0,
             "yakuhai_triplet_loss":honors[kind] if before[kind] >= 3 and after[kind] < 3 else 0,
             "yakuhai_triplets":yakuhai,

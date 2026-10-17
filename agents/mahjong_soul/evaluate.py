@@ -55,7 +55,7 @@ def evaluate_capture(rows, schema, policy=None, *, clock=time.monotonic):
         choices[validated["action"]["kind"]] += 1
     final = reader.snapshot()
     return {"version":1,"mode":"offline_contract_evaluation","executable":False,
-            "policy":type(policy).__name__,"frames":final["frames"],
+            "policy":type(policy).__name__,"playstyle":getattr(policy,"style",None),"frames":final["frames"],
             "unique_decision_boards":len(seen),"normalized_requests":normalization_ok,
             "validated_proposals":sum(choices.values()),"chosen_actions":dict(choices),
             "unsupported_requests":dict(unsupported),"policy_failures":decision_failures,
@@ -69,14 +69,17 @@ def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("capture", type=Path)
+    parser.add_argument("--playstyle", choices=["balanced","atk"], default="balanced")
     parser.add_argument("--policy", choices=["baseline","efficiency","playbook"], default="playbook")
     parser.add_argument("--schema", type=Path, default=root / "liqi-reference.json")
     parser.add_argument("--output", type=Path, help="Create a new aggregate report; refuses existing paths")
     args = parser.parse_args()
+    if args.playstyle != "balanced" and args.policy != "playbook":
+        parser.error("--playstyle requires --policy playbook")
     if not args.capture.is_file(): parser.error("Capture does not exist")
     if args.output and args.output.exists(): parser.error("Output exists; choose a new path")
     tail = CaptureTail(args.capture)
-    result = evaluate_capture(tail.read(), LiqiSchema.load(args.schema), make_policy(args.policy))
+    result = evaluate_capture(tail.read(), LiqiSchema.load(args.schema), make_policy(args.policy,args.playstyle))
     result["malformed_rows"] += tail.bad_rows
     result["unfinished_capture_row"] = bool(tail.pending)
     encoded = json.dumps(result, indent=2)+"\n"

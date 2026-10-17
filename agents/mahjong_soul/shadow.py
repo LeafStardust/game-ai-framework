@@ -135,6 +135,7 @@ def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--file", type=Path, help="One capture; defaults to newest local capture")
+    parser.add_argument("--playstyle", choices=["balanced","atk"], default="balanced")
     parser.add_argument("--policy", choices=["baseline","efficiency","playbook"], default="playbook")
     parser.add_argument("--schema", type=Path, default=root / "liqi-reference.json")
     parser.add_argument("--max-age", type=float, default=2)
@@ -144,11 +145,13 @@ def main():
     parser.add_argument("--verbose", action="store_true", help="Include diagnostic status lines")
     parser.add_argument("--once", action="store_true", help="Bootstrap smoke check; add --verbose to show status")
     args = parser.parse_args()
+    if args.playstyle != "balanced" and args.policy != "playbook":
+        parser.error("--playstyle requires --policy playbook")
     if (not math.isfinite(args.interval) or args.interval < .05
             or args.duration is not None and (not math.isfinite(args.duration) or args.duration <= 0)):
         parser.error("Interval must be at least .05 seconds and duration must be finite and positive")
     follower = ShadowFollower(LiqiSchema.load(args.schema), file=args.file,
-                              directory=root / "logs/mahjong_soul", max_age=args.max_age, policy=make_policy(args.policy))
+                              directory=root / "logs/mahjong_soul", max_age=args.max_age, policy=make_policy(args.policy,args.playstyle))
     start = time.monotonic(); previous = None
     try:
         while args.duration is None or time.monotonic()-start < args.duration:

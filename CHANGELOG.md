@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added the four-player ATK playbook with bounded ukeire/value trade-offs, selective value pushes and constrained counter-Riichi; registry selection now uses player count and playstyle, with balanced unchanged as the default.
+
 - Added versioned three/four-player Mahjong playbooks, shared value/defense features and a manual-only balanced policy with dora/yakuhai tie-breaks, genbutsu folding and Riichi threat settings.
 
 - Audited a completed ten-round manual Mahjong match and replay-validated all 164 current-policy decisions, including five Riichi recommendations, without game decode or proposal errors.

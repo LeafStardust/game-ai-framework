@@ -63,3 +63,5 @@ The five current-policy Riichi recommendations were East 1 step 85 (discard 6 So
 ## Playbook strategy
 
 The versioned three/four-player [playbooks](../../games/mahjong_soul/playbook/README.md) now add dora/yakuhai-shape tie-breaks, basic genbutsu defense against Riichi, and configurable Riichi threat handling. This remains a manual-only suggestion pipeline. Run with `--policy playbook`; no automatic input is connected.
+
+Four-player attack is available as `--policy playbook --playstyle atk`; see [ATK.md](../../games/mahjong_soul/playbook/yonma/ATK.md) for exact value, push and Riichi criteria. Balanced stays the default. Three-player attack is not implemented. All playstyles remain manual suggestions only.

@@ -40,11 +40,13 @@ class BaselinePolicy:
         raise ValueError("Baseline has no supported choice for this request")
 
 
-def make_policy(name):
+def make_policy(name, playstyle="balanced"):
+    if name != "playbook" and playstyle != "balanced":
+        raise ValueError("Playstyles require the playbook policy")
     if name == "baseline": return BaselinePolicy()
     if name == "playbook":
         from agents.mahjong_soul.playbook_policy import PlaybookPolicy
-        return PlaybookPolicy()
+        return PlaybookPolicy(style=playstyle)
     if name == "efficiency":
         from agents.mahjong_soul.efficiency import EfficiencyPolicy
         return EfficiencyPolicy()
