@@ -31,3 +31,8 @@ Proposals must have exactly `version`, `request_id`, `board_token` and `action`.
 Forty targeted tests initially covered request/proposal boundaries and all supported action families. Offline replay of the local 2026-10-17 capture produced requests for 131 unique decision-bearing boards with zero normalization rejections: 761 discard intents, ten Pon, nineteen Chi, five Ron, one added kan and twenty-five Skip intents. This exercises normalization on recorded data only; no agent policy or live automatic execution was used.
 
 Next is a policy-facing adapter and offline decision/replay evaluation. Automatic execution remains a separate integration requiring verified screen-to-tile/action binding.
+
+
+## Policy adapter and offline evaluation
+
+The [Mahjong policy package](../../agents/mahjong_soul/README.md) now implements the policy boundary, deterministic integration baseline and aggregate offline evaluator. Every policy receives an isolated request and its proposal is revalidated against a current snapshot; policy exceptions do not produce fallback input. The existing capture yielded 131 validated baseline proposals with zero failures. No live policy consumer or mouse execution is connected.

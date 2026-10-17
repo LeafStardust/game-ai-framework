@@ -18,7 +18,7 @@ The local 2026-10-17 capture review covered 3,127 frames and 952 distinct action
 
 ## Next implementation boundary
 
-The reader/input foundation is sufficient to begin the decision-interface stage. The read-only request/proposal interface is now implemented in [DECISIONS.md](DECISIONS.md), bound to connection, generation and board identity with current-offer validation. Next is the policy-facing adapter and offline replay evaluation; no mouse input is needed for that work.
+The reader/input foundation is sufficient to begin the decision-interface stage. The read-only request/proposal interface is now implemented in [DECISIONS.md](DECISIONS.md), bound to connection, generation and board identity with current-offer validation. The policy-facing adapter and offline baseline replay evaluation are implemented. Next is a persistent read-only shadow consumer; no mouse input is needed for that work.
 
 Automatic execution additionally requires a verified visual binding from each selected tile/action to the current screen. The reader hand array is not screen order. Neither sorting that array nor selecting a calibrated row alone establishes which tile occupies a slot. A future runtime must inspect that mapping, preserve red-five identity, use exact offer profiles, keep capture freshness checks and wait for server acknowledgement. Until those integrations exist, this is a functioning reader and guarded input toolkit rather than a complete playing agent.
 

@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added an isolated Mahjong policy adapter, deterministic integration baseline and offline contract evaluator; validated all 131 decision-bearing recorded boards without input or policy failures.
+
 - Added board-bound read-only Mahjong decision requests and strict current-server-offer proposal validation, with exact tile/call semantics and offline capture replay coverage.
 
 - Reviewed Mahjong reader/input readiness, documented the decision-interface boundary and added generation/board identity to consumer observations.
