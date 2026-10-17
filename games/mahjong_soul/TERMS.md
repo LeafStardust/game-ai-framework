@@ -136,3 +136,5 @@ With `--verbose`, diagnostic statuses may also appear:
 | `decision_rejected` | A policy result could not be validated; no action was sent. |
 
 Readable terminal examples: **Discard 1 Man**, **Discard 2 Pin**, **Discard 3 Sou**, **Discard Red 5 Pin**. **Riichi, then discard 6 Pin** means press the Riichi button and then discard the six of circles. Internal JSON tile codes remain `1m`, `2p`, `3s`, `0p`, etc.
+
+**PlaybookPolicy** adds basic value-aware tie-breaks and defense. A **genbutsu** tile is a tile kind already discarded by the specific threatening opponent; it is not a blanket safety claim against all players. **Fold mode** prioritizes available known-safe evidence when the hand is far from ready. The balanced playbook can decline Riichi while an opponent is threatening Riichi.

@@ -69,7 +69,7 @@ def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("capture", type=Path)
-    parser.add_argument("--policy", choices=["baseline","efficiency"], default="efficiency")
+    parser.add_argument("--policy", choices=["baseline","efficiency","playbook"], default="playbook")
     parser.add_argument("--schema", type=Path, default=root / "liqi-reference.json")
     parser.add_argument("--output", type=Path, help="Create a new aggregate report; refuses existing paths")
     args = parser.parse_args()

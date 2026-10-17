@@ -135,7 +135,7 @@ def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--file", type=Path, help="One capture; defaults to newest local capture")
-    parser.add_argument("--policy", choices=["baseline","efficiency"], default="efficiency")
+    parser.add_argument("--policy", choices=["baseline","efficiency","playbook"], default="playbook")
     parser.add_argument("--schema", type=Path, default=root / "liqi-reference.json")
     parser.add_argument("--max-age", type=float, default=2)
     parser.add_argument("--interval", type=float, default=.2)

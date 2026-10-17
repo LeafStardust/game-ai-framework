@@ -42,6 +42,9 @@ class BaselinePolicy:
 
 def make_policy(name):
     if name == "baseline": return BaselinePolicy()
+    if name == "playbook":
+        from agents.mahjong_soul.playbook_policy import PlaybookPolicy
+        return PlaybookPolicy()
     if name == "efficiency":
         from agents.mahjong_soul.efficiency import EfficiencyPolicy
         return EfficiencyPolicy()

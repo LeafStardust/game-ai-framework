@@ -2,7 +2,7 @@
 
 For tile codes and terminal vocabulary, see [the terms reference](../../games/mahjong_soul/TERMS.md).
 
-The shadow and evaluation CLIs now default to `--policy efficiency`. Restart an already running terminal command to load it. `--policy baseline` retains the original integration fixture. Both modes remain read-only.
+The shadow and evaluation CLIs now default to `--policy playbook` (manual balanced strategy). See [playbooks](../../games/mahjong_soul/playbook/README.md). Use `--policy efficiency` for the previous pure-efficiency policy. Restart an already running terminal command to load it. `--policy baseline` retains the original integration fixture. Both modes remain read-only.
 
 `policy.Policy` defines `choose(request) -> action`. `proposal_from_policy` gives the policy an independent request copy and wraps its chosen action in the original request/board identity. `evaluate.decide` then re-reads a caller-provided current snapshot and validates the response, including elapsed policy time. This path returns a nonexecutable intent and has no input backend. A future live caller must establish capture freshness separately.
 
@@ -59,3 +59,7 @@ Reviewed the local capture starting at 22:18:51 after the user reported game ove
 Offline replay with the current EfficiencyPolicy validated 164 decision-bearing boards with no rejected proposals or policy errors: 118 ordinary discards, 38 skips, five Riichi recommendations, two Ron and one Tsumo. The recorded player declared Riichi four times and won three hands (two Ron, one Tsumo). These are recorded actions, not attribution to the policy or a win-rate estimate. The capture does not record the version/output of the user's separate shadow terminal.
 
 The five current-policy Riichi recommendations were East 1 step 85 (discard 6 Sou), East 1 step 93 (discard 9 Sou), East 2 step 74 (discard 2 Man), South 1 step 64 (discard 3 Man), and South 1 with one honba step 124 (discard 2 Pin). All ranked offered discards were tenpai. A remaining manual live check is whether the restarted current shadow terminal displays the readable Riichi instruction when an offer appears; no additional native input calibration is needed for that check.
+
+## Playbook strategy
+
+The versioned three/four-player [playbooks](../../games/mahjong_soul/playbook/README.md) now add dora/yakuhai-shape tie-breaks, basic genbutsu defense against Riichi, and configurable Riichi threat handling. This remains a manual-only suggestion pipeline. Run with `--policy playbook`; no automatic input is connected.

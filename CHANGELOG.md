@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added versioned three/four-player Mahjong playbooks, shared value/defense features and a manual-only balanced policy with dora/yakuhai tie-breaks, genbutsu folding and Riichi threat settings.
+
 - Audited a completed ten-round manual Mahjong match and replay-validated all 164 current-policy decisions, including five Riichi recommendations, without game decode or proposal errors.
 
 - Added server-offered Riichi recommendations using the best offered tenpai discard; changed readable tile labels to Man, Pin and Sou.

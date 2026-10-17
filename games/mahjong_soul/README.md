@@ -197,3 +197,5 @@ Current reader/input readiness and the decision-interface boundary: see [READINE
 Read-only decision request/proposal contract: see [DECISIONS.md](DECISIONS.md). No policy or automatic input is connected.
 
 Tile codes and suggestion vocabulary: [TERMS.md](TERMS.md).
+
+Versioned manual strategy cartridges: [playbook/README.md](playbook/README.md).
