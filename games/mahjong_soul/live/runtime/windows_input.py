@@ -3,6 +3,7 @@
 import ctypes as c
 from ctypes import wintypes as w
 import os
+import time
 from pathlib import PureWindowsPath
 
 
@@ -67,6 +68,13 @@ class WindowsMouse:
             self.user.SetThreadDpiAwarenessContext(previous)
 
     def click(self, x, y, width, height):
+        self._clicks(x, y, width, height, 1)
+
+    def double_click(self, x, y, width, height):
+        """One two-click action, with no UI observation or caller delay between clicks."""
+        self._clicks(x, y, width, height, 2)
+
+    def _clicks(self, x, y, width, height, count):
         previous = self.user.SetThreadDpiAwarenessContext(w.HANDLE(-4))
         if not previous:
             raise c.WinError(c.get_last_error())
@@ -99,16 +107,19 @@ class WindowsMouse:
             inputs[0].data.mouse = Mouse(ax, ay, 0, 0x8000 | 0x4000 | 1, 0, 0)
             inputs[1].data.mouse.dwFlags = 2
             inputs[2].data.mouse.dwFlags = 4
-            if self._foreground() != hwnd:
-                raise ValueError("Foreground changed before click")
-            if self._client_geometry(hwnd) != geometry:
-                raise ValueError("Game window moved or resized before click; rebuild the plan")
-            sent = self.user.SendInput(3, inputs, c.sizeof(Input))
-            if sent != 3:
-                # Ensure a partially delivered press cannot leave the button held.
-                release = Input()
-                release.data.mouse.dwFlags = 4
-                self.user.SendInput(1, c.byref(release), c.sizeof(Input))
-                raise OSError("Mouse input was not fully delivered; do not retry")
+            for index in range(count):
+                if index:
+                    time.sleep(.08)  # Let the game process selection before the discard.
+                if self._foreground() != hwnd:
+                    raise ValueError("Foreground changed before click")
+                if self._client_geometry(hwnd) != geometry:
+                    raise ValueError("Game window moved or resized before click; rebuild the plan")
+                sent = self.user.SendInput(3, inputs, c.sizeof(Input))
+                if sent != 3:
+                    # Ensure a partially delivered press cannot leave the button held.
+                    release = Input()
+                    release.data.mouse.dwFlags = 4
+                    self.user.SendInput(1, c.byref(release), c.sizeof(Input))
+                    raise OSError("Mouse input was not fully delivered; do not retry")
         finally:
             self.user.SetThreadDpiAwarenessContext(previous)

@@ -1,6 +1,6 @@
-"""Guarded, single-click discard execution. No policy or automatic retries."""
+"""Guarded single-click or explicit double-click discard execution; no retries."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace, field
 import hashlib
 import json
 import re
@@ -24,6 +24,7 @@ class DiscardPlan:
     width: int
     height: int
     expires: float
+    double_click: bool = field(default=False, kw_only=True)
 
 
 def plan_discard(report, profile, slot, tile, *, now=None):
@@ -88,8 +89,11 @@ class DiscardExecutor:
         self.attempted.add(plan.token)
         self.pending = plan
         self.selection_possible = False
-        self.backend.click(plan.x, plan.y, plan.width, plan.height)
-        self.selection_possible = True
+        if plan.double_click:
+            self.backend.double_click(plan.x, plan.y, plan.width, plan.height)
+        else:
+            self.backend.click(plan.x, plan.y, plan.width, plan.height)
+            self.selection_possible = True
 
     def confirm_selection(self, plan, current_report, selected_tile, *, enabled=False, now=None):
         """One explicit second click after a fresh visual selection check.
@@ -142,6 +146,8 @@ def main():
     parser.add_argument("--profile", required=True)
     parser.add_argument("--slot", type=int, required=True)
     parser.add_argument("--tile", required=True)
+    parser.add_argument("--double-click", action="store_true", help="Send the selection and discard together as one native action")
+    parser.add_argument("--expected-token", help="Require the visually inspected board token before executing")
     parser.add_argument("--execute", action="store_true", help="Send one real click; default is dry run")
     parser.add_argument("--client-size", type=int, nargs=2, metavar=("WIDTH", "HEIGHT"), help="Dry-run target size; execution reads actual client geometry")
     parser.add_argument("--schema", default=str(Path(__file__).resolve().parents[4] / "liqi-reference.json"))
@@ -164,14 +170,29 @@ def main():
         else:
             target_size = args.client_size or profile["client_size"]
         profile = profile_for_size(profile, target_size)
-        plan = plan_discard(reader.snapshot(), profile, args.slot, args.tile)
+        plan = replace(plan_discard(reader.snapshot(), profile, args.slot, args.tile), double_click=args.double_click)
+        if args.execute and args.double_click and not args.expected_token:
+            parser.error("Double-click execution requires --expected-token")
+        if args.expected_token and plan.token != args.expected_token:
+            parser.error("Observed board changed; no input")
         if not args.execute:
             print(json.dumps({"dry_run": True, "step": plan.step, "tile": plan.tile,
                               "slot": args.slot, "client_size": [plan.width, plan.height],
-                              "point": [plan.x, plan.y]}))
+                              "point": [plan.x, plan.y], "token": plan.token, "double_click": plan.double_click}))
             return 0
         # Require a recently appended live row, not merely an open saved socket.
-        if time.time() - Path(args.capture).stat().st_mtime > 2:
+        if args.double_click:
+            deadline = time.monotonic() + 15
+            while time.time() - Path(args.capture).stat().st_mtime > 2 and time.monotonic() < deadline:
+                time.sleep(.05)
+            for row in tail.read():
+                reader.consume(row)
+            if tail.bad_rows or tail.pending or tail.reset:
+                parser.error("Capture incomplete or reset; no input")
+            if board_token(reader.snapshot()) != args.expected_token:
+                parser.error("Observed board changed; no input")
+            plan = replace(plan_discard(reader.snapshot(), profile, args.slot, args.tile), double_click=True)
+        if not 0 <= time.time() - Path(args.capture).stat().st_mtime <= 2:
             parser.error("Capture is not fresh; wait for the next action and rebuild the plan")
         from games.mahjong_soul.live.runtime.controller import InputController
         executor = InputController(mouse)

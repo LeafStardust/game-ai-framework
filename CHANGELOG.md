@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added explicit native double-click discards as one guarded controller action, with 80 ms spacing, inter-click window checks and matching server acknowledgement instead of a manual confirmation pause.
+
 - Tested the complete manual discard session with closed stdin and cross-process file confirmation; made failures terminal and bound live selection to the visually inspected board token.
 
 - Added a persistent manual Mahjong discard validation runner with unique file confirmation tickets, unchanged-board and freshness checks, and regression coverage for delayed visual confirmation.
