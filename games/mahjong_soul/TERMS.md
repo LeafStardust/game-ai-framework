@@ -1,6 +1,6 @@
 # Reading Mahjong Soul suggestions
 
-Default terminal output now shows just a readable action, such as **Discard 2z (South wind)**. Use `--json` only if you want the detailed fields described below.
+Default terminal output now shows just a readable action, such as **Discard South wind**. Use `--json` only if you want the detailed fields described below.
 
 In JSON output, look at `action` first. For example:
 
@@ -16,9 +16,9 @@ A tile code is a number followed by its suit letter.
 
 | Ending | Suit | Example |
 | --- | --- | --- |
-| `m` | Characters / manzu ? numbered tiles with the ? character | `3m` = three of characters |
-| `p` | Circles / dots / pinzu | `7p` = seven of circles |
-| `s` | Bamboo / souzu ? the one often looks like a bird | `1s` = one of bamboo |
+| `m` | Man / characters / manzu ? numbered tiles with the ? character | `3m` = three of characters |
+| `p` | Pin / circles / dots / pinzu | `7p` = seven of circles |
+| `s` | Sou / bamboo / souzu ? the one often looks like a bird | `1s` = one of bamboo |
 | `z` | Honors: winds and dragons | `2z` = South wind |
 
 ### All numbered tiles
@@ -67,7 +67,7 @@ There is no `0z`, `8z` or `9z`. The red dragon (`7z`) is an honor tile; a red fi
 | `tsumo` | Claim a win on your own draw. |
 | `ron` | Claim a win on another player's tile. |
 
-The current **EfficiencyPolicy** suggests discards, Skip and offered wins. It does not yet choose Chi, Pon, kan or Riichi. Their names are included here because the decision interface supports them.
+The current **EfficiencyPolicy** suggests discards, server-offered Riichi, Skip and offered wins. It does not yet choose Chi, Pon or kan. Their names are included here because the decision interface supports them.
 
 `combination` strings such as `0p|5p` list exact tiles contributed from your hand. The `|` separates tiles. `called_tile` is the opponent's tile being claimed; `source_seat` is that opponent's absolute seat index, not a screen position.
 
@@ -134,3 +134,5 @@ With `--verbose`, diagnostic statuses may also appear:
 | `waiting_for_game_connection` | Waiting for a captured game connection. |
 | `waiting_for_ready_board` | Reader data is not yet complete enough to propose an action. |
 | `decision_rejected` | A policy result could not be validated; no action was sent. |
+
+Readable terminal examples: **Discard 1 Man**, **Discard 2 Pin**, **Discard 3 Sou**, **Discard Red 5 Pin**. **Riichi, then discard 6 Pin** means press the Riichi button and then discard the six of circles. Internal JSON tile codes remain `1m`, `2p`, `3s`, `0p`, etc.

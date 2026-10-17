@@ -96,3 +96,30 @@ def test_inconsistent_inputs_fail_instead_of_guessing(bad):
     if bad == "missing_hand": board["visible_tile_counts"]["1m"] = 0
     if bad == "missing_melds": board["visible_tile_counts"]["3p"] = 0
     with pytest.raises(ValueError): rank_discards(value)
+
+
+def test_riichi_uses_best_of_offered_tenpai_discards_and_validates():
+    value, report = request("123m123p123s11z22z7z",drawn="2z")
+    report["state"]["operations"]["operation_list"].append({"type":7,"combination":["7z"]})
+    policy = EfficiencyPolicy()
+    result = decide(policy,report,lambda:report)
+    assert result["action"] == {"kind":"riichi","tile":"7z"}
+    assert policy.last_analysis["shanten"] == 0
+    assert policy.last_analysis["ukeire"] == 4
+
+
+def test_riichi_does_not_select_unoffered_discard_and_win_takes_priority():
+    value, report = request("12m",4,visible={"1m":4})
+    # Artificial server restriction makes the lower-ukeire option the only Riichi choice.
+    report["state"]["operations"]["operation_list"].append({"type":7,"combination":["2m"]})
+    assert decide(EfficiencyPolicy(),report,lambda:report)["action"] == {"kind":"riichi","tile":"2m"}
+    report["state"]["drawn_tile"] = "2m"
+    report["state"]["operations"]["operation_list"].append({"type":8})
+    assert decide(EfficiencyPolicy(),report,lambda:report)["action"]["kind"] == "tsumo"
+
+
+def test_inconsistent_non_tenpai_riichi_is_rejected():
+    value, report = request("123m123p123s11z22z7z")
+    report["state"]["operations"]["operation_list"].append({"type":7,"combination":["1m"]})
+    with pytest.raises(ValueError,match="tenpai"):
+        decide(EfficiencyPolicy(),report,lambda:report)

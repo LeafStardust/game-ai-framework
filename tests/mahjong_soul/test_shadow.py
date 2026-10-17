@@ -132,3 +132,17 @@ def test_invalid_or_out_of_range_frame_timestamp_does_not_authorize_suggestion(t
     follower.frame_times.clear()
     append(path, row(advance(report), timestamp=stamp))
     assert follower.poll()["reason"] == "stale_game_capture"
+
+
+@pytest.mark.parametrize("action,expected", [
+    ({"kind":"discard","tile":"1m"},"Discard 1 Man"),
+    ({"kind":"discard","tile":"2p"},"Discard 2 Pin"),
+    ({"kind":"discard","tile":"3s"},"Discard 3 Sou"),
+    ({"kind":"discard","tile":"0p"},"Discard Red 5 Pin"),
+    ({"kind":"discard","tile":"2z"},"Discard South wind"),
+    ({"kind":"riichi","tile":"6p"},"Riichi, then discard 6 Pin"),
+    ({"kind":"chi","combination":"1m|2m","called_tile":"3m"},"Chi 1 Man + 2 Man with 3 Man"),
+])
+def test_readable_recommendations_use_requested_tile_names(action,expected):
+    from agents.mahjong_soul.shadow import format_suggestion
+    assert format_suggestion({"action":action}) == expected

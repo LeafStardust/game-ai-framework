@@ -110,26 +110,26 @@ class ShadowFollower:
 
 
 
+def tile_label(tile):
+    honors = {"1z":"East wind", "2z":"South wind", "3z":"West wind", "4z":"North wind",
+              "5z":"White dragon", "6z":"Green dragon", "7z":"Red dragon"}
+    if tile in honors: return honors[tile]
+    suit = {"m":"Man", "p":"Pin", "s":"Sou"}[tile[1]]
+    return "Red 5 " + suit if tile[0] == "0" else tile[0]+" "+suit
+
+
 def format_suggestion(event):
     action = event["action"]
     labels = {"discard":"Discard", "skip":"Skip", "chi":"Chi", "pon":"Pon",
               "closed_kan":"Closed kan", "open_kan":"Open kan", "added_kan":"Added kan",
-              "riichi":"Riichi ? discard", "tsumo":"Tsumo", "ron":"Ron"}
+              "riichi":"Riichi, then discard", "tsumo":"Tsumo", "ron":"Ron"}
     label = labels.get(action["kind"], action["kind"])
-    tile = action.get("tile")
-    if tile:
-        honors = {"1z":"East wind", "2z":"South wind", "3z":"West wind", "4z":"North wind",
-                  "5z":"White dragon", "6z":"Green dragon", "7z":"Red dragon"}
-        if tile in honors:
-            name = honors[tile]
-        else:
-            suit = {"m":"characters", "p":"circles", "s":"bamboo"}[tile[1]]
-            name = "Red five of " + suit if tile[0] == "0" else tile[0]+" of "+suit
-        return f"{label} {tile} ({name})"
+    if action.get("tile"): return label + " " + tile_label(action["tile"])
     if action.get("combination"):
-        label += " " + action["combination"].replace("|", " + ")
-        if action.get("called_tile"): label += " with " + action["called_tile"]
+        label += " " + " + ".join(tile_label(t) for t in action["combination"].split("|"))
+        if action.get("called_tile"): label += " with " + tile_label(action["called_tile"])
     return label
+
 
 def main():
     root = Path(__file__).resolve().parents[2]

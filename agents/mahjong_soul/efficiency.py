@@ -86,7 +86,7 @@ def rank_discards(request):
 class EfficiencyPolicy(BaselinePolicy):
     """Minimize shanten, maximize unseen improving copies, then retain red fives.
 
-    Still accepts offered wins and declines calls; no Riichi, value, yaku or
+    Accepts offered wins and Riichi and declines calls; no value, yaku or
     opponent-danger assessment is introduced by this discard heuristic.
     """
     def __init__(self):
@@ -98,9 +98,17 @@ class EfficiencyPolicy(BaselinePolicy):
             return super().choose(request)
         if any(a["kind"] == "discard" for a in request["actions"]):
             ranked = rank_discards(request)
-            best = ranked[0]
+            riichi = {a["tile"]:a for a in request["actions"] if a["kind"] == "riichi"}
+            if riichi:
+                eligible = [r for r in ranked if r["action"]["tile"] in riichi and r["shanten"] == 0]
+                if not eligible: raise ValueError("Offered Riichi has no tenpai discard")
+                best = eligible[0]
+                chosen = riichi[best["action"]["tile"]]
+            else:
+                best = ranked[0]
+                chosen = best["action"]
             self.last_analysis = {"board_token":request["board_token"],
                                   "shanten":best["shanten"],"ukeire":best["ukeire"],
                                   "improving_tiles":deepcopy(best["improving_tiles"])}
-            return deepcopy(best["action"])
+            return deepcopy(chosen)
         return super().choose(request)

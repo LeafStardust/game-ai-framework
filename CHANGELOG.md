@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added server-offered Riichi recommendations using the best offered tenpai discard; changed readable tile labels to Man, Pin and Sou.
+
 - Simplified Mahjong shadow output to readable recommended actions only; full analysis/metadata JSON now requires `--json`.
 
 - Added a shanten/visible-ukeire discard policy with fixed-meld, kan, red-five and sanma handling; made it the read-only shadow/evaluation CLI default and validated it on two recorded captures.
