@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Wired ATK automatic play to visually verified single-choice Chi/Pon, with legal-action filtering that declines kan and ambiguous call menus instead of requiring manual input; retained durable recordings and server-confirmed input sequencing.
+
 - Upgraded four-player ATK to v0.2 for manual suggestions: scored tenpai value, yaku-aware Chi/Pon, cautious kan, furiten/dama Riichi checks, broader danger ranking and room-rule-aware open Tanyao; added an action-only suggestion launcher.
 
 - Extended automatic Mahjong play to Riichi, Ron, Tsumo and combined-offer Skip; added forced post-Riichi discards, cursor parking, live capture health, an exclusive agent lock, automatic session evidence and an incident-report CLI.

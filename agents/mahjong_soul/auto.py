@@ -9,12 +9,14 @@ from pathlib import Path
 import time
 
 from agents.mahjong_soul.policy import make_policy
+from agents.mahjong_soul.auto_policy import AutomaticPolicy
 from agents.mahjong_soul.shadow import ShadowFollower, format_suggestion
 from games.mahjong_soul.live.external.schema import LiqiSchema
 from games.mahjong_soul.live.runtime.controller import InputController
 from games.mahjong_soul.live.runtime.input import board_token, plan_discard
 from games.mahjong_soul.live.runtime.layout import discard_profile, profile_for_size
 from games.mahjong_soul.live.runtime.skip import plan_skip
+from games.mahjong_soul.live.runtime.calls import plan_chi, plan_pon
 from games.mahjong_soul.live.runtime.riichi import plan_riichi
 from games.mahjong_soul.live.runtime.win import plan_win
 from games.mahjong_soul.live.runtime.visual import TileVision, distance
@@ -85,6 +87,15 @@ class AutoFollower(ShadowFollower):
         self._record("visual_button",kind_name=kind,pixel=[x,y],board_token=board_token(report))
         return profile,value
 
+    def _call_plan(self, report, profile, action):
+        kind=action["kind"]
+        operation=next((o for o in report["state"]["operations"]["operation_list"]
+                       if o["type"]=={"chi":2,"pon":3}[kind]),None)
+        if operation is None or operation.get("combination") != [action.get("combination")]:
+            raise ValueError("Call needs a single exact server combination")
+        return (plan_chi(report,profile,combination=action["combination"],now=self.clock())
+                if kind=="chi" else plan_pon(report,profile,now=self.clock()))
+
     def _plan(self, event):
         report = self._current()
         if board_token(report) != event["board_token"]: raise ValueError("Board changed before visual check")
@@ -107,6 +118,7 @@ class AutoFollower(ShadowFollower):
         else:
             profile,value=self._button_profile(report,action["kind"],first)
             if action["kind"]=="skip":plan_skip(report,profile,now=self.clock())
+            elif action["kind"] in ("chi","pon"):self._call_plan(report,profile,action)
             else:plan_win(report,profile,action["kind"],now=self.clock())
             samples=[value]
         self.sleep(.1)
@@ -134,6 +146,7 @@ class AutoFollower(ShadowFollower):
         elif action["kind"]=="riichi":
             plan=replace(plan_riichi(current,profile,tiles.index(action["tile"]),action["tile"],now=self.clock()),double_click=True)
         elif action["kind"]=="skip":plan=plan_skip(current,profile,now=self.clock())
+        elif action["kind"] in ("chi","pon"):plan=self._call_plan(current,profile,action)
         else:plan=plan_win(current,profile,action["kind"],now=self.clock())
         return plan,current
 
@@ -212,7 +225,7 @@ class AutoFollower(ShadowFollower):
                 return event
             event = self.candidate
         else: return event
-        if event["action"]["kind"] not in ("discard","skip","riichi","ron","tsumo"):
+        if event["action"]["kind"] not in ("discard","skip","riichi","ron","tsumo","chi","pon"):
             self.candidate = None
             return {**event,"kind":"manual","reason":"Action requires manual input"}
         try:
@@ -265,7 +278,10 @@ def main():
         attempted_keys=prior_attempts(args.recordings)
         journal=SessionJournal(args.recordings,max_bytes=args.recording_mb*1024**2)
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
-        paths=["agents/mahjong_soul/auto.py","agents/mahjong_soul/playbook_policy.py",
+        paths=["agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
+               "agents/mahjong_soul/attack_value.py","agents/mahjong_soul/attack_defense.py",
+               "games/mahjong_soul/live/runtime/calls.py","games/mahjong_soul/live/runtime/call_samples.json",
+               "agents/mahjong_soul/auto.py","agents/mahjong_soul/playbook_policy.py",
                "games/mahjong_soul/live/runtime/visual.py","games/mahjong_soul/live/runtime/visual_samples.json",
                "games/mahjong_soul/live/runtime/controller.py","games/mahjong_soul/live/runtime/riichi.py",
                "games/mahjong_soul/live/runtime/decision.py","games/mahjong_soul/live/runtime/session.py"]
@@ -276,10 +292,10 @@ def main():
         print("Recording: "+str(journal.directory),flush=True)
     else: backend = None
     follower = AutoFollower(LiqiSchema.load(root/"liqi-reference.json"),
-        file=args.file,directory=root/"logs/mahjong_soul",policy=make_policy("playbook",args.playstyle),
+        file=args.file,directory=root/"logs/mahjong_soul",policy=AutomaticPolicy(make_policy("playbook",args.playstyle)) if args.execute else make_policy("playbook",args.playstyle),
         controller=InputController(backend,attempted_keys=attempted_keys),recorder=recorder,vision=vision,enabled=args.execute,
         journal=journal,bootstrap_current=args.resume_current,require_ai=True)
-    print("Automatic ATK play enabled: discard, Skip, Riichi, Ron and Tsumo. Ctrl+C stops." if args.execute else "Suggestions only; mouse input disabled.",flush=True)
+    print("Automatic play enabled: discard, Skip, Riichi, Ron, Tsumo and single-choice Chi/Pon. Kan and multiple-choice calls are declined. Ctrl+C stops." if args.execute else "Suggestions only; mouse input disabled.",flush=True)
     start=time.monotonic(); previous=None; recorded_status=None; heartbeat=start
     try:
         while args.duration is None or time.monotonic()-start<args.duration:

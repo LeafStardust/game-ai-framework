@@ -73,6 +73,13 @@ class TileVision:
         if data.get("version") != 1 or data.get("client_size") != [1920,1080]:
             raise ValueError("Unsupported visual sample bank")
         self.tiles = [(entry["tile"],base64.b64decode(entry["sample"],validate=True)) for entry in data["tiles"]]
+        calls = json.loads(Path(__file__).with_name("call_samples.json").read_text(encoding="utf-8"))
+        if calls.get("version") != 1 or calls.get("client_size") != [1920,1080]:
+            raise ValueError("Unsupported call sample bank")
+        self.calls = {kind:base64.b64decode(entry["sample"],validate=True)
+                      for kind,entry in calls["buttons"].items()}
+        if set(self.calls) != {"chi","pon"} or any(len(v)!=648 for v in self.calls.values()):
+            raise ValueError("Invalid call button samples")
         self.skip = base64.b64decode(data["skip"],validate=True)
         if not self.tiles or any(len(value)!=648 for _,value in self.tiles) or len(self.skip)!=648:
             raise ValueError("Invalid visual samples")
@@ -145,12 +152,15 @@ class TileVision:
     def button(self,png,kind,point=None):
         """Recognize a Skip label or a server-offered colored declaration button."""
         rgb=decode_frame(png)
-        if kind=="skip":
+        if kind not in ("skip","chi","pon","riichi","ron","tsumo"):
+            raise ValueError("Unsupported automatic button kind")
+        if kind in ("skip","chi","pon"):
+            reference = self.skip if kind=="skip" else self.calls[kind]
             matches=[]
             for x in (1290,1020,750,480):
                 value=sample(rgb,x,835,220,110)
-                if distance(value,self.skip)<=10:matches.append((x,835,value))
-            if len(matches)!=1:raise ValueError("Skip button not uniquely visible")
+                if distance(value,reference)<=10:matches.append((x,835,value))
+            if len(matches)!=1:raise ValueError(f"{kind.title()} button not uniquely visible")
             return matches[0]
         # Win buttons are pink; Riichi is orange. Restrict detection to the
         # established action row, away from portraits and hand tiles.

@@ -110,7 +110,7 @@ def test_poll_dry_mode_never_reads_screen_or_inputs(monkeypatch):
 
 
 def test_poll_manual_actions_are_not_substituted(monkeypatch):
-    f,r,p,e,m=setup(monkeypatch);e['action']={'kind':'chi','combination':'1p|2p'}
+    f,r,p,e,m=setup(monkeypatch);e['action']={'kind':'closed_kan','combination':'1p|1p|1p|1p'}
     monkeypatch.setattr('agents.mahjong_soul.shadow.ShadowFollower.poll',lambda _:e)
     result=f.poll()
     assert result['kind']=='manual' and result['action']==e['action'] and not m.clicks
