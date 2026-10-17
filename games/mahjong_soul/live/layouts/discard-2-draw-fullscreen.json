@@ -25,6 +25,13 @@
       "frame-000113.png"
     ],
     "confirmed_discard": "9s",
-    "confirmed_step": 118
+    "confirmed_step": 118,
+    "native_selection": {
+      "date": "2026-10-17",
+      "tile": "7p",
+      "step": 136,
+      "slot": 1,
+      "result": "Selected tile visually verified; confirmation blocked after turn expired. Full native discard not verified."
+    }
   }
 }

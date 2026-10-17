@@ -64,3 +64,10 @@ This completes live validation of sparse screenshot persistence and fresh click-
 Added separate 1920x1080 two-tile profiles for `ActionChiPengGang` and `ActionDealTile`. In session `20261016-183751-482320`, frames 108/110 show the post-call 3p and 4p slots; candidate clicks 107/109 have fresh image evidence and are followed by the own 4p discard at step 110. Frames 111/113 show the draw-separated 3p and 9s slots; click 112 has fresh image evidence and is followed by the own 9s discard at step 118.
 
 Safe interior points are (269, 1000) for the first slot, (365, 1000) for the post-call second slot, and (394, 1000) for the drawn second slot. Both ordinary and raised/selected tile bounds contain those points. Profile verification is based on inspected images and manual click/server evidence, not a new native executor run. Slot indices still require visual tile identity; reader hand order must not be treated as screen order. Exact size/trigger guards and discard restrictions continue to apply. No 1920x1200 variant was inferred.
+
+
+## Native two-tile selection test: 2026-10-17
+
+Capture from the previous day was closed when the test began. Restarting process-scoped capture restored the current four-player AI room, own seat 1, including its two-tile hand. No game restart was needed. A first attempt against the expired 2m turn was rejected before input; another attempt was rejected by the capture freshness guard. With fresh capture and a current 8m/7p hand at step 136, the shared native controller clicked the second draw slot at (394, 1000). A fresh screenshot showed the 7p raised and selected.
+
+The turn then expired before the explicit confirmation stage; rebuilding the confirmation plan rejected the missing own discard operation and sent no confirmation click. This verifies native selection of the second drawn slot only. It does not establish a confirmed native discard, the first slot, or the post-call profile. Keep the current hand untouched immediately after requesting a test; capture readiness must be checked before preparing another live opportunity.

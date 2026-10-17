@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Verified native selection of the two-tile drawn slot after restoring live capture; documented expiry before discard confirmation and retained the remaining validation limits.
+
 - Added separate 1920x1080 two-tile draw and post-call discard layouts from reviewed screenshots and manual click/server confirmations, preserving exact-context and forbidden-discard guards.
 
 - Completed live validation of sparse Mahjong calibration recording at 1920x1080, including Pon and Riichi click evidence; documented transitional win frames and remaining two-tile layout gaps.
