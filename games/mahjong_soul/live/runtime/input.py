@@ -140,6 +140,9 @@ def main():
     from games.mahjong_soul.live.external.schema import LiqiSchema
     from games.mahjong_soul.live.runtime.monitor import CaptureTail
     from games.mahjong_soul.live.runtime.reader import GameReader
+    # Running with -m creates __main__ classes; the shared controller uses the
+    # canonical imported plan type. Always construct that type in this CLI.
+    from games.mahjong_soul.live.runtime.input import plan_discard
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--capture", required=True)

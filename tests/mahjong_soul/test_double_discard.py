@@ -96,3 +96,50 @@ def test_native_partial_double_click_releases_and_stops(monkeypatch):
     with pytest.raises(OSError): mouse.double_click(.2, .9, 1920, 1080)
     assert batches == [[0xC001, 2, 4], [4]]
     assert delays == []
+
+
+def test_module_cli_uses_canonical_plan_type_before_controller_submit(tmp_path):
+    import json
+    import subprocess
+    import sys
+    report, profile = inputs()
+    capture = tmp_path / "capture.jsonl"; capture.write_text("", encoding="utf-8")
+    layout = tmp_path / "layout.json"; layout.write_text(json.dumps(profile), encoding="utf-8")
+    script = r"""
+import runpy,sys
+from tests.mahjong_soul.test_input import inputs
+from games.mahjong_soul.live.runtime.input import board_token
+import games.mahjong_soul.live.runtime.reader as reader
+import games.mahjong_soul.live.runtime.monitor as monitor
+import games.mahjong_soul.live.runtime.windows_input as windows
+import games.mahjong_soul.live.runtime.controller as controller
+import games.mahjong_soul.live.external.schema as schema
+report,profile=inputs()
+class Reader:
+ def __init__(self,*args):pass
+ def snapshot(self):return report
+class Tail:
+ bad_rows=0;pending=False;reset=False
+ def __init__(self,*args):pass
+ def read(self):return []
+class Mouse:
+ def client_geometry(self):return {"width":1280,"height":720}
+ def click(self,*args):raise AssertionError("No real input in regression")
+ def double_click(self,*args):raise AssertionError("No real input in regression")
+reader.GameReader=Reader;monitor.CaptureTail=Tail;windows.WindowsMouse=Mouse
+schema.LiqiSchema.load=lambda *args:None
+original=controller.InputController.submit
+def check(self,plan,report,**kwargs):
+ assert type(plan) in self._executors,"Wrong __main__ plan type"
+ assert plan.double_click
+ print("CANONICAL_PLAN_OK",flush=True)
+ raise ValueError("Test stops before input")
+controller.InputController.submit=check
+sys.argv=["input", "--capture",sys.argv[1],"--profile",sys.argv[2],"--slot","0",
+ "--tile","0p","--double-click","--execute","--expected-token",board_token(report)]
+runpy.run_module("games.mahjong_soul.live.runtime.input",run_name="__main__")
+"""
+    result = subprocess.run([sys.executable, "-c", script, str(capture), str(layout)],
+                            capture_output=True, text=True, timeout=15)
+    assert "CANONICAL_PLAN_OK" in result.stdout, result.stderr
+    assert result.returncode == 2 and "Test stops before input" in result.stderr
