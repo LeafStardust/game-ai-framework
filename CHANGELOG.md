@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Made Mahjong shadow terminal output suggestions-only by default; diagnostic statuses remain available with `--verbose`.
+
 - Added a persistent read-only Mahjong shadow runner with game-connection freshness checks, historical bootstrap suppression, board deduplication and capture lifecycle regression coverage.
 
 - Added an isolated Mahjong policy adapter, deterministic integration baseline and offline contract evaluator; validated all 131 decision-bearing recorded boards without input or policy failures.

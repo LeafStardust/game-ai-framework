@@ -115,7 +115,8 @@ def main():
     parser.add_argument("--max-age", type=float, default=2)
     parser.add_argument("--interval", type=float, default=.2)
     parser.add_argument("--duration", type=float, help="Optional bounded run in seconds")
-    parser.add_argument("--once", action="store_true", help="Bootstrap/status smoke check only")
+    parser.add_argument("--verbose", action="store_true", help="Include diagnostic status lines")
+    parser.add_argument("--once", action="store_true", help="Bootstrap smoke check; add --verbose to show status")
     args = parser.parse_args()
     if (not math.isfinite(args.interval) or args.interval < .05
             or args.duration is not None and (not math.isfinite(args.duration) or args.duration <= 0)):
@@ -127,7 +128,7 @@ def main():
         while args.duration is None or time.monotonic()-start < args.duration:
             event = follower.poll()
             encoded = json.dumps(event, sort_keys=True)
-            if encoded != previous:
+            if (event.get("kind") == "suggestion" or args.verbose) and encoded != previous:
                 print(encoded, flush=True); previous = encoded
             if args.once: break
             time.sleep(args.interval)
