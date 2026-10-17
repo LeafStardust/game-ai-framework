@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Confirmed the native 1920x1080 post-call two-tile double-click discard with exact 4m server acknowledgement, independently of drawn-slot validation.
+
 - Confirmed a native 1920x1080 two-tile double-click discard through the server; fixed module-CLI plan identity before controller dispatch and added a subprocess regression.
 
 - Added explicit native double-click discards as one guarded controller action, with 80 ms spacing, inter-click window checks and matching server acknowledgement instead of a manual confirmation pause.

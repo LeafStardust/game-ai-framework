@@ -25,6 +25,19 @@
       "frame-000110.png"
     ],
     "confirmed_discard": "4p",
-    "confirmed_step": 110
+    "confirmed_step": 110,
+    "native_double_click": {
+      "date": "2026-10-17",
+      "tile": "4m",
+      "seat": 1,
+      "plan_step": 92,
+      "confirmed_step": 93,
+      "slot": 1,
+      "point": [
+        365,
+        1000
+      ],
+      "result": "Matching own live post-call discard confirmed via shared controller"
+    }
   }
 }

@@ -95,3 +95,8 @@ Dry runs now print the observed board token. Execution additionally requires `--
 The native two-tile drawn-slot discard completed successfully in the existing four-player AI room at 1920x1080. The inspected hand was 7p/2p, own seat 1, South 3 with one continuation, action step 124. The double-click executor targeted the second drawn slot at (394, 1000), and the shared controller received the matching own `ActionDiscardTile` for 2p at step 125. The CLI returned `{"confirmed": true, "tile": "2p", "step": 125}`. No screenshot review or ticket was needed between clicks.
 
 An initial invocation was blocked before input because running the input module with `-m` constructed a `__main__.DiscardPlan` while the shared controller registered the canonical imported class. The CLI now constructs its plans through the canonical module import; a subprocess regression verifies plan dispatch before any fake or native input. Only the second drawn slot was executed in this live test. The first slot and post-call two-tile profile retain their previous visual/manual evidence.
+
+
+## Native post-call two-tile discard confirmed: 2026-10-17
+
+At 1920x1080 in the four-player AI room, South 4, own seat 1, step 92, the fourth Chi left 3m/4m with discard restrictions 4p/7p. The post-call profile targeted the visually inspected 4m in the second adjacent slot at (365, 1000). The native double-click completed through the shared controller and received the matching own `ActionDiscardTile` for 4m at step 93. The CLI returned `{"confirmed": true, "tile": "4m", "step": 93}`. This validates the second slot of the post-call two-tile profile, separately from the already confirmed drawn second slot. No inference was made for other resolutions.
