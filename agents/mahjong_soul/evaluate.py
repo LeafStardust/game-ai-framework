@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import time
 
-from agents.mahjong_soul.policy import BaselinePolicy, proposal_from_policy
+from agents.mahjong_soul.policy import BaselinePolicy, proposal_from_policy, make_policy
 from games.mahjong_soul.live.external.schema import LiqiSchema
 from games.mahjong_soul.live.runtime.decision import decision_request, validate_proposal
 from games.mahjong_soul.live.runtime.input import board_token
@@ -69,13 +69,14 @@ def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("capture", type=Path)
+    parser.add_argument("--policy", choices=["baseline","efficiency"], default="efficiency")
     parser.add_argument("--schema", type=Path, default=root / "liqi-reference.json")
     parser.add_argument("--output", type=Path, help="Create a new aggregate report; refuses existing paths")
     args = parser.parse_args()
     if not args.capture.is_file(): parser.error("Capture does not exist")
     if args.output and args.output.exists(): parser.error("Output exists; choose a new path")
     tail = CaptureTail(args.capture)
-    result = evaluate_capture(tail.read(), LiqiSchema.load(args.schema))
+    result = evaluate_capture(tail.read(), LiqiSchema.load(args.schema), make_policy(args.policy))
     result["malformed_rows"] += tail.bad_rows
     result["unfinished_capture_row"] = bool(tail.pending)
     encoded = json.dumps(result, indent=2)+"\n"

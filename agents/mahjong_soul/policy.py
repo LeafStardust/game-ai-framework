@@ -38,3 +38,11 @@ class BaselinePolicy:
         skip = next((a for a in actions if a["kind"] == "skip"), None)
         if skip: return deepcopy(skip)
         raise ValueError("Baseline has no supported choice for this request")
+
+
+def make_policy(name):
+    if name == "baseline": return BaselinePolicy()
+    if name == "efficiency":
+        from agents.mahjong_soul.efficiency import EfficiencyPolicy
+        return EfficiencyPolicy()
+    raise ValueError("Unknown policy")

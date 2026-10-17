@@ -1,6 +1,6 @@
 # Reader and input readiness
 
-Reviewed 2026-10-17. No decision policy is connected and no autonomous play loop is running.
+Reviewed 2026-10-17. Baseline and tile-efficiency policies are available in read-only shadow/evaluation mode. No policy is connected to native input and no autonomous playing loop is running.
 
 | Area | Current evidence | Remaining boundary |
 | --- | --- | --- |

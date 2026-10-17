@@ -6,7 +6,7 @@ from pathlib import Path
 import time
 
 from agents.mahjong_soul.evaluate import decide
-from agents.mahjong_soul.policy import BaselinePolicy
+from agents.mahjong_soul.policy import BaselinePolicy, make_policy
 from games.mahjong_soul.live.external.schema import LiqiSchema
 from games.mahjong_soul.live.runtime.input import board_token
 from games.mahjong_soul.live.runtime.monitor import CaptureTail
@@ -101,7 +101,9 @@ class ShadowFollower:
             validated = decide(self.policy, report, self._current, clock=self.clock)
         except Exception as error:
             return {**status("decision_rejected"),"error_type":type(error).__name__,"board_token":token}
-        return {"version":1,"kind":"suggestion","mode":"shadow","executable":False,
+        analysis = getattr(self.policy, "last_analysis", None)
+        detail = {"analysis":analysis} if analysis and analysis.get("board_token") == token else {}
+        return {**detail,"version":1,"kind":"suggestion","mode":"shadow","executable":False,
                 "policy":type(self.policy).__name__,"board_token":token,
                 "generation":report.get("game_generation",0),"step":state.get("step"),
                 "round":state.get("round"),"action":validated["action"]}
@@ -111,6 +113,7 @@ def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--file", type=Path, help="One capture; defaults to newest local capture")
+    parser.add_argument("--policy", choices=["baseline","efficiency"], default="efficiency")
     parser.add_argument("--schema", type=Path, default=root / "liqi-reference.json")
     parser.add_argument("--max-age", type=float, default=2)
     parser.add_argument("--interval", type=float, default=.2)
@@ -122,7 +125,7 @@ def main():
             or args.duration is not None and (not math.isfinite(args.duration) or args.duration <= 0)):
         parser.error("Interval must be at least .05 seconds and duration must be finite and positive")
     follower = ShadowFollower(LiqiSchema.load(args.schema), file=args.file,
-                              directory=root / "logs/mahjong_soul", max_age=args.max_age)
+                              directory=root / "logs/mahjong_soul", max_age=args.max_age, policy=make_policy(args.policy))
     start = time.monotonic(); previous = None
     try:
         while args.duration is None or time.monotonic()-start < args.duration:
