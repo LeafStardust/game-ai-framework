@@ -2,6 +2,8 @@
 
 from copy import deepcopy
 
+from games.mahjong_soul.live.runtime.input import board_token
+
 
 def observation_from_snapshot(report):
     """Return an independent, versioned observation using absolute seat indices.
@@ -14,6 +16,8 @@ def observation_from_snapshot(report):
         "version": 1,
         "ready": bool(report.get("state_ready")),
         "source": {"connection": report.get("game_connection"),
+                   "generation": report.get("game_generation", 0),
+                   "board_token": board_token(report),
                    "connection_open": bool(report.get("connection_open")),
                    "step": state.get("step") if state else None,
                    "last_event": deepcopy(report.get("last_event"))},

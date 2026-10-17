@@ -44,3 +44,19 @@ def test_three_player_observation_and_disconnected_board():
     assert not result["source"]["connection_open"]
     assert result["board"]["available_operations"] is None
     assert result["issues"]
+
+
+def test_observation_identity_distinguishes_reauthenticated_same_step_boards():
+    from copy import deepcopy
+    from games.mahjong_soul.live.runtime.input import board_token
+    reader = GameReader(schema(), seat=0)
+    reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"1m")))))
+    original = reader.snapshot()
+    previous = observation_from_snapshot(original)
+    assert previous["source"]["board_token"] == board_token(original)
+    for field, value in [("game_generation", original["game_generation"]+1), ("game_connection", "new")]:
+        current = deepcopy(original); current[field] = value
+        observed = observation_from_snapshot(current)
+        assert observed["source"]["step"] == previous["source"]["step"]
+        assert observed["source"]["board_token"] != previous["source"]["board_token"]
+    assert previous["source"]["generation"] == original["game_generation"]

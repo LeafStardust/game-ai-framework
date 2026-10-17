@@ -191,3 +191,5 @@ See [Steam mouse input](INPUT.md) for the guarded discard executor, calibration
 requirements, and outstanding live validation. No decision policy is connected.
 
 Passive UI calibration: see [CALIBRATION.md](CALIBRATION.md) to record screenshots, your clicks and reader confirmations while playing normally.
+
+Current reader/input readiness and the decision-interface boundary: see [READINESS.md](READINESS.md).

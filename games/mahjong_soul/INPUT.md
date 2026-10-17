@@ -1,9 +1,11 @@
 # Steam mouse input
 
-The first input milestone implements guarded discard selection and confirmation. The reader
-continues capturing game data; no decision policy is connected. Chi/pon/kan,
-riichi, win and pass buttons still need visual calibration and multi-stage
-handling. No coordinates are enabled by default.
+Reader capture and guarded native input are implemented. Common 1920x1080 discard,
+Chi/Pon, Skip, Riichi, single-choice kan and win paths have live confirmation in
+specific offer contexts. The two-tile drawn and post-call second slots are also
+natively confirmed with double-click delivery. No decision policy is connected.
+See [current readiness](READINESS.md) for supported scope and integration gaps;
+the dated evidence below records earlier milestones and their later updates.
 
 ## Calibrated layout
 
