@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Tested the complete manual discard session with closed stdin and cross-process file confirmation; made failures terminal and bound live selection to the visually inspected board token.
+
 - Added a persistent manual Mahjong discard validation runner with unique file confirmation tickets, unchanged-board and freshness checks, and regression coverage for delayed visual confirmation.
 
 - Verified native selection of the two-tile drawn slot after restoring live capture; documented expiry before discard confirmation and retained the remaining validation limits.
