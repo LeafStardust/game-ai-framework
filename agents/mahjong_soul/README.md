@@ -1,5 +1,7 @@
 # Mahjong Soul policy integration
 
+For tile codes and terminal vocabulary, see [the terms reference](../../games/mahjong_soul/TERMS.md).
+
 The shadow and evaluation CLIs now default to `--policy efficiency`. Restart an already running terminal command to load it. `--policy baseline` retains the original integration fixture. Both modes remain read-only.
 
 `policy.Policy` defines `choose(request) -> action`. `proposal_from_policy` gives the policy an independent request copy and wraps its chosen action in the original request/board identity. `evaluate.decide` then re-reads a caller-provided current snapshot and validates the response, including elapsed policy time. This path returns a nonexecutable intent and has no input backend. A future live caller must establish capture freshness separately.

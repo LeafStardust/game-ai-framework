@@ -195,3 +195,5 @@ Passive UI calibration: see [CALIBRATION.md](CALIBRATION.md) to record screensho
 Current reader/input readiness and the decision-interface boundary: see [READINESS.md](READINESS.md).
 
 Read-only decision request/proposal contract: see [DECISIONS.md](DECISIONS.md). No policy or automatic input is connected.
+
+Tile codes and suggestion vocabulary: [TERMS.md](TERMS.md).
