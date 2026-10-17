@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added board-bound read-only Mahjong decision requests and strict current-server-offer proposal validation, with exact tile/call semantics and offline capture replay coverage.
+
 - Reviewed Mahjong reader/input readiness, documented the decision-interface boundary and added generation/board identity to consumer observations.
 
 - Confirmed the native 1920x1080 post-call two-tile double-click discard with exact 4m server acknowledgement, independently of drawn-slot validation.

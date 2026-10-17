@@ -5,7 +5,7 @@ Reviewed 2026-10-17. No decision policy is connected and no autonomous play loop
 | Area | Current evidence | Remaining boundary |
 | --- | --- | --- |
 | Steam reader | Own hand, public board, server operations, calls, wins, reconnect restoration and three/four-player state | Capture must be running before game entry; closed/incomplete state blocks execution |
-| Consumer observation | Versioned independent snapshot, raw operations, absolute seats, connection, generation and exact board token | Operations are not yet a normalized decision/action interface |
+| Consumer observation | Versioned independent snapshot, raw operations, absolute seats, connection, generation and exact board token | Normalized read-only intent interface is implemented; no policy or executor binding |
 | Discard execution | Shared controller, native double-click, exact board/size/trigger guards, forbidden-discard checks and matching own server acknowledgement | Caller must visually bind the tile to its current screen slot |
 | 1080p layouts | Common hand counts and action controls; two-tile drawn and post-call second-slot discards independently confirmed | First two-tile slot has visual evidence but no dedicated native run; exact offer guards still apply |
 | Choice panels | Native two-choice Chi flow with explicitly observed choice ordering | Unseen combinations, multi-Pon and multi-kan choice panels remain blocked |
@@ -18,7 +18,7 @@ The local 2026-10-17 capture review covered 3,127 frames and 952 distinct action
 
 ## Next implementation boundary
 
-The reader/input foundation is sufficient to begin the decision-interface stage. The first work there should be a read-only, versioned decision request bound to the observation's connection, generation and board token, followed by strict validation of proposed actions against current operations. No mouse input is needed for that work.
+The reader/input foundation is sufficient to begin the decision-interface stage. The read-only request/proposal interface is now implemented in [DECISIONS.md](DECISIONS.md), bound to connection, generation and board identity with current-offer validation. Next is the policy-facing adapter and offline replay evaluation; no mouse input is needed for that work.
 
 Automatic execution additionally requires a verified visual binding from each selected tile/action to the current screen. The reader hand array is not screen order. Neither sorting that array nor selecting a calibrated row alone establishes which tile occupies a slot. A future runtime must inspect that mapping, preserve red-five identity, use exact offer profiles, keep capture freshness checks and wait for server acknowledgement. Until those integrations exist, this is a functioning reader and guarded input toolkit rather than a complete playing agent.
 
