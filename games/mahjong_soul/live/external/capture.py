@@ -6,6 +6,7 @@ import json
 import ipaddress
 import re
 import logging
+import os
 import time
 from pathlib import Path
 
@@ -85,6 +86,14 @@ class MahjongSoulCapture:
         self.health_task = None
 
     async def running(self):
+        # Publish readiness only after mitmproxy has started its servers. The
+        # package launcher binds this marker to the exact child PID/output.
+        if self.writer is not None:
+            self.writer.path.parent.mkdir(parents=True, exist_ok=True)
+            self.writer.path.touch(exist_ok=True)
+            self.writer.health()
+            self.writer.path.with_suffix(".ready.json").write_text(
+                json.dumps({"version":1,"pid":os.getpid(),"timestamp":time.time()}),encoding="utf-8")
         async def heartbeat():
             while True:
                 try:
@@ -94,6 +103,8 @@ class MahjongSoulCapture:
         self.health_task=asyncio.create_task(heartbeat())
 
     def done(self):
+        if self.writer is not None:
+            self.writer.path.with_suffix(".ready.json").unlink(missing_ok=True)
         if self.health_task is not None:self.health_task.cancel()
 
     def load(self, loader):

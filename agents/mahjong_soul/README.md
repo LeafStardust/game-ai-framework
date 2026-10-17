@@ -70,19 +70,25 @@ Four-player attack is available as `--policy playbook --playstyle atk`; see [ATK
 
 ## Automatic ATK play and recordings
 
-Start process-scoped capture before launching Mahjong Soul:
-
-```powershell
-.\MahjongSoulCapture.bat --process Jantama_MahjongSoul.exe
-```
-
-Then use a four-player AI room at a physical **1920?1080 client size**, keep Mahjong foreground, and start:
+Run one launcher before opening/reopening Steam Mahjong Soul:
 
 ```powershell
 .\MahjongSoulAgent.bat
 ```
 
-The launcher runs `agents.mahjong_soul.auto --execute --resume-current`. It replaces the shadow terminal. Capture remains a separate process. The agent chooses through the ATK playbook and executes **discards, Skip, Riichi, Ron, Tsumo and single-choice Chi/Pon** through the native input controller. Automatic mode reruns the ATK policy over executable legal actions: kan and calls with multiple combinations are omitted, so it discards or skips instead of waiting for manual input. Manual suggestions still include those actions. Chi/Pon require a matching reviewed button template in two stable frames and exact server-offered contributions; server confirmation is required before the next input. Use `--playstyle balanced` to select balanced settings. Omitting `--execute` when running the Python module directly gives suggestions only. Ctrl+C stops the agent. Only one automatic agent can hold this worktree's OS lock. Production execution also requires captured authentication confirming four seats, three robots and one human player in AI mode. A missing or mismatched room identity blocks input.
+This starts process-scoped capture and automatic ATK play together. Approve the Windows capture administrator prompt if shown, then enter a four-player AI room at a physical **1920?1080 client size** and keep Mahjong foreground. No separate capture or shadow terminal is needed. Existing proxy certificate setup is still required; the launcher does not install certificates. Capture is essential: it supplies the live game state.
+
+For manual play with recommendations only:
+
+```powershell
+.\MahjongSoulMonitor.bat
+```
+
+The monitor starts capture plus the read-only ATK suggestion monitor; it never starts the mouse executor. `MahjongSoulSuggest.bat` is an alias for this monitor package. Use either the agent package or monitor package at a time. For an additional read-only terminal attached to an already running package, run `.\.venv\Scripts\python.exe -u -m agents.mahjong_soul.shadow --policy playbook --playstyle atk` directly.
+
+Both packages bind their worker to their own capture file, wait for capture readiness, and stop their owned processes on Ctrl+C or process exit. If capture fails, the agent is stopped too. Capture console output goes to the adjacent `capture-*.console.log`; launcher startup errors identify that file. `--process` and `--port` configure capture; other options such as `--playstyle balanced` and `--duration 60` go to the worker. `MahjongSoulCapture.bat` remains available for standalone capture diagnostics.
+
+The automatic agent executes **discards, Skip, Riichi, Ron, Tsumo and single-choice Chi/Pon** through the native input controller. It reruns ATK over executable legal actions: kan and calls with multiple combinations are omitted, so it discards or skips instead of waiting for manual input. Manual suggestions still include those actions. Chi/Pon require a matching reviewed button template in two stable frames and exact server-offered contributions; server confirmation is required before the next input. Production execution requires captured authentication confirming four seats, three robots and one human player in AI mode. A missing or mismatched room identity blocks input. The standalone `agents.mahjong_soul.auto` module without `--execute` remains read-only.
 
 Every executable run records automatically under `logs/mahjong_soul/sessions/<UTC timestamp>/`:
 

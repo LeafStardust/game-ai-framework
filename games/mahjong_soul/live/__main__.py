@@ -11,7 +11,7 @@ import sys
 from games.mahjong_soul.live.external.schema import LiqiSchema
 
 
-def main():
+def main(argv=None, *, run=None):
     root = Path(__file__).resolve().parents[3]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8080)
@@ -24,7 +24,7 @@ def main():
     parser.add_argument("--hosts", default="mahjongsoul.com,maj-soul.com,majsoul.com,yo-star.com")
     parser.add_argument("--confdir", help="Proxy config/certificate directory; defaults to this worktree")
     parser.add_argument("--check", action="store_true", help="Validate dependencies/schema without starting capture")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if not 1 <= args.port <= 65535:
         parser.error("port must be between 1 and 65535")
     if args.process is not None and not re.fullmatch(r"[A-Za-z0-9_.-]+", args.process):
@@ -63,7 +63,7 @@ def main():
         print("Dependency and schema checks passed. Live routing/TLS are not checked.")
         return 0
     try:
-        return subprocess.call(command, cwd=root)
+        return (run or subprocess.call)(command, cwd=root)
     except KeyboardInterrupt:
         return 130
 
