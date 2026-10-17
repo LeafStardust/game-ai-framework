@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Audited a completed ten-round manual Mahjong match and replay-validated all 164 current-policy decisions, including five Riichi recommendations, without game decode or proposal errors.
+
 - Added server-offered Riichi recommendations using the best offered tenpai discard; changed readable tile labels to Man, Pin and Sou.
 
 - Simplified Mahjong shadow output to readable recommended actions only; full analysis/metadata JSON now requires `--json`.

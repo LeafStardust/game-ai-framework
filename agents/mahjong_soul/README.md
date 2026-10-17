@@ -50,3 +50,12 @@ Tests cover known complete/tenpai regular hands, seven pairs, thirteen orphans, 
 Install new dependencies through the existing Mahjong worktree setup, or `.\.venv\Scripts\python.exe -m pip install -r games/mahjong_soul/setup/requirements.txt`. Balatro's environment is unaffected.
 
 Readable tiles use Man, Pin and Sou: `Discard 1 Man`, `Discard 2 Pin`, `Discard Red 5 Sou`. Riichi prints, for example, `Riichi, then discard 6 Pin`; press Riichi and then discard that exact tile manually. Restart the shadow process to load policy/display changes.
+
+
+## Completed manual-match review: 2026-10-17
+
+Reviewed the local capture starting at 22:18:51 after the user reported game over. The reader audit confirms match end across ten rounds and 2,253 frames, with no malformed rows, game decode errors, historical state issues, missing action steps or conflicting duplicates. One unrelated lobby schema warning remains separate from game decoding.
+
+Offline replay with the current EfficiencyPolicy validated 164 decision-bearing boards with no rejected proposals or policy errors: 118 ordinary discards, 38 skips, five Riichi recommendations, two Ron and one Tsumo. The recorded player declared Riichi four times and won three hands (two Ron, one Tsumo). These are recorded actions, not attribution to the policy or a win-rate estimate. The capture does not record the version/output of the user's separate shadow terminal.
+
+The five current-policy Riichi recommendations were East 1 step 85 (discard 6 Sou), East 1 step 93 (discard 9 Sou), East 2 step 74 (discard 2 Man), South 1 step 64 (discard 3 Man), and South 1 with one honba step 124 (discard 2 Pin). All ranked offered discards were tenpai. A remaining manual live check is whether the restarted current shadow terminal displays the readable Riichi instruction when an offer appears; no additional native input calibration is needed for that check.
