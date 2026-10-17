@@ -18,7 +18,7 @@ Use `--schema <path>` to select another schema or `--output <new-path>` to write
 
 The 2026-10-17 local capture produced 131 requests and 131 validated proposals: 106 discards, 20 skips and 5 Ron choices; no unsupported requests, malformed rows, game decoding errors or policy failures. Captured actions are not changed by proposed decisions, so later recorded states are still the human player's trajectory. These totals measure interface coverage only, not simulated outcomes, agreement, rewards, win rate or policy quality.
 
-Next is a continuously running read-only shadow consumer that retains the policy and follows new reader state. Actual execution still needs verified visual tile/action binding and one persistent guarded input controller.
+The shadow consumer follows live reader state. The separate experimental automatic runner below connects playbook decisions to visual recognition and one persistent input controller.
 
 
 ## Read-only shadow runner
@@ -65,3 +65,21 @@ The five current-policy Riichi recommendations were East 1 step 85 (discard 6 So
 The versioned three/four-player [playbooks](../../games/mahjong_soul/playbook/README.md) now add dora/yakuhai-shape tie-breaks, basic genbutsu defense against Riichi, and configurable Riichi threat handling. This remains a manual-only suggestion pipeline. Run with `--policy playbook`; no automatic input is connected.
 
 Four-player attack is available as `--policy playbook --playstyle atk`; see [ATK.md](../../games/mahjong_soul/playbook/yonma/ATK.md) for exact value, push and Riichi criteria. Balanced stays the default. Three-player attack is not implemented. All playstyles remain manual suggestions only.
+
+## Experimental automatic input
+
+From the Mahjong worktree, keep the process-scoped Steam capture running, stop the suggestion-only runner, then start:
+
+```powershell
+.\.venv\Scripts\python.exe -u -m agents.mahjong_soul.auto --playstyle atk --execute
+```
+
+This replaces the shadow terminal; capture remains a separate process. Use a four-player AI room with a physical **1920?1080 client** and the reviewed default tile faces. Keep Mahjong foreground and your pointer away from the hand. Ctrl+C in the runner terminal stops it. Omitting `--execute` leaves mouse input disabled and prints suggestions only. `--once` only bootstraps capture history; it cannot execute a historical turn.
+
+Current automation covers **discards and the calibrated Chi-only Skip offer**. Riichi, wins, other calls and unsupported layouts print the recommended action with a manual-input reason. Handle these yourself; later supported turns can resume. The playbook recommendation is never replaced with a different action to make it executable.
+
+Before a discard, the runner recognizes every visible concealed tile, checks its exact multiset (including red fives) against the reader, and verifies two stable frames 100 ms apart. It binds the recommended tile to a recognized screen slot, then uses the native double-click backend. Small rendering shifts are represented in reviewed samples; unknown/ambiguous faces, hovered/selected tiles, animations, changed boards or window geometry prevent input. Preflight can wait up to two seconds for stable visuals, without recomputing the policy. Red 5 Sou has no reviewed sample yet, so any hand containing it requires manual input. Different tile skins and 1200p are unsupported in this runner.
+
+One persistent controller receives decoded live actions and request/response messages. After input it waits for the exact server discard or correlated Skip cancellation. Uncertain delivery, timeout, a conflicting own action, or capture replacement/reset stops execution; there is no automatic input retry or recovery. A sent line means delivery was attempted, not that the server accepted it. Inspect the game before restarting after a stop.
+
+Offline validation covers guards, an independently reviewed 14-tile screenshot, and replay recognition of saved calibration frames. Recognition is deliberately incomplete: 10 of 116 discard-bearing saved frames matched the entire reader hand; 105 were unknown/ambiguous and one disagreed with the reader. These recordings include selected and animated hands. This is neither a measured live success rate nor a completed automatic-match test. Live AI validation is the next step.

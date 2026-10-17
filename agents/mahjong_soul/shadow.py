@@ -35,6 +35,9 @@ class ShadowFollower:
         paths = list(self.directory.glob("capture-*.jsonl"))
         return max(paths, key=lambda p:p.stat().st_mtime_ns) if paths else None
 
+    def _consume(self, row):
+        return self.reader.consume(row)
+
     def _drain(self):
         previous_bad_rows = self.tail.bad_rows
         rows = self.tail.read()
@@ -45,7 +48,7 @@ class ShadowFollower:
             self.fault = True
         for row in rows:
             try:
-                self.reader.consume(row)
+                self._consume(row)
             except (ValueError, KeyError, TypeError):
                 self.fault = True
                 continue
