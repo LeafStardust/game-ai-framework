@@ -78,7 +78,7 @@ class TileVision:
             raise ValueError("Unsupported call sample bank")
         self.calls = {kind:base64.b64decode(entry["sample"],validate=True)
                       for kind,entry in calls["buttons"].items()}
-        if set(self.calls) != {"chi","pon"} or any(len(v)!=648 for v in self.calls.values()):
+        if not {"chi","pon"} <= set(self.calls) <= {"chi","pon","kan"} or any(len(v)!=648 for v in self.calls.values()):
             raise ValueError("Invalid call button samples")
         self.skip = base64.b64decode(data["skip"],validate=True)
         if not self.tiles or any(len(value)!=648 for _,value in self.tiles) or len(self.skip)!=648:
@@ -149,12 +149,46 @@ class TileVision:
         if Counter(visible_allowed)!=Counter(allowed):raise ValueError("Bright Riichi discards differ from the offer")
         return tiles,values,visible_allowed
 
+    def choices(self,png,report,action):
+        from games.mahjong_soul.live.runtime.choice_vision import face_boxes,bind_faces
+        rgb=decode_frame(png);faces=[]
+        self.last_diagnostics={"phase":"call_choices","faces":[]}
+        for box in face_boxes(rgb):
+            x,y,w,h=box
+            value=sample(rgb,round(x+w/2),round(y+h/2),round(w*.72),round(h*.84))
+            try:tile=self.classify(value)
+            except ValueError as error:
+                self.last_diagnostics["faces"].append({"box":box,"nearest":self.scores(value)[:3],"error":str(error)})
+                raise ValueError("Call panel tile is unrecognized: "+str(error)) from error
+            self.last_diagnostics["faces"].append({"box":box,"tile":tile})
+            faces.append((box,tile,value))
+        return bind_faces(faces,report,action)
+
     def button(self,png,kind,point=None):
         """Recognize a Skip label or a server-offered colored declaration button."""
         rgb=decode_frame(png)
-        if kind not in ("skip","chi","pon","riichi","ron","tsumo"):
+        if kind not in ("skip","chi","pon","kan","riichi","ron","tsumo"):
             raise ValueError("Unsupported automatic button kind")
-        if kind in ("skip","chi","pon"):
+        if kind in ("skip","chi","pon","kan"):
+            if kind=="kan" and kind not in self.calls:
+                # Kan coordinates have already been natively calibrated for
+                # exact operation sets. Require the actual outlined action
+                # label at that point as well; plain board pixels fail closed.
+                if point is None:raise ValueError("Kan requires an exact reviewed offer layout")
+                x,y=point
+                edges=0;bright=0;dark=0
+                for py in range(y-55,y+5):
+                    for px in range(x-95,x+95):
+                        i=(py*1920+px)*3;r,g,b=rgb[i:i+3]
+                        if min(r,g,b)>145 and max(r,g,b)>185:
+                            bright+=1
+                            for dx,dy in ((3,0),(-3,0),(0,3),(0,-3)):
+                                j=((py+dy)*1920+px+dx)*3
+                                if max(rgb[j:j+3])<100:edges+=1;break
+                        if max(r,g,b)<100:dark+=1
+                if edges<80 or bright<150 or dark<150:
+                    raise ValueError("Reviewed Kan action label is not visible")
+                return x,y,sample(rgb,x,y,220,110)
             reference = self.skip if kind=="skip" else self.calls[kind]
             matches=[]
             for x in (1290,1020,750,480):

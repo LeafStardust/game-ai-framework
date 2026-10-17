@@ -9,6 +9,7 @@ from games.mahjong_soul.live.runtime.win import WinPlan, WinExecutor
 from games.mahjong_soul.live.runtime.kan import ConcealedKanPlan, ConcealedKanExecutor, OpenKanPlan, OpenKanExecutor, AddedKanPlan, AddedKanExecutor
 from games.mahjong_soul.live.runtime.riichi import RiichiPlan, RiichiExecutor
 from games.mahjong_soul.live.runtime.skip import SkipPlan, SkipExecutor
+from games.mahjong_soul.live.runtime.call_selection import CallMenuPlan, CallMenuExecutor, validate_continuation
 from games.mahjong_soul.live.runtime.calls import PonPlan, PonExecutor, ChiPlan, ChiExecutor, ChiMenuPlan, ChiMenuExecutor
 
 
@@ -17,7 +18,7 @@ class InputController:
         if confirmation_timeout <= 0:
             raise ValueError("Confirmation timeout must be positive")
         self.backend=backend
-        self._executors = {DiscardPlan: DiscardExecutor(backend),
+        self._executors = {CallMenuPlan: CallMenuExecutor(backend), DiscardPlan: DiscardExecutor(backend),
                            PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend), ChiMenuPlan: ChiMenuExecutor(backend), SkipPlan: SkipExecutor(backend), RiichiPlan: RiichiExecutor(backend),
                            ConcealedKanPlan: ConcealedKanExecutor(backend), OpenKanPlan: OpenKanExecutor(backend), AddedKanPlan: AddedKanExecutor(backend), WinPlan: WinExecutor(backend)}
         self._lock = RLock()
@@ -104,6 +105,28 @@ class InputController:
             menu.delivered = False
             self._active = executor
             self._deadline = self._now(now) + self.confirmation_timeout
+
+    def select_call_combination(self, plan, report, *, enabled=False, now=None):
+        """Continue one reserved call, preserving the exact intended combination."""
+        with self._lock:
+            self.update(report,now=now)
+            menu=self._executors[CallMenuPlan]
+            if self._blocked or self._active is not menu or not menu.delivered or not enabled:
+                raise ValueError("No delivered call menu to continue")
+            validate_continuation(menu.pending,plan,report,now=now)
+            executor=self._executors.get(type(plan))
+            if executor is None or executor is menu:raise ValueError("Invalid final call plan")
+            try:
+                executor.execute(plan,report,enabled=True,now=now)
+            except Exception:
+                if executor.pending is not None:
+                    self._active=executor
+                    self._blocked="Call choice delivery failed; inspect before recovery"
+                raise
+            menu.pending=None
+            menu.delivered=False
+            self._active=executor
+            self._deadline=self._now(now)+self.confirmation_timeout
 
     def select_riichi_discard(self, plan, report, visible_allowed_tiles, *, enabled=False, now=None):
         with self._lock:

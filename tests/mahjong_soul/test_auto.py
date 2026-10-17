@@ -25,7 +25,7 @@ class Recorder:
 class Vision:
     def hand(self,png,profile,expected): return list(expected),[bytes(648)]*len(expected)
     def skip_visible(self,png,profile): return bytes(648)
-    def button(self,png,kind):return (1290 if kind=="skip" else 1020),835,bytes(648)
+    def button(self,png,kind,point=None):return (1290 if kind=="skip" else 1020),835,bytes(648)
     def riichi_hand(self,png,profile,expected,allowed):return list(expected),[bytes(648)]*len(expected),list(allowed)
 
 
@@ -110,7 +110,7 @@ def test_poll_dry_mode_never_reads_screen_or_inputs(monkeypatch):
 
 
 def test_poll_manual_actions_are_not_substituted(monkeypatch):
-    f,r,p,e,m=setup(monkeypatch);e['action']={'kind':'closed_kan','combination':'1p|1p|1p|1p'}
+    f,r,p,e,m=setup(monkeypatch);e['action']={'kind':'abortive_draw'}
     monkeypatch.setattr('agents.mahjong_soul.shadow.ShadowFollower.poll',lambda _:e)
     result=f.poll()
     assert result['kind']=='manual' and result['action']==e['action'] and not m.clicks

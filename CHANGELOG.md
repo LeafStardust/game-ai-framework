@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Removed automatic ATK call suppression; wired closed/open/added kan and exact multi-choice Chi/Pon/kan continuation, with visible tile binding, one reserved input step, recorded diagnostics and server confirmation. Real-panel visual validation remains pending.
+
 - Bundled capture and automatic Mahjong play under one supervised agent launcher; added a read-only capture/suggestion monitor launcher, exact capture-file binding, startup readiness and owned-process cleanup.
 
 - Wired ATK automatic play to visually verified single-choice Chi/Pon, with legal-action filtering that declines kan and ambiguous call menus instead of requiring manual input; retained durable recordings and server-confirmed input sequencing.

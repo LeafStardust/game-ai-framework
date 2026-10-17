@@ -16,7 +16,7 @@ from games.mahjong_soul.live.runtime.controller import InputController
 from games.mahjong_soul.live.runtime.input import board_token, plan_discard
 from games.mahjong_soul.live.runtime.layout import discard_profile, profile_for_size
 from games.mahjong_soul.live.runtime.skip import plan_skip
-from games.mahjong_soul.live.runtime.calls import plan_chi, plan_pon
+from games.mahjong_soul.live.runtime.call_selection import CODES, CallMenuPlan, plan_call, plan_call_choice
 from games.mahjong_soul.live.runtime.riichi import plan_riichi
 from games.mahjong_soul.live.runtime.win import plan_win
 from games.mahjong_soul.live.runtime.visual import TileVision, distance
@@ -34,7 +34,9 @@ class AutoFollower(ShadowFollower):
         self.last_recorded_frame=float("-inf")
         self.last_status=None
         self.last_passive_token=None
+        self.last_choice_token=None
         self.riichi_pending=None
+        self.call_pending=None
         self.halted = None
         self.initial_attempts=controller.snapshot()["attempted_steps"]
         self.source = None
@@ -68,9 +70,11 @@ class AutoFollower(ShadowFollower):
 
     def _frame(self,geometry,report,phase):
         png=self.recorder.frame(geometry)
-        if png is not None and self.journal is not None and (phase=="before_input" or self.clock()-self.last_recorded_frame>=2):
+        first_choice=phase=="call_choices" and board_token(report)!=self.last_choice_token
+        if png is not None and self.journal is not None and (phase=="before_input" or first_choice or self.clock()-self.last_recorded_frame>=2):
             self.journal.frame(png,geometry=geometry,report=report,phase=phase)
             self.last_recorded_frame=self.clock()
+            if phase=="call_choices":self.last_choice_token=board_token(report)
         return png
 
     def _park(self):
@@ -79,7 +83,18 @@ class AutoFollower(ShadowFollower):
         if backend is not None and hasattr(backend,"park"):backend.park(1920,1080)
 
     def _button_profile(self,report,kind,png,base=None):
-        x,y,value=self.vision.button(png,kind)
+        if kind=="kan":
+            operations=[o["type"] for o in report["state"]["operations"]["operation_list"]]
+            names={(1,4):"closed-kan-offer-fullscreen.json",(3,5):"open-kan-offer.json",(1,6):"added-kan-offer-fullscreen.json"}
+            name=names.get(tuple(operations))
+            if name is None:raise ValueError("Kan offer has no reviewed button layout")
+            path=Path(__file__).resolve().parents[2]/"games/mahjong_soul/live/layouts"/name
+            reviewed=profile_for_size(json.loads(path.read_text(encoding="utf-8")),(1920,1080))
+            if reviewed["operation_types"]!=operations:raise ValueError("Kan layout offer changed")
+            point=tuple(round(v*scale) for v,scale in zip(reviewed["kan"],(1919,1079)))
+            x,y,value=self.vision.button(png,kind,point=point)
+        else:
+            x,y,value=self.vision.button(png,kind)
         profile={} if base is None else dict(base)
         profile.update(version=1,verified=True,client_size=[1920,1080],stage="call_offer",
             operation_types=[o["type"] for o in report["state"]["operations"]["operation_list"]])
@@ -87,14 +102,9 @@ class AutoFollower(ShadowFollower):
         self._record("visual_button",kind_name=kind,pixel=[x,y],board_token=board_token(report))
         return profile,value
 
-    def _call_plan(self, report, profile, action):
-        kind=action["kind"]
-        operation=next((o for o in report["state"]["operations"]["operation_list"]
-                       if o["type"]=={"chi":2,"pon":3}[kind]),None)
-        if operation is None or operation.get("combination") != [action.get("combination")]:
-            raise ValueError("Call needs a single exact server combination")
-        return (plan_chi(report,profile,combination=action["combination"],now=self.clock())
-                if kind=="chi" else plan_pon(report,profile,now=self.clock()))
+    @staticmethod
+    def _button_kind(kind):
+        return "kan" if kind in ("closed_kan","open_kan","added_kan") else kind
 
     def _plan(self, event):
         report = self._current()
@@ -116,9 +126,9 @@ class AutoFollower(ShadowFollower):
                 profile,button_sample=self._button_profile(report,"riichi",first,profile)
                 samples.append(button_sample)
         else:
-            profile,value=self._button_profile(report,action["kind"],first)
+            profile,value=self._button_profile(report,self._button_kind(action["kind"]),first)
             if action["kind"]=="skip":plan_skip(report,profile,now=self.clock())
-            elif action["kind"] in ("chi","pon"):self._call_plan(report,profile,action)
+            elif action["kind"] in CODES:plan_call(report,profile,action,now=self.clock())
             else:plan_win(report,profile,action["kind"],now=self.clock())
             samples=[value]
         self.sleep(.1)
@@ -133,8 +143,8 @@ class AutoFollower(ShadowFollower):
                 if new_profile["riichi"]!=profile["riichi"]:raise ValueError("Riichi button moved")
                 current_samples.append(value)
         else:
-            new_profile,value=self._button_profile(report,action["kind"],second)
-            if new_profile[action["kind"]]!=profile[action["kind"]]:raise ValueError("Action button moved")
+            new_profile,value=self._button_profile(report,self._button_kind(action["kind"]),second)
+            if new_profile[self._button_kind(action["kind"]) ]!=profile[self._button_kind(action["kind"])]:raise ValueError("Action button moved")
             current_samples=[value]
         if any(distance(a,b)>1 for a,b in zip(samples,current_samples)):
             raise ValueError("Game UI is still moving")
@@ -146,7 +156,7 @@ class AutoFollower(ShadowFollower):
         elif action["kind"]=="riichi":
             plan=replace(plan_riichi(current,profile,tiles.index(action["tile"]),action["tile"],now=self.clock()),double_click=True)
         elif action["kind"]=="skip":plan=plan_skip(current,profile,now=self.clock())
-        elif action["kind"] in ("chi","pon"):plan=self._call_plan(current,profile,action)
+        elif action["kind"] in CODES:plan=plan_call(current,profile,action,now=self.clock())
         else:plan=plan_win(current,profile,action["kind"],now=self.clock())
         return plan,current
 
@@ -188,6 +198,31 @@ class AutoFollower(ShadowFollower):
         self.controller.select_riichi_discard(plan,report,allowed,enabled=True,now=self.clock())
         self._park()
 
+    def _continue_call(self):
+        if self.call_pending is None:return
+        action,token=self.call_pending
+        pending=self.controller.snapshot().get("pending")
+        if pending is None:self.call_pending=None;return
+        report=self._current()
+        if board_token(report)!=token:raise ValueError("Board changed before call choice")
+        geometry=self.recorder.geometry()
+        if not geometry or (geometry["width"],geometry["height"])!=(1920,1080):raise ValueError("Call window unavailable")
+        first=self._frame(geometry,report,"call_choices")
+        profile,values=self.vision.choices(first,report,action)
+        plan=plan_call_choice(report,profile,action,now=self.clock())
+        self.sleep(.1)
+        second=self._frame(geometry,report,"before_input")
+        current,values2=self.vision.choices(second,report,action)
+        if (current!=profile or len(values)!=len(values2)
+                or any(distance(a,b)>1 for a,b in zip(values,values2))):
+            raise ValueError("Call choice panel is still moving")
+        report=self._current()
+        if self.recorder.geometry()!=geometry or board_token(report)!=token:raise ValueError("Call board or window moved")
+        self._record("call_selection",plan=plan,visible_profile=profile)
+        self.controller.select_call_combination(plan,report,enabled=True,now=self.clock())
+        self.call_pending=None
+        self._park()
+
     def poll(self):
         if self.halted:
             if self.path is not None:
@@ -208,9 +243,12 @@ class AutoFollower(ShadowFollower):
                 self.halted = snapshot["reason"]
                 return {"kind":"blocked","reason":self.halted}
             if snapshot["status"] == "awaiting_confirmation":
-                try:self._continue_riichi()
+                try:
+                    self._continue_riichi()
+                    self._continue_call()
                 except (ValueError,OSError) as error:
-                    self._record("preflight_failed",reason=str(error),phase="riichi_menu")
+                    self._record("preflight_failed",reason=str(error),phase="call_menu" if self.call_pending else "riichi_menu",
+                                 image=self.journal.last_frame if self.journal else None,visual=getattr(self.vision,"last_diagnostics",None))
                 return {"kind":"status","reason":"awaiting_confirmation"}
         if not self.enabled: return event
         if event.get("kind") == "suggestion":
@@ -225,7 +263,7 @@ class AutoFollower(ShadowFollower):
                 return event
             event = self.candidate
         else: return event
-        if event["action"]["kind"] not in ("discard","skip","riichi","ron","tsumo","chi","pon"):
+        if event["action"]["kind"] not in ("discard","skip","riichi","ron","tsumo",*CODES):
             self.candidate = None
             return {**event,"kind":"manual","reason":"Action requires manual input"}
         try:
@@ -235,6 +273,7 @@ class AutoFollower(ShadowFollower):
                 return {"kind":"blocked","reason":self.halted}
             self._record("plan",plan=plan,action=event["action"],capture=str(self.path),attempt_key=InputController._key(report,plan.step))
             self.controller.submit(plan,report,enabled=True,now=self.clock())
+            if isinstance(plan,CallMenuPlan):self.call_pending=dict(event["action"]),plan.token
             if event["action"]["kind"]=="riichi":
                 profile=discard_profile(report,(1920,1080))
                 profile["selected_slot"]=profile["slots"].index([plan.x,plan.y])
@@ -280,7 +319,9 @@ def main():
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
         paths=["agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
                "agents/mahjong_soul/attack_value.py","agents/mahjong_soul/attack_defense.py",
-               "games/mahjong_soul/live/runtime/calls.py","games/mahjong_soul/live/runtime/call_samples.json",
+               "games/mahjong_soul/live/runtime/calls.py","games/mahjong_soul/live/runtime/kan.py",
+               "games/mahjong_soul/live/runtime/call_selection.py","games/mahjong_soul/live/runtime/choice_vision.py",
+               "games/mahjong_soul/live/runtime/call_samples.json",
                "agents/mahjong_soul/auto.py","agents/mahjong_soul/playbook_policy.py",
                "games/mahjong_soul/live/runtime/visual.py","games/mahjong_soul/live/runtime/visual_samples.json",
                "games/mahjong_soul/live/runtime/controller.py","games/mahjong_soul/live/runtime/riichi.py",
@@ -295,7 +336,7 @@ def main():
         file=args.file,directory=root/"logs/mahjong_soul",policy=AutomaticPolicy(make_policy("playbook",args.playstyle)) if args.execute else make_policy("playbook",args.playstyle),
         controller=InputController(backend,attempted_keys=attempted_keys),recorder=recorder,vision=vision,enabled=args.execute,
         journal=journal,bootstrap_current=args.resume_current,require_ai=True)
-    print("Automatic play enabled: discard, Skip, Riichi, Ron, Tsumo and single-choice Chi/Pon. Kan and multiple-choice calls are declined. Ctrl+C stops." if args.execute else "Suggestions only; mouse input disabled.",flush=True)
+    print("Automatic play enabled: discard, Skip, Riichi, Ron, Tsumo, Chi, Pon and kan, including visually verified call choices. Ctrl+C stops." if args.execute else "Suggestions only; mouse input disabled.",flush=True)
     start=time.monotonic(); previous=None; recorded_status=None; heartbeat=start
     try:
         while args.duration is None or time.monotonic()-start<args.duration:
