@@ -123,3 +123,35 @@ def test_concurrent_submissions_send_only_one_click():
         first.result()
         with pytest.raises(ValueError, match="overlapping"): second.result()
     assert len(mouse.clicks) == 1
+
+
+def test_delayed_visual_confirmation_retains_controller_and_requires_fresh_plan():
+    report, profile = inputs(); mouse = Mouse()
+    controller = InputController(mouse, confirmation_timeout=300)
+    first = plan_discard(report, profile, 0, "0p", now=10)
+    controller.submit(first, report, enabled=True, now=10)
+    with pytest.raises(ValueError, match="expired"):
+        controller.confirm_selection(first, report, "0p", enabled=True, now=150)
+    assert len(mouse.clicks) == 1
+    fresh = plan_discard(report, profile, 0, "0p", now=150)
+    controller.confirm_selection(fresh, report, "0p", enabled=True, now=150)
+    assert len(mouse.clicks) == 2
+    assert controller.observe("game", confirmed(), now=151)
+    assert controller.snapshot()["status"] == "idle"
+
+
+def test_manual_confirmation_requires_exact_token_and_tile(tmp_path):
+    import json
+    from games.mahjong_soul.live.runtime.manual_discard import confirmation_matches
+    report, profile = inputs()
+    plan = plan_discard(report, profile, 0, "0p", now=1)
+    path = tmp_path / "ticket.json"
+    assert not confirmation_matches(path, plan)
+    path.write_text("{", encoding="utf-8")
+    assert not confirmation_matches(path, plan)
+    path.write_text(json.dumps({"token": "old", "tile": plan.tile}), encoding="utf-8")
+    assert not confirmation_matches(path, plan)
+    path.write_text(json.dumps({"token": plan.token, "tile": "1m"}), encoding="utf-8")
+    assert not confirmation_matches(path, plan)
+    path.write_text(json.dumps({"token": plan.token, "tile": plan.tile}), encoding="utf-8")
+    assert confirmation_matches(path, plan)

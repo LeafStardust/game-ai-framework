@@ -74,3 +74,10 @@ The turn then expired before the explicit confirmation stage; rebuilding the con
 
 
 A subsequent native selection test on the South 1 hand at step 86 selected 4p correctly in the drawn second slot. The local test harness used the controller's five-second default confirmation deadline; it expired during the separate visual observation before the explicit confirmation could be submitted. No confirmation click was sent, and this is not a completed discard test. The local interactive harness now uses the existing configurable 60-second confirmation deadline to accommodate human review, retaining fresh-plan, same-board and no-retry checks. Production defaults are unchanged. The selected tile must be manually discarded before another native attempt on a newer board.
+
+
+## Persistent manual discard runner
+
+Use `python -m games.mahjong_soul.live.runtime.manual_discard --capture <capture.jsonl> --profile <layout.json> --slot <visual-index> --tile <tile>` for a dry run. Add `--execute` only after visually identifying the current tile and slot. The runner sends one selection, prints a unique local confirmation-ticket path and the exact token/tile JSON it expects, and keeps its original controller alive without stdin or terminal focus. After a fresh screenshot verifies the raised tile, write that JSON to the printed ticket path. The runner requires unchanged board state, fresh capture and a newly built plan before the second click; it then waits for the matching server discard. Ticket contents are a human visual attestation, not automatic visual recognition.
+
+The interactive runner allows up to 295 seconds for review using a 300-second controller deadline. Game expiry or any board change aborts it earlier. It never reconstructs pending executor internals or retries a failed action. Production controller defaults remain five seconds. Regression tests cover delayed confirmation with a fresh plan, rejection of an expired plan, and exact token/tile ticket matching. The earlier local harness selected 1m at South 3 step 76 but expired before its confirmation arrived; that attempt remains unconfirmed.
