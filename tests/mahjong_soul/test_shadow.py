@@ -139,7 +139,7 @@ def test_invalid_or_out_of_range_frame_timestamp_does_not_authorize_suggestion(t
     ({"kind":"discard","tile":"2p"},"Discard 2 Pin"),
     ({"kind":"discard","tile":"3s"},"Discard 3 Sou"),
     ({"kind":"discard","tile":"0p"},"Discard Red 5 Pin"),
-    ({"kind":"discard","tile":"2z"},"Discard South wind"),
+    ({"kind":"discard","tile":"2z"},"Discard South Wind"),
     ({"kind":"riichi","tile":"6p"},"Riichi, then discard 6 Pin"),
     ({"kind":"chi","combination":"1m|2m","called_tile":"3m"},"Chi 1 Man + 2 Man with 3 Man"),
 ])

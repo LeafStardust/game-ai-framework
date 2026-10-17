@@ -111,7 +111,7 @@ class ShadowFollower:
 
 
 def tile_label(tile):
-    honors = {"1z":"East wind", "2z":"South wind", "3z":"West wind", "4z":"North wind",
+    honors = {"1z":"East Wind", "2z":"South Wind", "3z":"West Wind", "4z":"North Wind",
               "5z":"White dragon", "6z":"Green dragon", "7z":"Red dragon"}
     if tile in honors: return honors[tile]
     suit = {"m":"Man", "p":"Pin", "s":"Sou"}[tile[1]]

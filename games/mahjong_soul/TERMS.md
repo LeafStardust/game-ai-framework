@@ -1,6 +1,6 @@
 # Reading Mahjong Soul suggestions
 
-Default terminal output now shows just a readable action, such as **Discard South wind**. Use `--json` only if you want the detailed fields described below.
+Default terminal output now shows just a readable action, such as **Discard South Wind**. Use `--json` only if you want the detailed fields described below.
 
 In JSON output, look at `action` first. For example:
 
@@ -8,7 +8,7 @@ In JSON output, look at `action` first. For example:
 {"kind": "discard", "tile": "2z"}
 ```
 
-This means **discard South wind**. The terminal suggests actions; you perform them manually.
+This means **discard South Wind**. The terminal suggests actions; you perform them manually.
 
 ## Tile codes
 
@@ -19,7 +19,7 @@ A tile code is a number followed by its suit letter.
 | `m` | Man / characters / manzu ? numbered tiles with the ? character | `3m` = three of characters |
 | `p` | Pin / circles / dots / pinzu | `7p` = seven of circles |
 | `s` | Sou / bamboo / souzu ? the one often looks like a bird | `1s` = one of bamboo |
-| `z` | Honors: winds and dragons | `2z` = South wind |
+| `z` | Honors: winds and dragons | `2z` = South Wind |
 
 ### All numbered tiles
 
@@ -42,10 +42,10 @@ A tile code is a number followed by its suit letter.
 
 | Code | Tile | Common face |
 | --- | --- | --- |
-| `1z` | East wind | ? |
-| `2z` | South wind | ? |
-| `3z` | West wind | ? |
-| `4z` | North wind | ? |
+| `1z` | East Wind | ? |
+| `2z` | South Wind | ? |
+| `3z` | West Wind | ? |
+| `4z` | North Wind | ? |
 | `5z` | White dragon | Blank white face in Mahjong Soul |
 | `6z` | Green dragon | ? |
 | `7z` | Red dragon | ? |
@@ -101,7 +101,7 @@ For structural analysis, a red five and ordinary five share one tile kind. Impro
 }
 ```
 
-Read this as: **discard South wind; the resulting hand is four shanten with 37 unseen improving copies in total**. The sample improving list above is shortened: its `1m` entry says three unseen copies of one of characters improve the hand.
+Read this as: **discard South Wind; the resulting hand is four shanten with 37 unseen improving copies in total**. The sample improving list above is shortened: its `1m` entry says three unseen copies of one of characters improve the hand.
 
 The policy first minimizes shanten, then maximizes ukeire, then preserves red fives on equal efficiency. It currently does not evaluate opponent danger, hand value or future yaku.
 
