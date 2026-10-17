@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Simplified Mahjong shadow output to readable recommended actions only; full analysis/metadata JSON now requires `--json`.
+
 - Added a shanten/visible-ukeire discard policy with fixed-meld, kan, red-five and sanma handling; made it the read-only shadow/evaluation CLI default and validated it on two recorded captures.
 
 - Made Mahjong shadow terminal output suggestions-only by default; diagnostic statuses remain available with `--verbose`.

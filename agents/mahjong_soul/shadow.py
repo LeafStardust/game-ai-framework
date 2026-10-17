@@ -109,6 +109,28 @@ class ShadowFollower:
                 "round":state.get("round"),"action":validated["action"]}
 
 
+
+def format_suggestion(event):
+    action = event["action"]
+    labels = {"discard":"Discard", "skip":"Skip", "chi":"Chi", "pon":"Pon",
+              "closed_kan":"Closed kan", "open_kan":"Open kan", "added_kan":"Added kan",
+              "riichi":"Riichi ? discard", "tsumo":"Tsumo", "ron":"Ron"}
+    label = labels.get(action["kind"], action["kind"])
+    tile = action.get("tile")
+    if tile:
+        honors = {"1z":"East wind", "2z":"South wind", "3z":"West wind", "4z":"North wind",
+                  "5z":"White dragon", "6z":"Green dragon", "7z":"Red dragon"}
+        if tile in honors:
+            name = honors[tile]
+        else:
+            suit = {"m":"characters", "p":"circles", "s":"bamboo"}[tile[1]]
+            name = "Red five of " + suit if tile[0] == "0" else tile[0]+" of "+suit
+        return f"{label} {tile} ({name})"
+    if action.get("combination"):
+        label += " " + action["combination"].replace("|", " + ")
+        if action.get("called_tile"): label += " with " + action["called_tile"]
+    return label
+
 def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -118,6 +140,7 @@ def main():
     parser.add_argument("--max-age", type=float, default=2)
     parser.add_argument("--interval", type=float, default=.2)
     parser.add_argument("--duration", type=float, help="Optional bounded run in seconds")
+    parser.add_argument("--json", dest="json_output", action="store_true", help="Print full suggestion JSON instead of a readable action")
     parser.add_argument("--verbose", action="store_true", help="Include diagnostic status lines")
     parser.add_argument("--once", action="store_true", help="Bootstrap smoke check; add --verbose to show status")
     args = parser.parse_args()
@@ -132,7 +155,8 @@ def main():
             event = follower.poll()
             encoded = json.dumps(event, sort_keys=True)
             if (event.get("kind") == "suggestion" or args.verbose) and encoded != previous:
-                print(encoded, flush=True); previous = encoded
+                output = encoded if args.json_output else (format_suggestion(event) if event.get("kind") == "suggestion" else event["reason"])
+                print(output, flush=True); previous = encoded
             if args.once: break
             time.sleep(args.interval)
     except KeyboardInterrupt:

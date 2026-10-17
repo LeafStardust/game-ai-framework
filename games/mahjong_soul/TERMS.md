@@ -1,6 +1,8 @@
 # Reading Mahjong Soul suggestions
 
-Look at `action` first. For example:
+Default terminal output now shows just a readable action, such as **Discard 2z (South wind)**. Use `--json` only if you want the detailed fields described below.
+
+In JSON output, look at `action` first. For example:
 
 ```json
 {"kind": "discard", "tile": "2z"}
