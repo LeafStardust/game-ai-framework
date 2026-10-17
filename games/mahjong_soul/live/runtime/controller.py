@@ -13,9 +13,10 @@ from games.mahjong_soul.live.runtime.calls import PonPlan, PonExecutor, ChiPlan,
 
 
 class InputController:
-    def __init__(self, backend, confirmation_timeout=5.0):
+    def __init__(self, backend, confirmation_timeout=5.0, *, attempted_keys=()):
         if confirmation_timeout <= 0:
             raise ValueError("Confirmation timeout must be positive")
+        self.backend=backend
         self._executors = {DiscardPlan: DiscardExecutor(backend),
                            PonPlan: PonExecutor(backend), ChiPlan: ChiExecutor(backend), ChiMenuPlan: ChiMenuExecutor(backend), SkipPlan: SkipExecutor(backend), RiichiPlan: RiichiExecutor(backend),
                            ConcealedKanPlan: ConcealedKanExecutor(backend), OpenKanPlan: OpenKanExecutor(backend), AddedKanPlan: AddedKanExecutor(backend), WinPlan: WinExecutor(backend)}
@@ -24,7 +25,7 @@ class InputController:
         self._active_key = None
         self._deadline = None
         self._blocked = None
-        self._attempted = set()
+        self._attempted = set(attempted_keys)
         self.confirmation_timeout = confirmation_timeout
 
     @staticmethod
@@ -193,6 +194,12 @@ class InputController:
             self._active_key = None
             self._deadline = None
             self._blocked = None
+
+    def was_attempted(self,report,step):
+        with self._lock:return self._key(report,step) in self._attempted
+
+    def riichi_phase(self):
+        with self._lock:return self._executors[RiichiPlan].phase if self._active is self._executors[RiichiPlan] else None
 
     def snapshot(self):
         with self._lock:

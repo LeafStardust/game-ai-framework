@@ -66,20 +66,44 @@ The versioned three/four-player [playbooks](../../games/mahjong_soul/playbook/RE
 
 Four-player attack is available as `--policy playbook --playstyle atk`; see [ATK.md](../../games/mahjong_soul/playbook/yonma/ATK.md) for exact value, push and Riichi criteria. Balanced stays the default. Three-player attack is not implemented. All playstyles remain manual suggestions only.
 
-## Experimental automatic input
+## Automatic ATK play and recordings
 
-From the Mahjong worktree, keep the process-scoped Steam capture running, stop the suggestion-only runner, then start:
+Start process-scoped capture before launching Mahjong Soul:
 
 ```powershell
-.\.venv\Scripts\python.exe -u -m agents.mahjong_soul.auto --playstyle atk --execute
+.\MahjongSoulCapture.bat --process Jantama_MahjongSoul.exe
 ```
 
-This replaces the shadow terminal; capture remains a separate process. Use a four-player AI room with a physical **1920?1080 client** and the reviewed default tile faces. Keep Mahjong foreground and your pointer away from the hand. Ctrl+C in the runner terminal stops it. Omitting `--execute` leaves mouse input disabled and prints suggestions only. `--once` only bootstraps capture history; it cannot execute a historical turn.
+Then use a four-player AI room at a physical **1920?1080 client size**, keep Mahjong foreground, and start:
 
-Current automation covers **discards and the calibrated Chi-only Skip offer**. Riichi, wins, other calls and unsupported layouts print the recommended action with a manual-input reason. Handle these yourself; later supported turns can resume. The playbook recommendation is never replaced with a different action to make it executable.
+```powershell
+.\MahjongSoulAgent.bat
+```
 
-Before a discard, the runner recognizes every visible concealed tile, checks its exact multiset (including red fives) against the reader, and verifies two stable frames 100 ms apart. It binds the recommended tile to a recognized screen slot, then uses the native double-click backend. Small rendering shifts are represented in reviewed samples; unknown/ambiguous faces, hovered/selected tiles, animations, changed boards or window geometry prevent input. Preflight can wait up to two seconds for stable visuals, without recomputing the policy. Red 5 Sou has no reviewed sample yet, so any hand containing it requires manual input. Different tile skins and 1200p are unsupported in this runner.
+The launcher runs `agents.mahjong_soul.auto --execute --resume-current`. It replaces the shadow terminal. Capture remains a separate process. The agent chooses through the ATK playbook and executes **discards, Skip, Riichi, Ron and Tsumo** through the native input controller. The current playbook deliberately declines Chi/Pon/kan; these are policy choices, not unsupported manual prompts. Use `--playstyle balanced` to select balanced settings. Omitting `--execute` when running the Python module directly gives suggestions only. Ctrl+C stops the agent. Only one automatic agent can hold this worktree's OS lock. Production execution also requires captured authentication confirming four seats, three robots and one human player in AI mode. A missing or mismatched room identity blocks input.
 
-One persistent controller receives decoded live actions and request/response messages. After input it waits for the exact server discard or correlated Skip cancellation. Uncertain delivery, timeout, a conflicting own action, or capture replacement/reset stops execution; there is no automatic input retry or recovery. A sent line means delivery was attempted, not that the server accepted it. Inspect the game before restarting after a stop.
+Every executable run records automatically under `logs/mahjong_soul/sessions/<UTC timestamp>/`:
 
-Offline validation covers guards, an independently reviewed 14-tile screenshot, and replay recognition of saved calibration frames. Recognition is deliberately incomplete: 10 of 116 discard-bearing saved frames matched the entire reader hand; 105 were unknown/ambiguous and one disagreed with the reader. These recordings include selected and animated hands. This is neither a measured live success rate nor a completed automatic-match test. Live AI validation is the next step.
+- `events.jsonl`: decisions and playbook analysis, board snapshots, recognition failures with slot scores, plans, cursor moves, input attempts/delivery failures, server confirmations and run status.
+- `frames/`: screenshots linked to reader state and geometry, including preflight, before-input, Riichi selection and failure observations.
+- `summary.json`: current counts and status; the event log is the source of truth.
+
+The original network capture is referenced by path and stays local. Raw credentials are not copied into agent events. Recordings and network captures remain ignored by Git. The default recording budget is 2 GiB; `--recording-mb` changes it. If durable recording fails or fills, the agent stops input. Cursor parking occurs before hand recognition and after delivery so hovering does not leave the next hand raised. The agent continues observing/recording after an uncertain input, without retrying it.
+
+Inspect the latest run without finding individual screenshots manually:
+
+```powershell
+.\.venv\Scripts\python.exe -m agents.mahjong_soul.inspect_run
+```
+
+Pass a session directory to inspect an older run. The report lists input/confirmation totals and recent failures with sequence numbers and screenshot references. This records issues automatically; it does not run Codex or modify its own source in the background.
+
+Before a discard, every visible concealed tile must match the reader's exact hand multiset, including red fives. Two stable screenshots bind the recommended tile to its actual screen slot. Small rendering shifts are covered by reviewed reference samples; Red 5 Sou uses five-bamboo shape plus red-ink verification. Unknown skins, obscured tiles, animation, changed boards and window geometry prevent input and leave diagnostics. Recognition can retry before delivery as a menu settles; input itself is never retried. Attempted game steps are fsynced before delivery and retained across agent restarts, without reconstructing pending executors.
+
+Skip is recognized visually across supported Chi/Pon/kan offers. Riichi uses the offered tile, verifies the bright eligible tiles against the server offer after opening its menu, then double-clicks the discard and waits for declaration and acceptance. Once Riichi is declared/accepted, decision generation allows only the current drawn tile for ordinary discards. A win requires the matching server offer, visible win button and exact own tile/type confirmation. Combined offers retain their complete operation list.
+
+Capture now publishes an atomic `.jsonl.health.json` heartbeat containing its open connections, exact file identity/length and reader board token. This keeps an idle own turn fresh while proving that capture is still running and agrees with the consumer. `--resume-current` arms a startup board only with matching fresh health; it does not execute old capture history. Restart older capture processes to enable this feature. Capture reset/replacement after an attempted input still stops the agent for inspection.
+
+One controller serializes all stages and verifies matching live server actions or correlated Skip cancellation. Partial delivery, contradictory own action, lost game state and confirmation timeout stop further input. A sent line reports delivery attempt, not acceptance. Unsupported resolutions remain blocked. Opening an AI room and launching the game are still user steps; no computer-use clicks are part of the playing loop.
+
+Offline tests cover all five action paths, staged Riichi acceptance and mismatch refusal, post-Riichi legality, recording failures, single-agent locking, cursor parking and idle-capture proof. Live full-match validation remains required before calling the runner unattended-ready.

@@ -110,3 +110,12 @@ def test_malformed_or_unsupported_operations_block_request(bad):
     if bad == "bad_combination": operation["operation_list"][0]["combination"] = ["0p|6p"]
     if bad == "wrong_seat": operation["seat"] = 1
     with pytest.raises(ValueError): decision_request(report, now=10)
+
+
+@pytest.mark.parametrize('status',['declared','accepted'])
+def test_own_riichi_allows_only_the_drawn_tile(status):
+    from tests.mahjong_soul.test_input import inputs
+    from games.mahjong_soul.live.runtime.decision import offered_actions
+    report,_=inputs();report['state']['hand']=['0p','1m'];report['state']['drawn_tile']='1m'
+    report['state']['riichi'][0]=status
+    assert offered_actions(report)==[{'kind':'discard','tile':'1m'}]

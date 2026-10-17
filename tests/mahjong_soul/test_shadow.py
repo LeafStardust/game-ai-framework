@@ -146,3 +146,34 @@ def test_invalid_or_out_of_range_frame_timestamp_does_not_authorize_suggestion(t
 def test_readable_recommendations_use_requested_tile_names(action,expected):
     from agents.mahjong_soul.shadow import format_suggestion
     assert format_suggestion({"action":action}) == expected
+
+
+def health(path,report,**changes):
+    from games.mahjong_soul.live.runtime.input import board_token
+    info=path.stat()
+    data={'version':1,'timestamp':100,'capture':str(path.resolve()),'size':info.st_size,
+          'identity':[info.st_dev,info.st_ino],'connections':['game'],'board_token':board_token(report)}
+    data.update(changes)
+    path.with_suffix(path.suffix+'.health.json').write_text(json.dumps(data),encoding='utf-8')
+
+
+def test_matching_heartbeat_keeps_idle_own_turn_fresh(tmp_path,monkeypatch):
+    path,report,f=setup(tmp_path,monkeypatch)
+    advanced=advance(report);append(path,row(advanced,timestamp=80));health(path,advanced)
+    assert f.poll()['kind']=='suggestion'
+
+
+@pytest.mark.parametrize('change',[{'timestamp':90},{'timestamp':101},{'timestamp':True},{'board_token':'wrong'},{'connections':[]},{'identity':[0,0]},{'size':0},{'capture':'other'}])
+def test_heartbeat_cannot_refresh_a_different_or_stale_capture(tmp_path,monkeypatch,change):
+    path,report,f=setup(tmp_path,monkeypatch)
+    advanced=advance(report);append(path,row(advanced,timestamp=80));health(path,advanced,**change)
+    assert f.poll()['reason']=='stale_game_capture'
+
+
+def test_resume_current_requires_live_health_not_recent_historical_rows(tmp_path,monkeypatch):
+    monkeypatch.setattr('agents.mahjong_soul.shadow.GameReader',Reader)
+    report,_=inputs();path=tmp_path/'capture.jsonl';append(path,row(report,timestamp=80))
+    health(path,report)
+    f=ShadowFollower(None,file=path,bootstrap_current=True,wall_clock=lambda:100,clock=lambda:1)
+    assert f.poll()['reason']=='current_board_armed'
+    assert f.poll()['kind']=='suggestion'

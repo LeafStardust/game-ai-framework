@@ -74,6 +74,10 @@ class WindowsMouse:
         """One two-click action, with no UI observation or caller delay between clicks."""
         self._clicks(x, y, width, height, 2)
 
+    def park(self, width, height):
+        """Move off the hand without pressing any button."""
+        self._clicks(.72,.45,width,height,0)
+
     def _clicks(self, x, y, width, height, count):
         previous = self.user.SetThreadDpiAwarenessContext(w.HANDLE(-4))
         if not previous:
@@ -107,6 +111,10 @@ class WindowsMouse:
             inputs[0].data.mouse = Mouse(ax, ay, 0, 0x8000 | 0x4000 | 1, 0, 0)
             inputs[1].data.mouse.dwFlags = 2
             inputs[2].data.mouse.dwFlags = 4
+            if count == 0:
+                if self._foreground()!=hwnd or self._client_geometry(hwnd)!=geometry:
+                    raise ValueError("Game window changed before cursor parking")
+                if self.user.SendInput(1,inputs,c.sizeof(Input))!=1:raise OSError("Cursor movement failed")
             for index in range(count):
                 if index:
                     time.sleep(.08)  # Let the game process selection before the discard.

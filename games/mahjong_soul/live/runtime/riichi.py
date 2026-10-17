@@ -64,9 +64,14 @@ class RiichiExecutor(DiscardExecutor):
         if Counter(visible_allowed_tiles) != Counter(plan.allowed_tiles):
             raise ValueError("Visible riichi discards do not match the server offer")
         self.phase = "tile_selection_attempted"
-        self.backend.click(plan.x, plan.y, plan.width, plan.height)
-        self.phase = "tile_selected"
-        self.selection_possible = True
+        if plan.double_click:
+            self.backend.double_click(plan.x,plan.y,plan.width,plan.height)
+            self.phase = "awaiting_declaration"
+            self.selection_possible = False
+        else:
+            self.backend.click(plan.x, plan.y, plan.width, plan.height)
+            self.phase = "tile_selected"
+            self.selection_possible = True
 
     def observe(self, connection, event):
         plan = self.pending
@@ -80,6 +85,15 @@ class RiichiExecutor(DiscardExecutor):
             self.declaration_step = step
             self.phase = "awaiting_acceptance"
             self.selection_possible = False
+        # A Ron on the declaration discard ends the hand before Riichi can be
+        # accepted. This resolves the attempted input without calling it accepted.
+        if self.declaration_step is not None and event.get("name")=="ActionHule" and step>=self.declaration_step:
+            winners=data.get("hules",[])
+            if winners and all(w.get("seat",0)!=plan.seat and w.get("zimo",False) is False
+                               and w.get("hu_tile")==plan.tile for w in winners):
+                self.pending=None
+                self.phase="interrupted_by_ron"
+                return True
         failed = data.get("failed_liqi")
         if self.declaration_step is not None and step >= self.declaration_step:
             if isinstance(failed, dict) and failed and failed.get("seat", 0) == plan.seat:

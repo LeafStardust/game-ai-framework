@@ -55,7 +55,11 @@ def offered_actions(report):
             raise ValueError("Malformed combinations")
         if code == 1:
             forbidden = {tile_kind(t) for t in combinations}
-            actions.extend({"kind":kind,"tile":t} for t in sorted(set(hand)) if tile_kind(t) not in forbidden)
+            own_riichi=state.get("riichi",[])
+            locked=(len(own_riichi)>state["seat"] and own_riichi[state["seat"]] in ("declared","accepted"))
+            pool=[state.get("drawn_tile")] if locked else sorted(set(hand))
+            if locked and pool[0] not in hand:raise ValueError("Riichi draw is unknown")
+            actions.extend({"kind":kind,"tile":t} for t in pool if tile_kind(t) not in forbidden)
         elif code == 7:
             if 1 not in types:
                 raise ValueError("Riichi requires a discard offer")

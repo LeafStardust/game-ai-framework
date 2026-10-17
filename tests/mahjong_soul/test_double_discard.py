@@ -66,7 +66,7 @@ def backend(monkeypatch, *, change=None, partial=False):
     mouse.user.SetThreadDpiAwarenessContext = Function(lambda value: 1)
     mouse.user.GetSystemMetrics = Function(lambda key: {76:0,77:0,78:1920,79:1080}[key])
     def send(count, values, size):
-        batches.append([values[i].data.mouse.dwFlags for i in range(count)] if count > 1 else [4])
+        batches.append([values[i].data.mouse.dwFlags for i in range(count)] if not hasattr(values,"_obj") else [values._obj.data.mouse.dwFlags])
         return 2 if partial and count == 3 else count
     mouse.user.SendInput = Function(send)
     mouse._client_geometry = lambda hwnd: {**geometry, "left": 5} if moved[0] and change == "move" else dict(geometry)
@@ -143,3 +143,10 @@ runpy.run_module("games.mahjong_soul.live.runtime.input",run_name="__main__")
                             capture_output=True, text=True, timeout=15)
     assert "CANONICAL_PLAN_OK" in result.stdout, result.stderr
     assert result.returncode == 2 and "Test stops before input" in result.stderr
+
+
+
+def test_cursor_parking_sends_no_button_press(monkeypatch):
+    mouse,batches,delays=backend(monkeypatch)
+    mouse.park(1920,1080)
+    assert batches==[[0xC001]] and not delays

@@ -64,7 +64,7 @@ def distance(a,b):
 
 
 class TileVision:
-    MAX_DISTANCE = 6.0
+    MAX_DISTANCE = 10.0
     MIN_MARGIN = 4.0
 
     def __init__(self, bank=None):
@@ -77,20 +77,46 @@ class TileVision:
         if not self.tiles or any(len(value)!=648 for _,value in self.tiles) or len(self.skip)!=648:
             raise ValueError("Invalid visual samples")
 
+    def scores(self, value):
+        scores={}
+        for tile,reference in self.tiles:
+            scores[tile]=min(scores.get(tile,float("inf")),distance(value,reference))
+        return sorted(({"tile":tile,"distance":score} for tile,score in scores.items()),key=lambda x:x["distance"])
+
     def classify(self, value):
         scores = {}
         for tile, reference in self.tiles:
             scores[tile] = min(scores.get(tile,float("inf")), distance(value,reference))
         ranked = sorted(scores, key=scores.get)
         if len(ranked)<2 or scores[ranked[0]] > self.MAX_DISTANCE or scores[ranked[1]]-scores[ranked[0]] < self.MIN_MARGIN:
-            raise ValueError("Unknown or ambiguous visible tile")
+            # Red 5 Sou shares the five-bamboo glyph; require its shape and red ink.
+            shape=lambda data:bytes(min(data[i:i+3]) for i in range(0,len(data),3))
+            query=shape(value);shape_scores={}
+            for tile,reference in self.tiles:
+                tile="5"+tile[1:] if tile.startswith("0") else tile
+                reference_shape=shape(reference)
+                error=sum(abs(a-b) for a,b in zip(query,reference_shape))/len(query)
+                shape_scores[tile]=min(shape_scores.get(tile,999),error)
+            order=sorted(shape_scores,key=shape_scores.get)
+            ink=[value[i:i+3] for i in range(0,len(value),3) if max(value[i:i+3])-min(value[i:i+3])>40 and min(value[i:i+3])<170]
+            red=sum(r>1.35*g and r>1.25*b for r,g,b in ink)
+            if (order[0]=="5s" and shape_scores["5s"]<=6 and shape_scores[order[1]]-shape_scores["5s"]>=3
+                    and len(ink)>=12 and red/len(ink)>=.8):return "0s"
+            detail=", ".join(f"{tile}:{scores[tile]:.1f}" for tile in ranked[:2])
+            raise ValueError("Unknown or ambiguous visible tile ("+detail+")")
         return ranked[0]
 
     def hand(self, png, profile, expected):
         if profile["client_size"] != [1920,1080]: raise ValueError("Automatic input supports 1080p only")
         rgb = decode_frame(png)
         samples = [sample(rgb, round(x*1919), round(y*1079)) for x,y in profile["slots"]]
-        tiles = [self.classify(value) for value in samples]
+        tiles=[];self.last_diagnostics={"slots":[]}
+        for index,value in enumerate(samples):
+            try:tile=self.classify(value)
+            except ValueError as error:
+                self.last_diagnostics["slots"].append({"slot":index,"nearest":self.scores(value)[:3],"error":str(error)})
+                raise ValueError(f"Slot {index}: {error}") from error
+            tiles.append(tile);self.last_diagnostics["slots"].append({"slot":index,"tile":tile})
         if Counter(tiles) != Counter(expected): raise ValueError("Visible hand differs from reader")
         return tiles, samples
 
@@ -99,3 +125,49 @@ class TileVision:
         value = sample(decode_frame(png),round(x*1919),round(y*1079),220,110)
         if distance(value,self.skip)>self.MAX_DISTANCE: raise ValueError("Skip button is not visually verified")
         return value
+
+
+    def riichi_hand(self, png, profile, expected, allowed):
+        rgb=decode_frame(png);values=[];tiles=[];bright=[]
+        for index,(x,y) in enumerate(profile["slots"]):
+            value=sample(rgb,round(x*1919),round(y*1079))
+            background=sorted(value)[int(len(value)*.95)]
+            if background<100:raise ValueError("Riichi hand is obscured")
+            visible=background>=185
+            normalized=value if visible else bytes(min(255,round(v*222/background)) for v in value)
+            tile=self.classify(normalized);tiles.append(tile);values.append(value)
+            if visible:bright.append(tile)
+        if Counter(tiles)!=Counter(expected):raise ValueError("Riichi hand differs from reader")
+        visible_allowed=sorted(set(bright))
+        if Counter(visible_allowed)!=Counter(allowed):raise ValueError("Bright Riichi discards differ from the offer")
+        return tiles,values,visible_allowed
+
+    def button(self,png,kind,point=None):
+        """Recognize a Skip label or a server-offered colored declaration button."""
+        rgb=decode_frame(png)
+        if kind=="skip":
+            matches=[]
+            for x in (1290,1020,750,480):
+                value=sample(rgb,x,835,220,110)
+                if distance(value,self.skip)<=10:matches.append((x,835,value))
+            if len(matches)!=1:raise ValueError("Skip button not uniquely visible")
+            return matches[0]
+        # Win buttons are pink; Riichi is orange. Restrict detection to the
+        # established action row, away from portraits and hand tiles.
+        columns=[]
+        for x in range(450,1420,2):
+            count=0
+            for y in range(775,875,2):
+                i=(y*1920+x)*3;r,g,b=rgb[i:i+3]
+                match=(r>130 and r>1.6*g and g>1.3*b) if kind=="riichi" else (r>110 and r>1.5*g and b>1.2*g and r>1.1*b)
+                count+=bool(match)
+            if count>=3:columns.append(x)
+        groups=[]
+        for x in columns:
+            if not groups or x-groups[-1][-1]>24:groups.append([x])
+            else:groups[-1].append(x)
+        groups=[g for g in groups if 80<=g[-1]-g[0]<=280]
+        if len(groups)!=1:raise ValueError("Declaration button not uniquely visible")
+        x=round((groups[0][0]+groups[0][-1])/2)
+        if point is not None and abs(x-point[0])>60:raise ValueError("Declaration button moved outside its calibration")
+        return x,835,sample(rgb,x,835,220,110)

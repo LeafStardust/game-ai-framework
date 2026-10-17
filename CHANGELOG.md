@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Extended automatic Mahjong play to Riichi, Ron, Tsumo and combined-offer Skip; added forced post-Riichi discards, cursor parking, live capture health, an exclusive agent lock, automatic session evidence and an incident-report CLI.
+
 - Connected Mahjong playbooks to an opt-in 1080p discard/Chi-Skip runner with reviewed tile recognition, stable-frame checks, one persistent controller and exact server confirmation; unsupported actions remain manual.
 
 - Added the four-player ATK playbook with bounded ukeire/value trade-offs, selective value pushes and constrained counter-Riichi; registry selection now uses player count and playstyle, with balanced unchanged as the default.

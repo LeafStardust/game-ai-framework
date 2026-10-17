@@ -19,7 +19,7 @@ def status(reason):
 
 class ShadowFollower:
     def __init__(self, schema, *, file=None, directory=None, policy=None,
-                 max_age=2, clock=time.monotonic, wall_clock=time.time):
+                 max_age=2, clock=time.monotonic, wall_clock=time.time, bootstrap_current=False):
         if type(max_age) not in (int,float) or not math.isfinite(max_age) or max_age <= 0:
             raise ValueError("Capture freshness age must be finite and positive")
         self.schema, self.file = schema, Path(file) if file is not None else None
@@ -27,6 +27,7 @@ class ShadowFollower:
         if self.file is None and self.directory is None: raise ValueError("Capture location required")
         self.policy = BaselinePolicy() if policy is None else policy
         self.max_age, self.clock, self.wall_clock = max_age, clock, wall_clock
+        self.bootstrap_current = bootstrap_current
         self.path = None; self.identity = None; self.tail = None; self.reader = None
         self.frame_times = {}; self.fault = False; self.seen = set()
 
@@ -58,9 +59,23 @@ class ShadowFollower:
                 self.frame_times[row["connection"]] = timestamp
         return self.reader.snapshot()
 
+    def _health_fresh(self, report):
+        if self.path is None or not report.get("connection_open"):return False
+        try:
+            health=json.loads(self.path.with_suffix(self.path.suffix+".health.json").read_text(encoding="utf-8"))
+            info=self.path.stat();stamp=health.get("timestamp")
+            return (health.get("version")==1 and type(stamp) in (int,float) and math.isfinite(stamp)
+                    and 0<=self.wall_clock()-stamp<=self.max_age
+                    and health.get("capture")==str(self.path.resolve())
+                    and health.get("identity")==[info.st_dev,info.st_ino]
+                    and health.get("size")==info.st_size
+                    and health.get("board_token")==board_token(report)
+                    and report.get("game_connection") in health.get("connections",[]))
+        except (OSError,ValueError,TypeError):return False
+
     def _fresh(self, report):
         stamp = self.frame_times.get(report.get("game_connection"))
-        return stamp is not None and 0 <= self.wall_clock()-stamp <= self.max_age
+        return (stamp is not None and 0 <= self.wall_clock()-stamp <= self.max_age) or self._health_fresh(report)
 
     def _current(self):
         info = self.path.stat()
@@ -82,6 +97,8 @@ class ShadowFollower:
             self.frame_times.clear(); self.fault = False
             report = self._drain()
             # Bootstrap is historical context, never a new suggestion.
+            if self.bootstrap_current and self._health_fresh(report) and report.get("state_ready"):
+                return status("current_board_armed")
             self.seen.add(board_token(report))
             return status("capture_bootstrapped")
         report = self._drain()

@@ -1,5 +1,6 @@
 """Append-only capture writer, independent of mitmproxy for offline tests."""
 
+import asyncio
 import base64
 import json
 import ipaddress
@@ -11,6 +12,7 @@ from pathlib import Path
 from games.mahjong_soul.live.external.liqi import decode_envelope
 from games.mahjong_soul.live.external.schema import LiqiSchema
 from games.mahjong_soul.live.runtime.reader import GameReader
+from games.mahjong_soul.live.runtime.input import board_token
 
 
 class CaptureWriter:
@@ -35,10 +37,22 @@ class CaptureWriter:
         self._append(record)
         return record
 
+    def health(self, timestamp=None):
+        if not self.path.exists():return
+        info=self.path.stat()
+        value={"version":1,"timestamp":time.time() if timestamp is None else timestamp,
+               "capture":str(self.path.resolve()),"size":info.st_size,"identity":[info.st_dev,info.st_ino],
+               "connections":sorted(self.captured_connections),
+               "board_token":board_token(self.reader.snapshot()) if self.reader else None}
+        target=self.path.with_suffix(self.path.suffix+".health.json")
+        temporary=target.with_suffix(".tmp")
+        temporary.write_text(json.dumps(value),encoding="utf-8");temporary.replace(target)
+
     def _append(self, record):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+        self.health()
 
     def record(self, *, connection, host, content, from_client, timestamp, is_text=False):
         record = {
@@ -68,6 +82,19 @@ class CaptureWriter:
 class MahjongSoulCapture:
     def __init__(self):
         self.writer = None
+        self.health_task = None
+
+    async def running(self):
+        async def heartbeat():
+            while True:
+                try:
+                    if self.writer is not None:self.writer.health()
+                except OSError as error:logging.error("Capture health write failed: %s",error)
+                await asyncio.sleep(.5)
+        self.health_task=asyncio.create_task(heartbeat())
+
+    def done(self):
+        if self.health_task is not None:self.health_task.cancel()
 
     def load(self, loader):
         loader.add_option("mahjong_capture_output", str,

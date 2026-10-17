@@ -100,3 +100,17 @@ def test_capture_appends_one_closure_marker_and_ignores_unknown_connections(tmp_
     rows = [json.loads(line) for line in path.read_text().splitlines()]
     assert len(rows) == 2
     assert rows[1] == {"format_version": 2, "event": "connection_closed", "connection": "one", "timestamp": 2}
+
+
+
+def test_capture_health_tracks_exact_file_and_live_connections(tmp_path):
+    path=tmp_path/'capture.jsonl';writer=CaptureWriter(path)
+    writer.record(connection='game',host='game',content=b'bad',from_client=False,timestamp=1)
+    target=path.with_suffix('.jsonl.health.json')
+    health=json.loads(target.read_text(encoding='utf-8'));info=path.stat()
+    assert health['connections']==['game'] and health['size']==info.st_size
+    assert health['identity']==[info.st_dev,info.st_ino]
+    writer.health(timestamp=123)
+    assert json.loads(target.read_text())['timestamp']==123
+    writer.close_connection('game')
+    assert json.loads(target.read_text())['connections']==[]

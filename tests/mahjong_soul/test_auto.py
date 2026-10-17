@@ -14,6 +14,7 @@ class Mouse:
     def __init__(self): self.clicks=[]
     def double_click(self,*args): self.clicks.append(args)
     def click(self,*args): self.clicks.append(args)
+    def park(self,*args): pass
 
 
 class Recorder:
@@ -24,6 +25,8 @@ class Recorder:
 class Vision:
     def hand(self,png,profile,expected): return list(expected),[bytes(648)]*len(expected)
     def skip_visible(self,png,profile): return bytes(648)
+    def button(self,png,kind):return (1290 if kind=="skip" else 1020),835,bytes(648)
+    def riichi_hand(self,png,profile,expected,allowed):return list(expected),[bytes(648)]*len(expected),list(allowed)
 
 
 def setup(monkeypatch):
@@ -107,7 +110,7 @@ def test_poll_dry_mode_never_reads_screen_or_inputs(monkeypatch):
 
 
 def test_poll_manual_actions_are_not_substituted(monkeypatch):
-    f,r,p,e,m=setup(monkeypatch);e['action']={'kind':'riichi','tile':'0p'}
+    f,r,p,e,m=setup(monkeypatch);e['action']={'kind':'chi','combination':'1p|2p'}
     monkeypatch.setattr('agents.mahjong_soul.shadow.ShadowFollower.poll',lambda _:e)
     result=f.poll()
     assert result['kind']=='manual' and result['action']==e['action'] and not m.clicks
@@ -165,3 +168,124 @@ def test_timeout_blocks_next_action(monkeypatch):
     f.controller.update(r,now=10)
     # Once an attempted action becomes uncertain the same controller blocks submission.
     assert f.poll()['kind']=='blocked' and len(m.clicks)==1
+
+
+@pytest.mark.parametrize('codes',[[3],[2,3],[3,5],[2,3,5]])
+def test_skip_uses_visible_button_for_every_supported_call_offer(monkeypatch,codes):
+    f,r,p,e,m=setup(monkeypatch)
+    r['state']['operations']['operation_list']=[{'type':code} for code in codes]
+    e.update(board_token=board_token(r),action={'kind':'skip'})
+    plan,current=f._plan(e)
+    f.controller.submit(plan,current,enabled=True,now=1)
+    assert len(m.clicks)==1
+
+
+@pytest.mark.parametrize('kind',['ron','tsumo'])
+def test_runner_executes_win_instead_of_discarding(monkeypatch,kind):
+    f,r,p,e,m=setup(monkeypatch)
+    if kind=='ron':
+        from tests.mahjong_soul.test_calls import chi_offer
+        r,_=chi_offer();r['state']['operations']={'seat':0,'operation_list':[{'type':3},{'type':9}]}
+    else:
+        r['state']['drawn_tile']='0p'
+        r['state']['operations']['operation_list'].append({'type':8})
+    f._current=lambda:deepcopy(r)
+    e.update(board_token=board_token(r),action={'kind':kind})
+    plan,current=f._plan(e);f.controller.submit(plan,current,enabled=True,now=1)
+    assert len(m.clicks)==1
+    assert f.controller.snapshot()['status']=='awaiting_confirmation'
+
+
+def test_runner_riichi_is_automatic_and_waits_for_acceptance(monkeypatch):
+    f,r,p,e,m=setup(monkeypatch)
+    r['state']['operations']['operation_list'].append({'type':7,'combination':['0p']})
+    e.update(board_token=board_token(r),action={'kind':'riichi','tile':'0p'})
+    monkeypatch.setattr('agents.mahjong_soul.shadow.ShadowFollower.poll',lambda _:e)
+    result=f.poll();assert result['kind']=='submitted' and len(m.clicks)==1
+    f._continue_riichi();assert len(m.clicks)==2
+    assert f.controller.riichi_phase()=='awaiting_declaration'
+    f._continue_riichi();assert len(m.clicks)==2
+    from tests.mahjong_soul.test_riichi import declaration
+    assert not f.controller.observe('game',declaration(),now=2)
+    assert f.controller.observe('game',{'name':'ActionDealTile','source':'live','step':2,'data':{'liqi':{'seat':0,'score':24000}}},now=2)
+
+
+def test_riichi_menu_mismatch_cannot_send_discard(monkeypatch):
+    f,r,p,e,m=setup(monkeypatch)
+    r['state']['operations']['operation_list'].append({'type':7,'combination':['0p']})
+    e.update(board_token=board_token(r),action={'kind':'riichi','tile':'0p'})
+    monkeypatch.setattr('agents.mahjong_soul.shadow.ShadowFollower.poll',lambda _:e)
+    f.poll()
+    f.vision.riichi_hand=lambda *args:(['0p'],[bytes(648)],['5p'])
+    with pytest.raises(ValueError,match='match'):f._continue_riichi()
+    assert len(m.clicks)==1
+
+
+
+def test_recorded_riichi_menu_distinguishes_allowed_tiles_from_dimmed_tiles(monkeypatch):
+    import json,base64
+    from pathlib import Path
+    fixture=json.loads((Path(__file__).parent/'fixtures/visual_riichi.json').read_text(encoding='utf-8'))
+    values=[base64.b64decode(v) for v in fixture['samples']]
+    monkeypatch.setattr('games.mahjong_soul.live.runtime.visual.decode_frame',lambda _:b'pixels')
+    samples=iter(values)
+    monkeypatch.setattr('games.mahjong_soul.live.runtime.visual.sample',lambda *args:next(samples))
+    profile={'slots':[[.5,.9]]*14}
+    tiles,_,allowed=TileVision().riichi_hand(b'frame',profile,fixture['expected'],fixture['allowed'])
+    assert tiles==fixture['expected'] and allowed==['3p']
+    samples=iter(values)
+    with pytest.raises(ValueError,match='Bright Riichi'):
+        TileVision().riichi_hand(b'frame',profile,fixture['expected'],['7p'])
+
+
+def test_red_five_sou_requires_five_bamboo_shape_and_red_ink():
+    vision=TileVision();normal=next(value for tile,value in vision.tiles if tile=='5s')
+    red=bytearray(normal)
+    for i in range(0,len(red),3):
+        r,g,b=red[i:i+3]
+        if g>r*1.2 and g>b*1.1:red[i:i+3]=bytes([g,r,b])
+    assert vision.classify(bytes(red))=='0s'
+    assert vision.classify(normal)=='5s'
+
+
+
+def test_capture_to_policy_to_native_backend_and_server_confirmation(tmp_path,monkeypatch):
+    from tests.mahjong_soul.test_shadow import Reader,append,row,advance
+    from agents.mahjong_soul.policy import BaselinePolicy
+    from games.mahjong_soul.live.runtime.session import SessionJournal,RecordingMouse
+    class EventReader(Reader):
+        def consume(self,value):
+            super().consume(value)
+            return {'liqi':value['decoded']} if 'decoded' in value else {}
+    monkeypatch.setattr('agents.mahjong_soul.shadow.GameReader',EventReader)
+    report,profile=inputs();profile['client_size']=[1920,1080]
+    monkeypatch.setattr('agents.mahjong_soul.auto.discard_profile',lambda *args:profile)
+    path=tmp_path/'capture.jsonl';append(path,row(report))
+    journal=SessionJournal(tmp_path/'sessions');mouse=Mouse()
+    follower=AutoFollower(None,file=path,policy=BaselinePolicy(),controller=InputController(RecordingMouse(mouse,journal)),
+        recorder=Recorder(),vision=Vision(),journal=journal,enabled=True,clock=lambda:1,wall_clock=lambda:100,sleep=lambda _:None)
+    assert follower.poll()['reason']=='capture_bootstrapped' and not mouse.clicks
+    report=advance(report);append(path,row(report))
+    assert follower.poll()['kind']=='submitted' and len(mouse.clicks)==1
+    follower.poll();assert len(mouse.clicks)==1
+    done=advance(report);done['state']['operations']=None;done['state']['hand']=[]
+    value=row(done);value['decoded']={'events':[{'name':'ActionDiscardTile','source':'live','step':done['state']['step'],'data':{'seat':0,'tile':'0p'}}]}
+    append(path,value);follower.poll()
+    assert follower.controller.snapshot()['status']=='idle'
+    report['state']['step']=done['state']['step']+1;append(path,row(report))
+    assert follower.poll()['kind']=='submitted' and len(mouse.clicks)==2
+    journal.close()
+    from agents.mahjong_soul.inspect_run import summarize
+    summary=summarize(journal.directory)
+    assert summary['counts']['confirmed']==1 and summary['counts']['input_attempt']==2
+
+
+
+def test_production_ai_guard_requires_captured_authentication(monkeypatch):
+    f,r,p,e,m=setup(monkeypatch);f.require_ai=True
+    with pytest.raises(ValueError,match='AI opponents'):f._plan(e)
+    f.ai_games.add((r['game_connection'],r.get('game_generation',0)))
+    f._plan(e)
+    assert not m.clicks
+    r['game_generation']+=1;e['board_token']=board_token(r)
+    with pytest.raises(ValueError,match='AI opponents'):f._plan(e)

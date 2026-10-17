@@ -61,3 +61,13 @@ def test_failed_acceptance_flag_does_not_unlock_input():
     assert not controller.observe("game", {"name": "ActionDealTile", "step": 2, "source": "live",
                            "data": {"liqi": {"seat": 0, "failed": True}}}, now=12)
     assert controller.snapshot()["status"] == "blocked"
+
+
+
+def test_ron_on_declaration_discard_resolves_input_without_accepting_riichi():
+    report,profile=offer();controller=InputController(Mouse())
+    controller.submit(plan_riichi(report,profile,0,'0p',now=10),report,enabled=True,now=11)
+    controller.observe('game',declaration(),now=12)
+    assert controller.observe('game',{'name':'ActionHule','source':'live','step':2,
+        'data':{'failed_liqi':{'seat':0},'hules':[{'seat':1,'hu_tile':'0p','zimo':False}]}},now=12)
+    assert controller.snapshot()['status']=='idle'
