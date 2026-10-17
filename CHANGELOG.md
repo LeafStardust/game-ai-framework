@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Added a persistent read-only Mahjong shadow runner with game-connection freshness checks, historical bootstrap suppression, board deduplication and capture lifecycle regression coverage.
+
 - Added an isolated Mahjong policy adapter, deterministic integration baseline and offline contract evaluator; validated all 131 decision-bearing recorded boards without input or policy failures.
 
 - Added board-bound read-only Mahjong decision requests and strict current-server-offer proposal validation, with exact tile/call semantics and offline capture replay coverage.
