@@ -32,7 +32,9 @@ seat, no state issues, and complete visible-tile counts. It is false before a
 round, after a round or match ends, after disconnect, and for uncertain state.
 It indicates board readiness, not permission to act or that an operation is
 available. Check `operations` separately; an empty or absent operation provides
-no action opportunity. No action executor is implemented.
+no action opportunity. This reader sends no input.
+
+`state.rules.open_tanyao` is `true`, `false`, or `null` (unknown), decoded from the authenticated room's numeric `GameDetailRule.shiduan` flag. It persists across round resets and is copied into the consumer observation. Reauthentication replaces it; a missing rule is not assumed enabled.
 
 ## Report and board fields
 

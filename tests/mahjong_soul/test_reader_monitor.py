@@ -254,3 +254,24 @@ def test_state_readiness_blocks_unknown_closed_and_incomplete_states():
     reader.consume(start)
     reader.close_connection("game")
     assert not reader.snapshot()["state_ready"]
+
+
+
+def test_open_tanyao_rule_is_observed_and_survives_new_rounds():
+    from pathlib import Path
+    from games.mahjong_soul.live.external.schema import LiqiSchema
+    from tests.mahjong_soul.test_decoder_state import varint
+    actual=LiqiSchema.load(Path(__file__).resolve().parents[2]/'liqi-reference.json')
+    reader=GameReader(actual)
+    field=actual.types['lq.GameDetailRule']['fields']['shiduan']['id']
+    config=blob(2,blob(6,varint(field*8)+b'\x01'))
+    reader.consume(record(wrapper(2,'.lq.FastTest.authGame',b'\x08\x2a'),client=True))
+    reader.consume(record(wrapper(3,'',blob(3,b'\x2a\x00\x00\x00')+blob(5,config))))
+    reader.consume(record(wrapper(1,'.lq.ActionPrototype',action('ActionNewRound',blob(4,b'1m')))))
+    report=reader.snapshot()
+    assert report['state']['rules']=={'open_tanyao':True}
+    from games.mahjong_soul.live.runtime.observation import observation_from_snapshot
+    assert observation_from_snapshot(report)['board']['rules']=={'open_tanyao':True}
+    reader.consume(record(wrapper(2,'.lq.FastTest.authGame',b'\x08\x2a',request_id=2),client=True))
+    reader.consume(record(wrapper(3,'',blob(3,b'\x2a\x00\x00\x00'),request_id=2)))
+    assert reader.snapshot()['state']['rules']=={'open_tanyao':None}

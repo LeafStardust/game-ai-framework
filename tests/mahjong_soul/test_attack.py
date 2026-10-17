@@ -68,7 +68,9 @@ def test_attack_does_not_blindly_push(block,monkeypatch):
     report["state"]["melds"][0][1]["tiles"]=["5z"]*3
     distance=2
     if block=="low_value":report["state"]["doras"]=[]
-    if block=="no_yaku_route":report["state"]["melds"][0][1]["tiles"]=["4p"]*3
+    if block=="no_yaku_route":
+        report["state"]["melds"][0][1]["tiles"]=["4p"]*3
+        report["state"]["melds"][0][0]={"type":0,"tiles":["1s","2s","3s"]}
     if block=="late_wall":report["state"]["left_tile_count"]=5
     if block=="two_threats":threat(report,2)
     if block=="distant":distance=3
@@ -78,8 +80,15 @@ def test_attack_does_not_blindly_push(block,monkeypatch):
     assert policy.last_analysis["mode"]=="fold"
 
 
+def closed_riichi_report(report):
+    from tests.mahjong_soul.test_efficiency import tiles
+    report["state"]["hand"]=tiles("123m123p123s777z12m")
+    report["state"]["melds"][0]=[]
+    return report
+
+
 def test_attack_can_counter_riichi_on_good_wait_while_balanced_stays_undeclared(monkeypatch):
-    report=board();threat(report);mock_rank(monkeypatch,distance=0,ukeire=(8,4))
+    report=closed_riichi_report(board());threat(report);mock_rank(monkeypatch,distance=0,ukeire=(8,4))
     report["state"]["operations"]["operation_list"].append({"type":7,"combination":["1m"]})
     assert decide(PlaybookPolicy(),report,lambda:report)["action"]["kind"]=="discard"
     assert decide(PlaybookPolicy(style="atk"),report,lambda:report)["action"]=={"kind":"riichi","tile":"1m"}
@@ -87,7 +96,7 @@ def test_attack_can_counter_riichi_on_good_wait_while_balanced_stays_undeclared(
 
 @pytest.mark.parametrize("block",["poor_wait","furiten","unknown_furiten","late_wall","two_threats"])
 def test_attack_counter_riichi_constraints(block,monkeypatch):
-    report=board();threat(report);wait=8
+    report=closed_riichi_report(board());threat(report);wait=8
     if block=="poor_wait":wait=4
     if block=="furiten":report["state"]["furiten"]=True
     if block=="unknown_furiten":report["state"]["furiten"]=None

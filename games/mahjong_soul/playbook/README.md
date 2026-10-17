@@ -1,12 +1,14 @@
 # Mahjong Soul strategy playbooks
 
+The four-player [ATK v0.2 review](yonma/ATK.md) describes the current manual policy. Use `.\MahjongSoulSuggest.bat` for recommended-action-only output.
+
 These are executable, versioned strategy settings, following Balatro's cartridge/registry approach. Shared Mahjong facts, server-offer validation and shanten calculations stay outside the cartridges. The policy reads thresholds from the selected playbook; editing this Markdown does not change behavior.
 
 | Playbook | Selection | Version | Use |
 | --- | --- | --- | --- |
 | `yonma-manual-balanced` | Four players | `0.1` | Manual suggestion tests |
 | `sanma-manual-balanced` | Three players, balanced | `0.1` | Manual suggestion tests, with sanma tile-pool handling |
-| [`yonma-manual-atk`](yonma/ATK.md) | Four players, atk | `0.1` | Bounded value aggression and selective pushes |
+| [`yonma-manual-atk`](yonma/ATK.md) | Four players, atk | `0.2` | Value/yaku-aware calls, scored Riichi/dama and selective pushes |
 
 The two balanced cartridges start with the same conservative thresholds; separate entries allow later evidence-based tuning. The four-player attack cartridge has distinct offensive settings. They are not tuned for particular ranks, room rules or match lengths. Selection uses (player count, playstyle) and rejects unregistered pairs; there is no implicit attack-to-balanced fallback. Balanced remains the default.
 
@@ -16,7 +18,9 @@ The two balanced cartridges start with the same conservative thresholds; separat
 - `features.py`: shared dora cycles, seat/round value honors, yakuhai evidence and opponent-specific discarded-tile safety.
 - `agents/mahjong_soul/playbook_policy.py`: consumes those features/settings and returns one offered action. No native input is imported or sent.
 
-## Decision layers
+ATK-specific evaluation lives in `agents/mahjong_soul/attack_policy.py`, `attack_value.py` and `attack_defense.py`. These choose suggestions without importing native input.
+
+## Balanced decision layers
 
 | ID | Settings | Initial behavior |
 | --- | --- | --- |
@@ -24,7 +28,7 @@ The two balanced cartridges start with the same conservative thresholds; separat
 | D2: defense | Fold from best shanten `2` | Against declared/accepted opponent Riichi, if at least one offered discard has known safety evidence, prefer the tile safe against the most threats, then efficiency/value. With no such evidence, retain efficiency ranking. |
 | D3: Riichi | Enabled; allow under opponent Riichi threat `false` | Accept offered Riichi with the best ranked offered tenpai discard when no threat is present. Otherwise stay undeclared. |
 
-Offered wins take priority. Chi/Pon/kan decisions still decline through Skip; no opening strategy is added. Near-ready hands below the fold threshold retain efficiency priority, with safety then value as tie-breaks. Opponent discarded tiles are treated as genbutsu only against that opponent; a tile safe against one player is not claimed safe against everyone. Red and ordinary fives share safety identity, while their value differs.
+For the balanced cartridges, offered wins take priority and Chi/Pon/kan still decline through Skip. ATK v0.2 has its own opening policy. Near-ready hands below the fold threshold retain efficiency priority, with safety then value as tie-breaks. Opponent discarded tiles are treated as genbutsu only against that opponent; a tile safe against one player is not claimed safe against everyone. Red and ordinary fives share safety identity, while their value differs.
 
 Value honors use the dealer-relative seat wind and round wind, including double winds. Existing/preserved value-honor triplets are evidence of a possible scoring route; they do not certify the complete hand's yaku. The policy does not yet calculate full han/fu, score expected value, placement strategy, furiten-adjusted waits, suji/kabe risk, non-Riichi open-hand threats or unknown opponent hands. Dora are bonus value, not a yaku. Open tanyao and other room-rule-dependent yaku are not assumed.
 

@@ -43,7 +43,7 @@ def observation_from_snapshot(report):
                  "furiten": deepcopy(state["furiten"])},
         "players": players, "round": deepcopy(state["round"]),
         "last_actor": state["turn"], "wall_remaining": state["left_tile_count"],
-        "dora_indicators": list(state["doras"]),
+        "dora_indicators": list(state["doras"]), "rules":deepcopy(state.get("rules",{})),
         "visible_tile_counts": dict(state["visible_tile_counts"]),
         "visibility_complete": state["visibility_complete"],
         "available_operations": deepcopy(state["operations"]),

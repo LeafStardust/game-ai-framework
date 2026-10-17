@@ -1,46 +1,48 @@
-# Four-player attack playbook
+# Four-player ATK v0.2
 
-Cartridge: `yonma-manual-atk`, style `atk`, version `0.1`.
-Configuration: [atk.py](atk.py). Shared decision logic remains in `agents/mahjong_soul/playbook_policy.py`.
+Cartridge: `yonma-manual-atk`, style `atk`, version `0.2`. Configuration is in [atk.py](atk.py). Balanced behavior remains separate.
 
-Attack means pursuing worthwhile offensive opportunities: preserve value, push selectively and use good Riichi opportunities. This initial cartridge expresses that bias through observable evidence and explicit limits. Thresholds are manual-test hypotheses, not an expected-value or trained risk model.
-
-## Discards and value
-
-The cartridge never increases shanten for offensive value. Within the best shanten it considers discards up to six ukeire copies below the best available count, then balances ukeire against the value discarded. The initial conversion is two ukeire copies per weighted value-loss unit. Dora loss weight is 2.0, value-honor pair loss 1.25 and value-honor triplet loss 4.0. Red fives count as bonus value, including red-plus-indicator dora. This lets attack keep a valuable tile at a bounded speed cost while avoiding a whole extra shanten detour.
-
-These weights are policy trade-offs, not point or han estimates. Complete hand scoring, placement considerations, flush planning and guaranteed-yaku evaluation remain future work.
-
-## Push and fold
-
-Normally use the balanced two-shanten fold boundary when known discarded-tile safety is available. A selective push exception requires all of:
-
-- Exactly one declared/accepted opponent Riichi.
-- Best shanten at most two.
-- At least three units of retained bonus/value-honor-triplet evidence in the selected offensive candidate.
-- At least twelve tiles reported left in the wall.
-- For an open hand, a retained value-honor triplet/kan as a known scoring route. Closed hands can pursue Riichi later.
-
-Against multiple Riichi threats, do not grant that value-push exception. Near-ready hands retain offensive ranking; farther hands use the available genbutsu evidence. If no offered tile has known safety evidence, the policy cannot invent a safe discard and retains its offensive ranking. Safety is always opponent-specific.
-
-## Riichi
-
-Take offered wins first. Otherwise Riichi remains restricted to server-offered, zero-shanten discard candidates. Attack requires at least two unseen improving copies normally, and six when countering one opponent Riichi. It declines new Riichi when there are two or more threats, fewer than eight tiles left, or own furiten is true/unknown. The chosen offered discard uses the same bounded value/ukeire ranking.
-
-Current ukeire counts unseen structural improvements, not guaranteed live-wall tiles. These Riichi thresholds therefore do not constitute a point-value or deal-in probability calculation.
-
-## Scope and manual test
-
-This first attack cartridge covers discard value, push/fold and Riichi. Chi/Pon/kan selection still declines through Skip; a yaku-aware opening/call layer is not implemented. It does not enable mouse input. Three-player attack is not registered and fails explicitly instead of falling back to four-player settings. Balanced remains the default style.
+Run the manual recommendation monitor from the Mahjong worktree:
 
 ```powershell
-.\.venv\Scripts\python.exe -u -m agents.mahjong_soul.shadow --policy playbook --playstyle atk
+.\MahjongSoulSuggest.bat
 ```
 
-Use `--json` only to inspect playbook/style and candidate analysis. Default output remains the recommended action only.
+This selects `--policy playbook --playstyle atk`. Capture must already be running. Restart capture and the monitor after this update so both load the room-rule observation changes. You click the recommended actions yourself. Default terminal output contains only the action, including Man/Pin/Sou and capitalized Wind/Dragon names. `--json` explicitly enables analysis. No mouse execution is part of this launcher.
 
-## Evidence
+## Review and changes
 
-The full Mahjong test suite passes 378 tests, including attack-specific checks for style selection, bounded value sacrifice, no offensive shanten increase, retained-yaku route requirements, selective pushes, multiple threats, late-wall limits, furiten and counter-Riichi. Replaying the recorded ten-round four-player match validates all 164 proposed actions: 119 discards, 38 skips, four Riichi, two Ron and one Tsumo; zero policy or validation errors. Balanced proposes three Riichi on that trajectory. This verifies interface legality and intended behavior, not stronger actual results or counterfactual match outcomes.
+| Area | Previous gap | v0.2 behavior |
+| --- | --- | --- |
+| Value | Dora/honor retention proxy only | Scores tenpai completion scenarios for known han, fu and points, including dealer status, red fives, indicator dora and fixed/closed kan. No hidden ura or assumed ippatsu. |
+| Yaku | Only value honors affected opening decisions | Separates scoring routes from bonus tiles. Recognizes retained yakuhai, tanyao, flush and forced triplet routes, with bounded preferences for sanshoku, ittsu, iipeikou, seven pairs and orphans shapes. |
+| Calls | Always Skip | Simulates each offered Chi/Pon and its legal follow-up discards. Requires a yaku route and normally a shanten improvement into at most one-shanten; prefers at least two value units, with a cheaper exception for tenpai with at least three legal unseen winning copies. |
+| Kan | Always discard/Skip | Considers offered closed/added/open kan without assuming a favorable replacement draw or new dora. Requires sufficient wall, no detected threat, preserved shanten, at most two ukeire lost and no reduction in scored tenpai value. Open kan additionally needs an already open hand with a retained yaku route and at least four value units. |
+| Riichi | Structural wait count only | Checks offered closed-hand candidates, post-discard permanent furiten, legal scoring waits and danger. Can retain high-value dama when Riichi adds little scored value. |
+| Defense | Genbutsu only; no fallback danger ordering | Ranks every discard against each threat, including cautious suji/kabe/honor visibility factors. Folding minimizes the worst opponent danger before summed danger. Three exposed melds with visible value can also count as a threat. |
 
-Next manual test: compare recommendations with balanced when an expensive discard, an opponent Riichi or your own Riichi opportunity appears. Save the round/step of surprising advice for offline reproduction. No automated game interaction is needed.
+## Value and efficiency
+
+Normally keep the best shanten and consider at most six fewer unseen improving copies for value. The ranking includes known bonus loss, value-honor pair/triplet loss, breaking developed seven-pairs shapes, bounded yaku-shape preference and scored tenpai value. These are configurable trade-offs. The exception to preserving structural shanten is an entirely exhausted tenpai: the policy may rebuild a productive one-shanten hand instead of waiting on zero unseen copies.
+
+Only tenpai hands receive complete hand-calculator scoring. Earlier-hand routes and shape preferences are estimates, not guaranteed final han or expected value. The existing pinned [MahjongRepository calculator](https://github.com/MahjongRepository/mahjong) handles completion scoring. Ordinary scoring assumes the standard red-five tile set; custom variants are not comprehensively modeled.
+
+Open Tanyao is enabled only when captured `GameDetailRule.shiduan` confirms it. A missing rule stays unknown and does not justify a Tanyao opening. Dora alone never establishes a yaku. Calls preserve exact red contributions, avoid called/swap discards, protect developed closed special hands and reject furiten/no-yaku tenpai. A same-shanten opening is allowed when it turns a yakuless closed tenpai into a legal Ron worth at least 2,000 points with at least three unseen winning copies. The next monitor recommendation is recomputed from the actual post-call server offer.
+
+## Push, fold and Riichi
+
+A push normally requires one threat, a sufficiently valuable near-ready hand, enough wall, a retained scoring route for open hands and a relative danger at most 75. Two-shanten pushes additionally need at least four value units, twenty improving copies and twenty-four wall tiles. Developed yaku shapes and a closed hand's prospective Riichi can contribute to this early value estimate; no future Riichi point gain is treated as an already scored win.
+
+Multiple threats, weak hands, exhausted/furiten Ron waits and excessive danger favor folding. Suji and kabe only reduce relative danger: they do not prove a tile safe. These scores are rankings, not deal-in probabilities. Full placement strategy, calibrated opponent models and expected-value search remain gaps.
+
+Riichi normally needs two unseen winning copies, or six against a threat, at least eight wall tiles, and known non-furiten state. It can prefer dama with at least 7,700 known Ron points, four legal unseen copies and less than 25% scored gain from Riichi. Server offers remain the legal action authority. Offered wins take priority.
+
+All ukeire and wait counts refer to copies not accounted for in visible information, including tiles that may be held by opponents. They are not a count of tiles known to remain in the live wall. Furiten checks include structural waits already exhausted in visible information.
+
+## Validation
+
+Real-hand regressions cover legal and yakuless openings, room-rule-dependent Tanyao, exact red calls, kuikae, kan efficiency, scoring, reported/permanent furiten, exhausted waits, dama/Riichi and multiple threats. The default CLI is tested to print only the recommendation.
+
+Two recorded captures validate all 295 proposed decisions with zero policy/validation failures. The 164-board capture proposes 118 discards, 38 Skips, four Riichi, two Ron, one Tsumo and one closed kan. The other 131 boards propose 106 discards, 20 Skips and five Ron. Maximum measured decision latency was 108 ms. Separate real-hand tests exercise positive Chi/Pon choices. Replay follows the human's recorded trajectory; it does not measure counterfactual win rate or establish optimal play.
+
+The next step is manual ATK testing and review of surprising recommendations. Automatic input development is deferred; the current native runner does not yet execute every newly recommended call.

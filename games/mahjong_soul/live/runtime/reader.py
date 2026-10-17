@@ -25,6 +25,7 @@ class GameReader:
         self.closed_connections = 0
         self.game_generations = Counter()
         self.cancel_requests = {}
+        self.game_rules = {}
 
     def close_connection(self, connection):
         # Keep the last visible snapshot for display after the socket closes.
@@ -72,6 +73,9 @@ class GameReader:
                 self.warnings[(decoded["method"], decoded["schema_warning"])] += 1
             if decoded["method"] == ".lq.FastTest.authGame" and decoded["kind"] == "response":
                 self.game_generations[connection] += 1
+                detail=decoded.get("data",{}).get("game_config",{}).get("mode",{}).get("detail_rule",{})
+                kuitan=detail.get("shiduan")
+                self.game_rules[connection]={"open_tanyao":bool(kuitan) if type(kuitan) in (bool,int) and kuitan in (0,1) else None}
                 cancellations.clear()
                 inferred_seat = self.seat if self.seat is not None else decoded.get("own_seat")
                 seats = decoded.get("data", {}).get("seat_list", [])
@@ -125,6 +129,7 @@ class GameReader:
     def snapshot(self):
         entry = self.connections.get(self.latest_game_connection)
         state = entry[1].snapshot() if entry else deepcopy(getattr(self, "closed_state", None))
+        if state is not None:state["rules"]=deepcopy(self.game_rules.get(self.latest_game_connection,{"open_tanyao":None}))
         ready = bool(entry and state and state["status"] == "tracking" and state["seat"] is not None
                      and not state["issues"] and state["visibility_complete"])
         return {"game_generation": self.game_generations[self.latest_game_connection], "state_ready": ready, "frames": self.frames, "actions": dict(self.actions), "last_event": deepcopy(self.last_event), "game_connection": self.latest_game_connection,

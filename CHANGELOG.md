@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Upgraded four-player ATK to v0.2 for manual suggestions: scored tenpai value, yaku-aware Chi/Pon, cautious kan, furiten/dama Riichi checks, broader danger ranking and room-rule-aware open Tanyao; added an action-only suggestion launcher.
+
 - Extended automatic Mahjong play to Riichi, Ron, Tsumo and combined-offer Skip; added forced post-Riichi discards, cursor parking, live capture health, an exclusive agent lock, automatic session evidence and an incident-report CLI.
 
 - Connected Mahjong playbooks to an opt-in 1080p discard/Chi-Skip runner with reviewed tile recognition, stable-frame checks, one persistent controller and exact server confirmation; unsupported actions remain manual.

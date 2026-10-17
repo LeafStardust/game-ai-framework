@@ -1,5 +1,7 @@
 # Mahjong Soul policy integration
 
+For four-player ATK v0.2 manual suggestions, use `.\MahjongSoulSuggest.bat`. It prints recommended actions only. See [the ATK review](../../games/mahjong_soul/playbook/yonma/ATK.md) for value, yaku, calls, Riichi and defense behavior.
+
 For tile codes and terminal vocabulary, see [the terms reference](../../games/mahjong_soul/TERMS.md).
 
 The shadow and evaluation CLIs now default to `--policy playbook` (manual balanced strategy). See [playbooks](../../games/mahjong_soul/playbook/README.md). Use `--policy efficiency` for the previous pure-efficiency policy. Restart an already running terminal command to load it. `--policy baseline` retains the original integration fixture. Both modes remain read-only.
@@ -80,7 +82,7 @@ Then use a four-player AI room at a physical **1920?1080 client size**, keep Mah
 .\MahjongSoulAgent.bat
 ```
 
-The launcher runs `agents.mahjong_soul.auto --execute --resume-current`. It replaces the shadow terminal. Capture remains a separate process. The agent chooses through the ATK playbook and executes **discards, Skip, Riichi, Ron and Tsumo** through the native input controller. The current playbook deliberately declines Chi/Pon/kan; these are policy choices, not unsupported manual prompts. Use `--playstyle balanced` to select balanced settings. Omitting `--execute` when running the Python module directly gives suggestions only. Ctrl+C stops the agent. Only one automatic agent can hold this worktree's OS lock. Production execution also requires captured authentication confirming four seats, three robots and one human player in AI mode. A missing or mismatched room identity blocks input.
+The launcher runs `agents.mahjong_soul.auto --execute --resume-current`. It replaces the shadow terminal. Capture remains a separate process. The agent chooses through the ATK playbook and executes **discards, Skip, Riichi, Ron and Tsumo** through the native input controller. ATK v0.2 can recommend Chi/Pon/kan in the manual monitor. This automatic runner has not been extended to execute all of those calls; manual ATK development is the current priority. Use `--playstyle balanced` to select balanced settings. Omitting `--execute` when running the Python module directly gives suggestions only. Ctrl+C stops the agent. Only one automatic agent can hold this worktree's OS lock. Production execution also requires captured authentication confirming four seats, three robots and one human player in AI mode. A missing or mismatched room identity blocks input.
 
 Every executable run records automatically under `logs/mahjong_soul/sessions/<UTC timestamp>/`:
 
