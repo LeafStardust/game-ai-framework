@@ -120,17 +120,40 @@ class TileVision:
             raise ValueError("Unknown or ambiguous visible tile ("+detail+")")
         return ranked[0]
 
+    def align_tile(self,rgb,x,y,original):
+        """Try only a two-pixel sampling correction, with unchanged confidence.
+
+        Every successful correction must agree on the exact tile label. The
+        reader's expected tiles are never used to choose an identity.
+        """
+        matches=[]
+        for dx,dy in ((0,-2),(0,2),(-2,0),(2,0),(-2,-2),(2,-2),(-2,2),(2,2)):
+            value=sample(rgb,x+dx,y+dy)
+            try:tile=self.classify(value)
+            except ValueError:continue
+            matches.append((tile,value,(dx,dy)))
+        if not matches:raise ValueError(original)
+        if len({m[0] for m in matches})!=1:
+            raise ValueError("Small alignment corrections disagree on the exact tile")
+        return matches[0]
+
     def hand(self, png, profile, expected):
         if profile["client_size"] != [1920,1080]: raise ValueError("Automatic input supports 1080p only")
         rgb = decode_frame(png)
         samples = [sample(rgb, round(x*1919), round(y*1079)) for x,y in profile["slots"]]
         tiles=[];self.last_diagnostics={"slots":[]}
         for index,value in enumerate(samples):
+            alignment=(0,0)
             try:tile=self.classify(value)
-            except ValueError as error:
-                self.last_diagnostics["slots"].append({"slot":index,"nearest":self.scores(value)[:3],"error":str(error)})
-                raise ValueError(f"Slot {index}: {error}") from error
-            tiles.append(tile);self.last_diagnostics["slots"].append({"slot":index,"tile":tile})
+            except ValueError as original:
+                x,y=profile["slots"][index]
+                try:
+                    tile,value,alignment=self.align_tile(rgb,round(x*1919),round(y*1079),str(original))
+                    samples[index]=value
+                except ValueError as error:
+                    self.last_diagnostics["slots"].append({"slot":index,"nearest":self.scores(value)[:3],"error":str(error)})
+                    raise ValueError(f"Slot {index}: {error}") from error
+            tiles.append(tile);self.last_diagnostics["slots"].append({"slot":index,"tile":tile,"sampling_offset":list(alignment)})
         if Counter(tiles) != Counter(expected): raise ValueError("Visible hand differs from reader")
         return tiles, samples
 

@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Fixed the recorded Eight Sou alignment stall using bounded two-pixel sampling correction only when ordinary classification fails; every passing correction must agree on the exact label, with unchanged confidence and full-hand checks. Recorded dialog occlusion still refuses input.
+
 - Fixed the recorded multi-choice Chi stall by normalizing menu glyphs with their actual smaller face insets; real-panel regressions verify both choices, reject the opening animation and confirm the exact staged call without input retries.
 
 - Fixed the recorded Red Five Sou recognition stall with reviewed native tile references, including Red/ordinary Five Man variants; verified the held-out full hand and exact red identity without loosening recognition thresholds.
