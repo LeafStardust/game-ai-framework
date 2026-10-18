@@ -98,7 +98,18 @@ class MahjongSoulCapture:
         async def heartbeat():
             while True:
                 try:
-                    if self.writer is not None:self.writer.health()
+                    if self.writer is not None:
+                        self.writer.health()
+                        stop_file=self.writer.path.with_suffix(".stop.json")
+                        token=os.environ.get("MAHJONG_CAPTURE_READY_TOKEN")
+                        if token and stop_file.exists():
+                            try:request=json.loads(stop_file.read_text(encoding="utf-8"))
+                            except (OSError,ValueError):request={}
+                            if request.get("launch_token")==token:
+                                from mitmproxy import ctx
+                                stop_file.unlink(missing_ok=True)
+                                ctx.master.shutdown()
+                                return
                 except OSError as error:logging.error("Capture health write failed: %s",error)
                 await asyncio.sleep(.5)
         self.health_task=asyncio.create_task(heartbeat())

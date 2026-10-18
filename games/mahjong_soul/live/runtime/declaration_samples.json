@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "client_size": [
+    1920,
+    1080
+  ],
+  "buttons": {
+    "riichi": [
+      {
+        "source": "logs/mahjong_soul/sessions/20261018T071634-014570Z/frames/0000609.png",
+        "sha256": "dc460887e0b3d33184bf8d49e53b47fcad79658d32e131b7705f5f81c5d2ec0c",
+        "sample": "hn9TqKV8oXlHo4ZVoWMtoXVCprCGolkgoq+GoGIsoLCWorCWk4tfop502XpqxWdI6IaA2XtoprCLx2pLoa6U6KGInqySnq2TkothoJhu1X1o/KasplEl031kmIFdqFgqmXxWoVYjj52GnauRi4Rakolewn1d/b60w4NZoVsrxophlU4dzZtsw5JffIhzmamPioFYh39V2qqBpm9C9dGrzaJ0uYhbiEoaiU4g8uGte3FWk6KIhX5WhoBWrYRTf2I88uSssI5Zn0sTgU0ffTcK7+esl1MjjpuAmnpLvnQ0ooFObD4Y9/O4ooVRkUMQglgsbi8J9O+0mUgXg492sHM5ioRck3RH+Pa8/PzEl3lKs5xnrZRgVicH/f3EezMSe4Vtj3NF3m0hdlYttKBtxrV/f182q5VjYD0bUiMFxLN9hzsUeoVw32wf22oeikAPqlEVhT4PgDsOk0UTk0UUlkYWXSYJWRwOd3FX3WsehTgTz2Mcw14buFgZrFIXoU0Wl0cVkEIRWRwOXh8OgUUct2stjD0Ux2Abu1oar1QYpE4WmkgTkUMRi0APcCwNgjoOgDkKfnFJhjkTvlsZslUXpk8XnEoUkUMRiz8OhjwLgjoLfzgLfjgKh3JJr1YaqlUaoFAZlUoXjUcVh0MVhEMVgEAUfj8TfD4SfD4Tp2Anal8/XlU4X1Q5YVo+WFQ7aGhRb3phb3lfb3pgb3phcXtkh3NKhmI3elgxeFcycFYzaWRJcnpfdoNodoJmd4JndYFmeYRshYBahX9cfHlZenhZd3RTfHxhh5V1iJZ5hpR1iJZ3iZZ2iZZ5jYdjb2pJiYZia2dIiIptlKJ/kqF/kqGCkJ9+kKB8kaB+laOD"
+      },
+      {
+        "source": "logs/mahjong_soul/calibration/20261016-181251-573310/frame-000001.png",
+        "sha256": "31776a05947b00e0a0ebaf3d630f1f585464ad07be51862854fa41a42d1cd628",
+        "sample": "hn9TqKV8oXlHo4ZVoWMtoXVCprCGolkgoq+GoGIsoLCWorCWk4tfop502XpqxWdI6IaA2XtoprCLx2pLoa6U6KGInqySnq2TkothoJhu1X1o/KasplEl031kmIFdqFgqmXxWoVYjj52GnauRi4Rakolewn1d/b60w4NZoVsrxophlU4dzZtsw5JffIhzmamPioFYh39V2qqBpm9C9dGrzaJ0uYhbiEoaiU4g8uGte3FWk6KIhX5WhoBWrYRTf2I88uSssI5Zn0sTgU0ffTcK7+esl1MjjpuAmnpLvnQ0ooFObD4Y9/O4ooVRkUMQglgsbi8J9O+0mUgXg492sHM5ioRck3RH+Pa8/PzEl3lKs5xnrZRgVicH/f3EezMSe4Vtj3NF3m0hdlYttKBtxrV/f182q5VjYD0bUiMFxLN9hzsUeoVw32wf22oeikAPqlEVhT4PgDsOk0UTk0UUlkYWXSYJWRwOd3FX3WsehTgTz2Mcw14buFgZrFIXoU0Wl0cVkEIRWRwOXh8OgUUct2stjD0Ux2Abu1oar1QYpE4WmkgTkUMRi0APcCwNgjoOgDkKfnFJhjkTvlsZslUXpk8XnEoUkUMRiz8OhjwLgjoLfzgLfjgKh3JJr1YaqlUaoFAZlUoXjUcVh0MVhEMVgEAUfj8TfD4SfD4Tp2Anal8/XlU4X1Q5YVo+WFQ7aGhRb3phb3lfb3pgb3phcXtkh3NKhmI3elgxeFcycFYzaWRJcnpfdoNodoJmd4JndYFmeYRshYBahX9cfHlZenhZd3RTfHxhh5V1iJZ5hpR1iJZ3iZZ2iZZ5jYdjb2pJiYZia2dIiIptlKJ/kqF/kqGCkJ9+kKB8kaB+laOD"
+      }
+    ],
+    "ron": [
+      {
+        "source": "logs/mahjong_soul/sessions/20261018T071634-014570Z/frames/0000672.png",
+        "sha256": "444de281206371ee694bde4e36e105a64856c76ba7405b4b9ef661d6d53d49f3",
+        "sample": "hn9TqKV9n515nSsXqTsfj1BApq+GnYxtlnhdn6mKnaSMorCWk4tfop90pKqChh4UmjsgjlxIfyYfqzMdliYVgx0ThiQWnq2TkothoJhuo62NdxcP5rFcm5p94ItJ9otNfRgP66Zb4bhmnqySi4RakolenKmH0aJRp2Y1n62K3KRWrF0vZQkJchsQ5c93mqqRioFYh39VmqaDYxILZyQeiYhtaRoPZRkNWgcHgh4d5dd+l6aLhX5WhoBWlaB+WRYPl2c6hSAgcRUVbCwYUgYGhiIi49mAlaKHlGlNplNChYNnUxEM7OaadhkZVgwLxa5pUhIKgiAg4tqCipd9mVxFhn9bZyAdUA0K6uSdWygXuqRr6+Wcn35Jex4e4diEgYxzi2JGvzU1exsbUAsLjWxHj25G4tubXC8aThwPXhUV3NB/fop0vzU1rC8vtTExfR0dex0ciiMjVxAQgyEhcBkZaRgYOAMDd31pvDQ0cRsbry8voywsmSkpjiUlhSEhfh4eeBwcXRQUXBQUcUA4nEk7giEhqC0tnCkpkiYmhyEhfh4edxsbchgYZhUVbBUVaRQUem5LcRsbnygokyYmiCIifx8fdxsbchgYbRYWaRQUaBMTZhMTgmdJiS4phi4ofisldygjcCUgbSUgbCkkaigjaCciZyYiZycikjwxaVM7Y0w2YUs2YVI7WFM7aWhRb3phb3lfb3pgb3phcXtkgm9Od1c/ak05ak46ZVE7amdMdHxheYVqeIVoeYVpd4RofIduhYBahX9cfntbfHpaeXZUfn9jiph3ipl7iJd3i5h5i5l4i5h8jYdjb2pJiYdia2hIiYptlKJ/k6F/kqGCkZ9+kKB8kaB+laOD"
+      }
+    ],
+    "tsumo": [
+      {
+        "source": "logs/mahjong_soul/calibration/20261016-181251-573310/frame-000100.png",
+        "sha256": "f1783ce97f4a1b42d8cc252340960b2a70de1cfe7ea759d9506506a4aef0b868",
+        "sample": "hn9TpJx4lGFfprGIpLCHp6+HprCGqbKJoq+GoK6NoLCWorCWjnpYkh45yEBip7KIoq+EprCHprCLpbKTobCWoa+VnqySnq2Tj4Jd3GJ0tD9Wm5Z9oKaHoa2MlZGBnJuJm5iHlS1OkZ6HnquSi4Raag4niWhgkjNAagwndS89cRIphyc4ehkvjzA+bTdBmamPioFYZCIrlqKB0XZ5jTY/aCk1Xw8g54+N55SO4ZaLhzk9lKKIhX5WXSMplaOBt21mXCgwgR49SQQXoVtV8K6bWAwhq29ij5yBkHBZUBEflaSBeUA5VBofcxk1OwMRqXBf77yefR48glBAg5B3o1RbVicisFFoWi4msolsckk3QhcVqYFk6cWdUSUePQsTe4Zug2hQOw0TvDNhmnxhNxAQuZh1KgkJdVI9z62Fz7ONaxgveoVwvzViujNftjFdlCZJoitTdRs3ex47UxIjRQ0aSw8YVBMTc2pevDRhcBsosC9apixVmylPkCVJhyJDfx89eRw5VBMTWhQabiY6n0lXeh0xqi1XnipRkyZKiSJEgB8+eRw5cxk2ZRUnaxUwaRQwe21NgB81oClRlSZLiiNFgR4+eRw5cxk1bhUyahUxaBQvZhMvg2pRmS1NkSpJiCdEfiQ/diI7cB83bR83ax41aB4zZx0zZx00kz1OaVxDXVI8XVE8X1hAWFQ7aGhRb3phb3lfb3pgb3lhcXtkgmxSfFFJcUdDb0dCaUg/aGJKcnpfd4NodoNmd4NndYFmeoRshYBahX9cfHpZenhZd3RTfH1hh5Z1iJd5hpR1iJZ3iZZ2iZZ6jYdjb2pJiYZia2hJiYptlKJ/k6F/kqGCkJ9+kKB8kaB+laOD"
+      }
+    ]
+  }
+}

@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Fixed post-Riichi Ron detection using recorded declaration-button templates instead of a pink-only color rule. Made capture resident across agent/monitor restarts, with token-verified reuse and a separate explicit capture-stop launcher to avoid repeated connection teardown.
+
 - Changed native Mahjong clicks from one instantaneous move/down/up batch to frame-spaced move, hold and release with cursor dwell before parking; added release-on-interruption coverage and recorded input-backend hashes. Live game acceptance remains to be checked by the user.
 
 - Fixed bundled Mahjong startup waiting on the Windows virtual-environment wrapper PID instead of the capture worker: readiness now matches an inherited per-launch token.

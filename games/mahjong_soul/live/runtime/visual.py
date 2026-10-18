@@ -80,6 +80,13 @@ class TileVision:
                       for kind,entry in calls["buttons"].items()}
         if not {"chi","pon"} <= set(self.calls) <= {"chi","pon","kan"} or any(len(v)!=648 for v in self.calls.values()):
             raise ValueError("Invalid call button samples")
+        declarations=json.loads(Path(__file__).with_name("declaration_samples.json").read_text(encoding="utf-8"))
+        if declarations.get("version")!=1 or declarations.get("client_size")!=[1920,1080]:
+            raise ValueError("Unsupported declaration sample bank")
+        self.declarations={kind:[base64.b64decode(entry["sample"],validate=True) for entry in entries]
+                           for kind,entries in declarations["buttons"].items()}
+        if set(self.declarations)!={"riichi","ron","tsumo"} or any(not values or any(len(v)!=648 for v in values) for values in self.declarations.values()):
+            raise ValueError("Invalid declaration button samples")
         self.skip = base64.b64decode(data["skip"],validate=True)
         if not self.tiles or any(len(value)!=648 for _,value in self.tiles) or len(self.skip)!=648:
             raise ValueError("Invalid visual samples")
@@ -196,22 +203,14 @@ class TileVision:
                 if distance(value,reference)<=10:matches.append((x,835,value))
             if len(matches)!=1:raise ValueError(f"{kind.title()} button not uniquely visible")
             return matches[0]
-        # Win buttons are pink; Riichi is orange. Restrict detection to the
-        # established action row, away from portraits and hand tiles.
-        columns=[]
-        for x in range(450,1420,2):
-            count=0
-            for y in range(775,875,2):
-                i=(y*1920+x)*3;r,g,b=rgb[i:i+3]
-                match=(r>130 and r>1.6*g and g>1.3*b) if kind=="riichi" else (r>110 and r>1.5*g and b>1.2*g and r>1.1*b)
-                count+=bool(match)
-            if count>=3:columns.append(x)
-        groups=[]
-        for x in columns:
-            if not groups or x-groups[-1][-1]>24:groups.append([x])
-            else:groups[-1].append(x)
-        groups=[g for g in groups if 80<=g[-1]-g[0]<=280]
-        if len(groups)!=1:raise ValueError("Declaration button not uniquely visible")
-        x=round((groups[0][0]+groups[0][-1])/2)
-        if point is not None and abs(x-point[0])>60:raise ValueError("Declaration button moved outside its calibration")
-        return x,835,sample(rgb,x,835,220,110)
+        matches=[]
+        for x in (1290,1020,750,480):
+            value=sample(rgb,x,835,220,110)
+            score=min(distance(value,reference) for reference in self.declarations[kind])
+            other=min(distance(value,reference) for label,entries in self.declarations.items()
+                      if label!=kind for reference in entries)
+            if score<=10 and other-score>=4:matches.append((x,835,value))
+        if len(matches)!=1:raise ValueError(f"{kind.title()} button not uniquely visible")
+        if point is not None and abs(matches[0][0]-point[0])>60:
+            raise ValueError("Declaration button moved outside its calibration")
+        return matches[0]
