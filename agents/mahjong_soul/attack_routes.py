@@ -1,5 +1,7 @@
 """Reachable offensive targets, not promised Han or hidden-tile expectations."""
 from collections import Counter
+from functools import lru_cache
+from agents.mahjong_soul.efficiency import KINDS,counts34
 from agents.mahjong_soul.attack_value import own_player
 from games.mahjong_soul.live.runtime.kan import tile_kind
 from games.mahjong_soul.playbook.features import value_honors,dora_kind
@@ -65,3 +67,31 @@ def project_attack(board,hand,bonus=0):
     # valuable remote shape. This is a planning heuristic, not an EV model.
     if not targets:return {"target_route":None,"target_yaku_han":0,"projected_han":bonus,"route_cost":99,"open_route":False}
     return max(targets,key=lambda r:(r["projected_han"]-r["route_cost"]*.6,-r["route_cost"],r["target_route"]))
+
+
+@lru_cache(maxsize=12000)
+def _toitoi_distance(counts,fixed):
+    """Missing draws minus one for four distinct triplets and a distinct pair."""
+    available=[i for i,t in enumerate(KINDS) if t not in fixed]
+    needed=4-len(fixed)
+    return min(max(0,2-counts[head])+sum(sorted(max(0,3-counts[i])
+               for i in available if i!=head)[:needed])-1 for head in available)
+
+
+def toitoi_progress(board,hand):
+    """Count only draws that advance the all-triplets winning shape."""
+    melds=own_player(board)["melds"]
+    if any(m["type"]==0 for m in melds):raise ValueError("Chi cannot form Toitoi")
+    fixed=tuple(sorted(tile_kind(m["tiles"][0]) for m in melds))
+    counts=list(counts34(hand));distance=_toitoi_distance(tuple(counts),fixed)
+    visible=Counter()
+    for tile,n in board["visible_tile_counts"].items():visible[tile_kind(tile)]+=n
+    improving=[]
+    for i,tile in enumerate(KINDS):
+        unseen=max(0,4-visible[tile])
+        if not unseen or counts[i]>=4 or tile in fixed:continue
+        counts[i]+=1
+        if _toitoi_distance(tuple(counts),fixed)<distance:
+            improving.append({"tile":tile,"unseen":unseen})
+        counts[i]-=1
+    return distance,improving

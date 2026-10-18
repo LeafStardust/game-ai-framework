@@ -5,8 +5,8 @@ from copy import deepcopy
 from agents.mahjong_soul.efficiency import counts34,shanten,rank_discards,KINDS
 from agents.mahjong_soul.attack_value import yaku_routes,tenpai_value,own_player,yaku_potential
 from agents.mahjong_soul.attack_defense import threats,danger
-from agents.mahjong_soul.attack_routes import project_attack,known_bonus
-from games.mahjong_soul.playbook.features import discard_features
+from agents.mahjong_soul.attack_routes import project_attack,known_bonus,toitoi_progress
+from games.mahjong_soul.playbook.features import discard_features,value_honors
 from games.mahjong_soul.live.runtime.kan import tile_kind
 
 
@@ -20,6 +20,16 @@ def enrich(board,options):
         option["pair_break_loss"]=int(not own_player(board)["melds"] and sum(n>=2 for n in before.values())>=5 and before[tile_kind(tile)]==2)
         option["value_han"]=option["retained_bonus"]+option["route_han"]
         option.update(project_attack(board,hand,option["retained_bonus"]))
+        # Generic Shanten counts sequences even when this open hand can only
+        # score by converting those sequences into triplets. Evaluate the
+        # actual winning route before calls, discards and Ukeire comparisons.
+        live_yakuhai_pair=any(sum(tile_kind(t)==honor for t in hand)==2
+                             and board["visible_tile_counts"].get(honor,0)<4 for honor in value_honors(board))
+        if (option["opened"] and not option["open_yaku"] and option["target_route"]=="toitoi"
+                and not live_yakuhai_pair):
+            option["shape_shanten"]=option["shanten"]
+            option["shanten"],option["improving_tiles"]=toitoi_progress(board,hand)
+            option["ukeire"]=sum(t["unseen"] for t in option["improving_tiles"])
         option["push_value_estimate"]=option["value_han"]+int(not option["opened"])+max(0,max(option["yaku_potential"].values(),default=0)-option["route_han"])
         operations=(board.get("available_operations") or {}).get("operation_list",[])
         option["riichi_offered"]=any(o.get("type")==7 and tile in o.get("combination",[]) for o in operations)

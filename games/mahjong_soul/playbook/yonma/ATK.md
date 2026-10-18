@@ -1,4 +1,4 @@
-# Four-player ATK v0.3
+# Four-player ATK v0.4
 
 ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered cartridge name remains `yonma-manual-atk` for compatibility; both the automatic player and suggestion monitor use these settings.
 
@@ -14,6 +14,8 @@ The discard ranking weighs projected Han, scored tenpai value, Shanten, availabl
 **Projected Han is a planning estimate, not scored Han or a guaranteed completion.** Exact scoring is still performed only for tenpai hands. No unseen Ura Dora, future Kan Dora, Ippatsu or favorable replacement tile is invented. Dora alone does not provide a Yaku.
 
 At the best available Shanten, the policy can sacrifice up to fourteen improving copies to preserve/build value. With at least twenty-four wall tiles, it can accept one additional Shanten for at least two extra projected Han, provided the alternative still has improving copies. It does not choose an exhausted target over a productive alternative just for its advertised value.
+
+When an open Toitoi target has no existing Yaku or live Yakuhai pair, Shanten and Ukeire are measured against four triplets and a pair. Sequence extensions cannot masquerade as progress toward that target. This prevents speculative Pon calls from borrowing the closed hand's sequence speed after giving up Riichi. Other future-Yaku routes remain heuristic estimates.
 
 ## Calls and Kan
 

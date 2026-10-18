@@ -88,3 +88,32 @@ def test_chi_can_build_a_future_honitsu_and_yakuhai_hand_before_tenpai():
     action,analysis=choose(call_report("23m456789m55z12p9s","1m","2m|3m",2))
     assert action["kind"]=="chi"
     assert analysis["target_route"]=="honitsu" and analysis["projected_han"]>=3
+
+
+def test_recorded_east_four_pon_does_not_trade_closed_sequences_for_remote_toitoi():
+    # Self was South. North is not Yakuhai; both Pon offers lose the closed
+    # Riichi route despite generic Shanten advertising quick sequence progress.
+    r=call_report("11234m1235s44z","7p","7p|7p")
+    r["state"]["hand"] += ["7p","7p"]
+    r["state"]["visible_tile_counts"]["7p"]=3
+    action,analysis=choose(r)
+    assert action["kind"]=="skip"
+    assert analysis["call_evaluations"][0]["accepted"] is False
+
+
+def test_toitoi_progress_excludes_sequence_extensions_and_counts_triplet_draws():
+    from agents.mahjong_soul.attack_routes import toitoi_progress
+    b=board("123s11m4p5s",melds=[{"type":1,"tiles":["7p"]*3},{"type":1,"tiles":["4z"]*3}])
+    distance,improving=toitoi_progress(b,b["self"]["hand"])
+    assert distance==3
+    assert "4s" not in {t["tile"] for t in improving}
+    assert "1m" in {t["tile"] for t in improving}
+
+
+def test_toitoi_ready_and_complete_shapes_have_exact_distance():
+    from agents.mahjong_soul.attack_routes import toitoi_progress
+    b=board("111m22p33s",melds=[{"type":1,"tiles":["7p"]*3},{"type":1,"tiles":["4z"]*3}])
+    distance,improving=toitoi_progress(b,b["self"]["hand"])
+    assert distance==0
+    assert {t["tile"] for t in improving}=={"2p","3s"}
+    assert toitoi_progress(b,b["self"]["hand"]+["2p"])[0]==-1
