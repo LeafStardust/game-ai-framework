@@ -324,7 +324,8 @@ def main():
                "games/mahjong_soul/live/runtime/call_samples.json",
                "agents/mahjong_soul/auto.py","agents/mahjong_soul/playbook_policy.py",
                "games/mahjong_soul/live/runtime/visual.py","games/mahjong_soul/live/runtime/visual_samples.json",
-               "games/mahjong_soul/live/runtime/controller.py","games/mahjong_soul/live/runtime/riichi.py",
+               "games/mahjong_soul/live/runtime/controller.py","games/mahjong_soul/live/runtime/windows_input.py",
+               "games/mahjong_soul/live/runtime/riichi.py",
                "games/mahjong_soul/live/runtime/decision.py","games/mahjong_soul/live/runtime/session.py"]
         try:revision=subprocess.check_output(["git","rev-parse","HEAD"],cwd=root,text=True,stderr=subprocess.DEVNULL).strip()
         except (OSError,subprocess.SubprocessError):revision=None

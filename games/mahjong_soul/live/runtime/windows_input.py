@@ -71,7 +71,7 @@ class WindowsMouse:
         self._clicks(x, y, width, height, 1)
 
     def double_click(self, x, y, width, height):
-        """One two-click action, with no UI observation or caller delay between clicks."""
+        """Two frame-spaced clicks; each press/release is a separate OS event."""
         self._clicks(x, y, width, height, 2)
 
     def park(self, width, height):
@@ -107,27 +107,45 @@ class WindowsMouse:
             self.user.SendInput.restype = w.UINT
             ax = round((px - vx) * 65535 / (vw - 1))
             ay = round((py - vy) * 65535 / (vh - 1))
-            inputs = (Input * 3)()
-            inputs[0].data.mouse = Mouse(ax, ay, 0, 0x8000 | 0x4000 | 1, 0, 0)
-            inputs[1].data.mouse.dwFlags = 2
-            inputs[2].data.mouse.dwFlags = 4
-            if count == 0:
-                if self._foreground()!=hwnd or self._client_geometry(hwnd)!=geometry:
-                    raise ValueError("Game window changed before cursor parking")
-                if self.user.SendInput(1,inputs,c.sizeof(Input))!=1:raise OSError("Cursor movement failed")
-            for index in range(count):
-                if index:
-                    time.sleep(.08)  # Let the game process selection before the discard.
+            def check_window():
                 if self._foreground() != hwnd:
                     raise ValueError("Foreground changed before click")
                 if self._client_geometry(hwnd) != geometry:
                     raise ValueError("Game window moved or resized before click; rebuild the plan")
-                sent = self.user.SendInput(3, inputs, c.sizeof(Input))
-                if sent != 3:
-                    # Ensure a partially delivered press cannot leave the button held.
-                    release = Input()
-                    release.data.mouse.dwFlags = 4
-                    self.user.SendInput(1, c.byref(release), c.sizeof(Input))
+
+            def send(flags):
+                event = Input()
+                event.data.mouse = Mouse(ax, ay, 0, flags, 0, 0)
+                if self.user.SendInput(1, c.byref(event), c.sizeof(Input)) != 1:
                     raise OSError("Mouse input was not fully delivered; do not retry")
+
+            move = 0x8000 | 0x4000 | 1
+            if count == 0:
+                check_window()
+                send(move)
+                return
+            for index in range(count):
+                check_window()
+                send(move)
+                # Give the client a frame at the target before pressing. A
+                # single SendInput batch can collapse down/up into one frame.
+                time.sleep(.04)
+                check_window()
+                release_needed = True
+                try:
+                    send(move | 2)
+                    time.sleep(.08)
+                    check_window()
+                    send(4)
+                    release_needed = False
+                finally:
+                    if release_needed:
+                        # Always release an uncertain/held button, even after
+                        # focus loss. Never retry the actual click.
+                        try: send(4)
+                        except OSError: pass
+                # Keep the cursor at the target while the release is consumed.
+                # Otherwise the caller's immediate park can steal the click.
+                time.sleep(.08)
         finally:
             self.user.SetThreadDpiAwarenessContext(previous)

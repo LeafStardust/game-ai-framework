@@ -67,7 +67,7 @@ def backend(monkeypatch, *, change=None, partial=False):
     mouse.user.GetSystemMetrics = Function(lambda key: {76:0,77:0,78:1920,79:1080}[key])
     def send(count, values, size):
         batches.append([values[i].data.mouse.dwFlags for i in range(count)] if not hasattr(values,"_obj") else [values._obj.data.mouse.dwFlags])
-        return 2 if partial and count == 3 else count
+        return 0 if partial and batches[-1] == [0xC003] else count
     mouse.user.SendInput = Function(send)
     mouse._client_geometry = lambda hwnd: {**geometry, "left": 5} if moved[0] and change == "move" else dict(geometry)
     def pause(seconds):
@@ -80,8 +80,8 @@ def backend(monkeypatch, *, change=None, partial=False):
 def test_native_double_click_sends_two_presses_with_short_interval(monkeypatch):
     mouse, batches, delays = backend(monkeypatch)
     mouse.double_click(.2, .9, 1920, 1080)
-    assert batches == [[0xC001, 2, 4], [0xC001, 2, 4]]
-    assert delays == [.08]
+    assert batches == [[0xC001], [0xC003], [4]] * 2
+    assert delays == [.04, .08, .08] * 2
 
 
 @pytest.mark.parametrize("change", ["move", "focus"])
@@ -94,8 +94,8 @@ def test_native_double_click_stops_if_window_changes_between_clicks(monkeypatch,
 def test_native_partial_double_click_releases_and_stops(monkeypatch):
     mouse, batches, delays = backend(monkeypatch, partial=True)
     with pytest.raises(OSError): mouse.double_click(.2, .9, 1920, 1080)
-    assert batches == [[0xC001, 2, 4], [4]]
-    assert delays == []
+    assert batches == [[0xC001], [0xC003], [4]]
+    assert delays == [.04]
 
 
 def test_module_cli_uses_canonical_plan_type_before_controller_submit(tmp_path):

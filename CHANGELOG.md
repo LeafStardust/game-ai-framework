@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Changed native Mahjong clicks from one instantaneous move/down/up batch to frame-spaced move, hold and release with cursor dwell before parking; added release-on-interruption coverage and recorded input-backend hashes. Live game acceptance remains to be checked by the user.
+
 - Fixed bundled Mahjong startup waiting on the Windows virtual-environment wrapper PID instead of the capture worker: readiness now matches an inherited per-launch token.
 
 - Removed automatic ATK call suppression; wired closed/open/added kan and exact multi-choice Chi/Pon/kan continuation, with visible tile binding, one reserved input step, recorded diagnostics and server confirmation. Real-panel visual validation remains pending.
