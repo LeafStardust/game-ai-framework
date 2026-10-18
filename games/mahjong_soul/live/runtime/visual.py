@@ -151,8 +151,21 @@ class TileVision:
                     tile,value,alignment=self.align_tile(rgb,round(x*1919),round(y*1079),str(original))
                     samples[index]=value
                 except ValueError as error:
-                    self.last_diagnostics["slots"].append({"slot":index,"nearest":self.scores(value)[:3],"error":str(error)})
-                    raise ValueError(f"Slot {index}: {error}") from error
+                    # Kuikae restrictions dim forbidden tiles after Chi/Pon.
+                    # Normalize only when the independently read glyph agrees
+                    # with an explicit server restriction; never guess a tile.
+                    background=sorted(value)[int(len(value)*.95)]
+                    forbidden=profile.get("forbidden_tiles",[])
+                    try:
+                        if not forbidden or not 100<=background<185:raise ValueError(str(error))
+                        normalized=bytes(min(255,round(v*222/background)) for v in value)
+                        tile=self.classify(normalized)
+                        kind="5"+tile[1:] if tile.startswith("0") else tile
+                        if kind not in {"5"+t[1:] if t.startswith("0") else t for t in forbidden}:
+                            raise ValueError("Dimmed tile is not forbidden by the server")
+                    except ValueError as dim_error:
+                        self.last_diagnostics["slots"].append({"slot":index,"nearest":self.scores(value)[:3],"error":str(dim_error)})
+                        raise ValueError(f"Slot {index}: {dim_error}") from dim_error
             tiles.append(tile);self.last_diagnostics["slots"].append({"slot":index,"tile":tile,"sampling_offset":list(alignment)})
         if Counter(tiles) != Counter(expected): raise ValueError("Visible hand differs from reader")
         return tiles, samples

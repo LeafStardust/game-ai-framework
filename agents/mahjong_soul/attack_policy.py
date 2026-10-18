@@ -134,6 +134,12 @@ def _call_options(request,book,ranker,diagnostics=None):
             if reason:rejections[reason]+=1;continue
             if before_value and before_value["dama_ukeire"]>0 and profile and profile["dama_points"]<before_value["dama_points"]:
                 rejections["reduces_ready_hand_value"]+=1;continue
+            if (before_value and before_value["dama_ukeire"]>0 and profile
+                    and profile["dama_points"]<=before_value["dama_points"]
+                    and profile["dama_ukeire"]<=before_value["dama_ukeire"]
+                    and profile["tsumo_points"]<=before_value["tsumo_points"]
+                    and profile["tsumo_ukeire"]<=before_value["tsumo_ukeire"]):
+                rejections["no_ready_hand_improvement"]+=1;continue
             viable.append(option)
         if diagnostics is not None:
             diagnostics.append({"action":deepcopy(action),"accepted":bool(viable),"baseline_shanten":baseline,

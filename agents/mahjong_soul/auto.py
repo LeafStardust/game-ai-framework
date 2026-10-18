@@ -118,6 +118,9 @@ class AutoFollower(ShadowFollower):
         if action["kind"] == "discard": profile = discard_profile(report,(1920,1080))
         elif action["kind"]=="riichi": profile=discard_profile(report,(1920,1080))
         else: profile=None
+        if profile is not None and report.get("last_event",{}).get("name")=="ActionChiPengGang":
+            profile["forbidden_tiles"]=[tile for op in report["state"]["operations"]["operation_list"]
+                                        if op["type"]==1 for tile in op.get("combination",[])]
         first = self._frame(geometry,report,"preflight")
         if first is None: raise ValueError("Cannot capture Mahjong client")
         if action["kind"] in ("discard","riichi"):
