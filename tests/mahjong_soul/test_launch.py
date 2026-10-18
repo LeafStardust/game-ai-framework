@@ -36,7 +36,7 @@ def test_supervisor_stops_only_its_children_when_either_exits(monkeypatch,tmp_pa
     children=iter([capture,agent]);commands=[];sleeps=[]
     def popen(command,**kwargs):commands.append(command);return next(children)
     monkeypatch.setattr(launch.subprocess,"Popen",popen)
-    monkeypatch.setattr(launch,"ready",lambda path,pid:pid==101)
+    monkeypatch.setattr(launch,"ready",lambda path,pid,token:pid==101)
     def sleep(_):
         sleeps.append(1)
         if exit_source=="interrupt":raise KeyboardInterrupt
@@ -87,3 +87,11 @@ def test_package_binds_capture_and_worker_to_same_file(monkeypatch,monitor):
 
 def test_package_rejects_capture_file_override():
     with pytest.raises(SystemExit):launch.main(["--file=old-capture.jsonl"])
+
+
+def test_ready_token_accepts_windows_python_child_pid_without_accepting_other_runs(tmp_path):
+    marker=tmp_path/"capture.ready.json"
+    marker.write_text(json.dumps({"version":1,"pid":202,"launch_token":"owned-run"}),encoding="utf-8")
+    assert launch.ready(marker,101,"owned-run")
+    assert not launch.ready(marker,101,"different-run")
+    assert not launch.ready(marker,101)

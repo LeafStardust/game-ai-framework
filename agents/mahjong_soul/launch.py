@@ -9,6 +9,7 @@ import signal
 import subprocess
 import sys
 import time
+import uuid
 
 from games.mahjong_soul.live.__main__ import main as capture_main
 from games.mahjong_soul.live.runtime.session import AgentLease
@@ -30,10 +31,10 @@ def stop(process):
             process.wait()
 
 
-def ready(path, pid):
+def ready(path, pid, token=None):
     try:
         value=json.loads(path.read_text(encoding="utf-8"))
-        return value.get("version")==1 and value.get("pid")==pid
+        return value.get("version")==1 and (value.get("launch_token")==token if token is not None else value.get("pid")==pid)
     except (OSError, ValueError):
         return False
 
@@ -42,13 +43,15 @@ def supervise(command, worker, *, cwd, output, startup_timeout=120):
     capture=agent=None
     flags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name=="nt" else 0
     capture_log=output.with_suffix(".console.log")
+    token=uuid.uuid4().hex
+    environment=dict(os.environ,MAHJONG_CAPTURE_READY_TOKEN=token)
     output.parent.mkdir(parents=True,exist_ok=True)
     print("Capture log: "+str(capture_log),flush=True)
     try:
         with capture_log.open("w",encoding="utf-8") as stream:
-            capture=subprocess.Popen(command,cwd=cwd,stdout=stream,stderr=subprocess.STDOUT,creationflags=flags)
+            capture=subprocess.Popen(command,cwd=cwd,stdout=stream,stderr=subprocess.STDOUT,creationflags=flags,env=environment)
             deadline=time.monotonic()+startup_timeout
-            while not ready(output.with_suffix(".ready.json"),capture.pid):
+            while not ready(output.with_suffix(".ready.json"),capture.pid,token):
                 if capture.poll() is not None:
                     raise RuntimeError("Capture exited before startup; inspect "+str(capture_log))
                 if time.monotonic()>=deadline:

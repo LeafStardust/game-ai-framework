@@ -93,7 +93,8 @@ class MahjongSoulCapture:
             self.writer.path.touch(exist_ok=True)
             self.writer.health()
             self.writer.path.with_suffix(".ready.json").write_text(
-                json.dumps({"version":1,"pid":os.getpid(),"timestamp":time.time()}),encoding="utf-8")
+                json.dumps({"version":1,"pid":os.getpid(),"timestamp":time.time(),
+                            "launch_token":os.environ.get("MAHJONG_CAPTURE_READY_TOKEN")}),encoding="utf-8")
         async def heartbeat():
             while True:
                 try:
