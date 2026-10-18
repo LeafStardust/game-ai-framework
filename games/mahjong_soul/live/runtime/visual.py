@@ -162,7 +162,9 @@ class TileVision:
         self.last_diagnostics={"phase":"call_choices","faces":[]}
         for box in face_boxes(rgb):
             x,y,w,h=box
-            value=sample(rgb,round(x+w/2),round(y+h/2),round(w*.72),round(h*.84))
+            # Choice faces have different border insets from standing hand
+            # tiles. Fit their glyph interior to the reviewed face samples.
+            value=sample(rgb,round(x+w/2),round(y+h/2)-2,round(w*.76),round(h*.80))
             try:tile=self.classify(value)
             except ValueError as error:
                 self.last_diagnostics["faces"].append({"box":box,"nearest":self.scores(value)[:3],"error":str(error)})
