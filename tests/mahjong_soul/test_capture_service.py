@@ -76,7 +76,7 @@ def test_main_reuses_existing_capture_instead_of_reconfiguring_proxy(tmp_path,mo
     def supervise(command,worker,**kwargs):
         assert command is None
         assert worker[worker.index("--file")+1]==value["output"]
-        assert kwargs["keep_capture"] and kwargs["service"]==value
+        assert not kwargs.get("keep_capture",False) and kwargs["service"]==value
         return 0
     monkeypatch.setattr(launch,"supervise",supervise)
     assert launch.main([])==0
@@ -118,3 +118,14 @@ def test_stop_kills_only_the_owned_windows_wrapper_tree_on_timeout(monkeypatch):
     monkeypatch.setattr(launch.subprocess,"run",run)
     launch.stop(child)
     assert commands==[["taskkill","/PID","123","/T","/F"]]
+
+
+def test_default_package_stops_reused_legacy_capture_with_worker(tmp_path,monkeypatch):
+    registry,output,value=setup_service(tmp_path,monkeypatch)
+    child=Child(303);stopped=[]
+    monkeypatch.setattr(launch.subprocess,"Popen",lambda *args,**kwargs:child)
+    monkeypatch.setattr(launch,"read_service",lambda *args:value)
+    monkeypatch.setattr(launch,"stop_service",lambda path:stopped.append(path))
+    monkeypatch.setattr(launch.time,"sleep",lambda seconds:setattr(child,"returncode",0))
+    assert launch.supervise(None,["agent"],cwd=tmp_path,output=output,registry=registry,service=value)==0
+    assert stopped==[registry]

@@ -92,7 +92,10 @@ def supervise(command, worker, *, cwd, output, startup_timeout=120,
     finally:
         stop(agent)
         if not keep_capture or not capture_ready:
-            stop(capture)
+            if service is not None and capture is None and registry is not None:
+                stop_service(registry)
+            else:
+                stop(capture)
         elif capture is not None or service is not None:
             print("Agent stopped; capture remains running to preserve game connections. "
                   "Use MahjongSoulCaptureStop.bat to shut capture down explicitly.",flush=True)
@@ -127,10 +130,10 @@ def main(argv=None):
                 raise ValueError("Resident capture uses different process/port settings; stop it explicitly before changing them")
             output=Path(service["output"])
             worker[worker.index("--file")+1]=str(output)
-            return supervise(None,worker,cwd=root,output=output,keep_capture=True,registry=registry,service=service)
+            return supervise(None,worker,cwd=root,output=output,registry=registry,service=service)
         return capture_main(["--process",args.process,"--port",str(args.port),"--output",str(output)],
             run=lambda command,cwd:supervise(command,worker,cwd=cwd,output=output,startup_timeout=args.startup_timeout,
-                                                  keep_capture=True,registry=registry,process=args.process,port=args.port))
+                                                  registry=registry,process=args.process,port=args.port))
     except (OSError,ValueError,RuntimeError) as error:
         print("Mahjong package stopped: "+str(error),flush=True)
         return 1

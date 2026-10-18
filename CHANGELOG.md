@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Restored unified Mahjong package shutdown: Ctrl+C stops both player and capture, including an existing resident capture from the previous launcher. Removed the separate capture-stop batch file; proxy shutdown can still require game reconnection.
+
 - Fixed post-Riichi Ron detection using recorded declaration-button templates instead of a pink-only color rule. Made capture resident across agent/monitor restarts, with token-verified reuse and a separate explicit capture-stop launcher to avoid repeated connection teardown.
 
 - Changed native Mahjong clicks from one instantaneous move/down/up batch to frame-spaced move, hold and release with cursor dwell before parking; added release-on-interruption coverage and recorded input-backend hashes. Live game acceptance remains to be checked by the user.
