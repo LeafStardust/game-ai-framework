@@ -71,3 +71,16 @@ def test_ron_on_declaration_discard_resolves_input_without_accepting_riichi():
     assert controller.observe('game',{'name':'ActionHule','source':'live','step':2,
         'data':{'failed_liqi':{'seat':0},'hules':[{'seat':1,'hu_tile':'0p','zimo':False}]}},now=12)
     assert controller.snapshot()['status']=='idle'
+
+
+def test_duplicate_riichi_candidates_are_alternatives_not_tile_copy_requirements():
+    report,profile=offer()
+    report["state"]["hand"]=["0p","5p"]
+    profile.update(hand_count=2,slots=[[.4,.9],[.5,.9]])
+    report["state"]["operations"]["operation_list"][1]["combination"]=["0p","5p","5p","0p"]
+    plan=plan_riichi(report,profile,0,"0p",now=10)
+    assert plan.allowed_tiles==("0p","5p")
+    controller=InputController(Mouse())
+    controller.submit(plan,report,enabled=True,now=10)
+    controller.select_riichi_discard(plan,report,["0p","5p"],enabled=True,now=11)
+    assert controller.riichi_phase()=="tile_selected"

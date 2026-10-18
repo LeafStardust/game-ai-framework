@@ -222,7 +222,8 @@ def test_riichi_menu_mismatch_cannot_send_discard(monkeypatch):
 
 
 
-def test_recorded_riichi_menu_distinguishes_allowed_tiles_from_dimmed_tiles(monkeypatch):
+@pytest.mark.parametrize("duplicates",[False,True])
+def test_recorded_riichi_menu_distinguishes_allowed_tiles_from_dimmed_tiles(monkeypatch,duplicates):
     import json,base64
     from pathlib import Path
     fixture=json.loads((Path(__file__).parent/'fixtures/visual_riichi.json').read_text(encoding='utf-8'))
@@ -231,7 +232,7 @@ def test_recorded_riichi_menu_distinguishes_allowed_tiles_from_dimmed_tiles(monk
     samples=iter(values)
     monkeypatch.setattr('games.mahjong_soul.live.runtime.visual.sample',lambda *args:next(samples))
     profile={'slots':[[.5,.9]]*14}
-    tiles,_,allowed=TileVision().riichi_hand(b'frame',profile,fixture['expected'],fixture['allowed'])
+    tiles,_,allowed=TileVision().riichi_hand(b'frame',profile,fixture['expected'],fixture['allowed']*(3 if duplicates else 1))
     assert tiles==fixture['expected'] and allowed==['3p']
     samples=iter(values)
     with pytest.raises(ValueError,match='Bright Riichi'):

@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Fixed the East 3 recorded Riichi halt: duplicate server discard candidates are now normalized as alternative exact tile labels, preserving red-five identity while matching the visible allowed tiles. Verified against the failed menu screenshot.
+
 - Restored unified Mahjong package shutdown: Ctrl+C stops both player and capture, including an existing resident capture from the previous launcher. Removed the separate capture-stop batch file; proxy shutdown can still require game reconnection.
 
 - Fixed post-Riichi Ron detection using recorded declaration-button templates instead of a pink-only color rule. Made capture resident across agent/monitor restarts, with token-verified reuse and a separate explicit capture-stop launcher to avoid repeated connection teardown.

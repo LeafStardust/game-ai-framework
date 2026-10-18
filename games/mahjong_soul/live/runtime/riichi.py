@@ -25,7 +25,7 @@ def plan_riichi(report, profile, slot, tile, *, now=None):
     if not 0 < x < 1 or not 0 < y < 1:
         raise ValueError("Invalid riichi button coordinates")
     return RiichiPlan(**base.__dict__, button_x=x, button_y=y,
-                      allowed_tiles=tuple(choices[0]["combination"]))
+                      allowed_tiles=tuple(dict.fromkeys(choices[0]["combination"])))
 
 
 class RiichiExecutor(DiscardExecutor):
