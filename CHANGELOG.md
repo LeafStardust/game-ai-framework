@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Fixed the recorded Red Five Sou recognition stall with reviewed native tile references, including Red/ordinary Five Man variants; verified the held-out full hand and exact red identity without loosening recognition thresholds.
+
 - Revised four-player ATK to v0.3 around high-Han route development and always-push play: earlier value-building calls, bounded value rebuilding, threat-independent offense and diagnostic call rejection reasons; route-incompatible Dora is excluded from projected value. Balanced is unchanged.
 
 - Fixed the East 3 recorded Riichi halt: duplicate server discard candidates are now normalized as alternative exact tile labels, preserving red-five identity while matching the visible allowed tiles. Verified against the failed menu screenshot.

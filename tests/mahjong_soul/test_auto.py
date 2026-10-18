@@ -86,7 +86,7 @@ def test_rpc_and_action_events_forward_to_persistent_controller(monkeypatch):
 
 def test_visual_bank_distinguishes_every_reviewed_label_and_rejects_unknown():
     vision=TileVision()
-    assert len(set(tile for tile,_ in vision.tiles))==36
+    assert len(set(tile for tile,_ in vision.tiles))==37
     for tile,value in vision.tiles: assert vision.classify(value)==tile
     with pytest.raises(ValueError): vision.classify(bytes(648))
     with pytest.raises(ValueError): distance(b'bad',b'bad')
