@@ -102,15 +102,15 @@ def test_exact_red_call_combination_is_retained():
     assert analysis['value_han']>=2
 
 
-def test_call_does_not_destroy_already_closed_tenpai():
+def test_yakuless_closed_tenpai_can_open_for_a_legal_win():
     r=call_report('55z123m456p789s12p','5z','5z|5z')
-    assert choose(r)[0]['kind']=='skip'
+    assert choose(r)[0]['kind']=='pon'
 
 
-def test_cheap_open_tenpai_is_not_pushed_into_riichi():
+def test_open_tenpai_keeps_pushing_into_riichi():
     r=call_report('55z123m456p78s22p9m','5z','5z|5z')
     r['state']['riichi'][1]='accepted'
-    assert choose(r)[0]['kind']=='skip'
+    assert choose(r)[0]['kind']=='pon'
 
 
 def test_chi_planning_respects_called_and_swap_discard_restrictions(monkeypatch):
@@ -124,16 +124,16 @@ def test_chi_planning_respects_called_and_swap_discard_restrictions(monkeypatch)
     choose(r);assert checked
 
 
-def test_closed_kan_preserves_distance_and_waits_but_not_against_riichi():
+def test_closed_kan_preserves_distance_and_waits_even_against_riichi():
     r=report('1111m234p567p789s2z')
     r['state']['operations']['operation_list'].append({'type':4,'combination':['1m|1m|1m|1m']})
     assert choose(r)[0]['kind']=='closed_kan'
     r['state']['riichi'][1]='accepted'
-    assert choose(r)[0]['kind']=='discard'
+    assert choose(r)[0]['kind']=='closed_kan'
 
 
 def test_late_wall_and_seven_pairs_shapes_decline_kan():
-    r=report('1111m234p567p789s2z');r['state']['left_tile_count']=8
+    r=report('1111m234p567p789s2z');r['state']['left_tile_count']=4
     r['state']['operations']['operation_list'].append({'type':4,'combination':['1m|1m|1m|1m']})
     assert choose(r)[0]['kind']=='discard'
     r=report('1122m3344p5555s77z')
@@ -148,7 +148,7 @@ def test_suji_reduces_relative_danger_but_is_not_guaranteed_safe():
     assert danger(b,'4m',t)['danger']==0
 
 
-def test_defense_accounts_for_worst_opponent_not_most_genbutsu(monkeypatch):
+def test_full_attack_does_not_fold_to_multiple_opponents(monkeypatch):
     from tests.mahjong_soul.test_attack import mock_rank
     r=report('15m',melds=[{'type':1,'tiles':[str(i)+'p']*3} for i in range(2,6)])
     for seat,tile in [(1,'5m'),(2,'5m'),(3,'1m')]:
@@ -158,7 +158,7 @@ def test_defense_accounts_for_worst_opponent_not_most_genbutsu(monkeypatch):
     monkeypatch.setattr('agents.mahjong_soul.playbook_policy.rank_discards',lambda q:[
         {'action':{'kind':'discard','tile':t},'shanten':2,'ukeire':20,'improving_tiles':[]} for t in ['5m','1m']])
     action,analysis=choose(r)
-    assert action['tile']=='1m' and analysis['mode']=='fold'
+    assert action['tile']=='5m' and analysis['mode']=='attack_push'
 
 
 def test_open_value_threat_is_recognized_without_riichi():
@@ -167,11 +167,11 @@ def test_open_value_threat_is_recognized_without_riichi():
     assert threats(b)[0]['threat_kind']=='open_hand'
 
 
-def test_high_value_dama_can_decline_riichi_without_score_gain():
+def test_high_value_dama_does_not_veto_aggressive_riichi_for_small_gain():
     r=report('123m123p123s111z23s',doras=['1s','1s'])
     r['state']['operations']['operation_list'].append({'type':7,'combination':['1s']})
     action,analysis=choose(r)
-    assert action['kind']=='discard'
+    assert action['kind']=='riichi'
     assert analysis['wait_value']['dama_points']>=7700
 
 

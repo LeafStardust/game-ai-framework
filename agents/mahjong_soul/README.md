@@ -121,3 +121,8 @@ Capture now publishes an atomic `.jsonl.health.json` heartbeat containing its op
 One controller serializes all stages and verifies matching live server actions or correlated Skip cancellation. Partial delivery, contradictory own action, lost game state and confirmation timeout stop further input. A sent line reports delivery attempt, not acceptance. Unsupported resolutions remain blocked. Opening an AI room and launching the game are still user steps; no computer-use clicks are part of the playing loop.
 
 Offline tests cover the native action paths, staged Riichi acceptance and mismatch refusal, post-Riichi legality, recording failures, single-agent locking, cursor parking and idle-capture proof. Live full-match validation remains required before calling the runner unattended-ready.
+
+
+## Current ATK style: v0.3
+
+The four-player ATK policy pursues projected high-Han routes and keeps pushing through danger. Earlier Chi/Pon can develop value from up to three-Shanten; high-value rebuilding can trade one Shanten for two additional projected Han with enough wall. Opponent threats no longer trigger folding or block an otherwise viable call/Kan. The same playbook drives the monitor and automatic player. Full details and limits are in [ATK.md](../../games/mahjong_soul/playbook/yonma/ATK.md). Planning targets are estimates, not guaranteed Han; recorded call evaluations explain why an offered call was taken or skipped. This behavior revision is not a demonstrated win-rate improvement.

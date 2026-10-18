@@ -4,6 +4,8 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+- Revised four-player ATK to v0.3 around high-Han route development and always-push play: earlier value-building calls, bounded value rebuilding, threat-independent offense and diagnostic call rejection reasons; route-incompatible Dora is excluded from projected value. Balanced is unchanged.
+
 - Fixed the East 3 recorded Riichi halt: duplicate server discard candidates are now normalized as alternative exact tile labels, preserving red-five identity while matching the visible allowed tiles. Verified against the failed menu screenshot.
 
 - Restored unified Mahjong package shutdown: Ctrl+C stops both player and capture, including an existing resident capture from the previous launcher. Removed the separate capture-stop batch file; proxy shutdown can still require game reconnection.

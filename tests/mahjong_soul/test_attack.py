@@ -38,13 +38,15 @@ def test_only_four_player_atk_is_registered_and_balanced_still_resolves():
     with pytest.raises(LookupError):decide(PlaybookPolicy(style="atk"),report,lambda:report)
 
 
-def test_attack_keeps_dora_with_bounded_ukeire_cost_but_never_extra_shanten(monkeypatch):
+def test_attack_keeps_dora_with_larger_ukeire_cost_without_rebuilding_for_just_one_han(monkeypatch):
     report=board();report["state"]["doras"]=["9m"]  # Dora is 1 Man.
+    # Mixed fixed suits prevent a flush target that must shed this Dora.
+    report["state"]["melds"][0][0]["tiles"]=["3s"]*3
     mock_rank(monkeypatch,distance=1,ukeire=(20,17))
     assert decide(PlaybookPolicy(),report,lambda:report)["action"]["tile"] == "1m"
     assert decide(PlaybookPolicy(style="atk"),report,lambda:report)["action"]["tile"] == "2m"
     mock_rank(monkeypatch,distance=1,ukeire=(20,13))
-    assert decide(PlaybookPolicy(style="atk"),report,lambda:report)["action"]["tile"] == "1m"
+    assert decide(PlaybookPolicy(style="atk"),report,lambda:report)["action"]["tile"] == "2m"
     mock_rank(monkeypatch,distance=1,ukeire=(20,100),second_distance=2)
     assert decide(PlaybookPolicy(style="atk"),report,lambda:report)["action"]["tile"] == "1m"
 
@@ -63,7 +65,7 @@ def test_attack_pushes_value_with_yakuhai_route_but_balanced_folds(monkeypatch):
 
 
 @pytest.mark.parametrize("block",["low_value","no_yaku_route","late_wall","two_threats","distant"])
-def test_attack_does_not_blindly_push(block,monkeypatch):
+def test_attack_keeps_pushing_instead_of_switching_to_defense(block,monkeypatch):
     report=board();threat(report);report["state"]["doras"]=["2p"]
     report["state"]["melds"][0][1]["tiles"]=["5z"]*3
     distance=2
@@ -77,7 +79,7 @@ def test_attack_does_not_blindly_push(block,monkeypatch):
     mock_rank(monkeypatch,distance=distance)
     policy=PlaybookPolicy(style="atk")
     assert decide(policy,report,lambda:report)["action"]["tile"]=="2m"
-    assert policy.last_analysis["mode"]=="fold"
+    assert policy.last_analysis["mode"]=="attack_push"
 
 
 def closed_riichi_report(report):
@@ -104,7 +106,7 @@ def test_attack_counter_riichi_constraints(block,monkeypatch):
     if block=="two_threats":threat(report,2)
     mock_rank(monkeypatch,distance=0,ukeire=(wait,4))
     report["state"]["operations"]["operation_list"].append({"type":7,"combination":["1m"]})
-    assert decide(PlaybookPolicy(style="atk"),report,lambda:report)["action"]["kind"]=="discard"
+    assert decide(PlaybookPolicy(style="atk"),report,lambda:report)["action"]["kind"]==("discard" if block in ("furiten","unknown_furiten") else "riichi")
 
 
 def test_attack_still_takes_offered_wins_first():
