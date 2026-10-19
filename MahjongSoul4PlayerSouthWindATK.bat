@@ -5,5 +5,5 @@ if not exist ".venv\Scripts\python.exe" (
     echo Run MahjongSoulSetup.bat first.
     exit /b 1
 )
-".venv\Scripts\python.exe" -u -m agents.mahjong_soul.launch %*
+".venv\Scripts\python.exe" -u -m agents.mahjong_soul.launch --playstyle atk %*
 exit /b %errorlevel%
