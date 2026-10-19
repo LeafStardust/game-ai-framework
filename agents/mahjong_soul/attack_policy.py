@@ -26,6 +26,7 @@ def enrich(board,options,settings=None):
         option["shape_shanten"]=option["shanten"]
         targets=[]
         for target in project_attack(board,hand,option["retained_bonus"],all_targets=True):
+            if settings.get("speed_first") and str(target["target_route"]).startswith("yakuman_"):continue
             if option["opened"] and not target["open_route"]:continue
             if "pattern_shanten" in target and targets and target["pattern_shanten"]>min(item[1] for item in targets):continue
             distance,improving=route_progress(board,hand,target)
@@ -36,7 +37,10 @@ def enrich(board,options,settings=None):
         # Value competes between routes that can actually win equally soon.
         # Do not advertise generic one-Shanten speed for a three-Shanten flush.
         practical=[item for item in targets if item[1]==nearest]
-        target,distance,improving=max(practical or targets,key=lambda item:(
+        if settings.get("speed_first"):
+            target,distance,improving=max(practical or targets,key=lambda item:(sum(t["unseen"] for t in item[2]),item[0]["projected_han"]))
+        else:
+            target,distance,improving=max(practical or targets,key=lambda item:(
             item[0]["projected_han"]*settings["han_weight"]-item[1]*settings["shanten_cost"]-item[0]["route_cost"]*settings["route_cost_weight"]
             +math.sqrt(sum(t["unseen"] for t in item[2]))*settings["ukeire_weight"]
             +(6 if settings.get("preferred_plan")== (item[0]["target_route"],item[0].get("target_suit") or item[0].get("yakuman_suit")) else 0),-item[1]))
@@ -81,6 +85,9 @@ def attack_utility(option,settings):
 
 
 def offensive(board,options,value):
+    if value.get("speed_first"):
+        return max(options,key=lambda o:(-o["shanten"],o["effective_ukeire"],-o.get("danger",0),
+                                         -o.get("total_danger",0),o["projected_han"],attack_utility(o,value)))
     distance=min(o["shanten"] for o in options)
     if distance==0 and not any(o["effective_ukeire"]>0 for o in options if o["shanten"]==0):
         productive=[o["shanten"] for o in options if o["effective_ukeire"]>0]
@@ -166,8 +173,14 @@ def _call_options(request,book,ranker,diagnostics=None,value=None):
                 enables_ron=profile and before_value and before_value["dama_ukeire"]==0 and profile["dama_ukeire"]>0
                 if not enables_ron and option["effective_ukeire"]<math.ceil(before_draws*settings.get("minimum_ukeire_fraction",0)):
                     reason="call_reduces_winning_chances"
+            if not reason and value.get("speed_first"):
+                if option["shanten"]>baseline:reason="call_loses_speed"
+                elif opponents and not may_push(option,opponents,board.get("wall_remaining"),book.thresholds_for("D2")):reason="call_requires_unsafe_push"
+            if not reason and value.get("speed_first") and option["shanten"]==baseline:
+                enables_ron=profile and before_value and before_value["dama_ukeire"]==0 and profile["dama_ukeire"]>0
+                if not enables_ron and option["effective_ukeire"]<=draw_ukeire(board,hand,fixed):reason="no_speed_gain"
             if reason:rejections[reason]+=1;continue
-            if before_value and before_value["dama_ukeire"]>0 and profile and profile["dama_points"]<before_value["dama_points"]:
+            if not value.get("speed_first") and before_value and before_value["dama_ukeire"]>0 and profile and profile["dama_points"]<before_value["dama_points"]:
                 rejections["reduces_ready_hand_value"]+=1;continue
             if (before_value and before_value["dama_ukeire"]>0 and profile
                     and profile["dama_points"]<=before_value["dama_points"]
@@ -184,6 +197,8 @@ def _call_options(request,book,ranker,diagnostics=None,value=None):
             best=offensive(simulated,viable,value)
             candidates.append((action,best))
     if not candidates:return None
+    if value.get("speed_first"):
+        return max(candidates,key=lambda x:(-x[1]["shanten"],x[1]["effective_ukeire"],-x[1]["danger"],x[1]["projected_han"]))
     return max(candidates,key=lambda x:(attack_utility(x[1],value),-x[1]["shanten"],x[1]["effective_ukeire"],str(x[0])))
 
 
@@ -250,7 +265,7 @@ def choose_attack(owner,request,book,ranker=rank_discards):
     discard_notes=[]
     value=book.thresholds_for("D1");value["preferred_plan"]=previous_plan
     def finish(action,mode,option=None,**detail):
-        owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"atk","mode":mode,"call_evaluations":deepcopy(call_notes),"discard_evaluations":deepcopy(discard_notes),**detail}
+        owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"speed" if value.get("speed_first") else "atk","mode":mode,"call_evaluations":deepcopy(call_notes),"discard_evaluations":deepcopy(discard_notes),**detail}
         owner.last_analysis["hand_plan"]=remember(owner,option)
         from agents.mahjong_soul.scoring import nagashi_eligible
         owner.last_analysis["nagashi_candidate"]=nagashi_eligible(board)

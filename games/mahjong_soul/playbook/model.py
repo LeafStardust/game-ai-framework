@@ -61,4 +61,6 @@ def default_mahjong_playbooks():
             "riichi":{"enabled":True,"allow_under_riichi_threat":False}}))
     from games.mahjong_soul.playbook.yonma.atk import attack_playbook
     registry.register(attack_playbook())
+    from games.mahjong_soul.playbook.yonma.east import east_playbook
+    registry.register(east_playbook())
     return registry
