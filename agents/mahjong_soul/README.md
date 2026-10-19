@@ -1,6 +1,6 @@
 # Mahjong Soul policy integration
 
-For 4 Player South Wind ATK v0.7 manual suggestions, use `.\MahjongSoulSuggest.bat`. It prints recommended actions only. See [the ATK review](../../games/mahjong_soul/playbook/yonma/ATK.md) for value, yaku, calls, Riichi and defense behavior.
+For 4 Player South Wind ATK v0.8 manual suggestions, use `.\MahjongSoulSuggest.bat`. It prints recommended actions only. See [the ATK review](../../games/mahjong_soul/playbook/yonma/ATK.md) for value, yaku, calls, Riichi and defense behavior.
 
 For tile codes and terminal vocabulary, see [the terms reference](../../games/mahjong_soul/TERMS.md).
 
@@ -125,4 +125,4 @@ Offline tests cover the native action paths, staged Riichi acceptance and mismat
 
 ## Current ATK style: v0.3
 
-The 4 Player South Wind ATK policy pursues projected high-Han routes and keeps pushing through danger. Earlier Chi/Pon can develop value from up to three-Shanten; high-value rebuilding can trade one Shanten for two additional projected Han with enough wall. Opponent threats no longer trigger folding or block an otherwise viable call/Kan. The same playbook drives the monitor and automatic player. Full details and limits are in [ATK.md](../../games/mahjong_soul/playbook/yonma/ATK.md). Planning targets are estimates, not guaranteed Han; recorded call evaluations explain why an offered call was taken or skipped. This behavior revision is not a demonstrated win-rate improvement.
+The 4 Player South Wind ATK policy pursues projected high-Han routes and keeps pushing through danger. Earlier Chi/Pon can develop value from up to three-Shanten; value choices preserve actual scoring progress and at least 70% of available improving copies. Opponent threats no longer trigger folding or block an otherwise viable call/Kan. The same playbook drives the monitor and automatic player. Full details and limits are in [ATK.md](../../games/mahjong_soul/playbook/yonma/ATK.md). Planning targets are estimates, not guaranteed Han; recorded call evaluations explain why an offered call was taken or skipped. This behavior revision is not a demonstrated win-rate improvement.

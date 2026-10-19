@@ -24,10 +24,10 @@ def test_value_pon_builds_reachable_yakuhai_even_through_multiple_threats(threat
     assert analysis["projected_han"]==3 and analysis["target_route"]=="yakuhai"
 
 
-def test_yakuhai_pon_supports_honitsu_value():
+def test_yakuhai_pon_does_not_trade_useful_draws_for_remote_honitsu():
     action,analysis=choose(call_report("55z123456m22m89p1z","5z","5z|5z"))
-    assert action["kind"]=="pon" and analysis["target_route"]=="honitsu"
-    assert analysis["projected_han"]>=3
+    assert action["kind"]=="skip"
+    assert analysis["call_evaluations"][0]["rejections"]["call_reduces_winning_chances"]>0
 
 
 def test_dora_alone_still_does_not_make_an_open_yaku():
@@ -58,12 +58,13 @@ def test_dead_value_honor_pair_does_not_become_a_yakuhai_target():
     assert project_attack(b,b["self"]["hand"])["target_route"]!="yakuhai"
 
 
-def test_targeting_value_can_accept_one_extra_shanten_with_wall_but_not_late():
+def test_optional_rebuilding_can_accept_extra_shanten_when_explicitly_enabled():
     b=board("123m456p789s11z99p2z")
     settings=default_mahjong_playbooks().get(4,"atk").thresholds_for("D1")
     def option(tile,distance,han,cost):
         return {"action":{"kind":"discard","tile":tile},"shanten":distance,"effective_ukeire":8,
                 "projected_han":han,"route_cost":cost,"wait_value":None,"dora_loss":0,"pair_break_loss":0}
+    settings["allow_value_rebuild"]=True
     fast=option("1z",0,2,0);valuable=option("9p",1,5,1)
     assert offensive(b,[fast,valuable],settings) is valuable
     b["wall_remaining"]=10
@@ -84,10 +85,10 @@ def test_tanyao_target_drops_terminal_dora_but_keeps_compatible_red_bonus():
     assert target["target_route"]=="tanyao" and target["projected_han"]==2
 
 
-def test_chi_can_build_a_future_honitsu_and_yakuhai_hand_before_tenpai():
+def test_chi_does_not_sacrifice_most_draws_for_speculative_honitsu():
     action,analysis=choose(call_report("23m456789m55z12p9s","1m","2m|3m",2))
-    assert action["kind"]=="chi"
-    assert analysis["target_route"]=="honitsu" and analysis["projected_han"]>=3
+    assert action["kind"]=="skip"
+    assert analysis["call_evaluations"][0]["rejections"]["call_reduces_winning_chances"]>0
 
 
 def test_recorded_east_four_pon_does_not_trade_closed_sequences_for_remote_toitoi():

@@ -38,7 +38,7 @@ def test_only_four_player_atk_is_registered_and_balanced_still_resolves():
     with pytest.raises(LookupError):decide(PlaybookPolicy(style="atk"),report,lambda:report)
 
 
-def test_attack_keeps_dora_with_larger_ukeire_cost_without_rebuilding_for_just_one_han(monkeypatch):
+def test_attack_recomputes_real_route_progress_instead_of_trusting_mocked_distance(monkeypatch):
     report=board();report["state"]["doras"]=["9m"]  # Dora is 1 Man.
     # Mixed fixed suits prevent a flush target that must shed this Dora.
     report["state"]["melds"][0][0]["tiles"]=["3s"]*3
@@ -48,7 +48,7 @@ def test_attack_keeps_dora_with_larger_ukeire_cost_without_rebuilding_for_just_o
     mock_rank(monkeypatch,distance=1,ukeire=(20,13))
     assert decide(PlaybookPolicy(style="atk"),report,lambda:report)["action"]["tile"] == "2m"
     mock_rank(monkeypatch,distance=1,ukeire=(20,100),second_distance=2)
-    assert decide(PlaybookPolicy(style="atk"),report,lambda:report)["action"]["tile"] == "1m"
+    assert decide(PlaybookPolicy(style="atk"),report,lambda:report)["action"]["tile"] == "2m"
 
 
 def test_attack_pushes_value_with_yakuhai_route_but_balanced_folds(monkeypatch):
@@ -59,8 +59,10 @@ def test_attack_pushes_value_with_yakuhai_route_but_balanced_folds(monkeypatch):
     mock_rank(monkeypatch,distance=2,ukeire=(20,19))
     assert decide(PlaybookPolicy(),report,lambda:report)["action"]["tile"] == "2m"
     policy=PlaybookPolicy(style="atk")
-    assert decide(policy,report,lambda:report)["action"]["tile"] == "1m"
+    action=decide(policy,report,lambda:report)["action"]
     assert policy.last_analysis["mode"] == "attack_push"
+    no_threat=deepcopy(report);no_threat["state"]["riichi"][1]="none"
+    assert decide(PlaybookPolicy(style="atk"),no_threat,lambda:no_threat)["action"]==action
     assert policy.last_analysis["retained_value_proxy"] >= 3
 
 

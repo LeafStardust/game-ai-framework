@@ -80,6 +80,10 @@ class TileVision:
                       for kind,entry in calls["buttons"].items()}
         if not {"chi","pon"} <= set(self.calls) <= {"chi","pon","kan"} or any(len(v)!=648 for v in self.calls.values()):
             raise ValueError("Invalid call button samples")
+        self.call_variants={kind:[base64.b64decode(v,validate=True) for v in entry.get("alternates",[])]
+                            for kind,entry in calls["buttons"].items()}
+        if any(len(v)!=648 for entries in self.call_variants.values() for v in entries):
+            raise ValueError("Invalid call button variant samples")
         declarations=json.loads(Path(__file__).with_name("declaration_samples.json").read_text(encoding="utf-8"))
         if declarations.get("version")!=1 or declarations.get("client_size")!=[1920,1080]:
             raise ValueError("Unsupported declaration sample bank")
@@ -238,7 +242,7 @@ class TileVision:
             matches=[]
             for x in (1290,1020,750,480):
                 value=sample(rgb,x,835,220,110)
-                if distance(value,reference)<=10:matches.append((x,835,value))
+                if min(distance(value,r) for r in [reference]+self.call_variants.get(kind,[]))<=10:matches.append((x,835,value))
             if len(matches)!=1:raise ValueError(f"{kind.title()} button not uniquely visible")
             return matches[0]
         matches=[]

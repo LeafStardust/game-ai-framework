@@ -23,22 +23,24 @@ def enrich(board,options,settings=None):
         option.update(project_attack(board,hand,option["retained_bonus"],preferred=settings.get("preferred_plan")))
         # An open hand must progress toward its scoring route, not toward
         # a faster sequence shape that has no Yaku.
-        if (option["opened"] and not option["open_yaku"]) or str(option["target_route"]).startswith("yakuman_"):
-            option["shape_shanten"]=option["shanten"]
-            targets=[]
-            for target in project_attack(board,hand,option["retained_bonus"],all_targets=True):
-                if not target["open_route"] and not str(target["target_route"]).startswith("yakuman_"):continue
-                distance,improving=route_progress(board,hand,target)
-                targets.append((target,distance,improving))
-            if not targets:
-                targets=[(option,8,[])]
-            practical=[item for item in targets if item[1]<=3]
-            target,distance,improving=max(practical or targets,key=lambda item:(
-                item[0]["projected_han"]*settings["han_weight"]-item[1]*settings["shanten_cost"]-item[0]["route_cost"]*settings["route_cost_weight"]
-                +math.sqrt(sum(t["unseen"] for t in item[2]))*settings["ukeire_weight"]
-                +(6 if settings.get("preferred_plan")== (item[0]["target_route"],item[0].get("target_suit") or item[0].get("yakuman_suit")) else 0),-item[1]))
-            option.update(target);option["shanten"]=distance;option["improving_tiles"]=improving
-            option["ukeire"]=sum(t["unseen"] for t in improving)
+        option["shape_shanten"]=option["shanten"]
+        targets=[]
+        for target in project_attack(board,hand,option["retained_bonus"],all_targets=True):
+            if option["opened"] and not target["open_route"]:continue
+            distance,improving=route_progress(board,hand,target)
+            targets.append((target,distance,improving))
+        if not targets:
+            targets=[(option,8,[])]
+        nearest=min(item[1] for item in targets)
+        # Value competes between routes that can actually win equally soon.
+        # Do not advertise generic one-Shanten speed for a three-Shanten flush.
+        practical=[item for item in targets if item[1]==nearest]
+        target,distance,improving=max(practical or targets,key=lambda item:(
+            item[0]["projected_han"]*settings["han_weight"]-item[1]*settings["shanten_cost"]-item[0]["route_cost"]*settings["route_cost_weight"]
+            +math.sqrt(sum(t["unseen"] for t in item[2]))*settings["ukeire_weight"]
+            +(6 if settings.get("preferred_plan")== (item[0]["target_route"],item[0].get("target_suit") or item[0].get("yakuman_suit")) else 0),-item[1]))
+        option.update(target);option["shanten"]=distance;option["improving_tiles"]=improving
+        option["ukeire"]=sum(t["unseen"] for t in improving)
         option["push_value_estimate"]=option["value_han"]+int(not option["opened"])+max(0,max(option["yaku_potential"].values(),default=0)-option["route_han"])
         operations=(board.get("available_operations") or {}).get("operation_list",[])
         option["riichi_offered"]=any(o.get("type")==7 and tile in o.get("combination",[]) for o in operations)
@@ -73,11 +75,11 @@ def offensive(board,options,value):
         productive=[o["shanten"] for o in options if o["effective_ukeire"]>0]
         if productive:distance=min(productive)
     maximum=max(o["effective_ukeire"] for o in options if o["shanten"]==distance)
-    candidates=[o for o in options if o["shanten"]==distance and o["effective_ukeire"]>=maximum-value["max_ukeire_sacrifice"]
+    candidates=[o for o in options if o["shanten"]==distance and o["effective_ukeire"]>=max(maximum-value["max_ukeire_sacrifice"],math.ceil(maximum*value.get("minimum_ukeire_fraction",0)))
                 and (o["effective_ukeire"]>0 or maximum==0)]
     best_han=max(o["projected_han"] for o in candidates)
     wall=board.get("wall_remaining")
-    if type(wall) is int and wall>=value["value_rebuild_min_wall"]:
+    if value.get("allow_value_rebuild",True) and type(wall) is int and wall>=value["value_rebuild_min_wall"]:
         candidates += [o for o in options if o["shanten"]==distance+1 and o["effective_ukeire"]>0
                        and o["projected_han"]>=best_han+value["value_rebuild_han_gain"]]
     return max(candidates,key=lambda o:(attack_utility(o,value),-o["shanten"],o["effective_ukeire"],
@@ -148,6 +150,11 @@ def _call_options(request,book,ranker,diagnostics=None,value=None):
                             and option["projected_han"]>=before_target["projected_han"]-1
                             and option["route_cost"]<=3)
                 if not enables_ron and not value_gain:reason="no_progress_or_value_gain"
+            if not reason and option["shanten"]==baseline:
+                before_draws=draw_ukeire(board,hand,fixed)
+                enables_ron=profile and before_value and before_value["dama_ukeire"]==0 and profile["dama_ukeire"]>0
+                if not enables_ron and option["effective_ukeire"]<math.ceil(before_draws*settings.get("minimum_ukeire_fraction",0)):
+                    reason="call_reduces_winning_chances"
             if reason:rejections[reason]+=1;continue
             if before_value and before_value["dama_ukeire"]>0 and profile and profile["dama_points"]<before_value["dama_points"]:
                 rejections["reduces_ready_hand_value"]+=1;continue

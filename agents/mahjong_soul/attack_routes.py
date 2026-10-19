@@ -1,7 +1,7 @@
 """Reachable offensive targets, not promised Han or hidden-tile expectations."""
 from collections import Counter
 from functools import lru_cache
-from agents.mahjong_soul.efficiency import KINDS,counts34
+from agents.mahjong_soul.efficiency import KINDS,counts34,shanten
 from agents.mahjong_soul.attack_value import own_player
 from games.mahjong_soul.live.runtime.kan import tile_kind
 from games.mahjong_soul.playbook.features import value_honors,dora_kind
@@ -110,6 +110,7 @@ def _regular_distance(counts,fixed):
     Unlike length-inferred library Shanten, route-incompatible tiles may be
     removed without accidentally treating their empty slots as open melds.
     """
+    @lru_cache(maxsize=8000)
     def search(values,melds,tatsu,pair):
         i=next((i for i,n in enumerate(values) if n),None)
         if i is None:return 8-2*(fixed+melds)-min(tatsu,4-fixed-melds)-pair
@@ -170,7 +171,12 @@ def route_progress(board,hand,target):
     else:allowed=lambda t:True
     def distance(values):
         filtered=tuple(n if allowed(t) else 0 for t,n in zip(KINDS,values))
+        if route=="riichi":return shanten(values,fixed)
+        if route=="chiitoitsu":return 6-sum(n>=2 for n in values)+max(0,7-sum(n>0 for n in values))
         if route=="yakuhai":
+            all_counts=Counter({t:n for t,n in zip(KINDS,values)})
+            all_counts.update(tile_kind(t) for m in melds for t in m["tiles"])
+            if any(all_counts[t]>=3 for t in value_honors(board)):return _regular_distance(filtered,fixed)
             choices=[]
             for t in value_honors(board):
                 i=KINDS.index(t)

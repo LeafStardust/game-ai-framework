@@ -28,7 +28,7 @@ def test_recorded_equal_value_calls_do_not_shrink_honitsu_wait(monkeypatch):
     f=fixture(monkeypatch)
     action,analysis=choose(f["calls"][0])
     assert action["kind"]=="skip"
-    assert any(n["rejections"].get("no_ready_hand_improvement",0) for n in analysis["call_evaluations"])
+    assert any(n["rejections"].get("no_ready_hand_improvement",0) or n["rejections"].get("call_reduces_winning_chances",0) for n in analysis["call_evaluations"])
     # After the actual timeout discarded 3 Man, a later Chi restored Tenpai.
     # That recovery call is useful and must remain allowed.
     assert choose(f["calls"][1])[0]["kind"]=="chi"

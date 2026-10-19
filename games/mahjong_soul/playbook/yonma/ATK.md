@@ -1,4 +1,4 @@
-# 4 Player South Wind ATK v0.7
+# 4 Player South Wind ATK v0.8
 
 ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered playbook name is `4 Player South Wind ATK`, intended for four-player South matches (Hanchan). Both the automatic player and suggestion monitor use these settings. The label describes its intended match format; it does not enforce the room length.
 
@@ -13,7 +13,7 @@ The discard ranking weighs projected Han, scored tenpai value, Shanten, availabl
 
 **Projected Han is a planning estimate, not scored Han or a guaranteed completion.** Exact scoring is still performed only for tenpai hands. No unseen Ura Dora, future Kan Dora, Ippatsu or favorable replacement tile is invented. Dora alone does not provide a Yaku.
 
-At the best available Shanten, the policy can sacrifice up to fourteen improving copies to preserve/build value. With at least twenty-four wall tiles, it can accept one additional Shanten for at least two extra projected Han, provided the alternative still has improving copies. It does not choose an exhausted target over a productive alternative just for its advertised value.
+The policy prioritizes the fastest actual supported scoring route, then value among those candidates. Closed hands use route-compatible distance and improving tiles as well as open hands. A distant flush or Toitoi target cannot borrow generic one-Shanten speed. At the best actual scoring distance, value choices must retain at least 70% of the best available improving copies (and lose no more than fourteen). Value-only Shanten rebuilding is disabled. The policy does not deliberately step away from Tenpai to chase projected Han.
 
 Open hands without an existing Yaku evaluate the actual shape distance and improving tiles for each supported scoring route. Tanyao excludes terminals and honors; flush routes exclude off-suit tiles; Toitoi counts triplet development; future Yakuhai reserves the needed honor triplet. The policy compares these reachable routes instead of borrowing generic sequence speed for a speculative high-Han target. Discards that destroy the last supported Yaku route receive no productive route credit. These remain heuristics, not a complete search of every Yaku or expected value.
 
@@ -52,3 +52,8 @@ The policy retains a route and its suit for the current hand, including through 
 At Tenpai, available-copy-weighted Han from actual scored legal waits replaces the speculative target Han in discard/call valuation. A distant flush or Toitoi target cannot inflate a different completed shape. The policy can prefer a higher-value Dama alternative over a lower-value offered Riichi. Known point values remain part of ranking. This does not predict hidden Ura Dora, Ippatsu or opponents' tile probabilities.
 
 Exposed Chi melds can now prove Sanshoku or Ittsu as legal Yaku routes; loose concealed rank presence alone is not treated as proof. Prospective planning still does not cover every Yaku, and the continuity preference is not a full expected-value search. The opening-only Yakuman gate and always-push behavior remain active.
+
+
+## Winning-progress correction (v0.8)
+
+Same-Shanten calls must retain at least 70% of the pre-call improving copies, unless they enable legal Ron from a previously Yakuless ready hand. This is a visible-copy progress guard, not a calibrated win probability. The three-Han opening threshold, immediate acceptance of wins, opening Yakuman gate and no-Riichi-fold behavior remain active. Recorded regressions cover the missed Tenpai in East One and the poor same-distance Chi in East Two from session `20261019T102545-112305Z`.
