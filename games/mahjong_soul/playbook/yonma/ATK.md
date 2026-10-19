@@ -1,4 +1,4 @@
-# 4 Player South Wind ATK v0.9
+# 4 Player South Wind ATK v0.10
 
 ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered playbook name is `4 Player South Wind ATK`, intended for four-player South matches (Hanchan). Both the automatic player and suggestion monitor use these settings. The label describes its intended match format; it does not enforce the room length.
 
@@ -40,7 +40,7 @@ Regressions cover valuable two-Shanten Toitoi Pon through multiple threats, Honi
 
 Four-player ATK prioritizes hand value, then speed. The projected-Han weight is now 20 (previously 14); calls require at least three projected Han. This is a planning estimate, not a promise of final Han. The agent accepts any offered win rather than passing a completed cheap hand. No Riichi-triggered folding or speculative defense is enabled. Opponent concealed tiles are not known, so apparent waits are not treated as proven.
 
-Yakuman pursuit requires at least ten useful matching tiles in the original `ActionNewRound` hand (13 tiles, or the dealer's initial 14). The reader records this hand separately from the mutable current hand. Missing opening history, including a reconnect without original round history, disables pursuit. Later draws cannot unlock the gate. Each new round resets it.
+Yakuman pursuit requires at least ten useful matching tiles in either the original hand or the naturally developed current hand. Before this threshold, Yakuman targets contribute no planning value. Reaching it only enables evaluation: the current tiles and melds must still fit at least one complete target whose missing copies remain unseen. Minimum missing draws must fit the conservative remaining own-draw budget (remaining wall divided by player count); opponent calls are not assumed. Missing opening history does not prevent qualification from the current hand. Eligibility is reconsidered on each decision, and never forces rejecting a better normal-hand call. This feasibility check is a necessary-condition heuristic, not a completion probability.
 
 Supported targets are Kokushi, All Honors, All Terminals, All Green, and Nine Gates. Kokushi counts distinct required kinds plus one useful duplicate for its pair; repeated copies cannot inflate the count. Nine Gates counts its required rank multiplicities plus at most one extra suited tile. The other three count tiles compatible with their restricted tile sets. Eligibility does not guarantee completion: compatible shape distance and available improving copies still guide choices. Closed targets reject opening calls and Kan; exposed melds must fit open targets. Other Yakuman are not deliberately pursued by this version, even if encountered; offered wins are always accepted.
 
@@ -51,7 +51,7 @@ The policy retains a route and its suit for the current hand, including through 
 
 At Tenpai, available-copy-weighted Han from actual scored legal waits replaces the speculative target Han in discard/call valuation. A distant flush or Toitoi target cannot inflate a different completed shape. The policy can prefer a higher-value Dama alternative over a lower-value offered Riichi. Known point values remain part of ranking. This does not predict hidden Ura Dora, Ippatsu or opponents' tile probabilities.
 
-Exposed Chi melds can now prove Sanshoku or Ittsu as legal Yaku routes; loose concealed rank presence alone is not treated as proof. Prospective planning still does not cover every Yaku, and the continuity preference is not a full expected-value search. The opening-only Yakuman gate and always-push behavior remain active.
+Exposed Chi melds can now prove Sanshoku or Ittsu as legal Yaku routes; loose concealed rank presence alone is not treated as proof. Prospective planning still does not cover every Yaku, and the continuity preference is not a full expected-value search. The threshold and feasibility Yakuman gate and always-push behavior remain active.
 
 
 ## Winning-progress correction (v0.8)
@@ -64,3 +64,8 @@ Same-Shanten calls must retain at least 70% of the pre-call improving copies, un
 See [the complete Yaku conditions and values](../../YAKU.md). One canonical complete-hand scorer covers all standard Yaku, Yakuman, Fu and payments; the policy no longer carries a separate abbreviated completed-hand rule set. Exact wait scoring and offered-win analysis share that implementation. Captured event history supplies situational Yaku; unavailable history or hidden future bonuses are not assumed.
 
 The development model now reserves required groups and pairs for Pinfu, Iipeikou/Ryanpeikou, Sanshoku sequences/triplets, Ittsu, Chanta/Junchan, Sanankou, Shousangen and Honroutou, in addition to earlier targets. An isolated Dora that cannot fit those groups and the residual pair is removed from target value. This expands structural coverage while retaining actual scoring distance, winning-progress limits, the opening Yakuman gate and no opponent-Riichi fold. Full scoring coverage is not a claim of complete expected-value or all-Yakuman search.
+
+
+## Decision review (v0.10)
+
+Offered wins remain first. Discards compare reachable scoring routes, progress and improving copies before value ranking; Riichi compares scored waits and Dama alternatives. Detailed recordings now include each discard action, route, distance, improving-copy count, projected Han, scored waits and ranking utility. Existing call rejection reasons and plan transitions remain available. Speculative danger does not change offensive discard rankings; opponent Riichi never triggers folding. These are transparent heuristics, not calibrated expected win values.

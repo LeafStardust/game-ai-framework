@@ -134,9 +134,7 @@ def _call_options(request,book,ranker,diagnostics=None,value=None):
             profile=option["wait_value"]
             credible=(option["open_yaku"] or option["open_route"] and option["route_cost"]<=settings["max_route_cost"])
             reason=None
-            if str(before_target["target_route"]).startswith("yakuman_") and option["target_route"]!=before_target["target_route"]:
-                reason="abandons_qualified_yakuman"
-            elif not credible:reason="no_reachable_open_yaku"
+            if not credible:reason="no_reachable_open_yaku"
             elif option["shanten"]>settings["max_shanten"]:reason="too_far_from_win"
             elif profile and (profile["dama_ukeire"]==0 or profile["permanent_furiten"]):reason="no_legal_ron_wait"
             elif option["projected_han"]<settings["minimum_han"] and not (settings.get("allow_cheap_tenpai",True) and profile and profile["dama_ukeire"]>=settings["cheap_tenpai_waits"]):reason="low_value_open_hand"
@@ -237,9 +235,10 @@ def choose_attack(owner,request,book,ranker=rank_discards):
     board=request["observation"]["board"];actions=request["actions"];call_notes=[]
     from agents.mahjong_soul.hand_plan import begin,remember
     previous_plan=begin(owner,request)
+    discard_notes=[]
     value=book.thresholds_for("D1");value["preferred_plan"]=previous_plan
     def finish(action,mode,option=None,**detail):
-        owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"atk","mode":mode,"call_evaluations":deepcopy(call_notes),**detail}
+        owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"atk","mode":mode,"call_evaluations":deepcopy(call_notes),"discard_evaluations":deepcopy(discard_notes),**detail}
         owner.last_analysis["hand_plan"]=remember(owner,option)
         from agents.mahjong_soul.scoring import nagashi_eligible
         owner.last_analysis["nagashi_candidate"]=nagashi_eligible(board)
@@ -259,6 +258,9 @@ def choose_attack(owner,request,book,ranker=rank_discards):
         if kan:return finish(kan,"kan")
         return finish(next(a for a in actions if a["kind"]=="skip"),"skip")
     options=enrich(board,ranker(request),value);best=offensive(board,options,value)
+    # Detailed recordings explain alternatives; terminal rendering stays action-only.
+    discard_notes=[{k:deepcopy(o.get(k)) for k in ("action","target_route","projected_han","shanten","effective_ukeire","route_cost","wait_value")} |
+                   {"utility":attack_utility(o,value)} for o in options]
     settings=book.thresholds_for("D2")
     if opponents and not settings.get("always_push"):
         alternatives=[o for o in options if o["shanten"]==best["shanten"]

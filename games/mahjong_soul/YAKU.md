@@ -76,7 +76,7 @@ Normal structural targets cover Riichi, Tanyao, Yakuhai, Pinfu, Iipeikou, Ryanpe
 
 The reader tracks Double Riichi, Ippatsu, Kan replacement draws, robbed Kan, last draws/discards and uninterrupted first turns. A reconnect with incomplete history does not invent event bonuses. Robbed-Kan Ron requires the captured Kan source, exact tile and matching live offer. The dealer initial 14-tile hand can identify a Tenhou offer. Nagashi eligibility is a river condition, not permission to claim a normal incomplete hand.
 
-All standard Yakuman are recognized by complete-hand scoring, including Four Concealed Triplets, Three Big Dragons, Four Winds and Four Quads. Deliberate Yakuman pursuit remains subject to the existing opening-only 10-tile gate and its supported target set; complete scoring coverage is not a claim of equally developed search for every Yakuman. Situation Yaku are not freely added to a future hand just to advertise more Han.
+All standard Yakuman are recognized by complete-hand scoring, including Four Concealed Triplets, Three Big Dragons, Four Winds and Four Quads. Deliberate Yakuman pursuit remains subject to the 10-tile opening-or-current-hand gate and visible-copy/remaining-draw feasibility check and its supported target set; complete scoring coverage is not a claim of equally developed search for every Yakuman. Situation Yaku are not freely added to a future hand just to advertise more Han.
 
 ## Validation and scope
 

@@ -19,11 +19,12 @@ def test_kokushi_gate_counts_useful_distinct_tiles_and_one_pair_only():
     assert "yakuman_kokushi" not in duplicates
 
 
-def test_late_draws_cannot_enable_yakuman_and_missing_opening_disables_pursuit():
+def test_later_natural_hand_can_enable_yakuman_without_opening_history():
     b,t=targets("123456m234p567s1z","19m19p19s1234567z")
-    assert not t
+    assert "yakuman_kokushi" in t
+    assert t["yakuman_kokushi"]["qualification"]=="current"
     b["self"].pop("opening_hand")
-    assert not yakuman_targets(b,b["self"]["hand"])
+    assert yakuman_targets(b,b["self"]["hand"])
 
 
 def test_qualified_kokushi_progress_does_not_credit_unrelated_tiles():
@@ -84,3 +85,27 @@ def test_next_round_cannot_reuse_previous_yakuman_opening():
     for hand in ("19m19p19s1234z234m","123456m234p567s1z"):
         state.apply({"name":"ActionNewRound","step":0,"data":{"tiles":tiles(hand),"scores":[25000]*4}})
         assert state.snapshot()["opening_hand"]==tiles(hand)
+
+
+def test_late_threshold_is_rejected_when_wall_cannot_supply_required_draws():
+    b,_=targets("123456m234p567s1z","19m19p19s1234z234m")
+    b["wall_remaining"]=8
+    assert not yakuman_targets(b,b["self"]["hand"])
+
+
+def test_dead_required_kokushi_tile_disables_pursuit():
+    b,_=targets("19m19p19s1234z234m")
+    b["visible_tile_counts"]["7z"]=4
+    assert not yakuman_targets(b,b["self"]["hand"])
+
+
+def test_below_threshold_never_advertises_yakuman_value():
+    b,_=targets("123456m234p567s1z")
+    assert not any(t["target_route"].startswith("yakuman_") for t in project_attack(b,b["self"]["hand"],all_targets=True))
+
+
+def test_decision_record_includes_competing_discard_outcomes():
+    from tests.mahjong_soul.test_attack_v2 import report
+    action,analysis=choose(report("123m456p789s11z99p2z"))
+    assert analysis["discard_evaluations"]
+    assert any(o["action"]["tile"]==action["tile"] for o in analysis["discard_evaluations"])
