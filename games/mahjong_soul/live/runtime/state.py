@@ -14,6 +14,7 @@ class GameState:
         self.status = "waiting_for_round"
         self.issues = []
         self.hand = []
+        self.opening_hand = []
         self.discards = [[] for _ in range(player_count)]
         self.melds = [[] for _ in range(player_count)]
         self.norths = [0] * player_count
@@ -177,6 +178,7 @@ class GameState:
             if seat is None:
                 self.issues.append("Own seat is unknown")
             self.hand = list(data.get("tiles", []))
+            self.opening_hand = list(self.hand)
             self.round = {key: data.get(key, 0) for key in ("chang", "ju", "ben", "liqibang")}
         else:
             if self._awaiting_step:
@@ -306,7 +308,7 @@ class GameState:
     def snapshot(self):
         visible, complete = self.visible_tiles()
         return deepcopy({"visible_tile_counts": visible, "visibility_complete": complete, "player_count": self.player_count, "status": self.status, "issues": self.issues, "seat": self.seat,
-                         "step": self.last_step, "round": self.round, "hand": self.hand,
+                         "step": self.last_step, "round": self.round, "hand": self.hand, "opening_hand": self.opening_hand,
                          "discards": self.discards, "melds": self.melds, "norths": self.norths,
                          "scores": self.scores, "doras": self.doras,
                          "left_tile_count": self.left_tile_count, "turn": self.turn,

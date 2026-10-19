@@ -10,7 +10,8 @@ from games.mahjong_soul.playbook.features import discard_features
 from games.mahjong_soul.live.runtime.kan import tile_kind
 
 
-def enrich(board,options):
+def enrich(board,options,settings=None):
+    settings=settings or {"han_weight":20,"shanten_cost":18,"route_cost_weight":4,"ukeire_weight":2.5}
     opponents=threats(board)
     for option in options:
         tile=option["action"]["tile"];hand=list(board["self"]["hand"]);hand.remove(tile)
@@ -22,18 +23,19 @@ def enrich(board,options):
         option.update(project_attack(board,hand,option["retained_bonus"]))
         # An open hand must progress toward its scoring route, not toward
         # a faster sequence shape that has no Yaku.
-        if option["opened"] and not option["open_yaku"]:
+        if (option["opened"] and not option["open_yaku"]) or str(option["target_route"]).startswith("yakuman_"):
             option["shape_shanten"]=option["shanten"]
             targets=[]
             for target in project_attack(board,hand,option["retained_bonus"],all_targets=True):
-                if not target["open_route"]:continue
+                if not target["open_route"] and not str(target["target_route"]).startswith("yakuman_"):continue
                 distance,improving=route_progress(board,hand,target)
                 targets.append((target,distance,improving))
             if not targets:
                 targets=[(option,8,[])]
-            target,distance,improving=max(targets,key=lambda item:(
-                item[0]["projected_han"]*14-item[1]*18-item[0]["route_cost"]*4
-                +math.sqrt(sum(t["unseen"] for t in item[2]))*2.5,-item[1]))
+            practical=[item for item in targets if item[1]<=3]
+            target,distance,improving=max(practical or targets,key=lambda item:(
+                item[0]["projected_han"]*settings["han_weight"]-item[1]*settings["shanten_cost"]-item[0]["route_cost"]*settings["route_cost_weight"]
+                +math.sqrt(sum(t["unseen"] for t in item[2]))*settings["ukeire_weight"],-item[1]))
             option.update(target);option["shanten"]=distance;option["improving_tiles"]=improving
             option["ukeire"]=sum(t["unseen"] for t in improving)
         option["push_value_estimate"]=option["value_han"]+int(not option["opened"])+max(0,max(option["yaku_potential"].values(),default=0)-option["route_han"])
@@ -116,16 +118,18 @@ def _call_options(request,book,ranker,diagnostics=None):
         discards=[{"kind":"discard","tile":t} for t in sorted(set(remaining)) if tile_kind(t) not in forbidden]
         if not discards:continue
         synthetic={"observation":{"board":simulated},"actions":discards}
-        options=enrich(simulated,ranker(synthetic))
+        options=enrich(simulated,ranker(synthetic),book.thresholds_for("D1"))
         viable=[];rejections=Counter()
         for option in options:
             profile=option["wait_value"]
             credible=(option["open_yaku"] or option["open_route"] and option["route_cost"]<=settings["max_route_cost"])
             reason=None
-            if not credible:reason="no_reachable_open_yaku"
+            if str(before_target["target_route"]).startswith("yakuman_") and option["target_route"]!=before_target["target_route"]:
+                reason="abandons_qualified_yakuman"
+            elif not credible:reason="no_reachable_open_yaku"
             elif option["shanten"]>settings["max_shanten"]:reason="too_far_from_win"
             elif profile and (profile["dama_ukeire"]==0 or profile["permanent_furiten"]):reason="no_legal_ron_wait"
-            elif option["projected_han"]<settings["minimum_han"] and not (profile and profile["dama_ukeire"]>=settings["cheap_tenpai_waits"]):reason="low_value_open_hand"
+            elif option["projected_han"]<settings["minimum_han"] and not (settings.get("allow_cheap_tenpai",True) and profile and profile["dama_ukeire"]>=settings["cheap_tenpai_waits"]):reason="low_value_open_hand"
             elif option["shanten"]>baseline:
                 wall=board.get("wall_remaining")
                 if (option["shanten"]>baseline+1 or option["projected_han"]<before_target["projected_han"]+2
@@ -177,6 +181,7 @@ def _kan_option(request,book,best=None):
     wall=board.get("wall_remaining")
     if type(wall) is not int or wall<settings["kan_min_wall"]:return None
     hand=board["self"]["hand"];fixed=len(own["melds"])
+    if any(t["target_route"] in ("yakuman_kokushi","yakuman_nine_gates") for t in project_attack(board,hand,all_targets=True)):return None
     baseline=best["shanten"] if best else shanten(counts34(hand),fixed)
     candidates=[]
     for action in request["actions"]:
@@ -230,7 +235,7 @@ def choose_attack(owner,request,book,ranker=rank_discards):
         kan=_kan_option(request,book)
         if kan:return finish(kan,"kan")
         return finish(next(a for a in actions if a["kind"]=="skip"),"skip")
-    options=enrich(board,ranker(request));best=offensive(board,options,book.thresholds_for("D1"))
+    options=enrich(board,ranker(request),book.thresholds_for("D1"));best=offensive(board,options,book.thresholds_for("D1"))
     settings=book.thresholds_for("D2")
     if opponents and not settings.get("always_push"):
         alternatives=[o for o in options if o["shanten"]==best["shanten"]

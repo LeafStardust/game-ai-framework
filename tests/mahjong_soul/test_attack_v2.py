@@ -76,7 +76,7 @@ def test_concealed_red_kan_keeps_hand_closed_for_riichi_value():
 
 
 def test_value_honor_pon_chooses_legal_tenpai_and_preserves_input():
-    r=call_report('55z123m456p78s22p9m','5z','5z|5z');before=deepcopy(r)
+    r=call_report('55z123m456p78s22p9m','5z','5z|5z',doras=['1p']);before=deepcopy(r)
     action,analysis=choose(r)
     assert action['kind']=='pon' and analysis['post_call_discard']=={'kind':'discard','tile':'9m'}
     assert analysis['wait_value']['dama_ukeire']==8 and r==before
@@ -84,7 +84,7 @@ def test_value_honor_pon_chooses_legal_tenpai_and_preserves_input():
 
 @pytest.mark.parametrize('enabled',[True,False,None])
 def test_chi_opens_tanyao_only_when_the_rule_allows_it(enabled):
-    r=call_report('23m234p456s67s55p9p','4m','2m|3m',2,kuitan=enabled)
+    r=call_report('23m234p456s67s55p9p','4m','2m|3m',2,kuitan=enabled,doras=['4p'])
     action,analysis=choose(r)
     assert action['kind']==('chi' if enabled is True else 'skip')
     if enabled is True:assert analysis['post_call_discard']['tile']=='9p'
@@ -96,19 +96,19 @@ def test_dora_does_not_justify_a_yakuless_opening():
 
 
 def test_exact_red_call_combination_is_retained():
-    r=call_report('05p234m456s67s22p9m','5p','0p|5p')
+    r=call_report('05p234m456s67s22p9m','5p','0p|5p',doras=['4p'])
     action,analysis=choose(r)
     assert action['kind']=='pon' and action['combination']=='0p|5p'
     assert analysis['value_han']>=2
 
 
-def test_yakuless_closed_tenpai_can_open_for_a_legal_win():
+def test_cheap_yakuhai_call_does_not_abandon_closed_value():
     r=call_report('55z123m456p789s12p','5z','5z|5z')
-    assert choose(r)[0]['kind']=='pon'
+    assert choose(r)[0]['kind']=='skip'
 
 
 def test_open_tenpai_keeps_pushing_into_riichi():
-    r=call_report('55z123m456p78s22p9m','5z','5z|5z')
+    r=call_report('55z123m456p78s22p9m','5z','5z|5z',doras=['1p'])
     r['state']['riichi'][1]='accepted'
     assert choose(r)[0]['kind']=='pon'
 

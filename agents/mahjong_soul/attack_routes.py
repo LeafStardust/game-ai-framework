@@ -26,7 +26,8 @@ def project_attack(board,hand,bonus=0,*,all_targets=False):
     room=max(0,4-len(melds)-sum(n>=3 for n in concealed.values()))
     pairs=sorted(((t,units) for t,units in honors.items() if concealed[t]==2 and visible[t]<4),
                  key=lambda item:(-item[1],item[0]))[:room]
-    targets=[]
+    from agents.mahjong_soul.yakuman import yakuman_targets
+    targets=yakuman_targets(board,hand)
     def add(name,han,cost,open_route=True,future_riichi=True,compatible=None):
         if han<=0:return
         # Future Riichi is explicitly projected only for a closed hand. It is
@@ -131,6 +132,22 @@ def _regular_distance(counts,fixed):
 def route_progress(board,hand,target):
     """Measure only shape development compatible with the selected open Yaku."""
     route=target["target_route"]
+    if route in ("yakuman_kokushi","yakuman_nine_gates"):
+        from agents.mahjong_soul.yakuman import ORPHANS
+        counts=Counter(tile_kind(t) for t in hand)
+        def special_distance(values):
+            if route=="yakuman_kokushi":return 13-sum(values[t]>0 for t in ORPHANS)-int(any(values[t]>=2 for t in ORPHANS))
+            base={str(n)+target["yakuman_suit"]:(3 if n in (1,9) else 1) for n in range(1,10)}
+            retained=sum(min(values[t],n) for t,n in base.items())+int(any(values[t]>n for t,n in base.items()))
+            return 13-retained
+        distance=special_distance(counts);visible=Counter()
+        for t,n in board["visible_tile_counts"].items():visible[tile_kind(t)]+=n
+        improving=[]
+        for tile in KINDS:
+            if visible[tile]>=4:continue
+            trial=counts.copy();trial[tile]+=1
+            if special_distance(trial)<distance:improving.append({"tile":tile,"unseen":4-visible[tile]})
+        return distance,improving
     if route=="toitoi":return toitoi_progress(board,hand)
     melds=own_player(board)["melds"];fixed=len(melds)
     counts=counts34(hand);visible=Counter()
@@ -140,6 +157,11 @@ def route_progress(board,hand,target):
         suits=[s for s in "mps" if all(tile_kind(t)[1] in ((s,"z") if route=="honitsu" else (s,)) for m in melds for t in m["tiles"])]
         suit=max(suits,key=lambda s:sum(tile_kind(t)[1]==s for t in all_tiles))
         allowed=lambda t:t[1]==suit or route=="honitsu" and t[1]=="z"
+    elif route=="yakuman_all_honors":allowed=lambda t:t[1]=="z"
+    elif route=="yakuman_all_terminals":allowed=lambda t:t[1]!="z" and t[0] in "19"
+    elif route=="yakuman_all_green":
+        from agents.mahjong_soul.yakuman import GREEN
+        allowed=lambda t:t in GREEN
     elif route=="tanyao":allowed=lambda t:t[1]!="z" and 2<=int(t[0])<=8
     else:allowed=lambda t:True
     def distance(values):

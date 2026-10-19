@@ -1,4 +1,4 @@
-# Four-player ATK v0.5
+# Four-player ATK v0.6
 
 ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered cartridge name remains `yonma-manual-atk` for compatibility; both the automatic player and suggestion monitor use these settings.
 
@@ -19,7 +19,7 @@ Open hands without an existing Yaku evaluate the actual shape distance and impro
 
 ## Calls and Kan
 
-Chi/Pon simulate exact contributions and legal post-call discards, including called/swap discard restrictions. Calls may build a valuable hand as far out as three-Shanten; they no longer require an already secured Yaku or immediate improvement into one-Shanten. A supported open target must require at most four tile changes, normally project at least two Han and improve progress or develop comparable value. A one-Shanten setback needs at least two extra projected Han and enough wall. A cheap legal tenpai with at least three available Ron copies remains an exception: ATK still takes practical routes to wins.
+Chi/Pon simulate exact contributions and legal post-call discards, including called/swap discard restrictions. Calls may build a valuable hand as far out as three-Shanten; they no longer require an already secured Yaku or immediate improvement into one-Shanten. A supported open target must require at most four tile changes, project at least three Han and improve progress or develop comparable value. A one-Shanten setback needs at least two extra projected Han and enough wall. The old cheap-Tenpai exception is disabled: the policy does not open merely to secure a one- or two-Han hand. Offered wins are still accepted.
 
 A ready open hand needs an actual legal scoring wait. Opening must not reduce an already scored ready hand's Ron value. Calls from Tenpai must improve value or available winning copies; equal-value calls that only narrow the waits are declined. Exact Red Five identity is retained. Every considered Chi/Pon logs acceptance/rejection reasons, baseline/best Shanten and best projected Han, so repeated Skips can be reviewed.
 
@@ -34,3 +34,12 @@ Offered Riichi can be taken with one available winning copy, against up to three
 ## Validation and limits
 
 Regressions cover valuable two-Shanten Toitoi Pon through multiple threats, Honitsu/Yakuhai development, high-value rebuilding, route-incompatible Dora, exhausted targets, actual scoring waits, exact contributions and unchanged Balanced behavior. Captured-state replay checks legal proposals and changed behavior; it cannot measure the counterfactual match result or establish stronger play. Opponent probability models, a full expected-value search and placement strategy are still absent.
+
+
+## South-match priorities and opening Yakuman gate
+
+Four-player ATK prioritizes hand value, then speed. The projected-Han weight is now 20 (previously 14); calls require at least three projected Han. This is a planning estimate, not a promise of final Han. The agent accepts any offered win rather than passing a completed cheap hand. No Riichi-triggered folding or speculative defense is enabled. Opponent concealed tiles are not known, so apparent waits are not treated as proven.
+
+Yakuman pursuit requires at least ten useful matching tiles in the original `ActionNewRound` hand (13 tiles, or the dealer's initial 14). The reader records this hand separately from the mutable current hand. Missing opening history, including a reconnect without original round history, disables pursuit. Later draws cannot unlock the gate. Each new round resets it.
+
+Supported targets are Kokushi, All Honors, All Terminals, All Green, and Nine Gates. Kokushi counts distinct required kinds plus one useful duplicate for its pair; repeated copies cannot inflate the count. Nine Gates counts its required rank multiplicities plus at most one extra suited tile. The other three count tiles compatible with their restricted tile sets. Eligibility does not guarantee completion: compatible shape distance and available improving copies still guide choices. Closed targets reject opening calls and Kan; exposed melds must fit open targets. Other Yakuman are not deliberately pursued by this version, even if encountered; offered wins are always accepted.
