@@ -323,11 +323,11 @@ def main():
         attempted_keys=prior_attempts(args.recordings)
         journal=SessionJournal(args.recordings,max_bytes=args.recording_mb*1024**2)
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
-        paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east.py",
+        paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py",
                "agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
                "agents/mahjong_soul/attack_value.py","agents/mahjong_soul/attack_defense.py",
                "agents/mahjong_soul/attack_routes.py","agents/mahjong_soul/yakuman.py","agents/mahjong_soul/hand_plan.py","agents/mahjong_soul/scoring.py","agents/mahjong_soul/yaku_catalog.py",
-               "agents/mahjong_soul/pattern_yaku.py","games/mahjong_soul/live/runtime/scoring_context.py","games/mahjong_soul/playbook/yonma/atk.py",
+               "agents/mahjong_soul/pattern_yaku.py","games/mahjong_soul/live/runtime/scoring_context.py","games/mahjong_soul/playbook/yonma/south_attack.py",
                "games/mahjong_soul/live/runtime/calls.py","games/mahjong_soul/live/runtime/kan.py",
                "games/mahjong_soul/live/runtime/call_selection.py","games/mahjong_soul/live/runtime/choice_vision.py",
                "games/mahjong_soul/live/runtime/call_samples.json","games/mahjong_soul/live/runtime/declaration_samples.json",

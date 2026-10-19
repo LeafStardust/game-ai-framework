@@ -1,4 +1,4 @@
-# 4 Player East Wind Speed v0.1
+# Four-Player East Speed v0.1
 
 The automatic lobby router selects this playbook for four-player East matches when launched with `MahjongSoulAgent.bat`. The launcher chooses the policy family; the authenticated format chooses East Speed or South ATK. South settings are unchanged. East matches may include dealer repeats and extensions rather than exactly four hands.
 

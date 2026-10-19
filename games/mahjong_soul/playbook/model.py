@@ -54,13 +54,13 @@ class MahjongPlaybookRegistry:
 
 def default_mahjong_playbooks():
     registry = MahjongPlaybookRegistry()
-    for count, name in [(3,"sanma-manual-balanced"),(4,"yonma-manual-balanced")]:
+    for count, name in [(3,"Three-Player Balanced"),(4,"Four-Player Balanced")]:
         registry.register(MahjongPlaybook(count,name,strategy={
             "discard_value":{"dora_loss_weight":1.0,"yakuhai_pair_loss_weight":.5,"yakuhai_triplet_loss_weight":2.0},
             "defense":{"fold_from_shanten":2},
             "riichi":{"enabled":True,"allow_under_riichi_threat":False}}))
-    from games.mahjong_soul.playbook.yonma.atk import attack_playbook
-    registry.register(attack_playbook())
-    from games.mahjong_soul.playbook.yonma.east import east_playbook
-    registry.register(east_playbook())
+    from games.mahjong_soul.playbook.yonma.south_attack import south_attack_playbook
+    registry.register(south_attack_playbook())
+    from games.mahjong_soul.playbook.yonma.east_speed import east_speed_playbook
+    registry.register(east_speed_playbook())
     return registry

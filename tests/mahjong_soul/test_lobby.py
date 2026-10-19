@@ -23,7 +23,7 @@ def observation(lobby):
 
 def test_south_atk_routes_only_to_registered_format():
     registry=default_mahjong_playbooks()
-    assert registry.for_observation(observation(detect_lobby(auth())),"atk").name=="4 Player South Wind ATK"
+    assert registry.for_observation(observation(detect_lobby(auth())),"atk").name=="Four-Player South Attack"
     for data in (auth(3,2),auth(4,99),{}):
         o=observation(detect_lobby(data))
         if data.get("seat_list"):o["board"]["player_count"]=len(data["seat_list"])

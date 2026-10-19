@@ -1,6 +1,6 @@
 # Mahjong Soul policy integration
 
-For 4 Player South Wind ATK v0.9 manual suggestions, use `.\MahjongSoulSuggest.bat`. It prints recommended actions only. See [the ATK review](../../games/mahjong_soul/playbook/yonma/ATK.md) for value, yaku, calls, Riichi and defense behavior.
+For lobby-selected manual suggestions, use `.\MahjongSoulSuggest.bat`. It prints recommended actions only. See [the ATK review](../../games/mahjong_soul/playbook/yonma/SOUTH_ATTACK.md) for value, yaku, calls, Riichi and defense behavior.
 
 For tile codes and terminal vocabulary, see [the terms reference](../../games/mahjong_soul/TERMS.md).
 
@@ -66,7 +66,7 @@ The five current-policy Riichi recommendations were East 1 step 85 (discard 6 So
 
 The versioned three/four-player [playbooks](../../games/mahjong_soul/playbook/README.md) now add dora/yakuhai-shape tie-breaks, basic genbutsu defense against Riichi, and configurable Riichi threat handling. This remains a manual-only suggestion pipeline. Run with `--policy playbook`; no automatic input is connected.
 
-Four-player attack is available as `--policy playbook --playstyle atk`; see [ATK.md](../../games/mahjong_soul/playbook/yonma/ATK.md) for exact value, push and Riichi criteria. Balanced stays the default. Three-player attack is not implemented. All playstyles remain manual suggestions only.
+Four-player attack is available as `--policy playbook --playstyle atk`; see [SOUTH_ATTACK.md](../../games/mahjong_soul/playbook/yonma/SOUTH_ATTACK.md) for exact value, push and Riichi criteria. Balanced stays the default. Three-player attack is not implemented. The suggestion commands are read-only; MahjongSoulAgent.bat enables automatic input.
 
 ## Automatic ATK play and recordings
 
@@ -123,8 +123,8 @@ One controller serializes all stages and verifies matching live server actions o
 Offline tests cover the native action paths, staged Riichi acceptance and mismatch refusal, post-Riichi legality, recording failures, single-agent locking, cursor parking and idle-capture proof. Live full-match validation remains required before calling the runner unattended-ready.
 
 
-## Current ATK style: v0.3
+## South Attack strategy
 
-The 4 Player South Wind ATK policy pursues projected high-Han routes and keeps pushing through danger. Earlier Chi/Pon can develop value from up to three-Shanten; value choices preserve actual scoring progress and at least 70% of available improving copies. Opponent threats no longer trigger folding or block an otherwise viable call/Kan. The same playbook drives the monitor and automatic player. Full details and limits are in [ATK.md](../../games/mahjong_soul/playbook/yonma/ATK.md). Planning targets are estimates, not guaranteed Han; recorded call evaluations explain why an offered call was taken or skipped. This behavior revision is not a demonstrated win-rate improvement.
+The Four-Player South Attack policy pursues projected high-Han routes and keeps pushing through danger. Earlier Chi/Pon can develop value from up to three-Shanten; value choices preserve actual scoring progress and at least 70% of available improving copies. Opponent threats no longer trigger folding or block an otherwise viable call/Kan. The same playbook drives the monitor and automatic player. Full details and limits are in [SOUTH_ATTACK.md](../../games/mahjong_soul/playbook/yonma/SOUTH_ATTACK.md). Planning targets are estimates, not guaranteed Han; recorded call evaluations explain why an offered call was taken or skipped. This behavior revision is not a demonstrated win-rate improvement.
 
-The launcher selects [4 Player East Wind Speed](../../games/mahjong_soul/playbook/yonma/EAST.md) for authenticated four-player East rooms and South ATK for South rooms. East prioritizes speed, then defense, then hand value.
+The launcher selects [Four-Player East Speed](../../games/mahjong_soul/playbook/yonma/EAST_SPEED.md) for authenticated four-player East rooms and South ATK for South rooms. East prioritizes speed, then defense, then hand value.

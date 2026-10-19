@@ -51,7 +51,7 @@ def test_dora_value_breaks_efficiency_tie_without_changing_legal_actions():
     policy = PlaybookPolicy(); result = decide(policy,report,lambda:report)
     assert result["action"] == {"kind":"discard","tile":"1m"}  # Keep dora 2m.
     assert policy.last_analysis["value_loss"] == 0
-    assert policy.last_analysis["playbook"] == "yonma-manual-balanced"
+    assert policy.last_analysis["playbook"] == "Four-Player Balanced"
 
 
 def test_completed_yakuhai_and_pair_breaking_are_value_evidence():

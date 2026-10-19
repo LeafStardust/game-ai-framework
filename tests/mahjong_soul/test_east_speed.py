@@ -13,7 +13,7 @@ def east(r):
 def test_east_routes_automatically_and_south_settings_remain_unchanged():
     registry=default_mahjong_playbooks();south=registry.get(4,"atk","south");before=deepcopy(south.strategy)
     action,analysis=choose(east(report("123m456p789s11z99p2z")))
-    assert analysis["playbook"]=="4 Player East Wind Speed" and analysis["style"]=="speed"
+    assert analysis["playbook"]=="Four-Player East Speed" and analysis["style"]=="speed"
     assert south.strategy==before and south.strategy["defense"]["always_push"]
     assert south.strategy["calls"]["minimum_han"]==3
 
