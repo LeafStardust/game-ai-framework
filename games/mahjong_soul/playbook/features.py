@@ -42,7 +42,7 @@ def discard_features(board, tile):
     dora = Counter(dora_kind(t,board["player_count"]) for t in board["dora_indicators"])
     fixed = Counter(tile_kind(t) for m in own["melds"] for t in m["tiles"])
     all_after = after+fixed
-    retained_bonus = sum(c*dora[t] for t,c in all_after.items())
+    retained_bonus = sum(c*dora[t] for t,c in all_after.items())+own.get("norths",0)*(1+dora["4z"])
     retained_bonus += sum(t.startswith("0") for t in hand)
     retained_bonus += sum(t.startswith("0") for m in own["melds"] for t in m["tiles"])
     yakuhai_units = sum(units for t,units in honors.items() if after[t] >= 3 or fixed[t] >= 3)

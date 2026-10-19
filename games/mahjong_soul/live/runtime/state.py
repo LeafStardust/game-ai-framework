@@ -261,6 +261,8 @@ class GameState:
                             self._remove(tile)
             self.turn = seat
         elif name == "ActionBaBei":
+            self.turn=seat
+            self.win_source={"event":name,"seat":seat,"tile":"4z","step":self.last_step}
             self.norths[seat] += 1
             if seat == self.seat:
                 self._remove("4z")

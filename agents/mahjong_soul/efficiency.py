@@ -10,6 +10,12 @@ KINDS = tuple(str(n)+s for s in "mps" for n in range(1,10))+tuple(str(n)+"z" for
 INDEX = {tile:i for i,tile in enumerate(KINDS)}
 
 
+def tile_supply(board,tile):
+    """Sanma removes 2 through 8 Man; North remains a playable tile."""
+    kind=tile_kind(tile)
+    return 0 if board["player_count"]==3 and kind[1]=="m" and kind[0] not in "19" else 4
+
+
 def counts34(tiles):
     counts = [0]*34
     for tile in tiles:

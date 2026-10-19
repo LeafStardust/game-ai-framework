@@ -77,7 +77,7 @@ def supervise(command, worker, *, cwd, output, startup_timeout=120,
             else:
                 print("Reusing resident capture; existing game connections are preserved.",flush=True)
             capture_ready=True
-            print("Capture ready. Four-player AI room, 1920x1080, game foreground."
+            print("Capture ready. Three- or four-player AI room, 1920x1080, game foreground."
                   if "agents.mahjong_soul.auto" in worker else
                   "Capture ready. Suggestions only; no automatic input.",flush=True)
             agent=subprocess.Popen(worker,cwd=cwd,creationflags=flags)

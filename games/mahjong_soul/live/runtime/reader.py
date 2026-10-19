@@ -79,6 +79,8 @@ class GameReader:
                 detail=decoded.get("data",{}).get("game_config",{}).get("mode",{}).get("detail_rule",{})
                 kuitan=detail.get("shiduan")
                 self.game_rules[connection]={"open_tanyao":bool(kuitan) if type(kuitan) in (bool,int) and kuitan in (0,1) else None}
+                if len(decoded.get("data",{}).get("seat_list",[]))==3:
+                    self.game_rules[connection]["tsumo_loss"]=bool(detail.get("have_zimosun",True))
                 cancellations.clear()
                 inferred_seat = self.seat if self.seat is not None else decoded.get("own_seat")
                 seats = decoded.get("data", {}).get("seat_list", [])

@@ -1,4 +1,5 @@
 """Known-tile yaku routes and conservative tenpai values; no hidden bonuses."""
+from agents.mahjong_soul.efficiency import tile_supply
 from collections import Counter
 from functools import lru_cache
 from agents.mahjong_soul.efficiency import counts34,shanten,KINDS
@@ -41,10 +42,10 @@ from agents.mahjong_soul.scoring import allocate as _allocate,score_hand
 
 
 @lru_cache(maxsize=12000)
-def _score(hand,meld_data,win,doras,seat_wind,round_wind,riichi,tsumo,open_tanyao,context=()):
+def _score(hand,meld_data,win,doras,seat_wind,round_wind,riichi,tsumo,open_tanyao,context=(),player_count=4,norths=0,tsumo_loss=True):
     result=score_hand(hand,win,melds=[{"type":code,"tiles":tiles} for code,tiles in meld_data],doras=doras,
                       seat_wind=seat_wind,round_wind=round_wind,riichi=riichi,tsumo=tsumo,
-                      open_tanyao=open_tanyao,context=dict(context))
+                      open_tanyao=open_tanyao,context=dict(context),player_count=player_count,norths=norths,tsumo_loss=tsumo_loss)
     return result if result["legal"] else None
 
 
@@ -60,10 +61,10 @@ def tenpai_value(board,hand,*,discard=None):
     river={tile_kind(d["tile"]) for d in own["discards"]}
     if discard:river.add(tile_kind(discard))
     wait_data=[]
-    seat_wind=(board["self_seat"]-board["round"]["ju"])%4
+    seat_wind=(board["self_seat"]-board["round"]["ju"])%board["player_count"]
     round_wind=board["round"]["chang"]
     for index,kind in enumerate(KINDS):
-        if counts[index]+fixed_counts[kind]>=4:continue
+        if counts[index]+fixed_counts[kind]>=tile_supply(board,kind):continue
         trial=list(counts);trial[index]+=1
         if shanten(tuple(trial),fixed)!=-1:continue
         variants=[kind]+(["0"+kind[1]] if kind[0]=="5" and kind[1]!="z" else [])
@@ -77,12 +78,13 @@ def tenpai_value(board,hand,*,discard=None):
                               board.get("rules",{}).get("open_tanyao") is True,
                               (("double_riichi",True),) if (
                                   own["riichi"] in ("accepted","declared") and board["self"].get("scoring_context",{}).get("double_riichi")
-                                  or mode=="riichi" and board["self"].get("scoring_context",{}).get("double_riichi_available")) else ())
+                                  or mode=="riichi" and board["self"].get("scoring_context",{}).get("double_riichi_available")) else (),
+                              board["player_count"],own.get("norths",0),board.get("rules",{}).get("tsumo_loss",True))
                 if result:scored.append(result)
             if scored:
                 selected=min(scored,key=lambda x:x["points"])
                 values[mode]={**selected,"yaku":list(selected["yaku"])}
-        wait_data.append({"tile":kind,"unseen":max(0,4-visible[kind]),"values":values})
+        wait_data.append({"tile":kind,"unseen":max(0,tile_supply(board,kind)-visible[kind]),"values":values})
     permanent=any(w["tile"] in river for w in wait_data)
     def weighted(mode):
         eligible=[w for w in wait_data if mode in w["values"] and w["unseen"]>0]

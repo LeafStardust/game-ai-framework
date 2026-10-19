@@ -1,4 +1,5 @@
 """Reachable offensive targets, not promised Han or hidden-tile expectations."""
+from agents.mahjong_soul.efficiency import tile_supply
 from collections import Counter
 from functools import lru_cache
 from agents.mahjong_soul.efficiency import KINDS,counts34,shanten
@@ -10,7 +11,7 @@ from games.mahjong_soul.playbook.features import value_honors,dora_kind
 def known_bonus(board,hand):
     doras=Counter(dora_kind(t,board["player_count"]) for t in board["dora_indicators"])
     all_tiles=list(hand)+[t for m in own_player(board)["melds"] for t in m["tiles"]]
-    return sum(doras[tile_kind(t)]+int(t.startswith("0")) for t in all_tiles)
+    return sum(doras[tile_kind(t)]+int(t.startswith("0")) for t in all_tiles)+own_player(board).get("norths",0)*(1+doras["4z"])
 
 
 def project_attack(board,hand,bonus=0,*,all_targets=False,preferred=None):
@@ -96,7 +97,7 @@ def toitoi_progress(board,hand):
     for tile,n in board["visible_tile_counts"].items():visible[tile_kind(tile)]+=n
     improving=[]
     for i,tile in enumerate(KINDS):
-        unseen=max(0,4-visible[tile])
+        unseen=max(0,tile_supply(board,tile)-visible[tile])
         if not unseen or counts[i]>=4 or tile in fixed:continue
         counts[i]+=1
         if _toitoi_distance(tuple(counts),fixed)<distance:
@@ -163,7 +164,7 @@ def route_progress(board,hand,target):
         for tile in KINDS:
             if visible[tile]>=4:continue
             trial=counts.copy();trial[tile]+=1
-            if special_distance(trial)<distance:improving.append({"tile":tile,"unseen":4-visible[tile]})
+            if special_distance(trial)<distance:improving.append({"tile":tile,"unseen":tile_supply(board,tile)-visible[tile]})
         return distance,improving
     if route=="toitoi":return toitoi_progress(board,hand)
     melds=own_player(board)["melds"];fixed=len(melds)
@@ -199,7 +200,7 @@ def route_progress(board,hand,target):
         return _regular_distance(filtered,fixed)
     baseline=distance(counts);improving=[]
     for i,tile in enumerate(KINDS):
-        unseen=max(0,4-visible[tile])
+        unseen=max(0,tile_supply(board,tile)-visible[tile])
         if not unseen or counts[i]>=4 or not allowed(tile):continue
         draw=list(counts);draw[i]+=1
         if distance(tuple(draw))<baseline:improving.append({"tile":tile,"unseen":unseen})

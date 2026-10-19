@@ -142,7 +142,7 @@ def tile_label(tile):
 
 def format_suggestion(event):
     action = event["action"]
-    labels = {"discard":"Discard", "skip":"Skip", "chi":"Chi", "pon":"Pon",
+    labels = {"extract_north":"Extract", "discard":"Discard", "skip":"Skip", "chi":"Chi", "pon":"Pon",
               "closed_kan":"Closed kan", "open_kan":"Open kan", "added_kan":"Added kan",
               "riichi":"Riichi, then discard", "tsumo":"Tsumo", "ron":"Ron"}
     label = labels.get(action["kind"], action["kind"])

@@ -63,4 +63,6 @@ def default_mahjong_playbooks():
     registry.register(south_attack_playbook())
     from games.mahjong_soul.playbook.yonma.east_speed import east_speed_playbook
     registry.register(east_speed_playbook())
+    from games.mahjong_soul.playbook.sanma.east_speed import three_player_east_speed_playbook
+    registry.register(three_player_east_speed_playbook())
     return registry

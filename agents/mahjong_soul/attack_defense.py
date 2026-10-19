@@ -15,7 +15,7 @@ def threats(board):
             exposed=Counter(tile_kind(t) for m in opened for t in m["tiles"])
             context=dict(board,self_seat=player["seat"])
             yaku=any(exposed[t]>=3 for t in value_honors(context))
-            bonus=sum(exposed[dora_kind(d,4)] for d in board["dora_indicators"])
+            bonus=sum(exposed[dora_kind(d,board["player_count"])] for d in board["dora_indicators"])
             bonus+=sum(t.startswith("0") for m in opened for t in m["tiles"])
             if len(opened)>=3 and (yaku or bonus>=3):kind="open_hand"
         if kind:result.append({**player,"threat_kind":kind})
@@ -25,7 +25,7 @@ def threats(board):
 def danger(board,tile,opponents):
     tile=tile_kind(tile);visible=Counter()
     for t,n in board["visible_tile_counts"].items():visible[tile_kind(t)]+=n
-    dora={dora_kind(d,4) for d in board["dora_indicators"]};scores=[]
+    dora={dora_kind(d,board["player_count"]) for d in board["dora_indicators"]};scores=[]
     for player in opponents:
         river={tile_kind(d["tile"]) for d in player["discards"]}
         if tile in river: risk=0

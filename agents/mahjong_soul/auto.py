@@ -52,7 +52,7 @@ class AutoFollower(ShadowFollower):
                 data=decoded.get("data",{});report=self.reader.snapshot()
                 key=(connection,report.get("game_generation",0))
                 verified=(data.get("game_config",{}).get("mode",{}).get("ai") is True
-                          and len(data.get("seat_list",[]))==4 and len(data.get("robots",[]))==3
+                          and len(data.get("seat_list",[])) in (3,4) and len(data.get("robots",[]))==len(data.get("seat_list",[]))-1
                           and len(data.get("players",[]))==1 and not data.get("error",{}).get("code",0))
                 if verified:self.ai_games.add(key)
                 else:self.ai_games.discard(key)
@@ -110,7 +110,7 @@ class AutoFollower(ShadowFollower):
         report = self._current()
         if board_token(report) != event["board_token"]: raise ValueError("Board changed before visual check")
         if self.require_ai and (report.get("game_connection"),report.get("game_generation",0)) not in self.ai_games:
-            raise ValueError("A four-player room with three AI opponents has not been verified from capture")
+            raise ValueError("A three- or four-player room with only AI opponents has not been verified from capture")
         geometry = self.recorder.geometry()
         if not geometry or (geometry["width"],geometry["height"]) != (1920,1080):
             raise ValueError("Foreground Mahjong client must be 1920x1080")
@@ -271,7 +271,7 @@ class AutoFollower(ShadowFollower):
         else: return event
         if event["action"]["kind"] not in ("discard","skip","riichi","ron","tsumo",*CODES):
             self.candidate = None
-            return {**event,"kind":"manual","reason":"Action requires manual input"}
+            return {**event,"kind":"manual","reason":"North extraction needs a reviewed button calibration" if event["action"]["kind"]=="extract_north" else "Action requires manual input"}
         try:
             plan,report = self._plan(event)
             if self.controller.was_attempted(report,plan.step):
@@ -323,7 +323,7 @@ def main():
         attempted_keys=prior_attempts(args.recordings)
         journal=SessionJournal(args.recordings,max_bytes=args.recording_mb*1024**2)
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
-        paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py",
+        paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
                "agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
                "agents/mahjong_soul/attack_value.py","agents/mahjong_soul/attack_defense.py",
                "agents/mahjong_soul/attack_routes.py","agents/mahjong_soul/yakuman.py","agents/mahjong_soul/hand_plan.py","agents/mahjong_soul/scoring.py","agents/mahjong_soul/yaku_catalog.py",

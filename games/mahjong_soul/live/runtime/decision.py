@@ -11,7 +11,7 @@ from games.mahjong_soul.live.runtime.kan import tile_kind
 from games.mahjong_soul.live.runtime.observation import observation_from_snapshot
 
 NAMES = {1:"discard", 2:"chi", 3:"pon", 4:"closed_kan", 5:"open_kan",
-         6:"added_kan", 7:"riichi", 8:"tsumo", 9:"ron"}
+         6:"added_kan", 7:"riichi", 8:"tsumo", 9:"ron", 11:"extract_north"}
 
 
 def _source(report):
@@ -30,9 +30,10 @@ def _source(report):
 
 def ron_source(report):
     state=report.get("state") or {}
-    if (report.get("last_event") or {}).get("name")!="ActionAnGangAddGang":return _source(report)
+    event=(report.get("last_event") or {}).get("name")
+    if event not in ("ActionAnGangAddGang","ActionBaBei"):return _source(report)
     source=state.get("win_source") or {}
-    if (source.get("event")!="ActionAnGangAddGang" or source.get("step")!=state.get("step")
+    if (source.get("event")!=event or source.get("step")!=state.get("step")
             or type(source.get("seat")) is not int or source["seat"] not in range(state["player_count"])
             or source["seat"]!=state.get("turn") or source["seat"]==state.get("seat")):
         raise ValueError("Robbed Kan source is unverified")
@@ -72,6 +73,10 @@ def offered_actions(report):
             pool=[state.get("drawn_tile")] if locked else sorted(set(hand))
             if locked and pool[0] not in hand:raise ValueError("Riichi draw is unknown")
             actions.extend({"kind":kind,"tile":t} for t in pool if tile_kind(t) not in forbidden)
+        elif code == 11:
+            if state["player_count"]!=3 or "4z" not in hand or combinations not in ([],["4z"]):
+                raise ValueError("Invalid North-extraction offer")
+            actions.append({"kind":kind,"tile":"4z"})
         elif code == 7:
             if 1 not in types:
                 raise ValueError("Riichi requires a discard offer")
@@ -119,7 +124,7 @@ def offered_actions(report):
                     if code == 2:
                         ranks = sorted(int(tile_kind(t)[0]) for t in tiles+[called])
                         suits = {t[1] for t in tiles+[called]}
-                        if (source != (state["seat"]-1)%state["player_count"]
+                        if (state["player_count"]!=4 or source != (state["seat"]-1)%state["player_count"]
                                 or len(suits) != 1 or "z" in suits
                                 or ranks != list(range(ranks[0], ranks[0]+3))):
                             raise ValueError("Chi source or sequence is invalid")

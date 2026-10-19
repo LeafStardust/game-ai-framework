@@ -7,6 +7,7 @@ Playbooks contain versioned strategy settings. Shared scoring, legal-action vali
 | Four-Player South Attack | `yonma/south_attack.py` | [South Attack](yonma/SOUTH_ATTACK.md) | 0.12 |
 | Four-Player East Speed | `yonma/east_speed.py` | [East Speed](yonma/EAST_SPEED.md) | 0.1 |
 | Four-Player Balanced | `model.py` | Generic baseline settings | 0.1 |
+| Three-Player East Speed | `sanma/east_speed.py` | [Three-Player East Speed](sanma/EAST_SPEED.md) | 0.1 |
 | Three-Player Balanced | `model.py` | Generic baseline settings | 0.1 |
 
 ## Naming conventions
@@ -23,7 +24,7 @@ Windows launchers consistently use the `MahjongSoul` prefix and PascalCase role,
 - `MahjongSoulMonitor.bat`: capture and readable recommendations without automatic input.
 - `MahjongSoulSuggest.bat`: compatibility alias for the monitor launcher.
 
-Normal terminal output is the recommended action. Unsupported or unidentified formats report the issue and send no input. Three-player Attack/Speed playbooks have not been implemented.
+Normal terminal output is the recommended action. Unsupported or unidentified formats report the issue and send no input. Three-Player East Speed is implemented; three-player South remains unsupported. North extraction still requires manual input until its button calibration is reviewed.
 
 ## Implementation and validation
 

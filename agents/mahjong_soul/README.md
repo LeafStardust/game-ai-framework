@@ -66,7 +66,7 @@ The five current-policy Riichi recommendations were East 1 step 85 (discard 6 So
 
 The versioned three/four-player [playbooks](../../games/mahjong_soul/playbook/README.md) now add dora/yakuhai-shape tie-breaks, basic genbutsu defense against Riichi, and configurable Riichi threat handling. This remains a manual-only suggestion pipeline. Run with `--policy playbook`; no automatic input is connected.
 
-Four-player attack is available as `--policy playbook --playstyle atk`; see [SOUTH_ATTACK.md](../../games/mahjong_soul/playbook/yonma/SOUTH_ATTACK.md) for exact value, push and Riichi criteria. Balanced stays the default. Three-player attack is not implemented. The suggestion commands are read-only; MahjongSoulAgent.bat enables automatic input.
+Four-player attack is available as `--policy playbook --playstyle atk`; see [SOUTH_ATTACK.md](../../games/mahjong_soul/playbook/yonma/SOUTH_ATTACK.md) for exact value, push and Riichi criteria. Balanced stays the default. Three-player East uses the Speed playbook; three-player South is not implemented. The suggestion commands are read-only; MahjongSoulAgent.bat enables automatic input.
 
 ## Automatic ATK play and recordings
 
@@ -128,3 +128,5 @@ Offline tests cover the native action paths, staged Riichi acceptance and mismat
 The Four-Player South Attack policy pursues projected high-Han routes and keeps pushing through danger. Earlier Chi/Pon can develop value from up to three-Shanten; value choices preserve actual scoring progress and at least 70% of available improving copies. Opponent threats no longer trigger folding or block an otherwise viable call/Kan. The same playbook drives the monitor and automatic player. Full details and limits are in [SOUTH_ATTACK.md](../../games/mahjong_soul/playbook/yonma/SOUTH_ATTACK.md). Planning targets are estimates, not guaranteed Han; recorded call evaluations explain why an offered call was taken or skipped. This behavior revision is not a demonstrated win-rate improvement.
 
 The launcher selects [Four-Player East Speed](../../games/mahjong_soul/playbook/yonma/EAST_SPEED.md) for authenticated four-player East rooms and South ATK for South rooms. East prioritizes speed, then defense, then hand value.
+
+[Three-Player East Speed](../../games/mahjong_soul/playbook/sanma/EAST_SPEED.md) adds sanma-aware planning and scoring. North-extraction recommendations work; automatic North input awaits recorded button calibration.

@@ -1,4 +1,5 @@
 """Four-player attack decisions with value, yaku, calls and relative danger."""
+from agents.mahjong_soul.efficiency import tile_supply
 from collections import Counter
 import math
 from copy import deepcopy
@@ -207,7 +208,7 @@ def draw_ukeire(board,hand,fixed):
     for tile,n in board["visible_tile_counts"].items():visible[tile_kind(tile)]+=n
     total=0
     for index,tile in enumerate(KINDS):
-        remaining=4-visible[tile]
+        remaining=tile_supply(board,tile)-visible[tile]
         if remaining<=0 or counts[index]>=4:continue
         counts[index]+=1
         if shanten(tuple(counts),fixed)<distance:total+=remaining
@@ -248,7 +249,7 @@ def _kan_option(request,book,best=None):
         # closed special-hand route. Unknown replacement tiles add no value.
         retained=sum(t.startswith("0") for t in remaining)+sum(t.startswith("0") for m in melds for t in m["tiles"])
         from games.mahjong_soul.playbook.features import dora_kind
-        doras=Counter(dora_kind(t,4) for t in board["dora_indicators"])
+        doras=Counter(dora_kind(t,board["player_count"]) for t in board["dora_indicators"])
         retained+=sum(doras[tile_kind(t)] for t in remaining+[t for m in melds for t in m["tiles"]])
         target=project_attack(new,remaining,retained)
         if route["opened"] and (not target["open_route"] or target["route_cost"]>settings["max_route_cost"]
@@ -277,6 +278,15 @@ def choose_attack(owner,request,book,ranker=rank_discards):
     if wins:
         from agents.mahjong_soul.scoring import score_offered_win
         return finish(wins[0],"win",win_value=score_offered_win(board,wins[0]))
+    north=next((a for a in actions if a["kind"]=="extract_north"),None)
+    if north:
+        hand=list(board["self"]["hand"]);hand.remove("4z")
+        fixed=len(own_player(board)["melds"])
+        discards=[a for a in actions if a["kind"]=="discard"]
+        # Keep North if it is essential to a faster hand. Otherwise take the
+        # immediate replacement draw and banked bonus, never pass a win for it.
+        baseline=min((o["shanten"] for o in ranker(request)),default=8) if discards else 8
+        if shanten(counts34(hand),fixed)<=baseline:return finish(north,"north_extraction")
     opponents=threats(board);wall=board.get("wall_remaining")
     if not any(a["kind"]=="discard" for a in actions):
         call=_call_options(request,book,ranker,call_notes,value)
@@ -312,6 +322,7 @@ def choose_attack(owner,request,book,ranker=rank_discards):
             profile=option["wait_value"]
             if profile and ((profile["permanent_furiten"] and not riichi["allow_furiten"]) or profile["riichi_ukeire"]<minimum):continue
             if opponents and not may_push(option,opponents,wall,settings):continue
+            if value.get("riichi_speed_first") and option["effective_ukeire"]<best["effective_ukeire"]:continue
             existing=best["wait_value"]
             if (profile and existing and existing["dama_ukeire"]>=riichi["dama_min_waits"]
                     and existing["dama_points"]>=riichi["dama_min_points"]

@@ -3,6 +3,7 @@
 Mandatory melds/pair consume disjoint tiles. The residual shape is evaluated
 with explicit fixed groups; open melds cannot supply concealed-only patterns.
 """
+from agents.mahjong_soul.efficiency import tile_supply
 from collections import Counter
 from functools import lru_cache
 from itertools import combinations,combinations_with_replacement
@@ -57,9 +58,9 @@ def pattern_progress(board,hand,target):
     for t,n in board["visible_tile_counts"].items():visible[tile_kind(t)]+=n
     counts=Counter(tile_kind(t) for t in hand);improving=[]
     for tile in KINDS:
-        if visible[tile]>=4 or counts[tile]>=4:continue
+        if visible[tile]>=tile_supply(board,tile) or counts[tile]>=4:continue
         if pattern_distance(board,hand+[tile],target)<distance:
-            improving.append({"tile":tile,"unseen":4-visible[tile]})
+            improving.append({"tile":tile,"unseen":tile_supply(board,tile)-visible[tile]})
     return distance,improving
 
 
@@ -131,7 +132,7 @@ def pattern_targets(board,hand,bonus):
         required=Counter(t for g in groups for t in g)
         if pair:required[pair]+=2
         missing=sum(max(0,n-all_counts[t]) for t,n in required.items())
-        if missing>3 or any(n>all_counts[t]+max(0,4-visible[t]) for t,n in required.items()):return
+        if missing>3 or any(n>all_counts[t]+max(0,tile_supply(board,t)-visible[t]) for t,n in required.items()):return
         honor_units=[v for t,v in honors.items() if all_counts[t]>=3 and t!=pair]
         if mode in ("pinfu","junchan"):honor_units=[]
         compatible_honors=sum(sorted(honor_units,reverse=True)[:max(0,4-len(groups))])
