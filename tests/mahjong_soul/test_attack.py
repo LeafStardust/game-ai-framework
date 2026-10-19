@@ -31,7 +31,7 @@ def threat(report, seat=1):
 
 def test_only_four_player_atk_is_registered_and_balanced_still_resolves():
     registry=default_mahjong_playbooks()
-    assert registry.get(4,"atk").name == "yonma-manual-atk"
+    assert registry.get(4,"atk").name == "4 Player South Wind ATK"
     assert registry.get(4).style == registry.get(3).style == "balanced"
     with pytest.raises(LookupError):registry.get(3,"atk")
     report=board();report["state"]["player_count"]=3

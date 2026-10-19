@@ -1,6 +1,6 @@
-# Four-player ATK v0.6
+# 4 Player South Wind ATK v0.6
 
-ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered cartridge name remains `yonma-manual-atk` for compatibility; both the automatic player and suggestion monitor use these settings.
+ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered playbook name is `4 Player South Wind ATK`, intended for four-player South matches (Hanchan). Both the automatic player and suggestion monitor use these settings. The label describes its intended match format; it does not enforce the room length.
 
 - `MahjongSoulAgent.bat`: capture and automatic native play. Ctrl+C stops both.
 - `MahjongSoulMonitor.bat`: capture and read-only ATK recommendations for manual play.
