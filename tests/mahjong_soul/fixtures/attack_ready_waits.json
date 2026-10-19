@@ -1,0 +1,660 @@
+{
+  "407": {
+    "game_generation": 1,
+    "state_ready": true,
+    "frames": 270,
+    "actions": {
+      "ActionMJStart": 1,
+      "ActionNewRound": 2,
+      "ActionDiscardTile": 53,
+      "ActionDealTile": 49,
+      "ActionChiPengGang": 2,
+      "ActionHule": 1
+    },
+    "last_event": {
+      "name": "ActionDiscardTile",
+      "step": 51
+    },
+    "game_connection": "de98d311-68c4-435f-9b21-463f3fdabe62",
+    "connection_open": true,
+    "closed_connections": 0,
+    "schema_warnings": [],
+    "decode_errors": [],
+    "state": {
+      "visible_tile_counts": {
+        "1s": 2,
+        "1z": 2,
+        "2m": 3,
+        "2p": 1,
+        "2z": 1,
+        "3m": 1,
+        "3p": 2,
+        "3z": 2,
+        "4p": 1,
+        "4s": 1,
+        "4z": 3,
+        "5m": 1,
+        "5s": 1,
+        "5z": 1,
+        "6m": 2,
+        "6p": 1,
+        "6s": 2,
+        "6z": 2,
+        "7m": 3,
+        "7s": 3,
+        "7z": 1,
+        "8m": 1,
+        "8p": 1,
+        "8s": 2,
+        "9m": 1,
+        "9s": 1
+      },
+      "visibility_complete": true,
+      "player_count": 4,
+      "status": "tracking",
+      "issues": [],
+      "seat": 3,
+      "step": 51,
+      "round": {
+        "chang": 0,
+        "ju": 1,
+        "ben": 0,
+        "liqibang": 0
+      },
+      "hand": [
+        "1z",
+        "6m",
+        "2m",
+        "1s",
+        "2m",
+        "5m",
+        "7s",
+        "7m",
+        "6m",
+        "2m",
+        "8s",
+        "3m",
+        "7m"
+      ],
+      "opening_hand": [
+        "1z",
+        "6m",
+        "5s",
+        "2p",
+        "2m",
+        "1s",
+        "2m",
+        "5m",
+        "7s",
+        "3z",
+        "7m",
+        "8s",
+        "6m"
+      ],
+      "scoring_context": {
+        "history_complete": true,
+        "win": {
+          "houtei": false,
+          "ippatsu": false,
+          "double_riichi": false
+        },
+        "double_riichi_available": false,
+        "double_riichi": false,
+        "ippatsu": false
+      },
+      "win_source": null,
+      "discards": [
+        [
+          {
+            "tile": "4z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "3z",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          },
+          {
+            "tile": "8m",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "1s",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "3p",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "6p",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          }
+        ],
+        [
+          {
+            "tile": "5z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "6z",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          },
+          {
+            "tile": "8p",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "3p",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "7s",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "9m",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          },
+          {
+            "tile": "9s",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          }
+        ],
+        [
+          {
+            "tile": "4z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "1z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "6z",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          },
+          {
+            "tile": "7z",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          },
+          {
+            "tile": "2z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "6s",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "7m",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          }
+        ],
+        [
+          {
+            "tile": "5s",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "3z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "8s",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": true
+          },
+          {
+            "tile": "4z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "2p",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "4s",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          }
+        ]
+      ],
+      "melds": [
+        [
+          {
+            "seat": 0,
+            "type": 0,
+            "tiles": [
+              "6s",
+              "7s",
+              "8s"
+            ],
+            "froms": [
+              0,
+              0,
+              3
+            ],
+            "zhenting": false,
+            "tingpais": [],
+            "tile_states": [
+              0,
+              0
+            ],
+            "scores": [],
+            "liqibang": 0
+          }
+        ],
+        [],
+        [],
+        []
+      ],
+      "norths": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "scores": [
+        25000,
+        33000,
+        17000,
+        25000
+      ],
+      "doras": [
+        "4p"
+      ],
+      "left_tile_count": 45,
+      "turn": 2,
+      "operations": {
+        "seat": 3,
+        "operation_list": [
+          {
+            "type": 2,
+            "combination": [
+              "5m|6m"
+            ],
+            "change_tiles": [],
+            "change_tile_states": [],
+            "gap_type": 0
+          },
+          {
+            "type": 3,
+            "combination": [
+              "7m|7m"
+            ],
+            "change_tiles": [],
+            "change_tile_states": [],
+            "gap_type": 0
+          }
+        ],
+        "time_add": 20000,
+        "time_fixed": 5000
+      },
+      "player_metadata": [],
+      "riichi": [
+        "none",
+        "none",
+        "none",
+        "none"
+      ],
+      "drawn_tile": null,
+      "furiten": false,
+      "rules": {
+        "open_tanyao": true
+      }
+    }
+  },
+  "3306": {
+    "game_generation": 1,
+    "state_ready": true,
+    "frames": 1636,
+    "actions": {
+      "ActionMJStart": 1,
+      "ActionNewRound": 10,
+      "ActionDiscardTile": 424,
+      "ActionDealTile": 404,
+      "ActionChiPengGang": 15,
+      "ActionHule": 9,
+      "ActionAnGangAddGang": 2
+    },
+    "last_event": {
+      "name": "ActionDealTile",
+      "step": 34
+    },
+    "game_connection": "de98d311-68c4-435f-9b21-463f3fdabe62",
+    "connection_open": true,
+    "closed_connections": 0,
+    "schema_warnings": [],
+    "decode_errors": [],
+    "state": {
+      "visible_tile_counts": {
+        "1m": 1,
+        "1p": 1,
+        "1z": 4,
+        "2m": 2,
+        "2p": 1,
+        "2s": 1,
+        "2z": 2,
+        "3m": 2,
+        "3s": 1,
+        "3z": 2,
+        "4p": 1,
+        "5p": 1,
+        "5z": 2,
+        "6p": 2,
+        "6s": 1,
+        "7p": 2,
+        "7s": 1,
+        "7z": 1,
+        "8p": 2,
+        "8s": 2,
+        "9p": 2
+      },
+      "visibility_complete": true,
+      "player_count": 4,
+      "status": "tracking",
+      "issues": [],
+      "seat": 3,
+      "step": 34,
+      "round": {
+        "chang": 1,
+        "ju": 2,
+        "ben": 0,
+        "liqibang": 0
+      },
+      "hand": [
+        "3m",
+        "2z",
+        "4p",
+        "7s",
+        "6p",
+        "7p",
+        "6p",
+        "8s",
+        "6s",
+        "7p",
+        "1m",
+        "2z",
+        "2m",
+        "0p"
+      ],
+      "opening_hand": [
+        "3m",
+        "2z",
+        "4p",
+        "7s",
+        "6p",
+        "7p",
+        "1z",
+        "5z",
+        "6p",
+        "8s",
+        "6s",
+        "3s",
+        "7p"
+      ],
+      "scoring_context": {
+        "history_complete": true,
+        "win": {
+          "rinshan": false,
+          "haitei": false,
+          "chiihou": false,
+          "ippatsu": false,
+          "double_riichi": false
+        },
+        "double_riichi_available": false,
+        "double_riichi": false,
+        "ippatsu": false
+      },
+      "win_source": null,
+      "discards": [
+        [
+          {
+            "tile": "9p",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "7z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "8p",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "9p",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          }
+        ],
+        [
+          {
+            "tile": "1z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": true
+          },
+          {
+            "tile": "8p",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "1p",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          },
+          {
+            "tile": "5z",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          }
+        ],
+        [
+          {
+            "tile": "3z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "2p",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "8s",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "2s",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "3z",
+            "riichi": false,
+            "tsumogiri": true,
+            "called": false
+          }
+        ],
+        [
+          {
+            "tile": "5z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "3s",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "1z",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          },
+          {
+            "tile": "2m",
+            "riichi": false,
+            "tsumogiri": false,
+            "called": false
+          }
+        ]
+      ],
+      "melds": [
+        [],
+        [],
+        [
+          {
+            "seat": 2,
+            "type": 1,
+            "tiles": [
+              "1z",
+              "1z",
+              "1z"
+            ],
+            "froms": [
+              2,
+              2,
+              1
+            ],
+            "zhenting": false,
+            "tingpais": [],
+            "tile_states": [
+              0,
+              0
+            ],
+            "scores": [],
+            "liqibang": 0
+          }
+        ],
+        []
+      ],
+      "norths": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "scores": [
+        34200,
+        22200,
+        12500,
+        31100
+      ],
+      "doras": [
+        "3m"
+      ],
+      "left_tile_count": 53,
+      "turn": 3,
+      "operations": {
+        "seat": 3,
+        "operation_list": [
+          {
+            "type": 1,
+            "combination": [],
+            "change_tiles": [],
+            "change_tile_states": [],
+            "gap_type": 0
+          },
+          {
+            "type": 7,
+            "combination": [
+              "6p",
+              "7p",
+              "7p",
+              "6p",
+              "7p",
+              "4p"
+            ],
+            "change_tiles": [],
+            "change_tile_states": [],
+            "gap_type": 0
+          }
+        ],
+        "time_add": 20000,
+        "time_fixed": 5000
+      },
+      "player_metadata": [],
+      "riichi": [
+        "none",
+        "none",
+        "none",
+        "none"
+      ],
+      "drawn_tile": "0p",
+      "furiten": false,
+      "rules": {
+        "open_tanyao": true
+      }
+    }
+  }
+}

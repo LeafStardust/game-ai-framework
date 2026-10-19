@@ -51,6 +51,16 @@ def enrich(board,options,settings=None):
             from agents.mahjong_soul.attack_value import scored_han
             option["target_han_estimate"]=option["projected_han"]
             option["projected_han"]=scored_han(profile,option["riichi_offered"])
+            # Complete-hand scoring supersedes the partial target's restricted
+            # wait set. Riichi can legalize additional waits outside that Yaku.
+            option["target_route_cost_estimate"]=option["route_cost"]
+            option["route_cost"]=0
+            modes={"tsumo"}
+            if not profile["ron_blocked"]:modes.add("dama")
+            if option["riichi_offered"] and not profile["ron_blocked"]:modes.add("riichi")
+            option["improving_tiles"]=[{"tile":w["tile"],"unseen":w["unseen"]}
+                                       for w in profile["waits"] if w["unseen"]>0 and modes.intersection(w["values"])]
+            option["ukeire"]=sum(w["unseen"] for w in option["improving_tiles"])
         option["effective_ukeire"]=(max(profile["dama_ukeire"],profile["tsumo_ukeire"]) if profile and option["has_open_meld"] else option["ukeire"])
     return options
 
@@ -130,11 +140,13 @@ def _call_options(request,book,ranker,diagnostics=None,value=None):
         synthetic={"observation":{"board":simulated},"actions":discards}
         options=enrich(simulated,ranker(synthetic),value)
         viable=[];rejections=Counter()
+        nearest=min(o["shanten"] for o in options)
         for option in options:
             profile=option["wait_value"]
             credible=(option["open_yaku"] or option["open_route"] and option["route_cost"]<=settings["max_route_cost"])
             reason=None
-            if not credible:reason="no_reachable_open_yaku"
+            if option["shanten"]>nearest:reason="slower_than_post_call_plan"
+            elif not credible:reason="no_reachable_open_yaku"
             elif option["shanten"]>settings["max_shanten"]:reason="too_far_from_win"
             elif profile and (profile["dama_ukeire"]==0 or profile["permanent_furiten"]):reason="no_legal_ron_wait"
             elif option["projected_han"]<settings["minimum_han"] and not (settings.get("allow_cheap_tenpai",True) and profile and profile["dama_ukeire"]>=settings["cheap_tenpai_waits"]):reason="low_value_open_hand"

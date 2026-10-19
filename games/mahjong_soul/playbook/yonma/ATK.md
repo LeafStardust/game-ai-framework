@@ -1,4 +1,4 @@
-# 4 Player South Wind ATK v0.10
+# 4 Player South Wind ATK v0.11
 
 ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered playbook name is `4 Player South Wind ATK`, intended for four-player South matches (Hanchan). Both the automatic player and suggestion monitor use these settings. The label describes its intended match format; it does not enforce the room length.
 
@@ -69,3 +69,12 @@ The development model now reserves required groups and pairs for Pinfu, Iipeikou
 ## Decision review (v0.10)
 
 Offered wins remain first. Discards compare reachable scoring routes, progress and improving copies before value ranking; Riichi compares scored waits and Dama alternatives. Detailed recordings now include each discard action, route, distance, improving-copy count, projected Han, scored waits and ranking utility. Existing call rejection reasons and plan transitions remain available. Speculative danger does not change offensive discard rankings; opponent Riichi never triggers folding. These are transparent heuristics, not calibrated expected win values.
+
+
+## Recorded ready-hand and call correction (v0.11)
+
+At Tenpai, exact scoring supplies all available legal waits, including Riichi waits outside the provisional Yaku plan. Partial-plan replacement costs no longer penalize an already ready hand. This prevents rejecting a valuable ready discard because only its provisional Yaku subset was counted. Furiten still blocks Ron; Tsumo remains possible.
+
+A call cannot qualify solely through a slower expensive route if the post-call policy would choose a faster cheap route. The opening-value requirement is applied at the nearest post-call scoring distance, so a remote flush cannot sell a call that immediately becomes a one-Han hand.
+
+Session `20261019T164058-353717Z` exposed both cases. In South Three, discarding 6 Pin and declaring Riichi has four available winning copies and a known-copy-weighted Ron value of 5,300 points; the old 7 Pin declaration had five copies and 2,600 points. The new choice satisfies the existing 70% progress guard. The subsequent forced Riichi discard caused the recorded deal-in; these counterfactual choices do not prove the revised line wins or avoids a deal-in. In East Two, the agent now skips the Chi previously justified by a slower five-Han Full Flush route. The other two deal-in decisions did not establish a separate rules or progress bug; no hindsight-based folding is added.
