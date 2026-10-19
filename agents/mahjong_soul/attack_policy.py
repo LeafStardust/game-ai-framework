@@ -5,8 +5,8 @@ from copy import deepcopy
 from agents.mahjong_soul.efficiency import counts34,shanten,rank_discards,KINDS
 from agents.mahjong_soul.attack_value import yaku_routes,tenpai_value,own_player,yaku_potential
 from agents.mahjong_soul.attack_defense import threats,danger
-from agents.mahjong_soul.attack_routes import project_attack,known_bonus,toitoi_progress
-from games.mahjong_soul.playbook.features import discard_features,value_honors
+from agents.mahjong_soul.attack_routes import project_attack,known_bonus,route_progress
+from games.mahjong_soul.playbook.features import discard_features
 from games.mahjong_soul.live.runtime.kan import tile_kind
 
 
@@ -20,16 +20,22 @@ def enrich(board,options):
         option["pair_break_loss"]=int(not own_player(board)["melds"] and sum(n>=2 for n in before.values())>=5 and before[tile_kind(tile)]==2)
         option["value_han"]=option["retained_bonus"]+option["route_han"]
         option.update(project_attack(board,hand,option["retained_bonus"]))
-        # Generic Shanten counts sequences even when this open hand can only
-        # score by converting those sequences into triplets. Evaluate the
-        # actual winning route before calls, discards and Ukeire comparisons.
-        live_yakuhai_pair=any(sum(tile_kind(t)==honor for t in hand)==2
-                             and board["visible_tile_counts"].get(honor,0)<4 for honor in value_honors(board))
-        if (option["opened"] and not option["open_yaku"] and option["target_route"]=="toitoi"
-                and not live_yakuhai_pair):
+        # An open hand must progress toward its scoring route, not toward
+        # a faster sequence shape that has no Yaku.
+        if option["opened"] and not option["open_yaku"]:
             option["shape_shanten"]=option["shanten"]
-            option["shanten"],option["improving_tiles"]=toitoi_progress(board,hand)
-            option["ukeire"]=sum(t["unseen"] for t in option["improving_tiles"])
+            targets=[]
+            for target in project_attack(board,hand,option["retained_bonus"],all_targets=True):
+                if not target["open_route"]:continue
+                distance,improving=route_progress(board,hand,target)
+                targets.append((target,distance,improving))
+            if not targets:
+                targets=[(option,8,[])]
+            target,distance,improving=max(targets,key=lambda item:(
+                item[0]["projected_han"]*14-item[1]*18-item[0]["route_cost"]*4
+                +math.sqrt(sum(t["unseen"] for t in item[2]))*2.5,-item[1]))
+            option.update(target);option["shanten"]=distance;option["improving_tiles"]=improving
+            option["ukeire"]=sum(t["unseen"] for t in improving)
         option["push_value_estimate"]=option["value_han"]+int(not option["opened"])+max(0,max(option["yaku_potential"].values(),default=0)-option["route_han"])
         operations=(board.get("available_operations") or {}).get("operation_list",[])
         option["riichi_offered"]=any(o.get("type")==7 and tile in o.get("combination",[]) for o in operations)

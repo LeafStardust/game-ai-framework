@@ -16,12 +16,12 @@ def test_recorded_red_five_chi_does_not_invent_han_from_terminal_dora_the_route_
 
 
 @pytest.mark.parametrize("threat_count",[0,1,3])
-def test_value_toitoi_pon_can_build_two_shanten_hand_even_through_multiple_threats(threat_count):
+def test_value_pon_builds_reachable_yakuhai_even_through_multiple_threats(threat_count):
     r=call_report("11m22p33s55z67m89s9p","1m","1m|1m",3,doras=["1p"])
     for seat in range(1,threat_count+1):r["state"]["riichi"][seat]="accepted"
     action,analysis=choose(r)
     assert action["kind"]=="pon" and analysis["shanten"]==2
-    assert analysis["projected_han"]>=5 and analysis["target_route"]=="toitoi"
+    assert analysis["projected_han"]==3 and analysis["target_route"]=="yakuhai"
 
 
 def test_yakuhai_pon_supports_honitsu_value():

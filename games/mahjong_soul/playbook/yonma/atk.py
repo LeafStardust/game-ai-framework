@@ -3,7 +3,7 @@ from games.mahjong_soul.playbook.model import MahjongPlaybook
 
 
 def attack_playbook():
-    return MahjongPlaybook(4,"yonma-manual-atk",style="atk",version="0.4",strategy={
+    return MahjongPlaybook(4,"yonma-manual-atk",style="atk",version="0.5",strategy={
         "discard_value":{"dora_loss_weight":2.0,"yakuhai_pair_loss_weight":1.25,
                          "yakuhai_triplet_loss_weight":4.0,"max_ukeire_sacrifice":14,
                          "ukeire_per_value":2.0,"pair_break_weight":2.0,"points_per_ukeire":2000,"potential_weight":.75,

@@ -1,4 +1,4 @@
-# Four-player ATK v0.4
+# Four-player ATK v0.5
 
 ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered cartridge name remains `yonma-manual-atk` for compatibility; both the automatic player and suggestion monitor use these settings.
 
@@ -15,7 +15,7 @@ The discard ranking weighs projected Han, scored tenpai value, Shanten, availabl
 
 At the best available Shanten, the policy can sacrifice up to fourteen improving copies to preserve/build value. With at least twenty-four wall tiles, it can accept one additional Shanten for at least two extra projected Han, provided the alternative still has improving copies. It does not choose an exhausted target over a productive alternative just for its advertised value.
 
-When an open Toitoi target has no existing Yaku or live Yakuhai pair, Shanten and Ukeire are measured against four triplets and a pair. Sequence extensions cannot masquerade as progress toward that target. This prevents speculative Pon calls from borrowing the closed hand's sequence speed after giving up Riichi. Other future-Yaku routes remain heuristic estimates.
+Open hands without an existing Yaku evaluate the actual shape distance and improving tiles for each supported scoring route. Tanyao excludes terminals and honors; flush routes exclude off-suit tiles; Toitoi counts triplet development; future Yakuhai reserves the needed honor triplet. The policy compares these reachable routes instead of borrowing generic sequence speed for a speculative high-Han target. Discards that destroy the last supported Yaku route receive no productive route credit. These remain heuristics, not a complete search of every Yaku or expected value.
 
 ## Calls and Kan
 
