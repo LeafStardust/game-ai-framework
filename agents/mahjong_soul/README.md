@@ -73,7 +73,7 @@ Four-player attack is available as `--policy playbook --playstyle atk`; see [ATK
 Run one launcher before opening/reopening Steam Mahjong Soul:
 
 ```powershell
-.\MahjongSoul4PlayerSouthWindATK.bat
+.\MahjongSoulATK.bat
 ```
 
 This starts process-scoped capture and automatic ATK play together. Approve the Windows capture administrator prompt if shown, then enter a four-player AI room at a physical **1920?1080 client size** and keep Mahjong foreground. No separate capture or shadow terminal is needed. Existing proxy certificate setup is still required; the launcher does not install certificates. Capture is essential: it supplies the live game state.
