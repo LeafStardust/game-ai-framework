@@ -1,6 +1,6 @@
 # 4 Player East Wind Speed v0.1
 
-The automatic lobby router selects this playbook for four-player East matches when launched with `MahjongSoulATK.bat`. The launcher chooses the policy family; the authenticated format chooses East Speed or South ATK. South settings are unchanged. East matches may include dealer repeats and extensions rather than exactly four hands.
+The automatic lobby router selects this playbook for four-player East matches when launched with `MahjongSoulAgent.bat`. The launcher chooses the policy family; the authenticated format chooses East Speed or South ATK. South settings are unchanged. East matches may include dealer repeats and extensions rather than exactly four hands.
 
 Priority is speed, then defense, then attack value. During normal development, minimize reachable scoring-route Shanten, maximize available improving copies, prefer the safer discard when speed is equal, then use projected/scored value to break remaining ties. Expensive routes cannot trade away speed. Deliberate Yakuman pursuit is disabled; any offered legal win is accepted.
 
