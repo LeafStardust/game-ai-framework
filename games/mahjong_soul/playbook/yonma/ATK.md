@@ -1,4 +1,4 @@
-# 4 Player South Wind ATK v0.6
+# 4 Player South Wind ATK v0.7
 
 ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered playbook name is `4 Player South Wind ATK`, intended for four-player South matches (Hanchan). Both the automatic player and suggestion monitor use these settings. The label describes its intended match format; it does not enforce the room length.
 
@@ -43,3 +43,12 @@ Four-player ATK prioritizes hand value, then speed. The projected-Han weight is 
 Yakuman pursuit requires at least ten useful matching tiles in the original `ActionNewRound` hand (13 tiles, or the dealer's initial 14). The reader records this hand separately from the mutable current hand. Missing opening history, including a reconnect without original round history, disables pursuit. Later draws cannot unlock the gate. Each new round resets it.
 
 Supported targets are Kokushi, All Honors, All Terminals, All Green, and Nine Gates. Kokushi counts distinct required kinds plus one useful duplicate for its pair; repeated copies cannot inflate the count. Nine Gates counts its required rank multiplicities plus at most one extra suited tile. The other three count tiles compatible with their restricted tile sets. Eligibility does not guarantee completion: compatible shape distance and available improving copies still guide choices. Closed targets reject opening calls and Kan; exposed melds must fit open targets. Other Yakuman are not deliberately pursued by this version, even if encountered; offered wins are always accepted.
+
+
+## Hand-plan continuity and scored Tenpai
+
+The policy retains a route and its suit for the current hand, including through call offers. A small continuity preference prevents marginal turn-by-turn route changes; a clearly stronger value/progress option can still replace the plan. Plans reset on a new round, repeat counter, capture generation or game connection. They are policy memory and are rebuilt after restarting the process. The detailed recording logs the previous/current plan and whether it started, stayed or switched. Terminal output remains recommended actions only.
+
+At Tenpai, available-copy-weighted Han from actual scored legal waits replaces the speculative target Han in discard/call valuation. A distant flush or Toitoi target cannot inflate a different completed shape. The policy can prefer a higher-value Dama alternative over a lower-value offered Riichi. Known point values remain part of ranking. This does not predict hidden Ura Dora, Ippatsu or opponents' tile probabilities.
+
+Exposed Chi melds can now prove Sanshoku or Ittsu as legal Yaku routes; loose concealed rank presence alone is not treated as proof. Prospective planning still does not cover every Yaku, and the continuity preference is not a full expected-value search. The opening-only Yakuman gate and always-push behavior remain active.

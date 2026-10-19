@@ -13,7 +13,7 @@ def known_bonus(board,hand):
     return sum(doras[tile_kind(t)]+int(t.startswith("0")) for t in all_tiles)
 
 
-def project_attack(board,hand,bonus=0,*,all_targets=False):
+def project_attack(board,hand,bonus=0,*,all_targets=False,preferred=None):
     own=own_player(board);melds=own["melds"]
     opened=any(m["type"]!=3 for m in melds)
     kinds=[tile_kind(t) for t in hand]
@@ -28,14 +28,18 @@ def project_attack(board,hand,bonus=0,*,all_targets=False):
                  key=lambda item:(-item[1],item[0]))[:room]
     from agents.mahjong_soul.yakuman import yakuman_targets
     targets=yakuman_targets(board,hand)
-    def add(name,han,cost,open_route=True,future_riichi=True,compatible=None):
+    def add(name,han,cost,open_route=True,future_riichi=True,compatible=None,suit=None):
         if han<=0:return
         # Future Riichi is explicitly projected only for a closed hand. It is
         # never presented as scored/secured Han or added to open-hand targets.
         route_bonus=bonus if compatible is None else min(bonus,known_bonus(board,[t for t in hand if compatible(tile_kind(t))]))
         targets.append({"target_route":name,"target_yaku_han":han,
                         "projected_han":han+route_bonus+(0 if opened or not future_riichi else 1),
-                        "route_cost":cost,"open_route":open_route})
+                        "route_cost":cost,"open_route":open_route,"target_suit":suit})
+    from agents.mahjong_soul.attack_value import yaku_routes
+    proven=yaku_routes(board,hand)["routes"]
+    for route in ("sanshoku","ittsu"):
+        if route in proven:add(route,proven[route]+secured,0)
     if secured:add("yakuhai",secured,0)
     if pairs:add("yakuhai",secured+sum(units for _,units in pairs),len(pairs))
     if not opened:add("riichi",1,0,False,False)
@@ -48,11 +52,11 @@ def project_attack(board,hand,bonus=0,*,all_targets=False):
             suit_count=sum(t[1]==suit for t in kinds+fixed)
             outsiders=sum(t[1] not in (suit,"z") for t in kinds)
             if suit_count>=6 and outsiders<=4:
-                add("honitsu",(2 if opened else 3)+secured+sum(u for _,u in pairs),outsiders+len(pairs),compatible=lambda t:t[1] in (suit,"z"))
+                add("honitsu",(2 if opened else 3)+secured+sum(u for _,u in pairs),outsiders+len(pairs),compatible=lambda t:t[1] in (suit,"z"),suit=suit)
         if all(t[1]==suit for t in fixed):
             outsiders=sum(t[1]!=suit for t in kinds)
             if sum(t[1]==suit for t in kinds+fixed)>=8 and outsiders<=3:
-                add("chinitsu",5 if opened else 6,outsiders,compatible=lambda t:t[1]==suit)
+                add("chinitsu",5 if opened else 6,outsiders,compatible=lambda t:t[1]==suit,suit=suit)
     if all(m["type"]!=0 for m in melds):
         pairs_ready=sum(n>=2 for n in concealed.values())+len(melds)
         if pairs_ready>=3:
@@ -68,7 +72,7 @@ def project_attack(board,hand,bonus=0,*,all_targets=False):
     # valuable remote shape. This is a planning heuristic, not an EV model.
     if all_targets:return targets
     if not targets:return {"target_route":None,"target_yaku_han":0,"projected_han":bonus,"route_cost":99,"open_route":False}
-    return max(targets,key=lambda r:(r["projected_han"]-r["route_cost"]*.6,-r["route_cost"],r["target_route"]))
+    return max(targets,key=lambda r:(r["projected_han"]-r["route_cost"]*.6+(.3 if preferred==(r["target_route"],r.get("target_suit")) else 0),-r["route_cost"],r["target_route"]))
 
 
 @lru_cache(maxsize=12000)
@@ -155,7 +159,7 @@ def route_progress(board,hand,target):
     if route in ("honitsu","chinitsu"):
         all_tiles=hand+[t for m in melds for t in m["tiles"]]
         suits=[s for s in "mps" if all(tile_kind(t)[1] in ((s,"z") if route=="honitsu" else (s,)) for m in melds for t in m["tiles"])]
-        suit=max(suits,key=lambda s:sum(tile_kind(t)[1]==s for t in all_tiles))
+        suit=target.get("target_suit") or max(suits,key=lambda s:sum(tile_kind(t)[1]==s for t in all_tiles))
         allowed=lambda t:t[1]==suit or route=="honitsu" and t[1]=="z"
     elif route=="yakuman_all_honors":allowed=lambda t:t[1]=="z"
     elif route=="yakuman_all_terminals":allowed=lambda t:t[1]!="z" and t[0] in "19"

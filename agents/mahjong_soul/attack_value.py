@@ -28,6 +28,13 @@ def yaku_routes(board,hand, melds=None):
     concealed=Counter(tile_kind(t) for t in hand)
     if len(melds)>=3 and all(m["type"]!=0 for m in melds) and len(concealed)<=2:
         routes["toitoi"]=2
+    # Fixed Chi melds prove sequence Yaku without assuming a decomposition
+    # of concealed tiles. Loose rank presence alone is not sufficient.
+    sequences={tuple(sorted(tile_kind(t) for t in m["tiles"])) for m in melds if m["type"]==0}
+    if any(all(tuple(str(n)+s for n in range(start,start+3)) in sequences for s in "mps") for start in range(1,8)):
+        routes["sanshoku"]=1
+    if any(all(tuple(str(n)+s for n in range(start,start+3)) in sequences for start in (1,4,7)) for s in "mps"):
+        routes["ittsu"]=1
     routes={k:v for k,v in routes.items() if v}
     # These routes describe the retained tiles, not speculative extra han.
     return {"routes":routes,"route_han":sum(routes.values()),"open_yaku":bool(routes),"opened":opened}
@@ -126,3 +133,17 @@ def yaku_potential(board,hand):
     orphans={"1m","9m","1p","9p","1s","9s"}|{str(n)+"z" for n in range(1,8)}
     if not melds and set(counts)<=orphans and len(counts)>=11:potential["kokushi"]=13
     return potential
+
+
+def scored_han(profile,riichi_offered=False):
+    """Available-copy weighted Han of actual legal waits, not future targets."""
+    modes=["tsumo"]
+    if not profile["ron_blocked"]:
+        modes.append("dama")
+        if riichi_offered:modes.append("riichi")
+    values=[]
+    for mode in modes:
+        waits=[w for w in profile["waits"] if w["unseen"]>0 and mode in w["values"]]
+        total=sum(w["unseen"] for w in waits)
+        if total:values.append(sum(w["unseen"]*w["values"][mode]["han"] for w in waits)/total)
+    return max(values,default=0)

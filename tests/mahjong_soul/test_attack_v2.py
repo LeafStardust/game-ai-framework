@@ -167,11 +167,11 @@ def test_open_value_threat_is_recognized_without_riichi():
     assert threats(b)[0]['threat_kind']=='open_hand'
 
 
-def test_high_value_dama_does_not_veto_aggressive_riichi_for_small_gain():
+def test_scored_baiman_dama_beats_lower_value_offered_riichi():
     r=report('123m123p123s111z23s',doras=['1s','1s'])
     r['state']['operations']['operation_list'].append({'type':7,'combination':['1s']})
     action,analysis=choose(r)
-    assert action['kind']=='riichi'
+    assert action=={'kind':'discard','tile':'3s'}
     assert analysis['wait_value']['dama_points']>=7700
 
 

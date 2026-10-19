@@ -20,7 +20,7 @@ def enrich(board,options,settings=None):
         before=Counter(tile_kind(t) for t in board["self"]["hand"])
         option["pair_break_loss"]=int(not own_player(board)["melds"] and sum(n>=2 for n in before.values())>=5 and before[tile_kind(tile)]==2)
         option["value_han"]=option["retained_bonus"]+option["route_han"]
-        option.update(project_attack(board,hand,option["retained_bonus"]))
+        option.update(project_attack(board,hand,option["retained_bonus"],preferred=settings.get("preferred_plan")))
         # An open hand must progress toward its scoring route, not toward
         # a faster sequence shape that has no Yaku.
         if (option["opened"] and not option["open_yaku"]) or str(option["target_route"]).startswith("yakuman_"):
@@ -35,7 +35,8 @@ def enrich(board,options,settings=None):
             practical=[item for item in targets if item[1]<=3]
             target,distance,improving=max(practical or targets,key=lambda item:(
                 item[0]["projected_han"]*settings["han_weight"]-item[1]*settings["shanten_cost"]-item[0]["route_cost"]*settings["route_cost_weight"]
-                +math.sqrt(sum(t["unseen"] for t in item[2]))*settings["ukeire_weight"],-item[1]))
+                +math.sqrt(sum(t["unseen"] for t in item[2]))*settings["ukeire_weight"]
+                +(6 if settings.get("preferred_plan")== (item[0]["target_route"],item[0].get("target_suit") or item[0].get("yakuman_suit")) else 0),-item[1]))
             option.update(target);option["shanten"]=distance;option["improving_tiles"]=improving
             option["ukeire"]=sum(t["unseen"] for t in improving)
         option["push_value_estimate"]=option["value_han"]+int(not option["opened"])+max(0,max(option["yaku_potential"].values(),default=0)-option["route_han"])
@@ -43,6 +44,10 @@ def enrich(board,options,settings=None):
         option["riichi_offered"]=any(o.get("type")==7 and tile in o.get("combination",[]) for o in operations)
         option["wait_value"]=tenpai_value(board,hand,discard=tile) if option["shanten"]==0 and option["improving_tiles"] else None
         profile=option["wait_value"]
+        if profile:
+            from agents.mahjong_soul.attack_value import scored_han
+            option["target_han_estimate"]=option["projected_han"]
+            option["projected_han"]=scored_han(profile,option["riichi_offered"])
         option["effective_ukeire"]=(max(profile["dama_ukeire"],profile["tsumo_ukeire"]) if profile and option["has_open_meld"] else option["ukeire"])
     return options
 
@@ -58,7 +63,8 @@ def attack_utility(option,settings):
             -option["shanten"]*settings["shanten_cost"]
             -option["route_cost"]*settings["route_cost_weight"]
             +math.sqrt(max(0,option["effective_ukeire"]))*settings["ukeire_weight"]
-            +min(20,points/1000))
+            +min(20,points/1000)
+            +(6 if settings.get("preferred_plan")== (option.get("target_route"),option.get("target_suit") or option.get("yakuman_suit")) else 0))
 
 
 def offensive(board,options,value):
@@ -98,12 +104,13 @@ def may_push(option,opponents,wall,settings):
     return True
 
 
-def _call_options(request,book,ranker,diagnostics=None):
+def _call_options(request,book,ranker,diagnostics=None,value=None):
+    value=value or book.thresholds_for("D1")
     board=request["observation"]["board"];own=own_player(board);hand=board["self"]["hand"]
     fixed=len(own["melds"]);baseline=shanten(counts34(hand),fixed)
     opponents=threats(board);settings=book.strategy["calls"];candidates=[]
     before_value=tenpai_value(board,hand) if baseline==0 else None
-    before_target=project_attack(board,hand,known_bonus(board,hand))
+    before_target=project_attack(board,hand,known_bonus(board,hand),preferred=value.get("preferred_plan"))
     for action in request["actions"]:
         if action["kind"] not in ("chi","pon"):continue
         simulated=deepcopy(board);remaining=simulated["self"]["hand"]
@@ -118,7 +125,7 @@ def _call_options(request,book,ranker,diagnostics=None):
         discards=[{"kind":"discard","tile":t} for t in sorted(set(remaining)) if tile_kind(t) not in forbidden]
         if not discards:continue
         synthetic={"observation":{"board":simulated},"actions":discards}
-        options=enrich(simulated,ranker(synthetic),book.thresholds_for("D1"))
+        options=enrich(simulated,ranker(synthetic),value)
         viable=[];rejections=Counter()
         for option in options:
             profile=option["wait_value"]
@@ -156,10 +163,10 @@ def _call_options(request,book,ranker,diagnostics=None):
                                 "best_shanten":min(o["shanten"] for o in options),
                                 "best_projected_han":max(o["projected_han"] for o in options),"rejections":dict(rejections)})
         if viable:
-            best=offensive(simulated,viable,book.thresholds_for("D1"))
+            best=offensive(simulated,viable,value)
             candidates.append((action,best))
     if not candidates:return None
-    return max(candidates,key=lambda x:(attack_utility(x[1],book.thresholds_for("D1")),-x[1]["shanten"],x[1]["effective_ukeire"],str(x[0])))
+    return max(candidates,key=lambda x:(attack_utility(x[1],value),-x[1]["shanten"],x[1]["effective_ukeire"],str(x[0])))
 
 
 def draw_ukeire(board,hand,fixed):
@@ -220,8 +227,12 @@ def _kan_option(request,book,best=None):
 
 def choose_attack(owner,request,book,ranker=rank_discards):
     board=request["observation"]["board"];actions=request["actions"];call_notes=[]
+    from agents.mahjong_soul.hand_plan import begin,remember
+    previous_plan=begin(owner,request)
+    value=book.thresholds_for("D1");value["preferred_plan"]=previous_plan
     def finish(action,mode,option=None,**detail):
         owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"atk","mode":mode,"call_evaluations":deepcopy(call_notes),**detail}
+        owner.last_analysis["hand_plan"]=remember(owner,option)
         if option:
             owner.last_analysis.update({k:deepcopy(option[k]) for k in ("shanten","ukeire","effective_ukeire","value_han","push_value_estimate","routes","yaku_potential","danger","danger_by_seat","wait_value","improving_tiles","target_route","projected_han","route_cost")})
             owner.last_analysis["retained_value_proxy"]=option["value_han"]
@@ -230,18 +241,18 @@ def choose_attack(owner,request,book,ranker=rank_discards):
     if wins:return finish(wins[0],"win")
     opponents=threats(board);wall=board.get("wall_remaining")
     if not any(a["kind"]=="discard" for a in actions):
-        call=_call_options(request,book,ranker,call_notes)
+        call=_call_options(request,book,ranker,call_notes,value)
         if call:return finish(call[0],"call",call[1],post_call_discard=call[1]["action"])
         kan=_kan_option(request,book)
         if kan:return finish(kan,"kan")
         return finish(next(a for a in actions if a["kind"]=="skip"),"skip")
-    options=enrich(board,ranker(request),book.thresholds_for("D1"));best=offensive(board,options,book.thresholds_for("D1"))
+    options=enrich(board,ranker(request),value);best=offensive(board,options,value)
     settings=book.thresholds_for("D2")
     if opponents and not settings.get("always_push"):
         alternatives=[o for o in options if o["shanten"]==best["shanten"]
                       and o["effective_ukeire"]>=best["effective_ukeire"]-book.thresholds_for("D1")["max_ukeire_sacrifice"]
                       and may_push(o,opponents,wall,settings)]
-        if alternatives:best=offensive(board,alternatives,book.thresholds_for("D1"))
+        if alternatives:best=offensive(board,alternatives,value)
     push=may_push(best,opponents,wall,settings)
     fold=bool(opponents and not push)
     if fold:
@@ -267,7 +278,7 @@ def choose_attack(owner,request,book,ranker=rank_discards):
             if profile and profile["dama_ukeire"]>=riichi["dama_min_waits"] and profile["dama_points"]>=riichi["dama_min_points"] and profile["riichi_points"]<profile["dama_points"]*riichi["dama_gain_ratio"]:continue
             candidates.append(option)
         if candidates:
-            best=offensive(board,candidates,book.thresholds_for("D1"));chosen=offered[best["action"]["tile"]]
+            best=offensive(board,candidates,value);chosen=offered[best["action"]["tile"]]
     if chosen["kind"]=="discard":
         kan=_kan_option(request,book,best)
         if kan:return finish(kan,"kan",best)
