@@ -17,7 +17,9 @@ class PlaybookPolicy(EfficiencyPolicy):
         book = self.registry.for_observation(request["observation"], self.style)
         if self.style=="atk":
             from agents.mahjong_soul.attack_policy import choose_attack
-            return choose_attack(self,request,book,rank_discards)
+            action=choose_attack(self,request,book,rank_discards)
+            self.last_analysis["lobby"]=deepcopy(board.get("lobby"))
+            return action
         if any(a["kind"] in ("tsumo","ron") for a in request["actions"]):
             return super().choose(request)
         if not any(a["kind"] == "discard" for a in request["actions"]):

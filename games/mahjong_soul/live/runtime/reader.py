@@ -26,6 +26,7 @@ class GameReader:
         self.game_generations = Counter()
         self.cancel_requests = {}
         self.game_rules = {}
+        self.game_lobbies = {}
 
     def close_connection(self, connection):
         # Keep the last visible snapshot for display after the socket closes.
@@ -73,6 +74,8 @@ class GameReader:
                 self.warnings[(decoded["method"], decoded["schema_warning"])] += 1
             if decoded["method"] == ".lq.FastTest.authGame" and decoded["kind"] == "response":
                 self.game_generations[connection] += 1
+                from games.mahjong_soul.live.runtime.lobby import detect_lobby
+                self.game_lobbies[connection]=detect_lobby(decoded.get("data",{}))
                 detail=decoded.get("data",{}).get("game_config",{}).get("mode",{}).get("detail_rule",{})
                 kuitan=detail.get("shiduan")
                 self.game_rules[connection]={"open_tanyao":bool(kuitan) if type(kuitan) in (bool,int) and kuitan in (0,1) else None}
@@ -129,6 +132,9 @@ class GameReader:
     def snapshot(self):
         entry = self.connections.get(self.latest_game_connection)
         state = entry[1].snapshot() if entry else deepcopy(getattr(self, "closed_state", None))
+        if state is not None:
+            from games.mahjong_soul.live.runtime.lobby import unknown_lobby
+            state["lobby"]=deepcopy(self.game_lobbies.get(self.latest_game_connection,unknown_lobby()))
         if state is not None:state["rules"]=deepcopy(self.game_rules.get(self.latest_game_connection,{"open_tanyao":None}))
         ready = bool(entry and state and state["status"] == "tracking" and state["seat"] is not None
                      and not state["issues"] and state["visibility_complete"])

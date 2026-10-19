@@ -1,6 +1,6 @@
-# 4 Player South Wind ATK v0.11
+# 4 Player South Wind ATK v0.12
 
-ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered playbook name is `4 Player South Wind ATK`, intended for four-player South matches (Hanchan). Both the automatic player and suggestion monitor use these settings. The label describes its intended match format; it does not enforce the room length.
+ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered playbook name is `4 Player South Wind ATK`, intended for four-player South matches (Hanchan). Both the automatic player and suggestion monitor use these settings. Live play verifies the authenticated room format before selecting this playbook.
 
 - `MahjongSoul4PlayerSouthWindATK.bat`: capture and automatic native play. Ctrl+C stops both.
 - `MahjongSoulMonitor.bat`: capture and read-only ATK recommendations for manual play.
@@ -78,3 +78,12 @@ At Tenpai, exact scoring supplies all available legal waits, including Riichi wa
 A call cannot qualify solely through a slower expensive route if the post-call policy would choose a faster cheap route. The opening-value requirement is applied at the nearest post-call scoring distance, so a remote flush cannot sell a call that immediately becomes a one-Han hand.
 
 Session `20261019T164058-353717Z` exposed both cases. In South Three, discarding 6 Pin and declaring Riichi has four available winning copies and a known-copy-weighted Ron value of 5,300 points; the old 7 Pin declaration had five copies and 2,600 points. The new choice satisfies the existing 70% progress guard. The subsequent forced Riichi discard caused the recorded deal-in; these counterfactual choices do not prove the revised line wins or avoids a deal-in. In East Two, the agent now skips the Chi previously justified by a slower five-Han Full Flush route. The other two deal-in decisions did not establish a separate rules or progress bug; no hindsight-based folding is added.
+
+
+## Automatic lobby routing (v0.12)
+
+Authentication metadata is retained per game connection and propagated through snapshots, observations and decision recordings. Player count comes from the authenticated seat list; match length comes from the game mode, never the currently displayed Wind. A South match remains a South match during East rounds. Known standard mode codes are 1 (East) and 2 (South); other codes are reported as unknown rather than guessed. AI status, category, room ID and rule details are recorded without authentication tokens or account data.
+
+The registry selects by player count, style and match length. Currently the only ATK entry is four-player South. East-only, three-player, unidentified and recognized unsupported custom rules produce a readable message and no action. Adding another format-specific playbook registers another entry without changing policy routing. Existing generic Balanced books remain available across match lengths. Old offline snapshots without a lobby field retain legacy explicit selection; every live reader snapshot supplies an identified or unknown lobby, so this compatibility path does not bypass live detection. Metadata is refreshed on authentication and is never inherited by another connection. The reader and shared policy serve both the automatic launcher and monitor.
+
+Supported rule handling remains limited to the implemented standard scoring profile. Open Tanyao is consumed by the scorer; Red Dora configuration and other raw settings are recorded. Recognized special modes and incompatible scoring switches are rejected; capturing a field does not mean arbitrary custom rules have been implemented. If capture began after authentication, reconnect or start a fresh room to supply the missing metadata.

@@ -120,6 +120,8 @@ class ShadowFollower:
         try:
             validated = decide(self.policy, report, self._current, clock=self.clock)
         except Exception as error:
+            from games.mahjong_soul.playbook.model import UnsupportedLobby
+            if isinstance(error,UnsupportedLobby):return {**status("unsupported_lobby"),"message":str(error),"board_token":token}
             return {**status("decision_rejected"),"error_type":type(error).__name__,"board_token":token}
         analysis = getattr(self.policy, "last_analysis", None)
         detail = {"analysis":analysis} if analysis and analysis.get("board_token") == token else {}
@@ -176,9 +178,9 @@ def main():
     try:
         while args.duration is None or time.monotonic()-start < args.duration:
             event = follower.poll()
-            encoded = json.dumps(event, sort_keys=True)
-            if (event.get("kind") == "suggestion" or args.verbose) and encoded != previous:
-                output = encoded if args.json_output else (format_suggestion(event) if event.get("kind") == "suggestion" else event["reason"])
+            encoded = json.dumps(event if event.get("reason")!="unsupported_lobby" else {"reason":"unsupported_lobby","message":event["message"]}, sort_keys=True)
+            if (event.get("kind") == "suggestion" or event.get("reason")=="unsupported_lobby" or args.verbose) and encoded != previous:
+                output = encoded if args.json_output else (format_suggestion(event) if event.get("kind") == "suggestion" else event.get("message",event["reason"]))
                 print(output, flush=True); previous = encoded
             if args.once: break
             time.sleep(args.interval)

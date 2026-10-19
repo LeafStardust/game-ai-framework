@@ -35,7 +35,8 @@ def test_only_four_player_atk_is_registered_and_balanced_still_resolves():
     assert registry.get(4).style == registry.get(3).style == "balanced"
     with pytest.raises(LookupError):registry.get(3,"atk")
     report=board();report["state"]["player_count"]=3
-    with pytest.raises(LookupError):decide(PlaybookPolicy(style="atk"),report,lambda:report)
+    from games.mahjong_soul.playbook.model import UnsupportedLobby
+    with pytest.raises(UnsupportedLobby):decide(PlaybookPolicy(style="atk"),report,lambda:report)
 
 
 def test_attack_recomputes_real_route_progress_instead_of_trusting_mocked_distance(monkeypatch):

@@ -25,6 +25,7 @@ def request(hand, fixed=0, *, drawn=None, visible=None, kan=False, players=4):
     state["visible_tile_counts"] = dict(Counter("5"+t[1:] if t[0] == "0" else t for t in all_tiles))
     if visible: state["visible_tile_counts"].update(visible)
     state["player_count"] = players
+    state["lobby"]["player_count"]=players
     return decision_request(report), report
 
 

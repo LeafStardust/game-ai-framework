@@ -8,6 +8,9 @@ from tests.mahjong_soul.test_reader_monitor import record
 
 def inputs():
     reader = GameReader(schema(), seat=0)
+    # Synthetic strategy fixtures explicitly model a four-player South room.
+    from games.mahjong_soul.live.runtime.lobby import detect_lobby
+    reader.game_lobbies["game"]=detect_lobby({"seat_list":[0,1,2,3],"game_config":{"mode":{"mode":2}}})
     reader.consume(record(wrapper(1, ".lq.ActionPrototype", action("ActionNewRound", blob(4, b"0p")))))
     reader.connections["game"][1].operations = {"seat": 0, "operation_list": [{"type": 1}]}
     return reader.snapshot(), {"version": 1, "verified": True, "client_size": [1280, 720],

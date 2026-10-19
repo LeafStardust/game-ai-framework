@@ -253,6 +253,9 @@ class AutoFollower(ShadowFollower):
                     self._record("preflight_failed",reason=str(error),phase="call_menu" if self.call_pending else "riichi_menu",
                                  image=self.journal.last_frame if self.journal else None,visual=getattr(self.vision,"last_diagnostics",None))
                 return {"kind":"status","reason":"awaiting_confirmation"}
+        if event.get("reason")=="unsupported_lobby":
+            self.candidate=None
+            return event
         if not self.enabled: return event
         if event.get("kind") == "suggestion":
             self.candidate = event
@@ -320,7 +323,8 @@ def main():
         attempted_keys=prior_attempts(args.recordings)
         journal=SessionJournal(args.recordings,max_bytes=args.recording_mb*1024**2)
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
-        paths=["agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
+        paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/playbook/model.py",
+               "agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
                "agents/mahjong_soul/attack_value.py","agents/mahjong_soul/attack_defense.py",
                "agents/mahjong_soul/attack_routes.py","agents/mahjong_soul/yakuman.py","agents/mahjong_soul/hand_plan.py","agents/mahjong_soul/scoring.py","agents/mahjong_soul/yaku_catalog.py",
                "agents/mahjong_soul/pattern_yaku.py","games/mahjong_soul/live/runtime/scoring_context.py","games/mahjong_soul/playbook/yonma/atk.py",
@@ -348,6 +352,9 @@ def main():
         while args.duration is None or time.monotonic()-start<args.duration:
             event=follower.poll()
             kind=event.get("kind")
+            if event.get("reason")=="unsupported_lobby":
+                message=event["message"]
+                if message!=previous:print(message,flush=True);previous=message
             if kind in ("suggestion","submitted","manual","blocked","waiting_visual"):
                 line=(format_suggestion(event)+(" [sent; awaiting confirmation]" if kind=="submitted" else "") if "action" in event else "Stopped")
                 if kind in ("manual","blocked","waiting_visual"): line += ": "+event["reason"]

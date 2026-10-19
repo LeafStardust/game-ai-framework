@@ -48,4 +48,5 @@ def observation_from_snapshot(report):
         "visibility_complete": state["visibility_complete"],
         "available_operations": deepcopy(state["operations"]),
     }
+    if "lobby" in state:observation["board"]["lobby"]=deepcopy(state["lobby"])
     return observation
