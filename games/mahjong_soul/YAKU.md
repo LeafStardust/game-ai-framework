@@ -4,7 +4,7 @@ The agent uses `agents/mahjong_soul/scoring.py` as its complete-hand authority. 
 
 ## Conditions and values
 
-A dash means the Yaku is unavailable with an open hand. Yakuman values are shown as multipliers. Wind variants are listed separately to make seat/round stacking explicit.
+A dash means the Yaku is unavailable with an open hand. Yakuman hands are labeled Yakuman. Wind variants are listed separately to make seat/round stacking explicit.
 
 | Key | Yaku | Japanese | Open | Closed | Condition |
 |---|---|---|---:|---:|---|
@@ -45,21 +45,21 @@ A dash means the Yaku is unavailable with an open hand. Yakuman values are shown
 | `junchan` | Junchan | 純全帯么九 | 2 Han | 3 Han | Every group and pair contains a suited terminal; at least one sequence; no honors. |
 | `ryanpeiko` | Ryanpeikou | 二盃口 | - | 3 Han | Closed four-sequence hand with two pairs of identical sequences. |
 | `chinitsu` | Chinitsu | 清一色 | 5 Han | 6 Han | Exactly one suit, no honors. |
-| `kokushi` | Kokushi Musou | 国士無双 | - | 1× Yakuman | One of each of the thirteen terminal/honor kinds and one duplicate. |
-| `chuuren_poutou` | Chuuren Poutou | 九蓮宝燈 | - | 1× Yakuman | Closed 1112345678999 plus one extra tile, all in one suit. |
-| `suuankou` | Suu Ankou | 四暗刻 | - | 1× Yakuman | Four concealed triplets/quads, usually completed by self-draw. |
-| `daisangen` | Daisangen | 大三元 | 1× Yakuman | 1× Yakuman | Triplet/quad of every Dragon. |
-| `shosuushi` | Shousuushii | 小四喜 | 1× Yakuman | 1× Yakuman | Three Wind triplets/quads and a pair of the fourth Wind. |
-| `ryuisou` | Ryuuiisou | 緑一色 | 1× Yakuman | 1× Yakuman | Only 2,3,4,6,8 Sou and Green Dragon. |
-| `suukantsu` | Suu Kantsu | 四槓子 | 1× Yakuman | 1× Yakuman | Four declared quads. |
-| `tsuisou` | Tsuu Iisou | 字一色 | 1× Yakuman | 1× Yakuman | Only honors. |
-| `chinroto` | Chinroutou | 清老頭 | 1× Yakuman | 1× Yakuman | Only suited terminals. |
-| `daisuushi` | Dai Suushii | 大四喜 | 2× Yakuman | 2× Yakuman | Triplet/quad of all four Winds. |
-| `daburu_kokushi` | Kokushi Musou Juusanmen Matchi | 国士無双十三面待ち | - | 2× Yakuman | Kokushi won from the thirteen-sided wait. |
-| `suuankou_tanki` | Suu Ankou Tanki | 四暗刻単騎 | - | 2× Yakuman | Four concealed triplets/quads won on the pair wait. |
-| `daburu_chuuren_poutou` | Daburu Chuuren Poutou | 純正九蓮宝燈 | - | 2× Yakuman | Nine Gates won from the pure nine-sided wait. |
-| `tenhou` | Tenhou | 天和 | - | 1× Yakuman | Dealer wins on the initial dealt hand. |
-| `chiihou` | Chiihou | 地和 | - | 1× Yakuman | Non-dealer wins on the first draw before any interrupting call. |
+| `kokushi` | Kokushi Musou | 国士無双 | - | Yakuman | One of each of the thirteen terminal/honor kinds and one duplicate. |
+| `chuuren_poutou` | Chuuren Poutou | 九蓮宝燈 | - | Yakuman | Closed 1112345678999 plus one extra tile, all in one suit. |
+| `suuankou` | Suu Ankou | 四暗刻 | - | Yakuman | Four concealed triplets/quads, usually completed by self-draw. |
+| `daisangen` | Daisangen | 大三元 | Yakuman | Yakuman | Triplet/quad of every Dragon. |
+| `shosuushi` | Shousuushii | 小四喜 | Yakuman | Yakuman | Three Wind triplets/quads and a pair of the fourth Wind. |
+| `ryuisou` | Ryuuiisou | 緑一色 | Yakuman | Yakuman | Only 2,3,4,6,8 Sou and Green Dragon. |
+| `suukantsu` | Suu Kantsu | 四槓子 | Yakuman | Yakuman | Four declared quads. |
+| `tsuisou` | Tsuu Iisou | 字一色 | Yakuman | Yakuman | Only honors. |
+| `chinroto` | Chinroutou | 清老頭 | Yakuman | Yakuman | Only suited terminals. |
+| `daisuushi` | Dai Suushii | 大四喜 | Yakuman | Yakuman | Triplet/quad of all four Winds. |
+| `daburu_kokushi` | Kokushi Musou Juusanmen Matchi | 国士無双十三面待ち | - | Yakuman | Kokushi won from the thirteen-sided wait. |
+| `suuankou_tanki` | Suu Ankou Tanki | 四暗刻単騎 | - | Yakuman | Four concealed triplets/quads won on the pair wait. |
+| `daburu_chuuren_poutou` | Daburu Chuuren Poutou | 純正九蓮宝燈 | - | Yakuman | Nine Gates won from the pure nine-sided wait. |
+| `tenhou` | Tenhou | 天和 | - | Yakuman | Dealer wins on the initial dealt hand. |
+| `chiihou` | Chiihou | 地和 | - | Yakuman | Non-dealer wins on the first draw before any interrupting call. |
 | `dora` | Dora | ドラ | 1 Han | 1 Han | Indicator-derived bonus Han; cannot supply the required Yaku. |
 | `aka_dora` | Aka Dora | 赤ドラ | 1 Han | 1 Han | Red Five bonus Han; cannot supply the required Yaku. |
 | `ura_dora` | Ura Dora | 裏ドラ | - | 1 Han | Revealed Ura indicators after Riichi; never assume hidden indicators. |
