@@ -35,14 +35,8 @@ def plan_win(report, profile, kind="tsumo", *, now=None):
         if not tile or tile not in state.get("hand", []):
             raise ValueError("Own winning draw is unknown")
     else:
-        source = state.get("turn")
-        if (not isinstance(source, int) or not 0 <= source < state["player_count"] or source == state["seat"]
-                or (report.get("last_event") or {}).get("name") != "ActionDiscardTile"):
-            raise ValueError("Ron source discard is unknown")
-        river = state["discards"][source]
-        if not river or river[-1].get("called") is not False:
-            raise ValueError("Ron source discard is uncertain")
-        tile = river[-1]["tile"]
+        from games.mahjong_soul.live.runtime.decision import ron_source
+        _,tile=ron_source(report)
     if (profile.get("version") != 1 or profile.get("verified") is not True
             or profile.get("stage") != "call_offer" or profile.get("operation_types") != types):
         raise ValueError("Win button layout is not verified for this offer")

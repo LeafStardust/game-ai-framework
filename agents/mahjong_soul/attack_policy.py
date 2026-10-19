@@ -27,6 +27,7 @@ def enrich(board,options,settings=None):
         targets=[]
         for target in project_attack(board,hand,option["retained_bonus"],all_targets=True):
             if option["opened"] and not target["open_route"]:continue
+            if "pattern_shanten" in target and targets and target["pattern_shanten"]>min(item[1] for item in targets):continue
             distance,improving=route_progress(board,hand,target)
             targets.append((target,distance,improving))
         if not targets:
@@ -240,12 +241,16 @@ def choose_attack(owner,request,book,ranker=rank_discards):
     def finish(action,mode,option=None,**detail):
         owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"atk","mode":mode,"call_evaluations":deepcopy(call_notes),**detail}
         owner.last_analysis["hand_plan"]=remember(owner,option)
+        from agents.mahjong_soul.scoring import nagashi_eligible
+        owner.last_analysis["nagashi_candidate"]=nagashi_eligible(board)
         if option:
             owner.last_analysis.update({k:deepcopy(option[k]) for k in ("shanten","ukeire","effective_ukeire","value_han","push_value_estimate","routes","yaku_potential","danger","danger_by_seat","wait_value","improving_tiles","target_route","projected_han","route_cost")})
             owner.last_analysis["retained_value_proxy"]=option["value_han"]
         return deepcopy(action)
     wins=[a for a in actions if a["kind"] in ("ron","tsumo")]
-    if wins:return finish(wins[0],"win")
+    if wins:
+        from agents.mahjong_soul.scoring import score_offered_win
+        return finish(wins[0],"win",win_value=score_offered_win(board,wins[0]))
     opponents=threats(board);wall=board.get("wall_remaining")
     if not any(a["kind"]=="discard" for a in actions):
         call=_call_options(request,book,ranker,call_notes,value)

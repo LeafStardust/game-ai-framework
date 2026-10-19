@@ -81,8 +81,8 @@ def test_tanyao_target_drops_terminal_dora_but_keeps_compatible_red_bonus():
     b=board("11p234s678s55m",melds=[{"type":0,"tiles":["4m","0m","6m"]}],doras=["9p"])
     bonus=known_bonus(b,b["self"]["hand"])
     assert bonus==3
-    target=project_attack(b,b["self"]["hand"],bonus)
-    assert target["target_route"]=="tanyao" and target["projected_han"]==2
+    target=next(t for t in project_attack(b,b["self"]["hand"],bonus,all_targets=True) if t["target_route"]=="tanyao")
+    assert target["projected_han"]==2
 
 
 def test_chi_does_not_sacrifice_most_draws_for_speculative_honitsu():

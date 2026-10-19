@@ -70,6 +70,8 @@ def project_attack(board,hand,bonus=0,*,all_targets=False,preferred=None):
         if n_pairs>=4:add("chiitoitsu",2,max(0,7-n_pairs),False)
     # A target with fewer tile replacements is more credible than an equally
     # valuable remote shape. This is a planning heuristic, not an EV model.
+    from agents.mahjong_soul.pattern_yaku import pattern_targets
+    targets.extend(pattern_targets(board,hand,bonus))
     if all_targets:return targets
     if not targets:return {"target_route":None,"target_yaku_han":0,"projected_han":bonus,"route_cost":99,"open_route":False}
     return max(targets,key=lambda r:(r["projected_han"]-r["route_cost"]*.6+(.3 if preferred==(r["target_route"],r.get("target_suit")) else 0),-r["route_cost"],r["target_route"]))
@@ -104,7 +106,7 @@ def toitoi_progress(board,hand):
 
 
 @lru_cache(maxsize=50000)
-def _regular_distance(counts,fixed):
+def _regular_distance(counts,fixed,mode="any",head_used=False,blocked_heads=()):
     """Standard shape distance with explicit fixed melds and missing tiles.
 
     Unlike length-inferred library Shanten, route-incompatible tiles may be
@@ -121,22 +123,32 @@ def _regular_distance(counts,fixed):
             for j in indices:new[j]-=1
             best=min(best,search(tuple(new),melds+dm,tatsu+dt,pair+dp))
         take([i])
+        outside=i>=27 or i%9 in (0,8)
+        terminal=i<27 and i%9 in (0,8)
+        triplet=mode=="any" or mode in ("outside","honroto") and outside or mode=="junchan" and terminal
+        sequence=i<27 and i%9<=6 and mode!="honroto" and (mode not in ("outside","junchan") or i%9 in (0,6))
+        pair_ok=i not in blocked_heads and (mode not in ("outside","honroto","junchan") or (terminal if mode=="junchan" else outside))
         if melds+fixed<4:
-            if values[i]>=3:take([i]*3,dm=1)
-            if i<27 and i%9<=6 and values[i+1] and values[i+2]:take([i,i+1,i+2],dm=1)
+            if values[i]>=3 and triplet:take([i]*3,dm=1)
+            if sequence and values[i+1] and values[i+2]:take([i,i+1,i+2],dm=1)
         if values[i]>=2:
-            if not pair:take([i,i],dp=1)
-            if tatsu<4-fixed-melds:take([i,i],dt=1)
-        if tatsu<4-fixed-melds and i<27:
-            if i%9<=7 and values[i+1]:take([i,i+1],dt=1)
-            if i%9<=6 and values[i+2]:take([i,i+2],dt=1)
+            if not pair and pair_ok:take([i,i],dp=1)
+            if tatsu<4-fixed-melds and triplet:take([i,i],dt=1)
+        if tatsu<4-fixed-melds and i<27 and mode!="honroto":
+            adjacent=mode not in ("outside","junchan") or i%9 in (0,1,6,7)
+            gap=mode not in ("outside","junchan") or i%9 in (0,6)
+            if adjacent and i%9<=7 and values[i+1]:take([i,i+1],dt=1)
+            if gap and i%9<=6 and values[i+2]:take([i,i+2],dt=1)
         return best
-    return search(counts,0,0,0)
+    return search(counts,0,0,int(head_used))
 
 
 def route_progress(board,hand,target):
     """Measure only shape development compatible with the selected open Yaku."""
     route=target["target_route"]
+    if "pattern_groups" in target:
+        from agents.mahjong_soul.pattern_yaku import pattern_progress
+        return pattern_progress(board,hand,target)
     if route in ("yakuman_kokushi","yakuman_nine_gates"):
         from agents.mahjong_soul.yakuman import ORPHANS
         counts=Counter(tile_kind(t) for t in hand)

@@ -1,6 +1,6 @@
 # Mahjong Soul policy integration
 
-For 4 Player South Wind ATK v0.8 manual suggestions, use `.\MahjongSoulSuggest.bat`. It prints recommended actions only. See [the ATK review](../../games/mahjong_soul/playbook/yonma/ATK.md) for value, yaku, calls, Riichi and defense behavior.
+For 4 Player South Wind ATK v0.9 manual suggestions, use `.\MahjongSoulSuggest.bat`. It prints recommended actions only. See [the ATK review](../../games/mahjong_soul/playbook/yonma/ATK.md) for value, yaku, calls, Riichi and defense behavior.
 
 For tile codes and terminal vocabulary, see [the terms reference](../../games/mahjong_soul/TERMS.md).
 

@@ -1,4 +1,4 @@
-# 4 Player South Wind ATK v0.8
+# 4 Player South Wind ATK v0.9
 
 ATK now means **pursue valuable wins and keep pushing through danger**. The old v0.2 conservative push/fold policy did not match this style. Balanced remains separate and unchanged. The registered playbook name is `4 Player South Wind ATK`, intended for four-player South matches (Hanchan). Both the automatic player and suggestion monitor use these settings. The label describes its intended match format; it does not enforce the room length.
 
@@ -57,3 +57,10 @@ Exposed Chi melds can now prove Sanshoku or Ittsu as legal Yaku routes; loose co
 ## Winning-progress correction (v0.8)
 
 Same-Shanten calls must retain at least 70% of the pre-call improving copies, unless they enable legal Ron from a previously Yakuless ready hand. This is a visible-copy progress guard, not a calibrated win probability. The three-Han opening threshold, immediate acceptance of wins, opening Yakuman gate and no-Riichi-fold behavior remain active. Recorded regressions cover the missed Tenpai in East One and the poor same-distance Chi in East Two from session `20261019T102545-112305Z`.
+
+
+## Complete Yaku scoring and expanded normal patterns (v0.9)
+
+See [the complete Yaku conditions and values](../../YAKU.md). One canonical complete-hand scorer covers all standard Yaku, Yakuman, Fu and payments; the policy no longer carries a separate abbreviated completed-hand rule set. Exact wait scoring and offered-win analysis share that implementation. Captured event history supplies situational Yaku; unavailable history or hidden future bonuses are not assumed.
+
+The development model now reserves required groups and pairs for Pinfu, Iipeikou/Ryanpeikou, Sanshoku sequences/triplets, Ittsu, Chanta/Junchan, Sanankou, Shousangen and Honroutou, in addition to earlier targets. An isolated Dora that cannot fit those groups and the residual pair is removed from target value. This expands structural coverage while retaining actual scoring distance, winning-progress limits, the opening Yakuman gate and no opponent-Riichi fold. Full scoring coverage is not a claim of complete expected-value or all-Yakuman search.

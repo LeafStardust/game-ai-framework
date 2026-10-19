@@ -64,9 +64,10 @@ def test_explicit_regular_distance_agrees_with_standard_shapes():
 def test_open_hand_discards_advance_the_selected_yaku_instead_of_yakuless_speed(monkeypatch):
     f=fixture(monkeypatch)
     action,analysis=choose(f["reports"][1])
-    assert action=={"kind":"discard","tile":"9m"}
-    assert analysis["target_route"]=="honitsu"
-    assert {t["tile"] for t in analysis["improving_tiles"]}=={"6s","1z"}
+    assert action=={"kind":"discard","tile":"1z"}
+    assert analysis["target_route"]=="sanankou" and analysis["shanten"]==1
+    assert analysis["projected_han"]==2  # The isolated Dora cannot fit the reserved groups and pair.
+    assert {t["tile"] for t in analysis["improving_tiles"]}=={"9m","6p"}
     action,analysis=choose(f["reports"][4])
     assert action["tile"]=="9p" and analysis["target_route"]=="tanyao"
     assert all(t["tile"][1]!="z" and 2<=int(t["tile"][0])<=8 for t in analysis["improving_tiles"])

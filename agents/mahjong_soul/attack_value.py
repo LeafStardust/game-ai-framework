@@ -1,10 +1,7 @@
 """Known-tile yaku routes and conservative tenpai values; no hidden bonuses."""
 from collections import Counter
 from functools import lru_cache
-from mahjong.hand_calculating.hand import HandCalculator
-from mahjong.hand_calculating.hand_config import HandConfig,OptionalRules
-from mahjong.meld import Meld
-from agents.mahjong_soul.efficiency import counts34,shanten,KINDS,INDEX
+from agents.mahjong_soul.efficiency import counts34,shanten,KINDS
 from games.mahjong_soul.live.runtime.kan import tile_kind
 from games.mahjong_soul.playbook.features import value_honors
 
@@ -40,36 +37,15 @@ def yaku_routes(board,hand, melds=None):
     return {"routes":routes,"route_han":sum(routes.values()),"open_yaku":bool(routes),"opened":opened}
 
 
-def _allocate(groups):
-    used=set();result=[]
-    for group in groups:
-        converted=[]
-        for tile in group:
-            index=INDEX[tile_kind(tile)]
-            offsets=[0] if tile.startswith("0") else ([1,2,3] if index in (4,13,22) else [0,1,2,3])
-            candidates=[index*4+n for n in offsets if index*4+n not in used]
-            if not candidates:raise ValueError("Impossible exact tile copies")
-            value=candidates[0];used.add(value);converted.append(value)
-        result.append(converted)
-    return result
+from agents.mahjong_soul.scoring import allocate as _allocate,score_hand
 
 
 @lru_cache(maxsize=12000)
-def _score(hand,meld_data,win,doras,seat_wind,round_wind,riichi,tsumo,open_tanyao):
-    groups=[list(m[1]) for m in meld_data]+[list(hand),[win]]
-    try:allocated=_allocate(groups)
-    except ValueError:return None
-    melds=[Meld(meld_type={0:Meld.CHI,1:Meld.PON,2:Meld.KAN,3:Meld.KAN}[code],tiles=tiles,opened=code!=3)
-           for (code,_),tiles in zip(meld_data,allocated)]
-    config=HandConfig(is_tsumo=tsumo,is_riichi=riichi,player_wind=27+seat_wind,round_wind=27+round_wind,
-                      options=OptionalRules(has_open_tanyao=open_tanyao,has_aka_dora=True))
-    indicators=[INDEX[tile_kind(t)]*4+1 for t in doras]
-    response=HandCalculator.estimate_hand_value([t for g in allocated for t in g],allocated[-1][0],melds=melds,
-                                               dora_indicators=indicators,config=config)
-    if response.error:return None
-    cost=response.cost
-    points=cost["main"]+(2*cost["additional"] if tsumo else 0)
-    return {"points":points,"han":response.han,"fu":response.fu,"yaku":[y.name for y in response.yaku]}
+def _score(hand,meld_data,win,doras,seat_wind,round_wind,riichi,tsumo,open_tanyao,context=()):
+    result=score_hand(hand,win,melds=[{"type":code,"tiles":tiles} for code,tiles in meld_data],doras=doras,
+                      seat_wind=seat_wind,round_wind=round_wind,riichi=riichi,tsumo=tsumo,
+                      open_tanyao=open_tanyao,context=dict(context))
+    return result if result["legal"] else None
 
 
 def tenpai_value(board,hand,*,discard=None):
@@ -98,7 +74,10 @@ def tenpai_value(board,hand,*,discard=None):
             for tile in variants:
                 result=_score(tuple(sorted(hand)),meld_data,tile,tuple(board["dora_indicators"]),seat_wind,round_wind,
                               mode=="riichi" or own["riichi"] in ("declared","accepted"),mode=="tsumo",
-                              board.get("rules",{}).get("open_tanyao") is True)
+                              board.get("rules",{}).get("open_tanyao") is True,
+                              (("double_riichi",True),) if (
+                                  own["riichi"] in ("accepted","declared") and board["self"].get("scoring_context",{}).get("double_riichi")
+                                  or mode=="riichi" and board["self"].get("scoring_context",{}).get("double_riichi_available")) else ())
                 if result:scored.append(result)
             if scored:
                 selected=min(scored,key=lambda x:x["points"])

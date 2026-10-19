@@ -8,7 +8,7 @@ These are executable, versioned strategy settings, following Balatro's cartridge
 | --- | --- | --- | --- |
 | `yonma-manual-balanced` | Four players | `0.1` | Manual suggestion tests |
 | `sanma-manual-balanced` | Three players, balanced | `0.1` | Manual suggestion tests, with sanma tile-pool handling |
-| [`4 Player South Wind ATK`](yonma/ATK.md) | Four-player South match, atk | `0.8` | High-Han route planning, earlier value calls and full pushes |
+| [`4 Player South Wind ATK`](yonma/ATK.md) | Four-player South match, atk | `0.9` | High-Han route planning, earlier value calls and full pushes |
 
 The two balanced cartridges start with the same conservative thresholds; separate entries allow later evidence-based tuning. The four-player attack cartridge has distinct offensive settings. They are not tuned for particular ranks, room rules or match lengths. Selection uses (player count, playstyle) and rejects unregistered pairs; there is no implicit attack-to-balanced fallback. Balanced remains the default.
 

@@ -40,7 +40,7 @@ def observation_from_snapshot(report):
     observation["board"] = {
         "player_count": state["player_count"], "self_seat": seat,
         "self": {"hand": list(state["hand"]), "opening_hand": list(state.get("opening_hand",[])), "drawn_tile": state["drawn_tile"],
-                 "furiten": deepcopy(state["furiten"])},
+                 "furiten": deepcopy(state["furiten"]), "scoring_context": deepcopy(state.get("scoring_context",{}))},
         "players": players, "round": deepcopy(state["round"]),
         "last_actor": state["turn"], "wall_remaining": state["left_tile_count"],
         "dora_indicators": list(state["doras"]), "rules":deepcopy(state.get("rules",{})),

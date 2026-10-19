@@ -53,7 +53,8 @@ def test_open_tanyao_scoring_requires_known_room_rule(enabled):
 
 
 def test_red_five_and_indicator_dora_stack_without_inventing_ura_or_ippatsu():
-    plain=board('123m123p123s789s0p');bonus=deepcopy(plain);bonus['dora_indicators']=['4p']
+    plain=board('123m123p123s789s0p');plain['self']['scoring_context']={}
+    bonus=deepcopy(plain);bonus['dora_indicators']=['4p']
     first=tenpai_value(plain,plain['self']['hand']);second=tenpai_value(bonus,bonus['self']['hand'])
     a=first['waits'][0]['values'];b=second['waits'][0]['values']
     assert b['dama']['han']==a['dama']['han']+2

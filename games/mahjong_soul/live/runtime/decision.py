@@ -27,6 +27,18 @@ def _source(report):
     return source, tile
 
 
+
+def ron_source(report):
+    state=report.get("state") or {}
+    if (report.get("last_event") or {}).get("name")!="ActionAnGangAddGang":return _source(report)
+    source=state.get("win_source") or {}
+    if (source.get("event")!="ActionAnGangAddGang" or source.get("step")!=state.get("step")
+            or type(source.get("seat")) is not int or source["seat"] not in range(state["player_count"])
+            or source["seat"]!=state.get("turn") or source["seat"]==state.get("seat")):
+        raise ValueError("Robbed Kan source is unverified")
+    tile=source.get("tile");tile_kind(tile)
+    return source["seat"],tile
+
 def offered_actions(report):
     """Normalize supported server offers, independent of mouse/UI support.
 
@@ -79,7 +91,7 @@ def offered_actions(report):
                 if tile not in hand: raise ValueError("Winning draw is unknown")
                 actions.append({"kind":kind,"tile":tile})
             else:
-                source, tile = _source(report)
+                source, tile = ron_source(report)
                 actions.append({"kind":kind,"tile":tile,"source_seat":source})
         else:
             if not combinations: raise ValueError("Call has no combination")

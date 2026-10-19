@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from collections import Counter
+from games.mahjong_soul.live.runtime.scoring_context import ScoringContext
 
 
 class GameState:
@@ -15,11 +16,13 @@ class GameState:
         self.issues = []
         self.hand = []
         self.opening_hand = []
+        self.scoring_context = ScoringContext(seat)
         self.discards = [[] for _ in range(player_count)]
         self.melds = [[] for _ in range(player_count)]
         self.norths = [0] * player_count
         self.riichi = ["none"] * player_count
         self.drawn_tile = None
+        self.win_source = None
         self.furiten = None
         self.scores = []
         self.doras = []
@@ -32,6 +35,7 @@ class GameState:
         self.player_metadata = []
 
     def invalidate(self, reason):
+        self.scoring_context=ScoringContext(self.seat)
         self.status = "incomplete"
         if reason not in self.issues:
             self.issues.append(reason)
@@ -179,6 +183,7 @@ class GameState:
                 self.issues.append("Own seat is unknown")
             self.hand = list(data.get("tiles", []))
             self.opening_hand = list(self.hand)
+            if len(self.hand)==14 and self.seat==data.get("ju",0):self.drawn_tile=self.hand[-1]
             self.round = {key: data.get(key, 0) for key in ("chang", "ju", "ben", "liqibang")}
         else:
             if self._awaiting_step:
@@ -189,12 +194,16 @@ class GameState:
                 return False
             elif step != self.last_step + 1:
                 self.invalidate(f"Action gap: {self.last_step} -> {step}")
+        self.scoring_context.observe(name,data,self.discards,self.melds,self.left_tile_count,self.round,self.hand)
         self.last_step = step
         self._last_event = deepcopy(identity)
         seat = data.get("seat", 0)
         if not isinstance(seat, int) or not 0 <= seat < self.player_count:
             self.invalidate("Invalid event seat")
             return False
+        self.win_source=None
+        if seat!=self.seat and name=="ActionAnGangAddGang":
+            self.win_source={"seat":seat,"tile":data.get("tiles"),"step":step,"event":name}
         self.operations = deepcopy(data.get("operation"))
         if data.get("doras"):
             self.doras = list(data["doras"])
@@ -308,7 +317,7 @@ class GameState:
     def snapshot(self):
         visible, complete = self.visible_tiles()
         return deepcopy({"visible_tile_counts": visible, "visibility_complete": complete, "player_count": self.player_count, "status": self.status, "issues": self.issues, "seat": self.seat,
-                         "step": self.last_step, "round": self.round, "hand": self.hand, "opening_hand": self.opening_hand,
+                         "step": self.last_step, "round": self.round, "hand": self.hand, "opening_hand": self.opening_hand, "scoring_context": self.scoring_context.snapshot(), "win_source": self.win_source,
                          "discards": self.discards, "melds": self.melds, "norths": self.norths,
                          "scores": self.scores, "doras": self.doras,
                          "left_tile_count": self.left_tile_count, "turn": self.turn,
