@@ -42,9 +42,25 @@ def compare(data,baseline="east_speed",candidate="east_speed_push"):
     return {"baseline":baseline,"candidate":candidate,"engine":data.get("engine"),"revision":data.get("revision"),"policy_tree_sha256":data.get("policy_tree_sha256"),"mode":data.get("mode"),"independent_seeds":len(seeds),"paired_seat_assignments":len(pairs),"baseline_metrics":base,"candidate_metrics":other,"per_seed_candidate_minus_baseline":per_seed,"seed_cluster_bootstrap_95":intervals,"limitations":["Exploratory intervals from very few seeds are unstable; they are not proof of superiority.","Seat assignments and hands within a seed are correlated; resampling is by seed.","Tenpai discard mean is conditional on reaching shape Tenpai, not a legal-win guarantee.","Fixed efficiency opponents do not represent Steam AI or human opponents."]}
 
 
+def replay_coverage(summary,baseline,candidate):
+    data=json.loads(Path(summary).read_text());pairs={}
+    for row in data["records"]:
+        if row["candidate"] in (baseline,candidate):pairs.setdefault((row["seed"],row["seat"]),{})[row["candidate"]]=row
+    changed=0;checked=0;missing=0
+    for (seed,seat),pair in pairs.items():
+        if set(pair)!={baseline,candidate}:continue
+        paths=[Path(summary).parent/f"{seed}-{seat}-{name}.json" for name in (baseline,candidate)]
+        if not all(path.is_file() for path in paths):missing+=1;continue
+        logs=[json.loads(path.read_text())["events"] for path in paths]
+        checked+=1;changed+=logs[0]!=logs[1]
+    return {"checked_pairs":checked,"different_replays":changed,"missing_pairs":missing,
+            "candidate_exercised":changed>0,
+            "note":"Identical replays provide no observed action-change exposure; outcome equality is not proof of general equivalence."}
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("summary",type=Path);parser.add_argument("--baseline",default="east_speed");parser.add_argument("--candidate",default="east_speed_push");parser.add_argument("--output",type=Path)
-    args=parser.parse_args();data=compare(json.loads(args.summary.read_text()),args.baseline,args.candidate);text=json.dumps(data,indent=2)+"\n"
+    args=parser.parse_args();data=compare(json.loads(args.summary.read_text()),args.baseline,args.candidate);data["replay_coverage"]=replay_coverage(args.summary,args.baseline,args.candidate);text=json.dumps(data,indent=2)+"\n"
     if args.output:args.output.write_text(text,encoding="utf-8")
     else:print(text,end="")
 

@@ -43,3 +43,15 @@ python -m agents.mahjong_soul.compare_simulation logs/mahjong_soul/experiments/s
 The comparison checks matching seed/seat assignments and initial deal digests. It reports first-place rate, average rank, hand-win rate, deal-in rate and shape-Tenpai diagnostics. Exploratory bootstrap intervals resample whole seeds, preserving dependence between seats and hands from one seed. Four seeds per split are a small screening experiment, not reliable evidence of human-level strength or Steam win rate. A variant should not be promoted when its additional Tenpai comes with worse win outcomes and more deal-ins.
 
 Completed screening results: [speed/push review](experiments/SPEED_PUSH_REVIEW.md). The diagnostic variant was not promoted.
+
+## One-step wait-quality experiment
+
+`east_speed_lookahead` is an offline-only candidate enabling `next_wait_tiebreak`. For closed one-Shanten discard options tied on immediate legal-route distance and available improving copies, it compares the expected next-step winning-copy proxy after a useful draw and best next discard. It uses public remaining-copy counts only, checks the entire river for Furiten including exhausted waits, and gives twice the weight to waits supporting Ron plus Tsumo versus Tsumo-only waits. That factor is a heuristic, not a calibrated win probability. Open hands, accepted Riichi and untied immediate-speed choices are unchanged.
+
+The frozen development seeds are 30?33 and the untouched held-out seeds are 130?133, with all three candidate seats and the same fixed efficiency opponents. No production playbook enables the setting. A captured board provides a concrete tie: discarding 7 Sou or 7 Pin keeps one-Shanten with 23 improving copies, while the next-step proxy differs. That demonstrates decision behavior, not a counterfactual hand win.
+
+The strict one-Shanten tie-break produced identical full replays in all 24 pairs across seeds 30?33 and 130?133. It was not promoted: that sample did not expose an actual action change.
+
+A broader frozen candidate, `east_speed_two_draw`, compares total useful-draw-weighted next-wait copies among closed one-Shanten discards within two improving copies of the immediate maximum. It preserves the nearest Shanten, but can trade at most two immediate copies for greater two-draw completion potential. This is a deliberate multi-step speed hypothesis, not a claim that immediate Ukeire is higher. Other policy stages and opponents remain unchanged. Development seeds are 40?43 and held-out seeds are 140?143, across all seats. The two-copy bound and Ron/Tsumo heuristic weight are frozen before evaluation.
+
+Completed lookahead screening: [wait-quality review](experiments/WAIT_QUALITY_REVIEW.md). Neither prototype was promoted. The comparison CLI now reports full-replay divergence so unexercised candidates cannot be mistaken for validated improvements.

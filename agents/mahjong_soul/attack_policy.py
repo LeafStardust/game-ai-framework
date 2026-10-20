@@ -87,7 +87,23 @@ def attack_utility(option,settings):
 
 def offensive(board,options,value):
     if value.get("speed_first"):
-        return max(options,key=lambda o:(-o["shanten"],o["effective_ukeire"],-o.get("danger",0),
+        if value.get("two_draw_progress"):
+            nearest=min(o["shanten"] for o in options)
+            own=own_player(board)
+            if nearest==1 and not own["melds"] and own["riichi"] not in ("declared","accepted"):
+                maximum=max(o["effective_ukeire"] for o in options if o["shanten"]==nearest)
+                shortlist=[o for o in options if o["shanten"]==nearest and o["effective_ukeire"]>=max(1,maximum-2)]
+                if shortlist:
+                    from agents.mahjong_soul.speed_lookahead import next_wait_quality
+                    return max(shortlist,key=lambda o:(next_wait_quality(board,o)*o["effective_ukeire"],o["effective_ukeire"],-o.get("danger",0),-o.get("total_danger",0),o["projected_han"]))
+        if value.get("next_wait_tiebreak"):
+            nearest=min(o["shanten"] for o in options)
+            copies=max(o["effective_ukeire"] for o in options if o["shanten"]==nearest)
+            tied=[o for o in options if o["shanten"]==nearest and o["effective_ukeire"]==copies]
+            if len(tied)>1 and nearest==1 and all(o["action"]["tile"] in board["self"]["hand"] for o in tied):
+                from agents.mahjong_soul.speed_lookahead import next_wait_quality
+                for option in tied:option["next_wait_quality"]=next_wait_quality(board,option)
+        return max(options,key=lambda o:(-o["shanten"],o["effective_ukeire"],o.get("next_wait_quality",0),-o.get("danger",0),
                                          -o.get("total_danger",0),o["projected_han"],attack_utility(o,value)))
     distance=min(o["shanten"] for o in options)
     if distance==0 and not any(o["effective_ukeire"]>0 for o in options if o["shanten"]==0):

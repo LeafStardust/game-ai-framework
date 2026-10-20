@@ -81,14 +81,18 @@ def request(obs,history=None):
 
 class Agent:
     def __init__(self,name):
-        if name not in ("efficiency","east_speed","east_speed_push"):
+        if name not in ("efficiency","east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw"):
             raise ValueError("Unknown simulation candidate")
-        self.name=name;self.policy=make_policy("playbook","atk") if name in ("east_speed","east_speed_push") else None
+        self.name=name;self.policy=make_policy("playbook","atk") if name in ("east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw") else None
         if name=="east_speed_push":
             # Experiment only: isolate the cost of giving up winning progress
             # against Riichi. Never change production playbook factories.
             book=self.policy.registry.get(3,"atk","east")
             book.strategy["defense"]["always_push"]=True
+        if name=="east_speed_lookahead":
+            self.policy.registry.get(3,"atk","east").strategy["discard_value"]["next_wait_tiebreak"]=True
+        if name=="east_speed_two_draw":
+            self.policy.registry.get(3,"atk","east").strategy["discard_value"]["two_draw_progress"]=True
         self.reach_tile=None
         self.history=[]
 
@@ -149,7 +153,7 @@ def run(seed,seat,candidate,*,mode="3p-red-east",max_steps=5000):
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--seeds",type=int,nargs="+",default=[0]);parser.add_argument("--seats",type=int,nargs="+",default=[0,1,2]);parser.add_argument("--candidates",nargs="+",choices=["efficiency","east_speed","east_speed_push"],default=["efficiency","east_speed"]);parser.add_argument("--output",type=Path,required=True);parser.add_argument("--single-hand",action="store_true")
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--seeds",type=int,nargs="+",default=[0]);parser.add_argument("--seats",type=int,nargs="+",default=[0,1,2]);parser.add_argument("--candidates",nargs="+",choices=["efficiency","east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw"],default=["efficiency","east_speed"]);parser.add_argument("--output",type=Path,required=True);parser.add_argument("--single-hand",action="store_true")
     args=parser.parse_args()
     if any(s not in range(3) for s in args.seats):parser.error("Seats must be 0, 1 or 2")
     if any(seed<0 for seed in args.seeds):parser.error("Seeds must be nonnegative")

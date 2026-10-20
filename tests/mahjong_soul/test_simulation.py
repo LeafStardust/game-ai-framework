@@ -46,3 +46,15 @@ def test_push_variant_does_not_modify_live_playbooks():
 def test_unknown_candidate_is_not_silently_baseline():
     with pytest.raises(ValueError,match="Unknown simulation candidate"):
         Agent("typo")
+
+
+def test_wait_quality_variant_is_isolated_from_live_settings():
+    candidate=Agent("east_speed_lookahead");normal=Agent("east_speed")
+    assert candidate.policy.registry.get(3,"atk","east").thresholds_for("D1")["next_wait_tiebreak"]
+    assert not normal.policy.registry.get(3,"atk","east").thresholds_for("D1").get("next_wait_tiebreak")
+
+
+def test_two_draw_candidate_is_not_enabled_in_live_policy():
+    candidate=Agent("east_speed_two_draw");normal=Agent("east_speed")
+    assert candidate.policy.registry.get(3,"atk","east").thresholds_for("D1")["two_draw_progress"]
+    assert not normal.policy.registry.get(3,"atk","east").thresholds_for("D1").get("two_draw_progress")

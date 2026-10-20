@@ -24,3 +24,14 @@ def test_missing_duplicate_or_different_deals_rejected():
     with pytest.raises(ValueError):compare(d)
     d=data();d["records"][0]["initial_deal_digest"]="wrong"
     with pytest.raises(ValueError):compare(d)
+
+
+def test_identical_replays_do_not_count_as_candidate_exposure(tmp_path):
+    import json
+    from agents.mahjong_soul.compare_simulation import replay_coverage
+    d=data();summary=tmp_path/"summary.json";summary.write_text(json.dumps(d))
+    for r in d["records"]:
+        (tmp_path/f"{r['seed']}-{r['seat']}-{r['candidate']}.json").write_text(json.dumps({"events":[{"type":"end_game"}]}))
+    assert not replay_coverage(summary,"east_speed","east_speed_push")["candidate_exercised"]
+    (tmp_path/"0-0-east_speed_push.json").write_text(json.dumps({"events":[{"type":"different"}]}))
+    assert replay_coverage(summary,"east_speed","east_speed_push")["different_replays"]==1
