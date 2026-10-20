@@ -1,4 +1,4 @@
-# Three-Player East Speed v0.2
+# Three-Player East Speed v0.3
 
 The authenticated three-player East lobby selects this playbook through the existing `--playstyle atk` policy family. It prioritizes speed, then defense, then hand value. South sanma remains unsupported. East games have three scheduled dealer positions but can include repeats and extensions.
 
@@ -16,8 +16,10 @@ Extracted Norths count as bonus Han, including additional indicator-derived Nort
 
 ## Input validation status
 
-North extraction is wired to the automatic runner using the reviewed 1920x1080 Kita label from session `20261020T052741-339010Z`. Two stable visual checks and a matching server offer are required before one native click. Only a subsequent live own-seat `ActionBaBei` confirms success; duplicate or uncertain delivery remains blocked. Recorded-frame recognition, fake-mouse confirmation and runner preflight are tested. Real native delivery still needs confirmation after restarting the package with this change. No gameplay input was injected during development.
+North extraction is wired to the automatic runner using the reviewed 1920x1080 Kita label from session `20261020T052741-339010Z`. Two stable visual checks and a matching server offer are required before one native click. Only a subsequent live own-seat `ActionBaBei` confirms success; duplicate or uncertain delivery remains blocked. Recorded-frame recognition, fake-mouse confirmation and runner preflight are tested. Standard-layout native delivery was subsequently confirmed twice. The combined Kita-plus-Kan layout still needs live confirmation after this fix. No gameplay input was injected during development.
 
 ## Validation
 
 Regressions cover routing, speed settings isolation, sanma improving copies, North extraction versus preserving the hand, Dora-only invalidity, North bonus scoring, the Man indicator cycle and both Tsumo payment modes. No three-player live match strength measurement has been performed.
+
+The Kita-plus-Kan layout is also reviewed: Kita shifts to x=730 at 1920x1080. Regression crops come from session `20261020T054957-654100Z`. That session confirmed two standard-layout native North extractions before the combined layout exposed the missing position.

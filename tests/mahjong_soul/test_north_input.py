@@ -7,8 +7,8 @@ from games.mahjong_soul.live.runtime.controller import InputController
 from tests.mahjong_soul.test_input import Mouse
 
 
-def fixture(monkeypatch):
-    data=json.loads((Path(__file__).parent/"fixtures/north_offer.json").read_text());frames={}
+def fixture(monkeypatch,name="north_offer.json"):
+    data=json.loads((Path(__file__).parent/"fixtures"/name).read_text());frames={}
     x,y,w,h=data["crop"]
     for i,entry in enumerate(data["frames"]):
         rgb=bytearray(1920*1080*3);crop=zlib.decompress(base64.b64decode(entry["rgb_zlib"]))
@@ -52,3 +52,18 @@ def test_runner_builds_north_plan_from_two_visual_checks_without_input(monkeypat
     f._current=lambda:report;f.recorder.frame=lambda _:b"0";f.vision=TileVision();f.sleep=lambda _:None
     plan,current=f._plan({"board_token":board_token(report),"action":{"kind":"extract_north","tile":"4z"}})
     assert isinstance(plan,NorthPlan) and current==report and not mouse.clicks
+
+
+def test_kita_and_kan_offer_uses_shifted_north_label(monkeypatch):
+    from tests.mahjong_soul.test_auto import setup
+    from games.mahjong_soul.live.runtime.input import board_token
+    f,_,_,_,mouse=setup(monkeypatch)
+    data=fixture(monkeypatch,"north_kan_offer.json");vision=TileVision()
+    for frame in (b"0",b"1"):
+        x,y,_=vision.button(frame,"extract_north")
+        assert (x,y)==(730,835)
+    report=data["frames"][1]["report"]
+    f._current=lambda:report;f.recorder.frame=lambda _:b"1";f.vision=vision;f.sleep=lambda _:None
+    plan,_=f._plan({"board_token":board_token(report),"action":{"kind":"extract_north","tile":"4z"}})
+    assert round(plan.x*1919)==730 and not mouse.clicks
+    with pytest.raises(ValueError):vision.button(b"blank","extract_north")
