@@ -43,6 +43,9 @@ class AutoFollower(ShadowFollower):
         self.source = None
         self.candidate = None
         self.candidate_until = None
+        from games.mahjong_soul.live.runtime.result_buttons import ResultButtons
+        self.result_buttons=ResultButtons()
+        self.last_result_scan=float("-inf")
 
     def _consume(self, row):
         result = super()._consume(row)
@@ -72,7 +75,7 @@ class AutoFollower(ShadowFollower):
     def _frame(self,geometry,report,phase):
         png=self.recorder.frame(geometry)
         first_choice=phase=="call_choices" and board_token(report)!=self.last_choice_token
-        if png is not None and self.journal is not None and (phase=="before_input" or first_choice or self.clock()-self.last_recorded_frame>=2):
+        if png is not None and self.journal is not None and (phase in ("before_input","before_result_input") or first_choice or self.clock()-self.last_recorded_frame>=2):
             self.journal.frame(png,geometry=geometry,report=report,phase=phase)
             self.last_recorded_frame=self.clock()
             if phase=="call_choices":self.last_choice_token=board_token(report)
@@ -171,7 +174,8 @@ class AutoFollower(ShadowFollower):
         if self.clock()-self.last_recorded_frame<2:return
         report=self.reader.snapshot();token=(board_token(report),report.get("connection_open"))
         operations=((report.get("state") or {}).get("operations") or {}).get("operation_list",[])
-        if token==self.last_passive_token and not operations and phase!="halted":return
+        ended=(report.get("state") or {}).get("status") in ("round_ended","match_ended")
+        if token==self.last_passive_token and not operations and not ended and phase!="halted":return
         geometry=self.recorder.geometry()
         if geometry:
             self._frame(geometry,report,phase)
@@ -237,6 +241,13 @@ class AutoFollower(ShadowFollower):
             return {"kind":"blocked","reason":self.halted}
         event = super().poll()
         self._passive_frame("observe")
+        if self.enabled and self.reader is not None and self.clock()-self.last_result_scan>=2:
+            self.last_result_scan=self.clock()
+            try:
+                result=self.result_buttons.poll(self)
+                if result is not None:return result
+            except (ValueError,OSError,subprocess.TimeoutExpired) as error:
+                self._record("result_button_unavailable",reason=str(error))
         if self.path is not None:
             source = (self.path,self.identity)
             if self.source is not None and (source != self.source or self.tail.reset) and self.controller.snapshot()["attempted_steps"]>self.initial_attempts:
@@ -326,7 +337,8 @@ def main():
         attempted_keys=prior_attempts(args.recordings)
         journal=SessionJournal(args.recordings,max_bytes=args.recording_mb*1024**2)
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
-        paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
+        paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
+               "games/mahjong_soul/live/runtime/windows_ocr.ps1","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
                "agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
                "agents/mahjong_soul/attack_value.py","agents/mahjong_soul/attack_defense.py",
                "agents/mahjong_soul/attack_routes.py","agents/mahjong_soul/yakuman.py","agents/mahjong_soul/hand_plan.py","agents/mahjong_soul/scoring.py","agents/mahjong_soul/yaku_catalog.py",

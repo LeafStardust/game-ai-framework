@@ -130,3 +130,5 @@ The Four-Player South Attack policy pursues projected high-Han routes and keeps 
 The launcher selects [Four-Player East Speed](../../games/mahjong_soul/playbook/yonma/EAST_SPEED.md) for authenticated four-player East rooms and South ATK for South rooms. East prioritizes speed, then defense, then hand value.
 
 [Three-Player East Speed](../../games/mahjong_soul/playbook/sanma/EAST_SPEED.md) adds sanma-aware planning and scoring. North extraction is wired to the guarded native executor using recorded Kita recognition; standard-layout live delivery has been confirmed; the Kita-plus-Kan layout has recorded-frame coverage.
+
+[Automatic result buttons](../../games/mahjong_soul/live/RESULT_BUTTONS.md) handle Continue/Confirm after rounds with text recognition and stable-view checks. The first live result-screen validation is pending; automatic Kita already has confirmed native deliveries.
