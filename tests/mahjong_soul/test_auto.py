@@ -306,3 +306,18 @@ def test_live_follower_retries_timeout_once_then_accepts_late_confirmation(monke
     assert f.poll()["reason"]=="awaiting_late_confirmation" and len(m.clicks)==2 and f.halted is None
     assert f.controller.observe(r["game_connection"],{"name":"ActionDiscardTile","source":"live","step":r["state"]["step"]+1,"data":{"seat":r["state"]["seat"],"tile":"0p"}},now=16)
     assert f.controller.snapshot()["status"]=="idle" and f.halted is None
+
+
+def test_recorded_riichi_highlights_red_and_normal_five(monkeypatch):
+    import json,base64
+    from pathlib import Path
+    d=json.loads((Path(__file__).parent/"fixtures/riichi_red_normal_five.json").read_text())
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.visual.decode_frame",lambda _:b"unused")
+    def run(allowed):
+        values=iter(base64.b64decode(v) for v in d["samples"])
+        monkeypatch.setattr("games.mahjong_soul.live.runtime.visual.sample",lambda *args:next(values))
+        return TileVision().riichi_hand(b"frame",{"slots":[(.5,.5)]*14},d["hand"],allowed)
+    tiles,values,bright=run(d["allowed"])
+    assert set(bright)=={"1p","0p","5p","7p"} and "0p" in tiles
+    with pytest.raises(ValueError,match="Bright Riichi"):
+        run(["1p","0p"])

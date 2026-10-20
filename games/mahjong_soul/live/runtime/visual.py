@@ -193,7 +193,9 @@ class TileVision:
             if visible:bright.append(tile)
         if Counter(tiles)!=Counter(expected):raise ValueError("Riichi hand differs from reader")
         visible_allowed=sorted(set(bright))
-        if Counter(visible_allowed)!=Counter(set(allowed)):raise ValueError("Bright Riichi discards differ from the offer")
+        kind=lambda tile:"5"+tile[1:] if tile.startswith("0") else tile
+        if {kind(tile) for tile in visible_allowed}!={kind(tile) for tile in allowed}:
+            raise ValueError("Bright Riichi discards differ from the offer")
         return tiles,values,visible_allowed
 
     def choices(self,png,report,action):

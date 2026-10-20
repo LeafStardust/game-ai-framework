@@ -61,7 +61,9 @@ class RiichiExecutor(DiscardExecutor):
         if plan != self.pending and (plan.token, plan.tile, plan.x, plan.y, plan.allowed_tiles, plan.button_x, plan.button_y) != (
                 self.pending.token, self.pending.tile, self.pending.x, self.pending.y, self.pending.allowed_tiles, self.pending.button_x, self.pending.button_y):
             raise ValueError("Riichi selection does not match the original plan")
-        if Counter(visible_allowed_tiles) != Counter(plan.allowed_tiles):
+        kind=lambda tile:"5"+tile[1:] if tile.startswith("0") else tile
+        if (plan.tile not in visible_allowed_tiles
+                or {kind(tile) for tile in visible_allowed_tiles}!={kind(tile) for tile in plan.allowed_tiles}):
             raise ValueError("Visible riichi discards do not match the server offer")
         self.phase = "tile_selection_attempted"
         if plan.double_click:
