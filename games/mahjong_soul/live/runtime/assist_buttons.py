@@ -9,10 +9,34 @@ from games.mahjong_soul.live.runtime.input import board_token
 class AssistButtons:
     def __init__(self):
         self.profile=json.loads(Path(__file__).with_name("assist_samples.json").read_text())
-        self.pending=None;self.observed={};self.last_scan=float("-inf");self.failed=False
+        self.layout=None;self.pending=None;self.observed={};self.last_scan=float("-inf");self.failed=False
+
+    def collapsed(self,rgb):
+        states={}
+        for key,row in self.profile["collapsed"].items():
+            foreground=set();green=set()
+            for dy in range(48):
+                for dx in range(37):
+                    x,y=21+dx,row["y"]-24+dy
+                    r,g,b=rgb[(y*1920+x)*3:(y*1920+x)*3+3];index=dy*37+dx
+                    if g>65 and g>r*1.4 and g>b*1.2:
+                        foreground.add(index);green.add(index)
+                    elif r>48 and g>60 and b>75 and max(r,g,b)-min(r,g,b)<65:foreground.add(index)
+            expected=set(row["mask"])
+            if len(foreground & expected)/len(foreground | expected)<.8:return None
+            ratio=len(green & expected)/len(expected)
+            if .1<ratio<.9:return None
+            states[key]=ratio>=.9
+        return states
 
     def read(self,png):
-        rgb=decode_frame(png);states={}
+        rgb=decode_frame(png)
+        collapsed=self.collapsed(rgb)
+        if collapsed is not None:
+            self.layout="collapsed"
+            return collapsed
+        self.layout="expanded"
+        states={}
         for key,row in self.profile["rows"].items():
             y=row["y"]
             if distance(sample(rgb,164,y,150,34),base64.b64decode(row["label"]))>7:
@@ -39,7 +63,7 @@ class AssistButtons:
         states=self.read(first)
         if self.pending:
             key,target,deadline=self.pending
-            if (key=="panel" and states is not None) or (states is not None and states.get(key)==target):
+            if states is not None and states.get(key)==target:
                 owner._record("assist_confirmed",control=key,enabled=target);self.pending=None
             elif owner.clock()>deadline:
                 owner._record("assist_unconfirmed",control=key,enabled=target)
@@ -49,22 +73,20 @@ class AssistButtons:
             else:return {"kind":"status","reason":"awaiting_assist_confirmation"}
         if states is None:
             self.observed={}
-            if distance(sample(decode_frame(first),40,833,40,40),base64.b64decode(self.profile["collapsed_arrow"]))>5:return None
-            key,target,x,y="panel",True,40,833
-        else:
-            self.observed=states
-            # Disable irreversible automatic discards first when unlocking.
-            keys=("auto_discard","skip_calls","auto_kita","auto_win")
-            key=next((k for k in keys if states[k]!=desired[k]),None)
-            if key is None:return None
-            target=desired[key];x,y=60,self.profile["rows"][key]["y"]
+            return None
+        self.observed=states
+        layout=self.layout
+        # Disable irreversible automatic discards first when unlocking.
+        keys=("auto_discard","skip_calls","auto_kita","auto_win")
+        key=next((k for k in keys if states[k]!=desired[k]),None)
+        if key is None:return None
+        target=desired[key]
+        x,y=(40,self.profile["collapsed"][key]["y"]) if layout=="collapsed" else (60,self.profile["rows"][key]["y"])
         token=board_token(report);owner.sleep(.1)
         if owner.recorder.geometry()!=geometry or board_token(owner._current())!=token:return None
         second=owner._frame(geometry,report,"before_assist_input")
         if second is None:return None
-        if states is not None:
-            if self.read(second)!=states:return None
-        elif distance(sample(decode_frame(second),40,833,40,40),sample(decode_frame(first),40,833,40,40))>1:return None
+        if self.read(second)!=states or self.layout!=layout:return None
         if owner.recorder.geometry()!=geometry or board_token(owner._current())!=token:return None
         self.pending=key,target,owner.clock()+3
         owner._record("assist_attempt",control=key,enabled=target,pixel=[x,y])
