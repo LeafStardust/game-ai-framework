@@ -11,7 +11,7 @@ from agents.mahjong_soul.scoring import score_hand
 def sanma(hand):
     r=report(hand);s=r["state"];s["player_count"]=3
     for key in ("discards","melds","norths","riichi","scores"):s[key]=s[key][:3]
-    s["lobby"]=detect_lobby({"seat_list":[0,1,2],"game_config":{"mode":{"mode":1}}})
+    s["lobby"]=detect_lobby({"seat_list":[0,1,2],"game_config":{"mode":{"mode":11}}})
     return r
 
 

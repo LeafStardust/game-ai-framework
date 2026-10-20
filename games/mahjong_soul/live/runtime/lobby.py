@@ -11,7 +11,7 @@ SPECIAL_RULES=("guyi_mode","dora3_mode","begin_open_mode","jiuchao_mode","muyu_m
 def detect_lobby(data):
     config=data.get("game_config") or {};mode=config.get("mode") or {}
     seats=data.get("seat_list") or [];count=len(seats) if len(seats) in (3,4) else None
-    code=mode.get("mode");length={1:"east",2:"south"}.get(code) if type(code) is int else None
+    code=mode.get("mode");length={(4,1):"east",(4,2):"south",(3,11):"east",(3,12):"south"}.get((count,code)) if type(code) is int else None
     detail=deepcopy(mode.get("detail_rule") or {})
     unsupported=[key for key in SPECIAL_RULES if detail.get(key)]
     if detail.get("fanfu",1) not in (0,1):unsupported.append("fanfu")

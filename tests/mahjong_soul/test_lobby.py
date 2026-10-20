@@ -10,7 +10,7 @@ def auth(count=4,mode=2,detail=None):
     return {"seat_list":list(range(count)),"game_config":{"category":1,"mode":{"mode":mode,"ai":True,"detail_rule":detail or {"shiduan":1,"dora_count":3}},"meta":{"room_id":42}}}
 
 
-@pytest.mark.parametrize("count,mode,length",[(4,1,"east"),(4,2,"south"),(3,1,"east"),(3,2,"south")])
+@pytest.mark.parametrize("count,mode,length",[(4,1,"east"),(4,2,"south"),(3,11,"east"),(3,12,"south")])
 def test_detects_format_from_auth_not_current_wind(count,mode,length):
     lobby=detect_lobby(auth(count,mode))
     assert lobby["identified"] and lobby["player_count"]==count and lobby["match_length"]==length
@@ -24,7 +24,7 @@ def observation(lobby):
 def test_south_atk_routes_only_to_registered_format():
     registry=default_mahjong_playbooks()
     assert registry.for_observation(observation(detect_lobby(auth())),"atk").name=="Four-Player South Attack"
-    for data in (auth(3,2),auth(4,99),{}):
+    for data in (auth(3,12),auth(4,99),{}):
         o=observation(detect_lobby(data))
         if data.get("seat_list"):o["board"]["player_count"]=len(data["seat_list"])
         with pytest.raises(UnsupportedLobby):registry.for_observation(o,"atk")
