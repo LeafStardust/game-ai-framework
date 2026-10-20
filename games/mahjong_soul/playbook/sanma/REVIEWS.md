@@ -65,3 +65,11 @@ Session `20261020T111649-661122Z`: own seat 0 finished second at 32,100, behind 
 Seat 0 paid a 5,200-point Ron in the first round, won a two-Han Tsumo for 2,000 total in the second, and paid a 3,900-point Ron in the last. Its first-round 1,000-point Riichi deposit accounts for the remaining difference from 35,000. The third-round 1,300-point Ron was between the other two players. No policy adjustment is justified by these results alone; execution confirmation is not evidence that every strategy choice is optimal.
 
 The post-round Confirm at sequence 400 was delivered at sequence 403 and confirmed by advancing game state at sequence 408. This is the first recorded live native result-button progression after the latency fix. The final detected Confirm was withheld with `window_changed_after_ocr` at sequence 1142, showing that the foreground guard and new rejection diagnostics work. Final-screen Confirm delivery and the combined Kita-plus-Kan layout remain unverified. Next validation can use an ordinary recorded game with the game foreground through the result screens.
+
+## 2026-10-20: Eighth recorded East session
+
+Session `20261020T120330-675251Z`, revision `87f5fe3a`: own seat 2 finished second at 35,600 (opponents 43,900 and 25,500). All 122 gameplay decisions were confirmed: 98 discards, nine Skips, seven North extractions, five Pon, two Ron and one Open Kan. No action errors, halts or timeout retries occurred, so the new timeout recovery was not exercised live. Two exhaustive draws cost 2,000 each; Ron wins gained 2,600 and 2,000. No deal-ins occurred.
+
+Seven round-result Confirm clicks were delivered, with six confirmed by a following round. The final delivery cannot be confirmed by a new-round event after match end. Final-results Confirm remains a separate validation item.
+
+No assist switch clicks were attempted. Offline recognition of actual gameplay frames reproduced the failure: collapsed glyph masks were calibrated from a dimmed result overlay, and their brighter antialiased gameplay edges failed the silhouette threshold. Added actual gameplay glyph variants without lowering that threshold, retaining both appearances as regression fixtures. Native switch delivery still requires live validation. No strategy parameters changed based on this result.

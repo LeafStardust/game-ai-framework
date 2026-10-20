@@ -76,3 +76,11 @@ def test_collapsed_partial_colour_and_layout_changes_are_rejected(monkeypatch):
     for index in row["mask"][:len(row["mask"])//2]:
         y,x=divmod(index,37);offset=((row["y"]-24+y)*1920+21+x)*3;rgb[offset:offset+3]=bytes(handler.profile["on"])
     assert handler.collapsed(rgb) is None
+
+
+def test_actual_bright_gameplay_sidebar_is_recognized(monkeypatch):
+    rgb=panel("assist_collapsed_gameplay.json")
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    handler=AssistButtons()
+    assert handler.read(b"frame")=={"arrange":True,"auto_win":False,"skip_calls":False,"auto_discard":False,"auto_kita":False}
+    assert handler.layout=="collapsed"

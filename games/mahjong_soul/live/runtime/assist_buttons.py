@@ -22,7 +22,8 @@ class AssistButtons:
                     if g>65 and g>r*1.4 and g>b*1.2:
                         foreground.add(index);green.add(index)
                     elif r>48 and g>60 and b>75 and max(r,g,b)-min(r,g,b)<65:foreground.add(index)
-            expected=set(row["mask"])
+            variants=[set(row["mask"]),*(set(mask) for mask in row.get("alternates",[]))]
+            expected=max(variants,key=lambda mask:len(foreground & mask)/len(foreground | mask))
             if len(foreground & expected)/len(foreground | expected)<.8:return None
             ratio=len(green & expected)/len(expected)
             if .1<ratio<.9:return None
