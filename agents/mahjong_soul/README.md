@@ -132,3 +132,12 @@ The launcher selects [Four-Player East Speed](../../games/mahjong_soul/playbook/
 [Three-Player East Speed](../../games/mahjong_soul/playbook/sanma/EAST_SPEED.md) adds sanma-aware planning and scoring. North extraction is wired to the guarded native executor using recorded Kita recognition; standard-layout live delivery has been confirmed; the Kita-plus-Kan layout has recorded-frame coverage.
 
 [Automatic result buttons](../../games/mahjong_soul/live/RESULT_BUTTONS.md) handle Continue/Confirm after rounds with text recognition and stable-view checks. The first live result-screen validation is pending; automatic Kita already has confirmed native deliveries.
+
+
+### Conditional client assists
+
+Automatic policy recordings now include `analysis.client_assists`, recomputed for each decision. Auto Win is preferred. Skip Calls is preferred for a closed Riichi/Seven Pairs/Thirteen Orphans route at zero or one Shanten, and released when that route changes or a call is selected. These are reversible preferences, not proof that a closed route will remain optimal.
+
+Auto Discard is preferred only after accepted Riichi; open Tenpai does not imply that future draws cannot improve the wait, value or safety. Kita stays under per-offer policy control because a future North can be essential to the hand. The existing native win and Kita executors remain active.
+
+These preferences are recorded only: switch delivery awaits a verified expanded A/R/C/D/K panel and on/off indicators. No sidebar coordinates are guessed, no switches are blindly toggled, and no terminal output is added. Until delivery is calibrated, ordinary agent decisions and clicks continue as before.
