@@ -1,4 +1,4 @@
-"""Post-round Continue/Confirm clicks from two matching OCR observations.
+"""Post-round Continue/Confirm clicks from OCR and a fresh matching pixel observation.
 
 Separate from gameplay proposals: only known result states and explicit labels
 are accepted. No menus, room joins, purchases or new matches are selected.
@@ -81,16 +81,20 @@ class ResultButtons:
         meta=state.get("round") or {}
         key=(report.get("game_connection"),report.get("game_generation",0),meta.get("chang"),meta.get("ju"),meta.get("ben"),label,x//20,y//20)
         if key in self.attempted:return None
+        def reject(reason):
+            owner._record("result_button_withheld",button=label,reason=reason)
+            return None
         owner.sleep(.15)
-        if owner.recorder.geometry()!=geometry or board_token(self.snapshot(owner))!=token:return None
+        if owner.recorder.geometry()!=geometry:return reject("window_changed_after_ocr")
+        if board_token(self.snapshot(owner))!=token:return reject("state_changed_after_ocr")
         second=owner._frame(geometry,report,"before_result_input")
-        if second is None:return None
-        words_again=self.ocr(second)
-        try:again=result_button(words_again,state.get("scores",[]))
-        except ValueError:return None
-        if again[0]!=label or abs(again[1]-x)>3 or abs(again[2]-y)>3:return None
-        if distance(sample(decode_frame(first),x,y,100,40),sample(decode_frame(second),x,y,100,40))>1:return None
-        if owner.recorder.geometry()!=geometry or board_token(self.snapshot(owner))!=token:return None
+        if second is None:return reject("fresh_frame_unavailable")
+        # OCR establishes the label and position. Requiring the same label pixels
+        # in a fresh frame validates that finding without another slow OCR run.
+        if distance(sample(decode_frame(first),x,y,100,40),sample(decode_frame(second),x,y,100,40))>1:
+            return reject("label_pixels_changed")
+        if owner.recorder.geometry()!=geometry:return reject("window_changed_before_click")
+        if board_token(self.snapshot(owner))!=token:return reject("state_changed_before_click")
         self.attempted.add(key);self.pending=label
         owner._record("result_button_attempt",button=label,pixel=[x,y],board_token=token)
         try:owner.controller.backend.click(x/1919,y/1079,1920,1080)

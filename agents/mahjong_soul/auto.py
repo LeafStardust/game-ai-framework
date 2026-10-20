@@ -252,7 +252,7 @@ class AutoFollower(ShadowFollower):
             return {"kind":"blocked","reason":self.halted}
         event = super().poll()
         self._passive_frame("observe")
-        if self.enabled and self.reader is not None and self.clock()-self.last_result_scan>=2:
+        if self.enabled and self.reader is not None and self.clock()-self.last_result_scan>=.5:
             self.last_result_scan=self.clock()
             try:
                 result=self.result_buttons.poll(self)

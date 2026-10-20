@@ -48,8 +48,13 @@ def test_result_controls_never_click_during_play_or_pending_input(monkeypatch):
 
 
 def test_moving_button_and_changed_board_do_not_click(monkeypatch):
-    o,r,m,_=owner(monkeypatch);words=iter([labels(word()),labels(word(x=940))])
-    assert ResultButtons(lambda _:next(words)).poll(o) is None and not m.clicks
+    o,r,m,logs=owner(monkeypatch)
+    frames=iter([b"first",b"moved"]);o._frame=lambda *args:next(frames)
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.result_buttons.decode_frame",
+                        lambda frame:bytes([0 if frame==b"first" else 255])*(1920*1080*3))
+    assert ResultButtons(lambda _:labels(word())).poll(o) is None and not m.clicks
+    assert logs[-1][1]["reason"]=="label_pixels_changed"
+    o,r,m,logs=owner(monkeypatch)
     def changed(_):
         r["state"]["step"]+=1
         return labels(word())
@@ -108,3 +113,19 @@ def test_ocr_score_context_must_match_at_least_two_captured_scores():
     words=[word("52000",y=300),word("44000",y=500),word("Confirm")]
     assert result_button(words,[52000,9000,44000])[0]=="confirm"
     with pytest.raises(ValueError):result_button(words,[35000,35000,35000])
+
+
+def test_result_click_uses_one_ocr_and_rechecks_state_after_fresh_frame(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);calls=[]
+    def ocr(frame):
+        calls.append(frame)
+        return labels(word())
+    assert ResultButtons(ocr).poll(o)["reason"]=="result_button_submitted"
+    assert len(calls)==1
+    o,r,m,logs=owner(monkeypatch)
+    def frame(*args):
+        if args[-1]=="before_result_input":r["state"]["step"]+=1
+        return b"frame"
+    o._frame=frame
+    assert ResultButtons(ocr).poll(o) is None and not m.clicks
+    assert logs[-1][1]["reason"]=="state_changed_before_click"
