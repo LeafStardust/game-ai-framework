@@ -129,4 +129,4 @@ The Four-Player South Attack policy pursues projected high-Han routes and keeps 
 
 The launcher selects [Four-Player East Speed](../../games/mahjong_soul/playbook/yonma/EAST_SPEED.md) for authenticated four-player East rooms and South ATK for South rooms. East prioritizes speed, then defense, then hand value.
 
-[Three-Player East Speed](../../games/mahjong_soul/playbook/sanma/EAST_SPEED.md) adds sanma-aware planning and scoring. North-extraction recommendations work; automatic North input awaits recorded button calibration.
+[Three-Player East Speed](../../games/mahjong_soul/playbook/sanma/EAST_SPEED.md) adds sanma-aware planning and scoring. North extraction is wired to the guarded native executor using recorded Kita recognition; live delivery validation is pending.

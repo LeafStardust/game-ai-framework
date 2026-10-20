@@ -78,7 +78,7 @@ class TileVision:
             raise ValueError("Unsupported call sample bank")
         self.calls = {kind:base64.b64decode(entry["sample"],validate=True)
                       for kind,entry in calls["buttons"].items()}
-        if not {"chi","pon"} <= set(self.calls) <= {"chi","pon","kan"} or any(len(v)!=648 for v in self.calls.values()):
+        if not {"chi","pon"} <= set(self.calls) <= {"chi","pon","kan","extract_north"} or any(len(v)!=648 for v in self.calls.values()):
             raise ValueError("Invalid call button samples")
         self.call_variants={kind:[base64.b64decode(v,validate=True) for v in entry.get("alternates",[])]
                             for kind,entry in calls["buttons"].items()}
@@ -216,9 +216,9 @@ class TileVision:
     def button(self,png,kind,point=None):
         """Recognize a Skip label or a server-offered colored declaration button."""
         rgb=decode_frame(png)
-        if kind not in ("skip","chi","pon","kan","riichi","ron","tsumo"):
+        if kind not in ("skip","chi","pon","kan","extract_north","riichi","ron","tsumo"):
             raise ValueError("Unsupported automatic button kind")
-        if kind in ("skip","chi","pon","kan"):
+        if kind in ("skip","chi","pon","kan","extract_north"):
             if kind=="kan" and kind not in self.calls:
                 # Kan coordinates have already been natively calibrated for
                 # exact operation sets. Require the actual outlined action

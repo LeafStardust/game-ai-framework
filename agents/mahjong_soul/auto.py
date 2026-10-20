@@ -16,6 +16,7 @@ from games.mahjong_soul.live.runtime.controller import InputController
 from games.mahjong_soul.live.runtime.input import board_token, plan_discard
 from games.mahjong_soul.live.runtime.layout import discard_profile, profile_for_size
 from games.mahjong_soul.live.runtime.skip import plan_skip
+from games.mahjong_soul.live.runtime.north import plan_north
 from games.mahjong_soul.live.runtime.call_selection import CODES, CallMenuPlan, plan_call, plan_call_choice
 from games.mahjong_soul.live.runtime.riichi import plan_riichi
 from games.mahjong_soul.live.runtime.win import plan_win
@@ -130,7 +131,8 @@ class AutoFollower(ShadowFollower):
                 samples.append(button_sample)
         else:
             profile,value=self._button_profile(report,self._button_kind(action["kind"]),first)
-            if action["kind"]=="skip":plan_skip(report,profile,now=self.clock())
+            if action["kind"]=="extract_north":plan_north(report,profile,now=self.clock())
+            elif action["kind"]=="skip":plan_skip(report,profile,now=self.clock())
             elif action["kind"] in CODES:plan_call(report,profile,action,now=self.clock())
             else:plan_win(report,profile,action["kind"],now=self.clock())
             samples=[value]
@@ -158,6 +160,7 @@ class AutoFollower(ShadowFollower):
             plan = replace(plan_discard(current,profile,tiles.index(action["tile"]),action["tile"],now=self.clock()),double_click=True)
         elif action["kind"]=="riichi":
             plan=replace(plan_riichi(current,profile,tiles.index(action["tile"]),action["tile"],now=self.clock()),double_click=True)
+        elif action["kind"]=="extract_north":plan=plan_north(current,profile,now=self.clock())
         elif action["kind"]=="skip":plan=plan_skip(current,profile,now=self.clock())
         elif action["kind"] in CODES:plan=plan_call(current,profile,action,now=self.clock())
         else:plan=plan_win(current,profile,action["kind"],now=self.clock())
@@ -269,7 +272,7 @@ class AutoFollower(ShadowFollower):
                 return event
             event = self.candidate
         else: return event
-        if event["action"]["kind"] not in ("discard","skip","riichi","ron","tsumo",*CODES):
+        if event["action"]["kind"] not in ("discard","skip","riichi","ron","tsumo","extract_north",*CODES):
             self.candidate = None
             return {**event,"kind":"manual","reason":"North extraction needs a reviewed button calibration" if event["action"]["kind"]=="extract_north" else "Action requires manual input"}
         try:
@@ -323,7 +326,7 @@ def main():
         attempted_keys=prior_attempts(args.recordings)
         journal=SessionJournal(args.recordings,max_bytes=args.recording_mb*1024**2)
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
-        paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
+        paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
                "agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
                "agents/mahjong_soul/attack_value.py","agents/mahjong_soul/attack_defense.py",
                "agents/mahjong_soul/attack_routes.py","agents/mahjong_soul/yakuman.py","agents/mahjong_soul/hand_plan.py","agents/mahjong_soul/scoring.py","agents/mahjong_soul/yaku_catalog.py",

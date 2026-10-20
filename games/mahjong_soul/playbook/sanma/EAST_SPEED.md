@@ -1,4 +1,4 @@
-# Three-Player East Speed v0.1
+# Three-Player East Speed v0.2
 
 The authenticated three-player East lobby selects this playbook through the existing `--playstyle atk` policy family. It prioritizes speed, then defense, then hand value. South sanma remains unsupported. East games have three scheduled dealer positions but can include repeats and extensions.
 
@@ -16,7 +16,7 @@ Extracted Norths count as bonus Han, including additional indicator-derived Nort
 
 ## Input validation status
 
-The policy and readable suggestions support North extraction. The automatic runner recognizes verified three-player AI rooms and can use its existing visually guarded controls. The North-extraction button has no reviewed sample yet: it reports a manual action rather than guessing a click. A complete autonomous three-player match is not validated until that control and the actual three-player UI have been recorded and tested. Do not treat policy tests as native click calibration. Recordings remain available for diagnosing layout problems.
+North extraction is wired to the automatic runner using the reviewed 1920x1080 Kita label from session `20261020T052741-339010Z`. Two stable visual checks and a matching server offer are required before one native click. Only a subsequent live own-seat `ActionBaBei` confirms success; duplicate or uncertain delivery remains blocked. Recorded-frame recognition, fake-mouse confirmation and runner preflight are tested. Real native delivery still needs confirmation after restarting the package with this change. No gameplay input was injected during development.
 
 ## Validation
 
