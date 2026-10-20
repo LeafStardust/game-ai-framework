@@ -49,3 +49,11 @@ The result-screen recorder skipped later UI frames because game-state tokens no 
 Session `20261020T104017-336368Z`, revision `4324eb7d`: own seat 2 finished second at 25,100, behind 65,100 and ahead of 14,800. Fifty-four gameplay decisions were confirmed, including three North extractions, two Pon, three Riichi and a five-Han Ron shared with another winner. Two later deal-ins cost 12,200 and 7,700 points. No gameplay action failed or crashed.
 
 No Continue/Confirm click was delivered. The result path incorrectly reused gameplay freshness checks during intentionally idle result states; OCR output also contained control characters that broke JSON decoding. The fixes use source-checked result snapshots, sanitize OCR text with explicit UTF-8 transport, and match displayed score values when stylized result headings are missed. Actual round and final Confirm crops/OCR words are regression fixtures. Gameplay freshness checks are unchanged. Another recorded game is required to confirm real post-round native delivery after this correction.
+
+## 2026-10-20: Fifth East match
+
+Session `20261020T110201-036825Z`, revision `d36dbba6`: own seat 2 finished second at 32,700, behind 40,400 and ahead of 31,900. All 53 gameplay decisions were confirmed, including five North extractions, one Pon, one Open Kan, one Riichi and one Ron. There were no gameplay action failures or deal-ins. The 1,000-point Riichi deposit, 4,800-point Ron gain and 6,100-point opponent Tsumo payment explain the final score.
+
+No automatic Continue/Confirm delivery was recorded. The previous idle-state/OCR exceptions did not recur. Saved frames 572 and 573 both recognize Confirm at (1779, 1002), with zero difference in the checked label crop; offline OCR took approximately 1.2 seconds per frame. Thus label recognition and crop stability alone do not explain the withheld click. The final geometry/state checks or intervening screen progression require explicit rejection tracing before changing input safeguards. Result-button native delivery remains unverified. The combined Kita-plus-Kan layout was not offered in this game.
+
+No strategy parameters changed based on this result. Next work is to trace result-button rejection reasons and reduce unnecessary recognition delay while preserving current-screen validation; another manufactured hand is not required.
