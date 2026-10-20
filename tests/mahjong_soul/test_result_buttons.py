@@ -73,3 +73,38 @@ def test_result_screen_recording_continues_after_network_state_stops(monkeypatch
     f._frame=frame
     f._passive_frame("observe");now[0]=4;f._passive_frame("observe")
     assert len(captures)==2
+
+
+def test_idle_result_state_uses_source_checked_snapshot_not_gameplay_freshness(monkeypatch):
+    o,r,m,_=owner(monkeypatch)
+    def stale():raise ValueError("Gameplay capture is stale")
+    o._current=stale;o._result_snapshot=lambda:deepcopy(r)
+    assert ResultButtons(lambda _:labels(word())).poll(o)["reason"]=="result_button_submitted"
+    assert len(m.clicks)==1
+
+
+def test_real_score_and_final_result_confirm_screens(monkeypatch):
+    import base64,json,zlib
+    from pathlib import Path
+    data=json.loads((Path(__file__).parent/"fixtures/result_confirm.json").read_text(encoding="utf-8"))
+    images={};x,y,w,h=data["crop"]
+    for i,frame in enumerate(data["frames"]):
+        rgb=bytearray(1920*1080*3);crop=zlib.decompress(base64.b64decode(frame["rgb_zlib"]))
+        for row in range(h):rgb[((y+row)*1920+x)*3:((y+row)*1920+x+w)*3]=crop[row*w*3:(row+1)*w*3]
+        images[str(i).encode()]=rgb
+    for first,second,expected in ((0,1,(1779,1002)),(2,3,(1760,958))):
+        o,_,mouse,_=owner(monkeypatch);report=data["frames"][first]["report"]
+        o._result_snapshot=lambda:report
+        frames=iter([str(first).encode(),str(second).encode()]);o._frame=lambda *args:next(frames)
+        monkeypatch.setattr("games.mahjong_soul.live.runtime.result_buttons.decode_frame",lambda key:images[key])
+        handler=ResultButtons(lambda key:data["frames"][int(key)]["words"])
+        assert handler.poll(o)["button"]=="confirm"
+        assert len(mouse.clicks)==1
+        click=mouse.clicks[0]
+        assert (round(click[0]*1919),round(click[1]*1079))==expected
+
+
+def test_ocr_score_context_must_match_at_least_two_captured_scores():
+    words=[word("52000",y=300),word("44000",y=500),word("Confirm")]
+    assert result_button(words,[52000,9000,44000])[0]=="confirm"
+    with pytest.raises(ValueError):result_button(words,[35000,35000,35000])

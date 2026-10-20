@@ -169,6 +169,17 @@ class AutoFollower(ShadowFollower):
         else:plan=plan_win(current,profile,action["kind"],now=self.clock())
         return plan,current
 
+    def _result_snapshot(self):
+        # Results are intentionally idle on the wire. Preserve source and
+        # decode-integrity checks without demanding a new gameplay event.
+        if self.path is None or self.reader is None:raise ValueError("No capture source for result verification")
+        info=self.path.stat()
+        if self._select()!=self.path or (info.st_dev,info.st_ino)!=self.identity:
+            raise ValueError("Capture changed during result verification")
+        report=self._drain()
+        if self.fault or self.tail.pending:raise ValueError("Result capture is incomplete")
+        return report
+
     def _passive_frame(self,phase):
         if self.journal is None or self.recorder is None or self.reader is None:return
         if self.clock()-self.last_recorded_frame<2:return

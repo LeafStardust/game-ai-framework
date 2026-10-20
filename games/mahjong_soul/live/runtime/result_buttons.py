@@ -19,16 +19,19 @@ def windows_words(png):
         path=Path(directory)/"frame.png";path.write_bytes(png)
         result=subprocess.run(["powershell.exe","-NoProfile","-NonInteractive","-ExecutionPolicy","Bypass",
                                "-File",str(Path(__file__).with_name("windows_ocr.ps1")),"-ImagePath",str(path)],
-                              capture_output=True,text=True,timeout=12,
+                              capture_output=True,text=True,encoding="utf-8",timeout=12,
                               creationflags=subprocess.CREATE_NO_WINDOW if os.name=="nt" else 0)
         if result.returncode:raise ValueError("Result-button OCR unavailable: "+result.stderr.strip()[:200])
         return json.loads(result.stdout)["words"]
 
 
-def result_button(words):
+def result_button(words,scores=()):
     """Require a unique complete label in the lower portion of a result view."""
     context={re.sub(r"[^a-z0-9]","",w["text"].lower()) for w in words}
-    if not any(t in {"han","fu","yakuman","points","score","scores","result","results","ranking","rank","1st","2nd","3rd","4th","exhaustive"}
+    score_values={str(n) for n in scores if type(n) is int}
+    verified_scores=sum(re.sub(r"[^a-z0-9]","",w["text"].lower()) in score_values for w in words)>=2
+    score_context=verified_scores or ("counter" in context and any(t.endswith("repeat") for t in context)) or (len(context & {"st","nd","rd","th","1st","2nd","3rd","4th"})>=2 and sum(t.isdigit() and len(t)>=4 for t in context)>=2)
+    if not score_context and not any(t in {"han","fu","yakuman","points","score","scores","result","results","ranking","rank","1st","2nd","3rd","4th","exhaustive"}
                or re.fullmatch(r"[0-9]+(?:han|fu)",t) for t in context):
         raise ValueError("Result-screen context is not visible")
     matches=[]
@@ -46,8 +49,17 @@ class ResultButtons:
     def __init__(self,ocr=windows_words):
         self.ocr=ocr;self.attempted=set();self.pending=None
 
+    @staticmethod
+    def snapshot(owner):
+        return owner._result_snapshot() if hasattr(owner,"_result_snapshot") else owner._current()
+
     def poll(self,owner):
-        report=owner._current();state=report.get("state") or {}
+        # Ordinary play must not invoke result-only source checks or OCR.
+        reader=getattr(owner,"reader",None)
+        if reader is not None and not self.pending:
+            cached=reader.snapshot().get("state") or {}
+            if cached.get("status") not in ("round_ended","match_ended"):return None
+        report=self.snapshot(owner);state=report.get("state") or {}
         if state.get("status") not in ("round_ended","match_ended"):
             if self.pending:
                 owner._record("result_button_confirmed",button=self.pending,confirmation="game_state_advanced")
@@ -61,7 +73,7 @@ class ResultButtons:
         first=owner._frame(geometry,report,"result_preflight")
         if first is None:return None
         words=self.ocr(first)
-        try:button=result_button(words)
+        try:button=result_button(words,state.get("scores",[]))
         except ValueError:
             return None
         label,x,y=button
@@ -70,15 +82,15 @@ class ResultButtons:
         key=(report.get("game_connection"),report.get("game_generation",0),meta.get("chang"),meta.get("ju"),meta.get("ben"),label,x//20,y//20)
         if key in self.attempted:return None
         owner.sleep(.15)
-        if owner.recorder.geometry()!=geometry or board_token(owner._current())!=token:return None
+        if owner.recorder.geometry()!=geometry or board_token(self.snapshot(owner))!=token:return None
         second=owner._frame(geometry,report,"before_result_input")
         if second is None:return None
         words_again=self.ocr(second)
-        try:again=result_button(words_again)
+        try:again=result_button(words_again,state.get("scores",[]))
         except ValueError:return None
         if again[0]!=label or abs(again[1]-x)>3 or abs(again[2]-y)>3:return None
-        if distance(sample(decode_frame(first),x,y,220,100),sample(decode_frame(second),x,y,220,100))>1:return None
-        if owner.recorder.geometry()!=geometry or board_token(owner._current())!=token:return None
+        if distance(sample(decode_frame(first),x,y,100,40),sample(decode_frame(second),x,y,100,40))>1:return None
+        if owner.recorder.geometry()!=geometry or board_token(self.snapshot(owner))!=token:return None
         self.attempted.add(key);self.pending=label
         owner._record("result_button_attempt",button=label,pixel=[x,y],board_token=token)
         try:owner.controller.backend.click(x/1919,y/1079,1920,1080)

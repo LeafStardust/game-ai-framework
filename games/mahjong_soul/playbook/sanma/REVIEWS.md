@@ -42,3 +42,10 @@ The disputed first-round 3 Pin Pon (sequences 344/404) has a raw Tenpai discard 
 Recorded first-round 9 Pin alternatives had fewer available improving copies or greater distance than the selected action. In the later first-round repeat (sequence 1061), Riichi on 5 Pin retains five winning copies, versus three after discarding 9 Pin. Speed-first selection favors the former; the result alone does not establish that a different discard was better.
 
 The result-screen recorder skipped later UI frames because game-state tokens no longer changed after a round ended. Recording now continues during result states. A separate guarded Continue/Confirm handler uses Windows English OCR, known ended-round state, visible result context, two stable frames, current geometry/state rechecks and a one-click latch. It never starts another match. Windows OCR was smoke-tested on a real saved game screenshot. Actual result-button screen validation is pending the next recorded match.
+
+
+## 2026-10-20: Fourth East match and result-control fixes
+
+Session `20261020T104017-336368Z`, revision `4324eb7d`: own seat 2 finished second at 25,100, behind 65,100 and ahead of 14,800. Fifty-four gameplay decisions were confirmed, including three North extractions, two Pon, three Riichi and a five-Han Ron shared with another winner. Two later deal-ins cost 12,200 and 7,700 points. No gameplay action failed or crashed.
+
+No Continue/Confirm click was delivered. The result path incorrectly reused gameplay freshness checks during intentionally idle result states; OCR output also contained control characters that broke JSON decoding. The fixes use source-checked result snapshots, sanitize OCR text with explicit UTF-8 transport, and match displayed score values when stylized result headings are missed. Actual round and final Confirm crops/OCR words are regression fixtures. Gameplay freshness checks are unchanged. Another recorded game is required to confirm real post-round native delivery after this correction.

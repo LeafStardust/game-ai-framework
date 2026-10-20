@@ -1,5 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$ImagePath)
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = [Console]::OutputEncoding
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 $null = [Windows.Storage.StorageFile, Windows.Storage, ContentType=WindowsRuntime]
 $null = [Windows.Storage.Streams.IRandomAccessStream, Windows.Storage.Streams, ContentType=WindowsRuntime]
@@ -26,7 +28,7 @@ try {
         if ($null -eq $engine) { throw 'Windows English OCR is unavailable' }
         $result = Await-Result ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
         $words = @($result.Lines | ForEach-Object { $_.Words } | ForEach-Object {
-            @{text=$_.Text; x=$_.BoundingRect.X; y=$_.BoundingRect.Y; width=$_.BoundingRect.Width; height=$_.BoundingRect.Height}
+            @{text=([regex]::Replace($_.Text, '[\x00-\x1F\x7F]', ' ')); x=$_.BoundingRect.X; y=$_.BoundingRect.Y; width=$_.BoundingRect.Width; height=$_.BoundingRect.Height}
         })
         @{words=$words} | ConvertTo-Json -Depth 4 -Compress
     } finally { $bitmap.Dispose() }
