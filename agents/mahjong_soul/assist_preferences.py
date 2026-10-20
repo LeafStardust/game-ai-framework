@@ -21,4 +21,4 @@ def assist_preferences(request, action, analysis):
             "auto_kita":False,
             "reason":"accepted_riichi" if accepted else "closed_route_preference" if skip_calls else "keep_options_open",
             "kita_reason":"evaluate_each_offer",
-            "delivery":"awaiting_verified_switch_layout"}
+            "delivery":"reviewed_three_player_layout_only"}

@@ -46,6 +46,9 @@ class AutoFollower(ShadowFollower):
         from games.mahjong_soul.live.runtime.result_buttons import ResultButtons
         self.result_buttons=ResultButtons()
         self.last_result_scan=float("-inf")
+        from games.mahjong_soul.live.runtime.assist_buttons import AssistButtons
+        self.assist_buttons=AssistButtons()
+        self.assist_desired={"auto_win":True,"auto_kita":False,"skip_calls":False,"auto_discard":False}
 
     def _consume(self, row):
         result = super()._consume(row)
@@ -75,7 +78,7 @@ class AutoFollower(ShadowFollower):
     def _frame(self,geometry,report,phase):
         png=self.recorder.frame(geometry)
         first_choice=phase=="call_choices" and board_token(report)!=self.last_choice_token
-        if png is not None and self.journal is not None and (phase in ("before_input","before_result_input") or first_choice or self.clock()-self.last_recorded_frame>=2):
+        if png is not None and self.journal is not None and (phase in ("before_input","before_result_input","before_assist_input") or first_choice or self.clock()-self.last_recorded_frame>=2):
             self.journal.frame(png,geometry=geometry,report=report,phase=phase)
             self.last_recorded_frame=self.clock()
             if phase=="call_choices":self.last_choice_token=board_token(report)
@@ -282,6 +285,10 @@ class AutoFollower(ShadowFollower):
             self.candidate=None
             return event
         if not self.enabled: return event
+        if event.get("kind")=="suggestion":
+            prefs=event.get("analysis",{}).get("client_assists",{})
+            for key in self.assist_desired:
+                if type(prefs.get(key)) is bool:self.assist_desired[key]=prefs[key]
         if event.get("kind") == "suggestion":
             self.candidate = event
             self.candidate_until = self.clock()+8
@@ -294,6 +301,22 @@ class AutoFollower(ShadowFollower):
                 return event
             event = self.candidate
         else: return event
+        if self.reader is not None:
+            state=self.reader.snapshot().get("state") or {}
+            seat=state.get("seat");riichi=state.get("riichi",[])
+            locked=isinstance(seat,int) and seat<len(riichi) and riichi[seat]=="accepted"
+            self.assist_desired["auto_discard"]=locked
+            if locked:self.assist_desired["skip_calls"]=True
+            elif not state.get("hand"):self.assist_desired["skip_calls"]=False
+            try:
+                assist=self.assist_buttons.poll(self,self.assist_desired)
+                if assist is not None:return assist
+            except (ValueError,OSError) as error:self._record("assist_unavailable",reason=str(error))
+            if self.assist_buttons.pending:return {"kind":"status","reason":"awaiting_assist_confirmation"}
+            if self.assist_buttons.observed.get("auto_win") and event.get("action",{}).get("kind") in ("ron","tsumo"):
+                return {"kind":"status","reason":"client_auto_win"}
+            if self.assist_buttons.observed.get("auto_discard") and locked and event.get("action",{}).get("kind")=="discard":
+                return {"kind":"status","reason":"client_auto_discard"}
         if event["action"]["kind"] not in ("discard","skip","riichi","ron","tsumo","extract_north",*CODES):
             self.candidate = None
             return {**event,"kind":"manual","reason":"North extraction needs a reviewed button calibration" if event["action"]["kind"]=="extract_north" else "Action requires manual input"}
