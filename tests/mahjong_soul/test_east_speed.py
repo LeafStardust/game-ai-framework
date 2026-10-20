@@ -44,3 +44,22 @@ def test_east_folds_distant_hand_against_multiple_riichi():
     r["state"]["discards"][2]=[{"tile":"1z","called":False}]
     action,analysis=choose(r)
     assert analysis["mode"]=="fold" and action["tile"]=="1z"
+
+
+def test_speed_call_can_trade_han_for_more_improving_copies(monkeypatch):
+    from agents.mahjong_soul import attack_policy as policy
+    b=board("55z123m456p78s22p9m")
+    req={"observation":{"board":b},"actions":[{"kind":"skip"},{"kind":"pon","called_tile":"5z","combination":"5z|5z"}]}
+    book=default_mahjong_playbooks().get(4,"atk","east")
+    monkeypatch.setattr(policy,"shanten",lambda *args:1)
+    monkeypatch.setattr(policy,"project_attack",lambda *args,**kwargs:{"projected_han":4,"route_cost":0})
+    monkeypatch.setattr(policy,"draw_ukeire",lambda *args:4)
+    option={"action":{"kind":"discard","tile":"9m"},"shanten":1,"effective_ukeire":8,
+            "projected_han":1,"open_yaku":True,"open_route":True,"route_cost":0,"wait_value":None,
+            "danger":0,"total_danger":0}
+    monkeypatch.setattr(policy,"enrich",lambda *args: [deepcopy(option)])
+    accepted=policy._call_options(req,book,lambda _:[])
+    assert accepted[0]["kind"]=="pon" and accepted[1]["projected_han"]==1
+    # Losing value is allowed only when legal winning progress actually improves.
+    option["effective_ukeire"]=4
+    assert policy._call_options(req,book,lambda _:[]) is None

@@ -16,4 +16,4 @@ def east_speed_playbook():
     settings["calls"].update(minimum_han=1,minimum_ukeire_fraction=1,max_shanten=3,
                              allow_cheap_tenpai=True,cheap_tenpai_waits=1,
                              avoid_kan_under_threat=True,kan_min_wall=16,kan_min_han=1,kan_ukeire_loss=0)
-    return replace(base,name="Four-Player East Speed",match_length="east",version="0.1",strategy=settings)
+    return replace(base,name="Four-Player East Speed",match_length="east",version="0.2",strategy=settings)

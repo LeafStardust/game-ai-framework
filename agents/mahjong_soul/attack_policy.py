@@ -168,7 +168,7 @@ def _call_options(request,book,ranker,diagnostics=None,value=None):
                             or option["projected_han"]>=settings["minimum_han"]
                             and option["projected_han"]>=before_target["projected_han"]-1
                             and option["route_cost"]<=3)
-                if not enables_ron and not value_gain:reason="no_progress_or_value_gain"
+                if not value.get("speed_first") and not enables_ron and not value_gain:reason="no_progress_or_value_gain"
             if not reason and option["shanten"]==baseline:
                 before_draws=draw_ukeire(board,hand,fixed)
                 enables_ron=profile and before_value and before_value["dama_ukeire"]==0 and profile["dama_ukeire"]>0

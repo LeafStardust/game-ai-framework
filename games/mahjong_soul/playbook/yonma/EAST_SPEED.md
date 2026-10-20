@@ -11,3 +11,6 @@ Defense can override development when the hand is too distant or a push fails th
 Riichi normally needs two winning copies and at least eight wall tiles. Against one threat it needs four copies; it is not declared into multiple threats. A valuable legal Dama can be retained when Riichi adds less than 25 percent known value. No future Ura or Ippatsu is assumed. Detailed decisions go to recordings; normal terminal output remains the action only.
 
 This is a first heuristic East policy, not a measured win-rate improvement or a full expected-value/placement model.
+
+
+Speed-first calls may lose projected Han when they preserve legal winning distance and strictly increase available improving copies. The Attack policy value-gain gate does not apply to East Speed. Calls that add no speed, have no reachable Yaku or require an unsafe push remain rejected.

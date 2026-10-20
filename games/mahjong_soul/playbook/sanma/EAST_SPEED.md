@@ -28,3 +28,6 @@ The Kita-plus-Kan layout is also reviewed: Kita shifts to x=730 at 1920x1080. Re
 ## Cheap ready-hand correction (v0.4)
 
 The one-threat Tenpai push floor is 1,000 known points for this playbook; the shared default remains 2,000 for other playbooks. A hard-coded default previously rejected a Green Dragon Pon in session `20261020T062747-902083Z` despite advancing one-Shanten to Tenpai with four winning copies and a discard within the configured danger limit. The lower floor does not override wall, Furiten, waiting-copy or danger checks. The later unsafe 2 Pin Pon is still rejected, and the final safe four-copy Riichi is retained. This fixes a speed/value priority mismatch; it does not prove a counterfactual win.
+
+
+Speed-first calls may lose projected Han when they preserve legal winning distance and strictly increase available improving copies. The Attack policy value-gain gate does not apply to East Speed. Calls that add no speed, have no reachable Yaku or require an unsafe push remain rejected.

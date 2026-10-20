@@ -97,3 +97,9 @@ A concrete winning-progress problem was introduced by client assist preferences.
 Skip Calls now stays off for every provisional closed route and is enabled only after accepted Riichi. This preserves future call evaluation rather than changing call thresholds indiscriminately. The recorded board and reconstructed candidate are regression coverage. An apparent Green Dragon candidate in the following round was excluded from the finding because the UI resets assists at round start; carrying toggle state across that boundary would overstate suppressed opportunities.
 
 This correction addresses a demonstrated missed Tenpai opportunity. It does not establish a stronger match win rate; ordinary recorded games must measure its practical effect. No increased aggression, reduced Yaku checks, or result-based policy threshold changes were introduced.
+
+## Speed-priority call review
+
+The shared same-distance call logic applied a value-gain gate before East Speed's separate speed check. A lower-Han call could therefore be rejected even when it retained legal winning distance and increased improving copies. East Speed now bypasses that value gate; its existing legal-Yaku, distance, available-copy and push/fold checks remain. Four-Player East Speed is version 0.2 and Three-Player East Speed is version 0.5. South Attack behavior is unchanged.
+
+A focused decision-layer regression tests a one-Han call with eight improving copies against a four-Han closed route with four copies at equal distance, and rejects the call when it adds no copies. Replaying recorded Skip decisions from recent sessions did not yield a changed selection for this correction. This is enforcement of the requested speed ordering, not a measured win-rate gain or proof of an additional missed call in those games.

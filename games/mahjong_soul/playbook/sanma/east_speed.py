@@ -12,4 +12,4 @@ def three_player_east_speed_playbook():
     settings["riichi"].update(minimum_ukeire=1,minimum_ukeire_under_threat=2,minimum_wall=4,
                               dama_gain_ratio=1.0)
     settings["defense"].update(push_min_wall=6,push_max_danger=85,ready_push_min_points=1000)
-    return replace(base,player_count=3,name="Three-Player East Speed",version="0.4",strategy=settings)
+    return replace(base,player_count=3,name="Three-Player East Speed",version="0.5",strategy=settings)
