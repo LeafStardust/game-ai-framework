@@ -290,3 +290,19 @@ def test_production_ai_guard_requires_captured_authentication(monkeypatch):
     assert not m.clicks
     r['game_generation']+=1;e['board_token']=board_token(r)
     with pytest.raises(ValueError,match='AI opponents'):f._plan(e)
+
+
+def test_live_follower_retries_timeout_once_then_accepts_late_confirmation(monkeypatch):
+    from types import SimpleNamespace
+    from pathlib import Path
+    f,r,p,e,m=setup(monkeypatch);now=[1];f.clock=lambda:now[0]
+    f.path=Path("unused");f.identity=(1,2);f.tail=SimpleNamespace(reset=False)
+    f.reader=SimpleNamespace(snapshot=lambda:r);f._passive_frame=lambda _:None
+    monkeypatch.setattr("agents.mahjong_soul.shadow.ShadowFollower.poll",lambda _:e)
+    assert f.poll()["kind"]=="submitted" and len(m.clicks)==1
+    now[0]=8
+    assert f.poll()["reason"]=="awaiting_late_confirmation" and len(m.clicks)==2
+    now[0]=15
+    assert f.poll()["reason"]=="awaiting_late_confirmation" and len(m.clicks)==2 and f.halted is None
+    assert f.controller.observe(r["game_connection"],{"name":"ActionDiscardTile","source":"live","step":r["state"]["step"]+1,"data":{"seat":r["state"]["seat"],"tile":"0p"}},now=16)
+    assert f.controller.snapshot()["status"]=="idle" and f.halted is None

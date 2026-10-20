@@ -37,19 +37,13 @@ def test_preflight_failure_does_not_reserve_step():
     controller.submit(fresh, report, enabled=True, now=13)
 
 
-def test_timeout_blocks_late_confirmation_and_requires_explicit_new_board_recovery():
+def test_timeout_accepts_late_confirmation_without_duplicate_click():
     report, profile = inputs(); mouse = Mouse(); controller = InputController(mouse)
     controller.submit(plan_discard(report, profile, 0, "0p", now=10), report, enabled=True, now=11)
     assert controller.update(report, now=16)["status"] == "blocked"
-    assert not controller.observe("game", confirmed(), now=12)
-    with pytest.raises(ValueError): controller.recover(report, visually_verified=True)
-    newer = deepcopy(report); newer["state"]["step"] = 1
-    with pytest.raises(ValueError): controller.recover(newer)
-    controller.recover(newer, visually_verified=True)
-    assert controller.snapshot()["status"] == "idle"
-    assert len(mouse.clicks) == 1
-    controller.submit(plan_discard(newer, profile, 0, "0p", now=20), newer, enabled=True, now=21)
-    assert len(mouse.clicks) == 2
+    assert controller.observe("game", confirmed(), now=20)
+    assert controller.snapshot()["status"]=="idle" and len(mouse.clicks)==1
+    assert controller.was_attempted(report,0)
 
 
 @pytest.mark.parametrize("failure", ["closed", "new_connection", "incomplete", "wrong_action"])
@@ -97,11 +91,11 @@ def test_step_zero_is_valid_in_a_new_round_or_game(change):
     assert controller.snapshot()["attempted_steps"] == 2
 
 
-def test_late_confirmation_blocks_without_periodic_update():
+def test_late_confirmation_succeeds_without_periodic_update():
     report, profile = inputs(); controller = InputController(Mouse())
     controller.submit(plan_discard(report, profile, 0, "0p", now=10), report, enabled=True, now=11)
-    assert not controller.observe("game", confirmed(), now=16)
-    assert controller.snapshot()["status"] == "blocked"
+    assert controller.observe("game", confirmed(), now=16)
+    assert controller.snapshot()["status"] == "idle"
 
 
 def test_concurrent_submissions_send_only_one_click():
@@ -155,3 +149,40 @@ def test_manual_confirmation_requires_exact_token_and_tile(tmp_path):
     assert not confirmation_matches(path, plan)
     path.write_text(json.dumps({"token": plan.token, "tile": plan.tile}), encoding="utf-8")
     assert confirmation_matches(path, plan)
+
+
+def test_verified_timeout_retry_is_bounded_and_preserves_reservation():
+    report,profile=inputs();mouse=Mouse();controller=InputController(mouse)
+    controller.submit(plan_discard(report,profile,0,"0p",now=10),report,enabled=True,now=11)
+    controller.update(report,now=16)
+    fresh=plan_discard(report,profile,0,"0p",now=16)
+    with pytest.raises(ValueError):controller.retry_discard(fresh,report,enabled=True,now=16)
+    controller.retry_discard(fresh,report,enabled=True,visually_verified=True,now=16)
+    assert len(mouse.clicks)==2 and controller.was_attempted(report,0)
+    controller.update(report,now=22)
+    with pytest.raises(ValueError):controller.retry_discard(plan_discard(report,profile,0,"0p",now=22),report,enabled=True,visually_verified=True,now=22)
+    assert len(mouse.clicks)==2
+    assert controller.observe("game",confirmed(),now=25)
+
+
+@pytest.mark.parametrize("change",["board","expired","tile","connection"])
+def test_timeout_retry_rejects_changed_or_stale_evidence(change):
+    from dataclasses import replace
+    report,profile=inputs();mouse=Mouse();controller=InputController(mouse)
+    controller.submit(plan_discard(report,profile,0,"0p",now=10),report,enabled=True,now=11)
+    controller.update(report,now=16);fresh=plan_discard(report,profile,0,"0p",now=16)
+    if change=="board":report["state"]["step"]+=1
+    if change=="expired":fresh=replace(fresh,expires=15)
+    if change=="tile":fresh=replace(fresh,tile="5p")
+    if change=="connection":report["connection_open"]=False
+    with pytest.raises(ValueError):controller.retry_discard(fresh,report,enabled=True,visually_verified=True,now=16)
+    assert len(mouse.clicks)==1
+
+
+def test_delivery_failure_cannot_be_cleared_by_late_confirmation():
+    class Failure:
+        def click(self,*args):raise OSError("partial")
+    report,profile=inputs();controller=InputController(Failure())
+    with pytest.raises(OSError):controller.submit(plan_discard(report,profile,0,"0p",now=10),report,enabled=True,now=11)
+    assert not controller.observe("game",confirmed(),now=20)
+    assert controller.snapshot()["status"]=="blocked"

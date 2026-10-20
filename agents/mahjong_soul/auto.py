@@ -270,6 +270,24 @@ class AutoFollower(ShadowFollower):
             if self.source!=source:self._record("capture_source",path=str(self.path),identity=list(self.identity))
             self.source = source
             snapshot = self.controller.update(self.reader.snapshot(),now=self.clock())
+            if snapshot["status"] == "blocked" and snapshot["reason"]==InputController.TIMEOUT:
+                pending=snapshot.get("pending") or {}
+                # Retry only ordinary discards, once, after the same full visual
+                # preflight used for initial input. _current also requires fresh capture.
+                if snapshot.get("retry_eligible"):
+                    try:
+                        retry_event={"action":{"kind":"discard","tile":pending["tile"]},"board_token":pending["token"]}
+                        plan,report=self._plan(retry_event)
+                        self._record("retry_attempt",action=retry_event["action"],plan=plan)
+                        self.controller.retry_discard(plan,report,visually_verified=True,enabled=True,now=self.clock())
+                        self._record("retry_delivered",action=retry_event["action"])
+                        self._park()
+                    except (ValueError,OSError) as error:
+                        self._record("retry_withheld",reason=str(error))
+                        current=self.controller.snapshot()
+                        if current["reason"] not in (None,InputController.TIMEOUT):
+                            self.halted=current["reason"]
+                return {"kind":"status","reason":"awaiting_late_confirmation"}
             if snapshot["status"] == "blocked":
                 self.halted = snapshot["reason"]
                 return {"kind":"blocked","reason":self.halted}

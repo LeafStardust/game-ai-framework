@@ -15,6 +15,8 @@ from games.mahjong_soul.live.runtime.calls import PonPlan, PonExecutor, ChiPlan,
 
 
 class InputController:
+    TIMEOUT = "Action confirmation timed out; awaiting fresh verification"
+
     def __init__(self, backend, confirmation_timeout=5.0, *, attempted_keys=()):
         if confirmation_timeout <= 0:
             raise ValueError("Confirmation timeout must be positive")
@@ -27,6 +29,7 @@ class InputController:
         self._active_key = None
         self._deadline = None
         self._blocked = None
+        self._retry_count = 0
         self._attempted = set(attempted_keys)
         self.confirmation_timeout = confirmation_timeout
 
@@ -53,6 +56,7 @@ class InputController:
             key = self._key(report, plan.step)
             if key in self._attempted:
                 raise ValueError("An action was already attempted at this game step")
+            self._retry_count = 0
             self._active = executor
             self._active_key = key
             self._attempted.add(key)
@@ -145,15 +149,13 @@ class InputController:
 
     def observe(self, connection, event, *, now=None):
         with self._lock:
-            if self._active is None or self._blocked:
-                return False
-            if self._deadline is not None and self._now(now) >= self._deadline:
-                self._blocked = "Action confirmation timed out; no automatic retry"
+            if self._active is None or self._blocked not in (None,self.TIMEOUT):
                 return False
             if self._active.observe(connection, event):
                 self._active = None
                 self._active_key = None
                 self._deadline = None
+                self._blocked = None
                 return True
             if getattr(self._active, "failed", False):
                 self._blocked = "Declaration was rejected by the server"
@@ -172,15 +174,13 @@ class InputController:
         """Feed RPC messages as well as action events for Skip confirmation."""
         with self._lock:
             executor = self._executors[SkipPlan]
-            if self._active is not executor or self._blocked:
-                return False
-            if self._deadline is not None and self._now(now) >= self._deadline:
-                self._blocked = "Action confirmation timed out; no automatic retry"
+            if self._active is not executor or self._blocked not in (None,self.TIMEOUT):
                 return False
             if executor.observe_message(connection, decoded, from_client):
                 self._active = None
                 self._active_key = None
                 self._deadline = None
+                self._blocked = None
                 return True
             if executor.failed:
                 self._blocked = "Skip cancellation was rejected by the server"
@@ -195,8 +195,36 @@ class InputController:
                         or not report.get("state_ready")):
                     self._blocked = "Game state or connection is no longer ready"
                 elif self._deadline is not None and self._now(now) >= self._deadline:
-                    self._blocked = "Action confirmation timed out; no automatic retry"
+                    self._blocked = self.TIMEOUT
             return self.snapshot()
+
+    def retry_discard(self, plan, report, *, visually_verified=False, enabled=False, now=None):
+        """One same-board retry after fresh capture and visual preflight.
+
+        The original attempt reservation is retained, including across restarts.
+        Delivery exceptions and different/advanced boards cannot use this path.
+        """
+        with self._lock:
+            old=self._active.pending if self._active is not None else None
+            if (not enabled or not visually_verified or self._blocked!=self.TIMEOUT
+                    or type(plan) is not DiscardPlan or not isinstance(self._active,DiscardExecutor)
+                    or self._retry_count>=1 or old is None):
+                raise ValueError("No verified discard timeout eligible for retry")
+            if (self._key(report,plan.step)!=self._active_key or plan.token!=old.token
+                    or (plan.connection,plan.seat,plan.tile)!=(old.connection,old.seat,old.tile)
+                    or not report.get("connection_open") or not report.get("state_ready")
+                    or board_token(report)!=plan.token or self._now(now)>=plan.expires):
+                raise ValueError("Retry requires the same live board and a fresh plan")
+            self._retry_count+=1
+            self._active.pending=plan
+            try:
+                if plan.double_click:self.backend.double_click(plan.x,plan.y,plan.width,plan.height)
+                else:self.backend.click(plan.x,plan.y,plan.width,plan.height)
+            except Exception:
+                self._blocked="Retry delivery failed; inspect before recovery"
+                raise
+            self._blocked=None
+            self._deadline=self._now(now)+self.confirmation_timeout
 
     def recover(self, report, *, visually_verified=False):
         """Explicit recovery only on a newer ready board after visual inspection.
@@ -230,4 +258,4 @@ class InputController:
             return {"status": "blocked" if self._blocked else "awaiting_confirmation" if self._active else "idle",
                     "reason": self._blocked, "deadline": self._deadline,
                     "pending": asdict(self._active.pending) if self._active and self._active.pending else None,
-                    "attempted_steps": len(self._attempted)}
+                    "attempted_steps": len(self._attempted), "retry_count":self._retry_count, "retry_eligible":self._blocked==self.TIMEOUT and type(self._active) is DiscardExecutor and self._retry_count<1}
