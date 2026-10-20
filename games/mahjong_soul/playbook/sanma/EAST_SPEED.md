@@ -1,4 +1,4 @@
-# Three-Player East Speed v0.3
+# Three-Player East Speed v0.4
 
 The authenticated three-player East lobby selects this playbook through the existing `--playstyle atk` policy family. It prioritizes speed, then defense, then hand value. South sanma remains unsupported. East games have three scheduled dealer positions but can include repeats and extensions.
 
@@ -23,3 +23,8 @@ North extraction is wired to the automatic runner using the reviewed 1920x1080 K
 Regressions cover routing, speed settings isolation, sanma improving copies, North extraction versus preserving the hand, Dora-only invalidity, North bonus scoring, the Man indicator cycle and both Tsumo payment modes. No three-player live match strength measurement has been performed.
 
 The Kita-plus-Kan layout is also reviewed: Kita shifts to x=730 at 1920x1080. Regression crops come from session `20261020T054957-654100Z`. That session confirmed two standard-layout native North extractions before the combined layout exposed the missing position.
+
+
+## Cheap ready-hand correction (v0.4)
+
+The one-threat Tenpai push floor is 1,000 known points for this playbook; the shared default remains 2,000 for other playbooks. A hard-coded default previously rejected a Green Dragon Pon in session `20261020T062747-902083Z` despite advancing one-Shanten to Tenpai with four winning copies and a discard within the configured danger limit. The lower floor does not override wall, Furiten, waiting-copy or danger checks. The later unsafe 2 Pin Pon is still rejected, and the final safe four-copy Riichi is retained. This fixes a speed/value priority mismatch; it does not prove a counterfactual win.

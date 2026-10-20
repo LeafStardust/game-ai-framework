@@ -20,3 +20,14 @@ This is a multi-opponent danger-model limitation, not proof of an incorrect winn
 Both North extractions used the ordinary `[discard, extract_north]` offer. The combined Kita-plus-Kan layout was not encountered, so its live confirmation remains pending. Offline replay validated all thirty decisions and reproduced all thirty selections without policy errors.
 
 No strategy settings changed following this review. Next validation is another normally played three-player East AI match with recording enabled; no manufactured hand is required. A combined Kita-plus-Kan offer, if encountered, will provide the remaining input-layout check.
+
+
+## 2026-10-20: Second East match
+
+Session: `20261020T062747-902083Z`, source revision `e7026c24`. Own seat 2 finished second at 30,000 points, without wins or deal-ins. One Riichi deposit and a 4,000-point Tsumo payment account for the loss from 35,000. Thirty-seven actions were confirmed; an unsubmitted Skip expired as the round ended. No North offer occurred.
+
+Six of the seven Pon decisions remained consistent with legal-Yaku progress or defense checks. At sequence 577, however, the Green Dragon Pon advanced one-Shanten to Tenpai with four available winning copies, nine wall tiles, relative danger 46.8 and average known Ron value 1,150. A hard-coded 2,000-point ready-hand floor wrongly rejected it for this speed-first playbook. Version 0.4 makes the threshold configurable and uses 1,000 for Three-Player East Speed only.
+
+The later 2 Pin Pon at sequence 818 still requires a discard with relative danger 90, above the configured 85 limit, and remains rejected. The final Riichi at sequence 837 discards 2 Pin safely against the existing Riichi threat, keeps four waiting copies (White/Red Dragon), and increases known average Ron value from 2,000 to 3,900. It remains accepted. Opponent Tsumo afterward does not invalidate that choice by itself.
+
+Offline replay validates all thirty-eight recorded decisions. Exactly one recommendation changes: the Green Dragon Pon replaces the rejected call. These are fixed-board comparisons, not a simulation of how the call would alter the rest of the round.

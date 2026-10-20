@@ -118,7 +118,7 @@ def may_push(option,opponents,wall,settings):
         if profile and profile["ron_blocked"]:return False
         points=(max(profile["dama_points"] if profile["dama_ukeire"] else 0,
                     profile["riichi_points"] if option["riichi_offered"] else 0) if profile else None)
-        return option["effective_ukeire"]>=2 and (points is None or points>=2000)
+        return option["effective_ukeire"]>=2 and (points is None or points>=settings.get("ready_push_min_points",2000))
     if value<settings["push_value_floor"]:return False
     if option["shanten"]==2:
         return value>=settings["distant_push_han"] and option["ukeire"]>=settings["distant_push_ukeire"] and wall>=settings["distant_push_wall"]
