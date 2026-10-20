@@ -136,7 +136,7 @@ The launcher selects [Four-Player East Speed](../../games/mahjong_soul/playbook/
 
 ### Conditional client assists
 
-Automatic policy recordings now include `analysis.client_assists`, recomputed for each decision. Auto Win is preferred. Skip Calls is preferred for a closed Riichi/Seven Pairs/Thirteen Orphans route at zero or one Shanten, and released when that route changes or a call is selected. These are reversible preferences, not proof that a closed route will remain optimal.
+Automatic policy recordings now include `analysis.client_assists`, recomputed for each decision. Auto Win is preferred. Skip Calls stays off until accepted Riichi. Provisional closed routes, including Seven Pairs and Thirteen Orphans, do not lock out potentially faster legal calls. A recorded White Dragon Pon could advance a closed one-Shanten hand to legal Tenpai, demonstrating why route preference alone must not suppress offers.
 
 Auto Discard is preferred only after accepted Riichi; open Tenpai does not imply that future draws cannot improve the wait, value or safety. Kita stays under per-offer policy control because a future North can be essential to the hand. The existing native win and Kita executors remain active.
 
