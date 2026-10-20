@@ -33,3 +33,16 @@ def test_engine_and_live_scoring_agree_on_closed_sanma_hand(tsumo):
     assert actual.is_win and expected["legal"] and (actual.han,actual.fu)==(expected["han"],expected["fu"])
     points=actual.tsumo_agari_oya+actual.tsumo_agari_ko if tsumo else actual.ron_agari
     assert points==expected["points"]
+
+
+def test_push_variant_does_not_modify_live_playbooks():
+    from games.mahjong_soul.playbook.sanma.east_speed import three_player_east_speed_playbook
+    push=Agent("east_speed_push");normal=Agent("east_speed")
+    assert push.policy.registry.get(3,"atk","east").strategy["defense"]["always_push"]
+    assert not normal.policy.registry.get(3,"atk","east").strategy["defense"]["always_push"]
+    assert not three_player_east_speed_playbook().strategy["defense"]["always_push"]
+
+
+def test_unknown_candidate_is_not_silently_baseline():
+    with pytest.raises(ValueError,match="Unknown simulation candidate"):
+        Agent("typo")

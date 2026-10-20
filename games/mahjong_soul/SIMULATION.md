@@ -28,3 +28,18 @@ Tests cover exact red/normal tile mapping, masked opponent hands, deterministic 
 The engine uses `GameRule.default_mjsoul()` with the standard `3p-red-east` flow. This is not proof of exact parity with every custom Steam room. Special-context value estimates currently use conservative missing-history flags; actual win legality and settlement remain engine-owned. Room extensions, special Yaku variants and complete feature-by-feature parity need further verification. Known unknown discard flags are retained as unknown, not reconstructed from hidden hands.
 
 Next experiments should use many independent seeds and multiple fixed opponent styles, report paired placement/hand-win/speed differences by seed, and preserve a held-out seed set. Choose changes using development seeds; evaluate the frozen candidate on held-out seeds. Repeated seats and hands from one seed are correlated, so raw match counts overstate independent sample size.
+
+## Speed versus folding experiment
+
+`east_speed_push` is an offline diagnostic variant of the current three-player East policy. It changes only `defense.always_push` to true in its own registry. It is not a live playstyle or launcher option. Legal Yaku, action bindings, discard speed ordering, calls and the two fixed efficiency opponents remain otherwise unchanged.
+
+Development seeds are 20, 21, 22 and 23, each tested at all three seats. Held-out seeds are 120, 121, 122 and 123, also at all seats. The candidate definition is frozen before inspecting held-out results. This tests whether suppressing folding helps the requested speed objective; it does not justify removing defense merely because more hands reach Tenpai.
+
+```powershell
+python -m agents.mahjong_soul.simulation --seeds 20 21 22 23 --candidates east_speed east_speed_push --output logs/mahjong_soul/experiments/speed-push-development
+python -m agents.mahjong_soul.compare_simulation logs/mahjong_soul/experiments/speed-push-development/summary.json
+```
+
+The comparison checks matching seed/seat assignments and initial deal digests. It reports first-place rate, average rank, hand-win rate, deal-in rate and shape-Tenpai diagnostics. Exploratory bootstrap intervals resample whole seeds, preserving dependence between seats and hands from one seed. Four seeds per split are a small screening experiment, not reliable evidence of human-level strength or Steam win rate. A variant should not be promoted when its additional Tenpai comes with worse win outcomes and more deal-ins.
+
+Completed screening results: [speed/push review](experiments/SPEED_PUSH_REVIEW.md). The diagnostic variant was not promoted.
