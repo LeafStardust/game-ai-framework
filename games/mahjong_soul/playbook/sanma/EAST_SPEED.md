@@ -1,4 +1,4 @@
-# Three-Player East Speed v0.4
+# Three-Player East Speed v0.6
 
 The authenticated three-player East lobby selects this playbook through the existing `--playstyle atk` policy family. It prioritizes speed, then defense, then hand value. South sanma remains unsupported. East games have three scheduled dealer positions but can include repeats and extensions.
 
@@ -31,3 +31,7 @@ The one-threat Tenpai push floor is 1,000 known points for this playbook; the sh
 
 
 Speed-first calls may lose projected Han when they preserve legal winning distance and strictly increase available improving copies. The Attack policy value-gain gate does not apply to East Speed. Calls that add no speed, have no reachable Yaku or require an unsafe push remain rejected.
+
+## Ready-hand Yaku proof
+
+A ready open hand can earn its Yaku when the winning tile completes a Dragon or value-Wind triplet. Exact legal Ron scoring now proves that route for the push check even if the partial hand has no completed Yaku yet. This does not relax danger, remaining-wall, available-wait, Furiten or minimum-point limits. South Attack is unchanged.

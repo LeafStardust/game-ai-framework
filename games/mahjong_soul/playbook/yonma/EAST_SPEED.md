@@ -1,4 +1,4 @@
-# Four-Player East Speed v0.1
+# Four-Player East Speed v0.3
 
 The automatic lobby router selects this playbook for four-player East matches when launched with `MahjongSoulAgent.bat`. The launcher chooses the policy family; the authenticated format chooses East Speed or South ATK. South settings are unchanged. East matches may include dealer repeats and extensions rather than exactly four hands.
 
@@ -14,3 +14,7 @@ This is a first heuristic East policy, not a measured win-rate improvement or a 
 
 
 Speed-first calls may lose projected Han when they preserve legal winning distance and strictly increase available improving copies. The Attack policy value-gain gate does not apply to East Speed. Calls that add no speed, have no reachable Yaku or require an unsafe push remain rejected.
+
+## Ready-hand Yaku proof
+
+A ready open hand can earn its Yaku when the winning tile completes a Dragon or value-Wind triplet. Exact legal Ron scoring now proves that route for the push check even if the partial hand has no completed Yaku yet. This does not relax danger, remaining-wall, available-wait, Furiten or minimum-point limits. South Attack is unchanged.

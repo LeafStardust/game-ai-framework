@@ -63,3 +63,9 @@ Completed lookahead screening: [wait-quality review](experiments/WAIT_QUALITY_RE
 An exposure screen first tested seed 50 seat 0 (identical replay), then seed 51 seat 0 (different replay). A generated legal Sanma hand also provides a reproducible offensive choice difference at equal 47-copy Ukeire. Development seeds are 50?53, including those inspected screen seeds. Held-out seeds are 150?153, uninspected before freezing the candidate. Both sets cover all three candidate seats. The two-copy margin, three-option bound and scoring formula are fixed before outcome evaluation.
 
 Completed earlier-hand screening: [early-hand review](experiments/EARLY_HAND_REVIEW.md). The proxy changed actual play but was not promoted because no win-rate gain was demonstrated.
+
+## Scored ready-Yaku regression comparison
+
+`east_speed_partial_yaku` is an offline reference retaining the former requirement for an already completed open Yaku in the push gate. Current `east_speed` can instead use exact legal Ron scoring to prove a ready hand's Yaku, including Dragon pair waits. Both retain the same defensive thresholds. Development seeds are 60-63 and held-out seeds are 160-163, all at seats 0, 1 and 2. This is a correctness fix, not a new always-push strategy or evidence of increased win rate.
+
+Completed results and recorded-board findings: [scored ready-Yaku review](experiments/SCORED_READY_YAKU_REVIEW.md). No changed match replays or win-rate gain were observed in this sample.

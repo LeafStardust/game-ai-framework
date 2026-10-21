@@ -64,3 +64,9 @@ def test_earlier_hand_candidate_is_isolated_from_live_policy():
     candidate=Agent("east_speed_development");normal=Agent("east_speed")
     assert candidate.policy.registry.get(3,"atk","east").thresholds_for("D1")["early_development"]
     assert not normal.policy.registry.get(3,"atk","east").thresholds_for("D1").get("early_development")
+
+
+def test_old_partial_yaku_gate_is_offline_only():
+    old=Agent("east_speed_partial_yaku");normal=Agent("east_speed")
+    assert not old.policy.registry.get(3,"atk","east").strategy["defense"]["allow_scored_ready_yaku"]
+    assert normal.policy.registry.get(3,"atk","east").strategy["defense"]["allow_scored_ready_yaku"]

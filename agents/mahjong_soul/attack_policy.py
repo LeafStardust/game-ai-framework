@@ -136,9 +136,15 @@ def may_push(option,opponents,wall,settings):
     if settings.get("always_push") or not opponents:return True
     if len(opponents)!=1 or type(wall) is not int or wall<(4 if option["shanten"]==0 else settings["push_min_wall"]):return False
     if option["shanten"]>settings["push_max_shanten"] or option["danger"]>settings["push_max_danger"]:return False
-    if option["opened"] and not option["open_yaku"]:return False
-    value=option["push_value_estimate"]
     profile=option["wait_value"]
+    # A pair wait may acquire its Yaku only when the winning tile arrives.
+    # For East Speed, exact legal Ron scoring can prove that ready route;
+    # partial-hand Yaku flags cannot. Keep every danger/value/wall gate below.
+    scored_ready=(settings.get("allow_scored_ready_yaku",False)
+                  and option["shanten"]==0 and profile
+                  and not profile["ron_blocked"] and profile["dama_ukeire"]>0)
+    if option["opened"] and not option["open_yaku"] and not scored_ready:return False
+    value=option["push_value_estimate"]
     if option["shanten"]==0:
         if profile and profile["ron_blocked"]:return False
         points=(max(profile["dama_points"] if profile["dama_ukeire"] else 0,
