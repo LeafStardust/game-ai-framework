@@ -142,6 +142,14 @@
       "frame": "sessions/20261019T081642-729099Z/frames/0001912.png",
       "sha256": "df4f41b138cb4cfb34dd2f27561d69b093a327f6a52d870ca27eb6e8542e6158",
       "review": "Visually reviewed Six, Eight and Nine Sou in three-choice Chi panel, normalized face interiors."
+    },
+    {
+      "frame": "logs\\mahjong_soul\\sessions\\20261021T115221-159346Z\\frames\\0003157.png",
+      "sha256": "f8f388f3bdc83e98a6283a546bfba59601b1ca1c61d7efd2a4e5e3d60705d8cd",
+      "labels": {
+        "10": "0s"
+      },
+      "review": "Visible red bamboo five at the separated drawn-tile position; sampled using the recorded open-hand layout."
     }
   ],
   "tiles": [
@@ -1784,6 +1792,10 @@
     {
       "tile": "9s",
       "sample": "39/c39/c39/c39/c39/c39/c39/c39/c39/c39/c39/c39/c2dvXwMzD19rW39/c3tzZ08C+2M3K39/b39/czNPMxc/H39/bVYtufqOORYFh39/ctnFvu399ni8u1sfEwMzDS4VlTYVnn7ipeKCKd6CJZ5Z939/cw5SRuHh3pD8/3NfT1NjSVoxuToZnv8vCZZV7bJmAVYpt39/bu4F/tW5soDQ02c/MytLLRYFhRoJhr8K2eaGKkrCfaZd93t7bw5WTw5SSqExK2tHOztTPaph/W45ywMzDY5N5fKOMWo5x3N3auHd1unx6r1xa0La0scO3ZJR6aZd9mLSj3t7b2tvY3d7a39/b3t7b3drX3tzZ39/b39/c3N3Z2tzY39/cZZR7bpuDVItu39/cu359tnFwojk518nHxM7GUIdpTIVmqL2weaCKeqKMaJZ839/cw5SSunt6pEA/3NfU1NjTWY1xToZowMzDXI90aph+TIVm39/buXd2tGtqnzAv18vIxc/HP31cRoJipbyuhamUk7CfdZ6H39/cyKCew5SSqlBO3NnV19rWb5qBW45zzNPNS4ZncpyFQn9e3N3ZsWNit3JxpURDza+tqb6xUolrV4xvi6yZ3d7a1NjT3d3a39/b3t7b29XR3dnW39/b39/b2dvX19rV39/bY5N5dJ2HVIpt39/bun17t3V0ojo518rHxM7GUYhqT4dpp72ve6KMfKONaph+39/bw5WTu358pUFA3NjV1dnUWo5yUIhpwMzEXZBzaZZ8TYZm39/cuXh2s2lonzAv18vIxs/IP31cRYFhp7yvhqiUk7CfdZ6H39/byKGfw5SSqlBP3NjV19rVbpqCWo5yzNPN"
+    },
+    {
+      "tile": "0s",
+      "sample": "39/d39/e39/d39/d39/d39/d39/d39/d39/d39/e39/e39/erVpZtW9uwZCO39/d39/e39/e39/e39/e3NnYs2lnu3t6sWFhq1JRy6mor11c3+De39/e39/e39/e39/e29bUoTg329TTnS0tqUtKwpOS0ry839/e39/exJiV07++39/d39/ewpCO0r26sGFhpkZEuXl3zbCv39/e3t/dmiQktW9v39/d39/evYOCxZiWrVlYpURDvoaEnSoq3dza39/e3+He3+De3t/e07++lhkZx5yamiMjoTg3uXd3uXl439/et3Jwtm9urFZVzKyr3drZqlBPxJiWoDU1rFRTxZeW0bm33t/dtGlozbKwsmVky6im3t/ewY2L1snHr19fpD49xJWTtGxr3t7d0r28xJiWrFZV3t7c29XTpkdG1cXDni8vt3RzwIyLtW1s3dvawpGQv4mIrFhW1MTD1snIsWRjw5KRs2lowY+OwIyL18rJ3uDemiUluXh3qU9OsWNi3t3cyaSiv4qIzKuqtW9uyKGgqk1N3+DfyKOixZiWrFZV2dDO08C+mB8f39/dlxsbqEpJvIB/2MzK39/e0ry7yqakrVtZ3t7d39/dunt51cfEtXBuqk5Nu39+2c3N3t/eoz4+vYOAp0dGuXt53t/eu3181MPBt3Jxqk9OuHd1q1RT3+DfvoWEyqakxJaVyqWk07++nCYmw5SRmiYlpkVEt3V0rlta39/e39/d39/d39/d3t/d1cPAmyYmyaWjmSMjrVdWvoWE2M3M39/e39/e39/e39/e39/e39/dunt62tLQtm5trFRTvoaEzKuq39/e39/e39/e39/e39/e3tzcr11d2tPSq1JR"
     }
   ],
   "skip": "lqaJl6aDlqV6WFpUiJN5YGRam6mKVVNOmKaFlaSDT4WAUIZ/lqeJnauJkJ10rqymXFlTmJOFmaeIcm5jkZ6CdZSBTYR+UIR+laeFlqaEVllOWFRMd3NpioZ9b3ZmSEpHbHNkRmZlWG1rS314maiHmqeGVFBJY2lbZGlcfHhubmpgc21fiYN2hH92X19fQW1qlqWElaWDREU/jYmAgItycm1jtbOvZmJZkIyCioV7U1JSRlxbl6aFlKWCjZtvcGxiRUM+gHtvOjg2YFtReHRqOzs7QUBBWFRUmKeHlqSDODgzeIBpq6mibWldW1tbYV1UbmpgPj4+Ozk6WE5OjZmBgIN8PDozNjYwwMC+V1NKUExEfnpweXRpPzw1Pjs7Qjw8fYB6mKeIUVNQx8XAXVlQSUU9yMjIqqSYj4uCxcK8MzMzSkBAgod+enp6eHh4KSoqXl5eJyYkJiUiKysswr+5KykqPDk6MzMzmKmOfoF7QUFBcXFxampqYmJiXVxcVlRUl5OJTkhHMzMzNjU1lKSDipd9RUVFbW1tZWVlXl1dV1ZWUFBQISEiSEVFOTg4QT09k6OAj59+T05OZWVlXl5eV1dXUVBQSkpKR0VFQ0FBQD4+PTw8kaB/fIN0aGlnYGFgW1xbUVNTS0xMSElIQkREQEJDPkBAPj8/kqGAe4Rzf4xxbnlfSWVgNVteXW9mdn1rO15eMlhcM1hcNVpdk6J/lKKCcnpoZm5eQFhaPldZbHRkfId7fIV6P2FjNV1hNl1jk6GAkqKBj558U3lzP21yQG5wg4t0aIh7jpmIhpGCZYF9QGxyk6GAkaCBi52AR3p8Q3V5epCCk56LWop+g5uNkZ6OlKCVkJh+",

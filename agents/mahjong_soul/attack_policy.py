@@ -362,16 +362,24 @@ def choose_attack(owner,request,book,ranker=rank_discards):
     if fold:
         best=min(options,key=lambda o:(o["danger"],o["total_danger"],o["shanten"],-o["effective_ukeire"],-o["value_han"],o["action"]["tile"]))
         return finish(best["action"],"fold",best)
+    # Kokushi already scores Yakuman without a declaration. Keep the chosen
+    # ready hand flexible and avoid paying a deposit or advertising its wait.
+    def kokushi_ready(option):
+        profile=option.get("wait_value") or {}
+        return any(v.get("legal") and any(y.get("key") in ("kokushi","daburu_kokushi")
+                   for y in v.get("yaku_details",[]))
+                   for w in profile.get("waits",[]) for v in [w.get("values",{}).get("dama",{})])
     chosen=best["action"];riichi=book.thresholds_for("D3")
     offered={a["tile"]:a for a in actions if a["kind"]=="riichi"}
     candidates=[]
     closed=not any(m["type"]!=3 for m in own_player(board)["melds"])
-    if (offered and closed and riichi["enabled"] and (riichi["allow_furiten"] or board["self"].get("furiten") is False)
+    if (offered and closed and not kokushi_ready(best) and riichi["enabled"] and (riichi["allow_furiten"] or board["self"].get("furiten") is False)
             and (not opponents or riichi["allow_under_riichi_threat"]) and len(opponents)<=riichi["max_threats"]
             and type(wall) is int and wall>=riichi["minimum_wall"]):
         minimum=riichi["minimum_ukeire_under_threat"] if opponents else riichi["minimum_ukeire"]
         for option in options:
             if option["action"]["tile"] not in offered or option["shanten"]!=0 or option["ukeire"]<minimum:continue
+            if kokushi_ready(option):continue
             profile=option["wait_value"]
             if profile and ((profile["permanent_furiten"] and not riichi["allow_furiten"]) or profile["riichi_ukeire"]<minimum):continue
             if opponents and not may_push(option,opponents,wall,settings):continue

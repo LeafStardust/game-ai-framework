@@ -242,7 +242,7 @@ class TileVision:
                 return x,y,sample(rgb,x,y,220,110)
             reference = self.skip if kind=="skip" else self.calls[kind]
             matches=[]
-            for x in ((1290,1020,730,750,480) if kind=="extract_north" else (1290,1020,750,480)):
+            for x in ((1290,1020,730,750,480) if kind=="extract_north" else (1290,1020,730,750,480)):
                 value=sample(rgb,x,835,220,110)
                 if min(distance(value,r) for r in [reference]+self.call_variants.get(kind,[]))<=10:matches.append((x,835,value))
             if len(matches)!=1:raise ValueError(f"{kind.replace('_',' ').title()} button not uniquely visible")
