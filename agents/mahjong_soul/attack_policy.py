@@ -241,7 +241,11 @@ def _call_options(request,book,ranker,diagnostics=None,value=None):
             candidates.append((action,best))
     if not candidates:return None
     if value.get("speed_first"):
-        return max(candidates,key=lambda x:(-x[1]["shanten"],x[1]["effective_ukeire"],-x[1]["danger"],x[1]["projected_han"]))
+        key=lambda x:(-x[1]["shanten"],x[1]["effective_ukeire"],-x[1]["danger"],x[1]["projected_han"])
+        if settings.get("completion_opening_guard",False):
+            from agents.mahjong_soul.completion_call_guard import guard_opening
+            return guard_opening(board,sorted(candidates,key=key,reverse=True),diagnostics)
+        return max(candidates,key=key)
     return max(candidates,key=lambda x:(attack_utility(x[1],value),-x[1]["shanten"],x[1]["effective_ukeire"],str(x[0])))
 
 

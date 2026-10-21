@@ -1,0 +1,6760 @@
+{
+  "revision": "232c0ffbe78406e2aa797716217da4f5ece4f1e4",
+  "source_hashes": {
+    "agents\\mahjong_soul\\__init__.py": "484647fe5e47bdbef6d2b98e23da27ce6e0b4bc462afc7ee2d8aef3efb392475",
+    "agents\\mahjong_soul\\assist_preferences.py": "eec22c2de60b68b1d9b4c50d176731f1ca550218215a16ec9f824e574b422d18",
+    "agents\\mahjong_soul\\attack_defense.py": "d3ec7425b371738cf428f3d5e87559aaa14696ba873f1f84c25d57e79a939b10",
+    "agents\\mahjong_soul\\attack_policy.py": "35af17d781633bcdb7b99e22569f85748a2e7a10264d02a3a68583d84da743c6",
+    "agents\\mahjong_soul\\attack_routes.py": "8bde04b46a1a8a64c8aac1d059d6ada9fabffd2be7240728fa09239b512fa939",
+    "agents\\mahjong_soul\\attack_value.py": "57b4305bb711c077e18e2d903b073def5fc6d850269838d87739fbccf55a1871",
+    "agents\\mahjong_soul\\auto.py": "86ad6804a3b3b8e19fd901162425d2b06504599a8be98fc4acd3275ab15e4501",
+    "agents\\mahjong_soul\\auto_policy.py": "dcd156aae85588535c46e001a3cbcb1db77ec1dadfe9f5d9c5973a3d1e105e83",
+    "agents\\mahjong_soul\\benchmark.py": "3b7cc10d086c804309e3b95a5b49297e26970c9fd124aa6df226e2b5951de8a5",
+    "agents\\mahjong_soul\\call_batch.py": "7da012022a688e6a4e212c8cd2f67b7af808b8a8b7c7a1fe3ef0e778efb765b5",
+    "agents\\mahjong_soul\\call_counterfactual.py": "a90b8076423b261cfe1ea9efb3648ebb6b9c799d282d1e51587095985f6e8d8a",
+    "agents\\mahjong_soul\\capture_service.py": "d0eeb6a2f997acf44406b6faf37c3f176e9c5f0b99f51b790070c74c58190eb9",
+    "agents\\mahjong_soul\\compare_completion_speed.py": "a71715fdacd5f2b083dba5d8b895f1f4d189c42f9778f9e296d7ddfc4d991813",
+    "agents\\mahjong_soul\\compare_simulation.py": "b2dd846747d4af84ffa64bcaec90f91c8b81d77976fbc1d335687400efce0975",
+    "agents\\mahjong_soul\\completion_batch.py": "6c6f33aa0573300857544f97b0a2a05db2640686410f1fe8e4b75d6ce4e94a36",
+    "agents\\mahjong_soul\\completion_scenario_batch.py": "79e16d933a31356912d604b9506ae56e835fe1bc162a2912e7516846c317a260",
+    "agents\\mahjong_soul\\completion_scenarios.py": "0b28dcbda5da373634f31db88a2b83d28f0cdaae993ca8a9983dbbeff9ef074f",
+    "agents\\mahjong_soul\\completion_speed.py": "99aaeca898fc31350af8cc36d5c6b7c4e74fc075dc4b936accad8470f7b93457",
+    "agents\\mahjong_soul\\efficiency.py": "b6aea1ef4c275b85277763b3e1519da8f4c7213842d5242d612e73ea42eab535",
+    "agents\\mahjong_soul\\evaluate.py": "1ff5542d83bacd137473599285e161f11f89aabd15ea9604632dc0fa50ac309d",
+    "agents\\mahjong_soul\\hand_plan.py": "ebecfcb05862b3c08186b37535c76c04eb5996a7e7a39342e0abec03173355d9",
+    "agents\\mahjong_soul\\inspect_run.py": "a75b3f05becb872cc8de599bd1564d1241d6e5f884c7868826e4f74ef28ebbed",
+    "agents\\mahjong_soul\\launch.py": "4c7208080f9b831fb7edc76ae8fc92e2e6c27020718afa54145b59f1124769bd",
+    "agents\\mahjong_soul\\pattern_yaku.py": "5a2dc8bd2d85071b1becfd1f534fbc6a2ee24a95861c604bb0775f303fa5deb5",
+    "agents\\mahjong_soul\\playbook_policy.py": "313952cb94c9f9dddc6da882d0dd1f825a1bce1a4f53fe43412b8c259a97cb99",
+    "agents\\mahjong_soul\\policy.py": "0f483c5a07cd27623ac9af4680caca74fdee70345a8009f7e57f70910df4accf",
+    "agents\\mahjong_soul\\scoring.py": "228f3f190e94e343daab20a18bf5d1ce38a5a35629be8b797c503ce3d145dad6",
+    "agents\\mahjong_soul\\shadow.py": "9e6a731d7f956fb895fd89553840ad8ef4979635ff44c7f98cb99b9e405480e2",
+    "agents\\mahjong_soul\\simulation.py": "34029e477ca770e18590ae1019008bbfffdf5cbe7470ce40da123d681a9ef705",
+    "agents\\mahjong_soul\\speed_lookahead.py": "0faece79f9123811975cb5ddc37a7949533cb79e79c9ae4265274c15856234c5",
+    "agents\\mahjong_soul\\yaku_catalog.py": "5f87c54684bd598d8d4f4fda6da6cfebca14337406e979ef36d2be9e8ab3dbd6",
+    "agents\\mahjong_soul\\yakuman.py": "1df474e05fc1a7c6cf91821857d285c1dd50151fe0646eef7217531166a4b039",
+    "games\\mahjong_soul\\playbook\\__init__.py": "8f138965d95f33b06b579b1667e4adc30f71716d9d798e22cbb136543ddb74e1",
+    "games\\mahjong_soul\\playbook\\features.py": "c14fd41dfd522b8b2cfe4738559678cd21a5510914b97cc0ea5eeeb9fb876fca",
+    "games\\mahjong_soul\\playbook\\model.py": "82a06a1c729cb42f1905c5a4d41b8b151df6d3889adeb909e29e5fc689374f9b",
+    "games\\mahjong_soul\\playbook\\sanma\\__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "games\\mahjong_soul\\playbook\\sanma\\east_speed.py": "bb9c3013bde1e28a15dabfa852ddcd838c146379666a232446e9a2b3517efbae",
+    "games\\mahjong_soul\\playbook\\yonma\\__init__.py": "8de964bbeee1d8c0154711f3ef9ff15bc9516b086781cdaa4b31120a15a15886",
+    "games\\mahjong_soul\\playbook\\yonma\\east_speed.py": "f350259fed61e9546dfc4ceedad4dff71d8281f3ab4e6f167d87cf707bc218e7",
+    "games\\mahjong_soul\\playbook\\yonma\\south_attack.py": "7e54fb70d608c1121aa8d68d71823f2ca9a9c31c0cf68f29c4868aeb38742bb1"
+  },
+  "engine": "0.4.10",
+  "complete": true,
+  "eligible_calls": 28,
+  "scope": "Public requests from exactly reproduced postselected diagnostic matches",
+  "records": [
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 80,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 89,
+      "called_tile": "3p",
+      "combination": [
+        "3p",
+        "3p"
+      ],
+      "request": {
+        "board_token": "d58e7b49372e5183adc3ddf69d49685219e954ebb1f90662e7b2541a03b21751",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "9m",
+                "3p",
+                "3p",
+                "4p",
+                "5p",
+                "5p",
+                "6p",
+                "3s",
+                "4s",
+                "6s",
+                "7s",
+                "8s",
+                "9s"
+              ],
+              "opening_hand": [
+                "1m",
+                "9m",
+                "3p",
+                "3p",
+                "4p",
+                "5p",
+                "6p",
+                "3s",
+                "4s",
+                "7s",
+                "9s",
+                "1z",
+                "3z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 51000,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 27000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 27000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 1,
+              "liqibang": 0
+            },
+            "wall_remaining": 44,
+            "dora_indicators": [
+              "6s"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "1m": 1,
+              "2s": 2,
+              "3s": 1,
+              "4s": 1,
+              "6s": 4,
+              "9m": 1,
+              "7s": 1,
+              "8s": 1,
+              "9s": 1,
+              "3p": 3,
+              "4p": 1,
+              "1z": 1,
+              "3z": 2,
+              "5p": 3,
+              "6p": 1,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "3p|3p"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "3p|3p",
+            "called_tile": "3p"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "3p|3p",
+        "called_tile": "3p"
+      },
+      "post_call_discard": "9m",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 80,
+      "seat": 2,
+      "hand_index": 0,
+      "event_index": 8,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "request": {
+        "board_token": "ea05e01fe3777d15a6b2b4db7a9334d2e68af91e812d9794394080869181d3bc",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 2,
+            "self": {
+              "hand": [
+                "1m",
+                "9m",
+                "2p",
+                "4p",
+                "8p",
+                "1s",
+                "4s",
+                "4s",
+                "2z",
+                "2z",
+                "3z",
+                "3z",
+                "7z"
+              ],
+              "opening_hand": [
+                "1m",
+                "9m",
+                "2p",
+                "4p",
+                "8p",
+                "1s",
+                "4s",
+                "4s",
+                "2z",
+                "2z",
+                "3z",
+                "3z",
+                "7z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "5z",
+                    "called": true,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 35000,
+                "melds": [
+                  {
+                    "type": 1,
+                    "tiles": [
+                      "5z",
+                      "5z",
+                      "5z"
+                    ]
+                  }
+                ],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": true,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": []
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 53,
+            "dora_indicators": [
+              "5p"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "8p": 1,
+              "1m": 1,
+              "7z": 1,
+              "1s": 1,
+              "4s": 2,
+              "9m": 1,
+              "2p": 1,
+              "2z": 3,
+              "4p": 1,
+              "3z": 2,
+              "5p": 1,
+              "5z": 3,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 2,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2z|2z"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2z|2z",
+            "called_tile": "2z"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2z|2z",
+        "called_tile": "2z"
+      },
+      "post_call_discard": "1m",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 81,
+      "seat": 1,
+      "hand_index": 0,
+      "event_index": 24,
+      "called_tile": "3p",
+      "combination": [
+        "3p",
+        "3p"
+      ],
+      "request": {
+        "board_token": "826c3788566c9d173aab534a93c03408f1ef32252a5ec6483bc8342108e22fea",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "9m",
+                "3p",
+                "3p",
+                "4p",
+                "5p",
+                "5p",
+                "6p",
+                "3s",
+                "4s",
+                "6s",
+                "7s",
+                "8s",
+                "9s"
+              ],
+              "opening_hand": [
+                "1m",
+                "9m",
+                "3p",
+                "3p",
+                "4p",
+                "5p",
+                "6p",
+                "3s",
+                "4s",
+                "7s",
+                "9s",
+                "1z",
+                "3z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 44,
+            "dora_indicators": [
+              "6s"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "1m": 1,
+              "2s": 2,
+              "3s": 1,
+              "4s": 1,
+              "6s": 4,
+              "9m": 1,
+              "7s": 1,
+              "8s": 1,
+              "9s": 1,
+              "3p": 3,
+              "4p": 1,
+              "1z": 1,
+              "3z": 2,
+              "5p": 3,
+              "6p": 1,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "3p|3p"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "3p|3p",
+            "called_tile": "3p"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "3p|3p",
+        "called_tile": "3p"
+      },
+      "post_call_discard": "9m",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 83,
+      "seat": 0,
+      "hand_index": 4,
+      "event_index": 344,
+      "called_tile": "6s",
+      "combination": [
+        "6s",
+        "6s"
+      ],
+      "request": {
+        "board_token": "13f96a8e3c5ed4252b757d305e1c58d3c8fb1629da15695fd8a5c7e3c3025c59",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 0,
+            "self": {
+              "hand": [
+                "9m",
+                "2p",
+                "2p",
+                "3p",
+                "6p",
+                "7p",
+                "1s",
+                "3s",
+                "3s",
+                "6s",
+                "6s",
+                "7s",
+                "8s"
+              ],
+              "opening_hand": [
+                "1m",
+                "9m",
+                "2p",
+                "2p",
+                "3p",
+                "6p",
+                "1s",
+                "3s",
+                "3s",
+                "6s",
+                "7s",
+                "1z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": true,
+                "score": 28200,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5s",
+                    "called": true,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": true,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 38900,
+                "melds": [
+                  {
+                    "type": 1,
+                    "tiles": [
+                      "0s",
+                      "5s",
+                      "5s"
+                    ]
+                  },
+                  {
+                    "type": 1,
+                    "tiles": [
+                      "1z",
+                      "1z",
+                      "1z"
+                    ]
+                  },
+                  {
+                    "type": 1,
+                    "tiles": [
+                      "4s",
+                      "4s",
+                      "4s"
+                    ]
+                  }
+                ],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "7p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "7p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 37900,
+                "melds": [],
+                "norths": 2,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "4s",
+                    "called": true,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 1,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 38,
+            "dora_indicators": [
+              "1p"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "1m": 3,
+              "6z": 3,
+              "9m": 1,
+              "1p": 3,
+              "2p": 2,
+              "3p": 1,
+              "6p": 1,
+              "7p": 3,
+              "1s": 1,
+              "2s": 1,
+              "3s": 2,
+              "4s": 3,
+              "5s": 3,
+              "6s": 3,
+              "7s": 1,
+              "8s": 1,
+              "1z": 3,
+              "2z": 1,
+              "4z": 4
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 0,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "6s|6s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "6s|6s",
+            "called_tile": "6s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "6s|6s",
+        "called_tile": "6s"
+      },
+      "post_call_discard": "9m",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 83,
+      "seat": 1,
+      "hand_index": 0,
+      "event_index": 22,
+      "called_tile": "9s",
+      "combination": [
+        "9s",
+        "9s"
+      ],
+      "request": {
+        "board_token": "5b08165b4fb75e8fa9787885413be9ce212c2a5659ca78cc19c1b484d6575cbb",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "1p",
+                "3p",
+                "5p",
+                "8p",
+                "1s",
+                "1s",
+                "6s",
+                "7s",
+                "9s",
+                "9s",
+                "2z",
+                "2z",
+                "2z"
+              ],
+              "opening_hand": [
+                "1m",
+                "3p",
+                "5p",
+                "8p",
+                "1s",
+                "1s",
+                "7s",
+                "9s",
+                "9s",
+                "2z",
+                "2z",
+                "5z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "8s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 45,
+            "dora_indicators": [
+              "6s"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "1m": 1,
+              "6z": 1,
+              "8p": 1,
+              "1s": 2,
+              "3s": 1,
+              "6s": 2,
+              "9m": 1,
+              "7s": 1,
+              "1p": 1,
+              "8s": 1,
+              "9s": 3,
+              "3p": 1,
+              "2z": 3,
+              "5p": 1,
+              "3z": 2,
+              "5z": 2,
+              "4z": 0
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "9s|9s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "9s|9s",
+            "called_tile": "9s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "9s|9s",
+        "called_tile": "9s"
+      },
+      "post_call_discard": "8p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 83,
+      "seat": 1,
+      "hand_index": 4,
+      "event_index": 316,
+      "called_tile": "5s",
+      "combination": [
+        "0s",
+        "5s"
+      ],
+      "request": {
+        "board_token": "1a02c2b28862661492a9194069d95293ac253c4617de4d3bdd2b7785df1beab2",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "7p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "0s",
+                "5s",
+                "6s",
+                "9s",
+                "1z",
+                "1z",
+                "6z",
+                "7z"
+              ],
+              "opening_hand": [
+                "1p",
+                "7p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "0s",
+                "5s",
+                "6s",
+                "9s",
+                "1z",
+                "6z",
+                "7z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 28200,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 38900,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 37900,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 1,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 49,
+            "dora_indicators": [
+              "1p"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 1,
+              "1m": 1,
+              "1p": 3,
+              "7z": 1,
+              "9s": 1,
+              "1s": 1,
+              "1z": 2,
+              "2s": 2,
+              "4s": 1,
+              "5s": 3,
+              "6s": 1,
+              "7p": 1,
+              "4z": 2
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "0s|5s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "0s|5s",
+            "called_tile": "5s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "0s|5s",
+        "called_tile": "5s"
+      },
+      "post_call_discard": "7p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 180,
+      "seat": 1,
+      "hand_index": 2,
+      "event_index": 176,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "request": {
+        "board_token": "c50f6b666761c4e9e7ea668fbe80e5c352c7729d496b77de32bbc468b95a995c",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "8p",
+                "7s",
+                "7s",
+                "9s",
+                "1z",
+                "1z",
+                "2z",
+                "2z",
+                "7z",
+                "7z"
+              ],
+              "opening_hand": [
+                "1m",
+                "2p",
+                "4p",
+                "8p",
+                "1s",
+                "7s",
+                "7s",
+                "9s",
+                "1z",
+                "1z",
+                "2z",
+                "5z",
+                "7z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 37900,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 26900,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 40200,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "8s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 43,
+            "dora_indicators": [
+              "1m"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 1,
+              "1m": 2,
+              "8p": 1,
+              "7z": 2,
+              "9p": 1,
+              "1s": 1,
+              "6s": 1,
+              "7s": 2,
+              "8s": 1,
+              "2p": 2,
+              "9s": 1,
+              "1z": 2,
+              "3p": 1,
+              "4p": 1,
+              "2z": 3,
+              "3z": 1,
+              "5z": 2,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2z|2z"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2z|2z",
+            "called_tile": "2z"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2z|2z",
+        "called_tile": "2z"
+      },
+      "post_call_discard": "8p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 181,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 96,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "request": {
+        "board_token": "94819e28420f20318b59ae96b3c891e0e30a20441713e64996aa7561b19c74eb",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "8p",
+                "7s",
+                "7s",
+                "9s",
+                "1z",
+                "1z",
+                "2z",
+                "2z",
+                "7z",
+                "7z"
+              ],
+              "opening_hand": [
+                "1m",
+                "2p",
+                "4p",
+                "8p",
+                "1s",
+                "7s",
+                "7s",
+                "9s",
+                "1z",
+                "1z",
+                "2z",
+                "5z",
+                "7z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 29000,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 32000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 44000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "8s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 43,
+            "dora_indicators": [
+              "1m"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 1,
+              "1m": 2,
+              "8p": 1,
+              "7z": 2,
+              "9p": 1,
+              "1s": 1,
+              "6s": 1,
+              "7s": 2,
+              "8s": 1,
+              "2p": 2,
+              "9s": 1,
+              "1z": 2,
+              "3p": 1,
+              "4p": 1,
+              "2z": 3,
+              "3z": 1,
+              "5z": 2,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2z|2z"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2z|2z",
+            "called_tile": "2z"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2z|2z",
+        "called_tile": "2z"
+      },
+      "post_call_discard": "8p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 148,
+      "called_tile": "0p",
+      "combination": [
+        "5p",
+        "5p"
+      ],
+      "request": {
+        "board_token": "3ad5fbe693651b36b3bc47b9ea0b85e9b3634dd724690bb90a1799f1588b0416",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "2p",
+                "2p",
+                "4p",
+                "5p",
+                "5p",
+                "6p",
+                "7p",
+                "7p",
+                "7p",
+                "2s",
+                "4s",
+                "7s",
+                "7s"
+              ],
+              "opening_hand": [
+                "2p",
+                "2p",
+                "4p",
+                "5p",
+                "6p",
+                "7p",
+                "2s",
+                "7s",
+                "7s",
+                "9s",
+                "2z",
+                "5z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 32000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "accepted",
+                "discards": [
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": true
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "0p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 38000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "8p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 34000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 0,
+              "liqibang": 1
+            },
+            "wall_remaining": 34,
+            "dora_indicators": [
+              "4z"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 3,
+              "1m": 1,
+              "9m": 2,
+              "2p": 2,
+              "4p": 1,
+              "5p": 3,
+              "6p": 3,
+              "7p": 3,
+              "8p": 1,
+              "1s": 1,
+              "2s": 2,
+              "4s": 1,
+              "7s": 2,
+              "9s": 1,
+              "1z": 3,
+              "2z": 2,
+              "3z": 1,
+              "4z": 1,
+              "5z": 2
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "5p|5p"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "5p|5p",
+            "called_tile": "0p"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "5p|5p",
+        "called_tile": "0p"
+      },
+      "post_call_discard": "6p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 1,
+      "hand_index": 3,
+      "event_index": 300,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "request": {
+        "board_token": "78d9fb3d747773a802b9cae6696a80b6335041c7186993341a32361e5a6b4254",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "5s",
+                "6s",
+                "6z",
+                "6z"
+              ],
+              "opening_hand": [
+                "2p",
+                "3p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "6s",
+                "1z",
+                "3z",
+                "6z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 36600,
+                "melds": [],
+                "norths": 2,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 32500,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 35900,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 2,
+              "ben": 1,
+              "liqibang": 0
+            },
+            "wall_remaining": 45,
+            "dora_indicators": [
+              "1p"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 2,
+              "1m": 2,
+              "9p": 1,
+              "1s": 1,
+              "2s": 3,
+              "4s": 1,
+              "5s": 1,
+              "6s": 1,
+              "1p": 1,
+              "9s": 1,
+              "2p": 1,
+              "1z": 1,
+              "3p": 1,
+              "4p": 1,
+              "2z": 1,
+              "3z": 1,
+              "5p": 1,
+              "4z": 3
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2s|2s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2s|2s",
+            "called_tile": "2s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2s|2s",
+        "called_tile": "2s"
+      },
+      "post_call_discard": "9p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 2,
+      "hand_index": 2,
+      "event_index": 265,
+      "called_tile": "9s",
+      "combination": [
+        "9s",
+        "9s"
+      ],
+      "request": {
+        "board_token": "4790da11014987358d4aea6516753fbbb891ce5570e835c92a4d9b2b9d354d78",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 2,
+            "self": {
+              "hand": [
+                "1p",
+                "2p",
+                "3p",
+                "1s",
+                "1s",
+                "2s",
+                "0s",
+                "6s",
+                "7s",
+                "9s",
+                "9s",
+                "5z",
+                "5z"
+              ],
+              "opening_hand": [
+                "1p",
+                "2p",
+                "3p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "6s",
+                "7s",
+                "9s",
+                "1z",
+                "5z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 36600,
+                "melds": [
+                  {
+                    "type": 1,
+                    "tiles": [
+                      "1z",
+                      "1z",
+                      "1z"
+                    ]
+                  }
+                ],
+                "norths": 2,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 35400,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "4s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": true,
+                "score": 33000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "4s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": true,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 2,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 31,
+            "dora_indicators": [
+              "4z"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 3,
+              "1m": 3,
+              "9m": 3,
+              "1p": 2,
+              "2p": 3,
+              "3p": 1,
+              "5p": 1,
+              "6p": 1,
+              "9p": 1,
+              "1s": 2,
+              "2s": 2,
+              "4s": 2,
+              "5s": 1,
+              "6s": 1,
+              "7s": 1,
+              "9s": 3,
+              "1z": 3,
+              "2z": 1,
+              "3z": 2,
+              "4z": 3,
+              "5z": 2
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 2,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "9s|9s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "9s|9s",
+            "called_tile": "9s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "9s|9s",
+        "called_tile": "9s"
+      },
+      "post_call_discard": "2s",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 0,
+      "hand_index": 0,
+      "event_index": 46,
+      "called_tile": "0p",
+      "combination": [
+        "5p",
+        "5p"
+      ],
+      "request": {
+        "board_token": "c6aa6dac647c18a32f4e324d8546eadae334eb0454540310211eb80b34f0e50e",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 0,
+            "self": {
+              "hand": [
+                "2p",
+                "2p",
+                "4p",
+                "5p",
+                "5p",
+                "6p",
+                "7p",
+                "7p",
+                "7p",
+                "2s",
+                "4s",
+                "7s",
+                "7s"
+              ],
+              "opening_hand": [
+                "2p",
+                "2p",
+                "4p",
+                "5p",
+                "6p",
+                "7p",
+                "2s",
+                "7s",
+                "7s",
+                "9s",
+                "2z",
+                "5z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": true,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "8p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 34000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "accepted",
+                "discards": [
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": true
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "0p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 1
+            },
+            "wall_remaining": 34,
+            "dora_indicators": [
+              "4z"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 3,
+              "1m": 1,
+              "9m": 2,
+              "2p": 2,
+              "4p": 1,
+              "5p": 3,
+              "6p": 3,
+              "7p": 3,
+              "8p": 1,
+              "1s": 1,
+              "2s": 2,
+              "4s": 1,
+              "7s": 2,
+              "9s": 1,
+              "1z": 3,
+              "2z": 2,
+              "3z": 1,
+              "4z": 1,
+              "5z": 2
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 0,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "5p|5p"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "5p|5p",
+            "called_tile": "0p"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "5p|5p",
+        "called_tile": "0p"
+      },
+      "post_call_discard": "6p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 0,
+      "hand_index": 2,
+      "event_index": 198,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "request": {
+        "board_token": "62b652a9b7e7f075536273875b834509ab16ef4ff93946f5de95b00e4bd4d351",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 0,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "5s",
+                "6s",
+                "6z",
+                "6z"
+              ],
+              "opening_hand": [
+                "2p",
+                "3p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "6s",
+                "1z",
+                "3z",
+                "6z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": true,
+                "score": 29500,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 36900,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 38600,
+                "melds": [],
+                "norths": 2,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 1,
+              "liqibang": 0
+            },
+            "wall_remaining": 45,
+            "dora_indicators": [
+              "1p"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 2,
+              "1m": 2,
+              "9p": 1,
+              "1s": 1,
+              "2s": 3,
+              "4s": 1,
+              "5s": 1,
+              "6s": 1,
+              "1p": 1,
+              "9s": 1,
+              "2p": 1,
+              "1z": 1,
+              "3p": 1,
+              "4p": 1,
+              "2z": 1,
+              "3z": 1,
+              "5p": 1,
+              "4z": 3
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 0,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2s|2s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2s|2s",
+            "called_tile": "2s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2s|2s",
+        "called_tile": "2s"
+      },
+      "post_call_discard": "9p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 163,
+      "called_tile": "9s",
+      "combination": [
+        "9s",
+        "9s"
+      ],
+      "request": {
+        "board_token": "c7a769e92c5617f3c5a29ca0e60e7c983da486f47b6f513b4fb9c6017e979cd2",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "1p",
+                "2p",
+                "3p",
+                "1s",
+                "1s",
+                "2s",
+                "0s",
+                "6s",
+                "7s",
+                "9s",
+                "9s",
+                "5z",
+                "5z"
+              ],
+              "opening_hand": [
+                "1p",
+                "2p",
+                "3p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "6s",
+                "7s",
+                "9s",
+                "1z",
+                "5z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 32400,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "4s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 34000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "4s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": true,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 38600,
+                "melds": [
+                  {
+                    "type": 1,
+                    "tiles": [
+                      "1z",
+                      "1z",
+                      "1z"
+                    ]
+                  }
+                ],
+                "norths": 2,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 31,
+            "dora_indicators": [
+              "4z"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "1m": 3,
+              "6z": 3,
+              "9m": 3,
+              "1p": 2,
+              "2p": 3,
+              "3p": 1,
+              "5p": 1,
+              "6p": 1,
+              "9p": 1,
+              "1s": 2,
+              "2s": 2,
+              "4s": 2,
+              "5s": 1,
+              "6s": 1,
+              "7s": 1,
+              "9s": 3,
+              "1z": 3,
+              "2z": 1,
+              "3z": 2,
+              "4z": 3,
+              "5z": 2
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "9s|9s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "9s|9s",
+            "called_tile": "9s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "9s|9s",
+        "called_tile": "9s"
+      },
+      "post_call_discard": "2s",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "development",
+      "seed": 80,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 89,
+      "called_tile": "3p",
+      "combination": [
+        "3p",
+        "3p"
+      ],
+      "request": {
+        "board_token": "d58e7b49372e5183adc3ddf69d49685219e954ebb1f90662e7b2541a03b21751",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "9m",
+                "3p",
+                "3p",
+                "4p",
+                "5p",
+                "5p",
+                "6p",
+                "3s",
+                "4s",
+                "6s",
+                "7s",
+                "8s",
+                "9s"
+              ],
+              "opening_hand": [
+                "1m",
+                "9m",
+                "3p",
+                "3p",
+                "4p",
+                "5p",
+                "6p",
+                "3s",
+                "4s",
+                "7s",
+                "9s",
+                "1z",
+                "3z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 51000,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 27000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 27000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 1,
+              "liqibang": 0
+            },
+            "wall_remaining": 44,
+            "dora_indicators": [
+              "6s"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "1m": 1,
+              "2s": 2,
+              "3s": 1,
+              "4s": 1,
+              "6s": 4,
+              "9m": 1,
+              "7s": 1,
+              "8s": 1,
+              "9s": 1,
+              "3p": 3,
+              "4p": 1,
+              "1z": 1,
+              "3z": 2,
+              "5p": 3,
+              "6p": 1,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "3p|3p"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "3p|3p",
+            "called_tile": "3p"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "3p|3p",
+        "called_tile": "3p"
+      },
+      "post_call_discard": "9m",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "development",
+      "seed": 80,
+      "seat": 2,
+      "hand_index": 0,
+      "event_index": 8,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "request": {
+        "board_token": "ea05e01fe3777d15a6b2b4db7a9334d2e68af91e812d9794394080869181d3bc",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 2,
+            "self": {
+              "hand": [
+                "1m",
+                "9m",
+                "2p",
+                "4p",
+                "8p",
+                "1s",
+                "4s",
+                "4s",
+                "2z",
+                "2z",
+                "3z",
+                "3z",
+                "7z"
+              ],
+              "opening_hand": [
+                "1m",
+                "9m",
+                "2p",
+                "4p",
+                "8p",
+                "1s",
+                "4s",
+                "4s",
+                "2z",
+                "2z",
+                "3z",
+                "3z",
+                "7z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "5z",
+                    "called": true,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 35000,
+                "melds": [
+                  {
+                    "type": 1,
+                    "tiles": [
+                      "5z",
+                      "5z",
+                      "5z"
+                    ]
+                  }
+                ],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": true,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": []
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 53,
+            "dora_indicators": [
+              "5p"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "8p": 1,
+              "1m": 1,
+              "7z": 1,
+              "1s": 1,
+              "4s": 2,
+              "9m": 1,
+              "2p": 1,
+              "2z": 3,
+              "4p": 1,
+              "3z": 2,
+              "5p": 1,
+              "5z": 3,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 2,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2z|2z"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2z|2z",
+            "called_tile": "2z"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2z|2z",
+        "called_tile": "2z"
+      },
+      "post_call_discard": "1m",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "development",
+      "seed": 81,
+      "seat": 1,
+      "hand_index": 0,
+      "event_index": 24,
+      "called_tile": "3p",
+      "combination": [
+        "3p",
+        "3p"
+      ],
+      "request": {
+        "board_token": "826c3788566c9d173aab534a93c03408f1ef32252a5ec6483bc8342108e22fea",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "9m",
+                "3p",
+                "3p",
+                "4p",
+                "5p",
+                "5p",
+                "6p",
+                "3s",
+                "4s",
+                "6s",
+                "7s",
+                "8s",
+                "9s"
+              ],
+              "opening_hand": [
+                "1m",
+                "9m",
+                "3p",
+                "3p",
+                "4p",
+                "5p",
+                "6p",
+                "3s",
+                "4s",
+                "7s",
+                "9s",
+                "1z",
+                "3z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 44,
+            "dora_indicators": [
+              "6s"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "1m": 1,
+              "2s": 2,
+              "3s": 1,
+              "4s": 1,
+              "6s": 4,
+              "9m": 1,
+              "7s": 1,
+              "8s": 1,
+              "9s": 1,
+              "3p": 3,
+              "4p": 1,
+              "1z": 1,
+              "3z": 2,
+              "5p": 3,
+              "6p": 1,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "3p|3p"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "3p|3p",
+            "called_tile": "3p"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "3p|3p",
+        "called_tile": "3p"
+      },
+      "post_call_discard": "9m",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "development",
+      "seed": 83,
+      "seat": 1,
+      "hand_index": 0,
+      "event_index": 22,
+      "called_tile": "9s",
+      "combination": [
+        "9s",
+        "9s"
+      ],
+      "request": {
+        "board_token": "5b08165b4fb75e8fa9787885413be9ce212c2a5659ca78cc19c1b484d6575cbb",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "1p",
+                "3p",
+                "5p",
+                "8p",
+                "1s",
+                "1s",
+                "6s",
+                "7s",
+                "9s",
+                "9s",
+                "2z",
+                "2z",
+                "2z"
+              ],
+              "opening_hand": [
+                "1m",
+                "3p",
+                "5p",
+                "8p",
+                "1s",
+                "1s",
+                "7s",
+                "9s",
+                "9s",
+                "2z",
+                "2z",
+                "5z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "8s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 45,
+            "dora_indicators": [
+              "6s"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "1m": 1,
+              "6z": 1,
+              "8p": 1,
+              "1s": 2,
+              "3s": 1,
+              "6s": 2,
+              "9m": 1,
+              "7s": 1,
+              "1p": 1,
+              "8s": 1,
+              "9s": 3,
+              "3p": 1,
+              "2z": 3,
+              "5p": 1,
+              "3z": 2,
+              "5z": 2,
+              "4z": 0
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "9s|9s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "9s|9s",
+            "called_tile": "9s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "9s|9s",
+        "called_tile": "9s"
+      },
+      "post_call_discard": "8p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 180,
+      "seat": 1,
+      "hand_index": 2,
+      "event_index": 176,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "request": {
+        "board_token": "c50f6b666761c4e9e7ea668fbe80e5c352c7729d496b77de32bbc468b95a995c",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "8p",
+                "7s",
+                "7s",
+                "9s",
+                "1z",
+                "1z",
+                "2z",
+                "2z",
+                "7z",
+                "7z"
+              ],
+              "opening_hand": [
+                "1m",
+                "2p",
+                "4p",
+                "8p",
+                "1s",
+                "7s",
+                "7s",
+                "9s",
+                "1z",
+                "1z",
+                "2z",
+                "5z",
+                "7z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 37900,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 26900,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 40200,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "8s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 43,
+            "dora_indicators": [
+              "1m"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 1,
+              "1m": 2,
+              "8p": 1,
+              "7z": 2,
+              "9p": 1,
+              "1s": 1,
+              "6s": 1,
+              "7s": 2,
+              "8s": 1,
+              "2p": 2,
+              "9s": 1,
+              "1z": 2,
+              "3p": 1,
+              "4p": 1,
+              "2z": 3,
+              "3z": 1,
+              "5z": 2,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2z|2z"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2z|2z",
+            "called_tile": "2z"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2z|2z",
+        "called_tile": "2z"
+      },
+      "post_call_discard": "8p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 181,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 96,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "request": {
+        "board_token": "94819e28420f20318b59ae96b3c891e0e30a20441713e64996aa7561b19c74eb",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "8p",
+                "7s",
+                "7s",
+                "9s",
+                "1z",
+                "1z",
+                "2z",
+                "2z",
+                "7z",
+                "7z"
+              ],
+              "opening_hand": [
+                "1m",
+                "2p",
+                "4p",
+                "8p",
+                "1s",
+                "7s",
+                "7s",
+                "9s",
+                "1z",
+                "1z",
+                "2z",
+                "5z",
+                "7z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 29000,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 32000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 44000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "8s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 43,
+            "dora_indicators": [
+              "1m"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 1,
+              "1m": 2,
+              "8p": 1,
+              "7z": 2,
+              "9p": 1,
+              "1s": 1,
+              "6s": 1,
+              "7s": 2,
+              "8s": 1,
+              "2p": 2,
+              "9s": 1,
+              "1z": 2,
+              "3p": 1,
+              "4p": 1,
+              "2z": 3,
+              "3z": 1,
+              "5z": 2,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2z|2z"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2z|2z",
+            "called_tile": "2z"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2z|2z",
+        "called_tile": "2z"
+      },
+      "post_call_discard": "8p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 0,
+      "hand_index": 0,
+      "event_index": 26,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "request": {
+        "board_token": "24b70864a1203bb5a933593746129a87195619db787b3f20c2c39ae29da64997",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 0,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "8p",
+                "7s",
+                "7s",
+                "9s",
+                "1z",
+                "1z",
+                "2z",
+                "2z",
+                "7z",
+                "7z"
+              ],
+              "opening_hand": [
+                "1m",
+                "2p",
+                "4p",
+                "8p",
+                "1s",
+                "7s",
+                "7s",
+                "9s",
+                "1z",
+                "1z",
+                "2z",
+                "5z",
+                "7z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": true,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "8s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 43,
+            "dora_indicators": [
+              "1m"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 1,
+              "1m": 2,
+              "8p": 1,
+              "7z": 2,
+              "9p": 1,
+              "1s": 1,
+              "6s": 1,
+              "7s": 2,
+              "8s": 1,
+              "2p": 2,
+              "9s": 1,
+              "1z": 2,
+              "3p": 1,
+              "4p": 1,
+              "2z": 3,
+              "3z": 1,
+              "5z": 2,
+              "4z": 1
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 0,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2z|2z"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2z|2z",
+            "called_tile": "2z"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2z|2z",
+        "called_tile": "2z"
+      },
+      "post_call_discard": "8p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 0,
+      "hand_index": 3,
+      "event_index": 259,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "request": {
+        "board_token": "62f8414796c20e3c94b74a1ca8210da4ac5d53d337c0f672defc0718678570fd",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 0,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "5s",
+                "6s",
+                "6z",
+                "6z"
+              ],
+              "opening_hand": [
+                "2p",
+                "3p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "6s",
+                "1z",
+                "3z",
+                "6z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": true,
+                "score": 30900,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 42700,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 31400,
+                "melds": [],
+                "norths": 2,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 2,
+              "liqibang": 0
+            },
+            "wall_remaining": 45,
+            "dora_indicators": [
+              "1p"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 2,
+              "1m": 2,
+              "9p": 1,
+              "1s": 1,
+              "2s": 3,
+              "4s": 1,
+              "5s": 1,
+              "6s": 1,
+              "1p": 1,
+              "9s": 1,
+              "2p": 1,
+              "1z": 1,
+              "3p": 1,
+              "4p": 1,
+              "2z": 1,
+              "3z": 1,
+              "5p": 1,
+              "4z": 3
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 0,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2s|2s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2s|2s",
+            "called_tile": "2s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2s|2s",
+        "called_tile": "2s"
+      },
+      "post_call_discard": "9p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 99,
+      "called_tile": "0p",
+      "combination": [
+        "5p",
+        "5p"
+      ],
+      "request": {
+        "board_token": "2298476a5987636e31754ed13e46d159f4fbbfa5b7c17ca1c9f85e69fbe4e2ad",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "2p",
+                "2p",
+                "4p",
+                "5p",
+                "5p",
+                "6p",
+                "7p",
+                "7p",
+                "7p",
+                "2s",
+                "4s",
+                "7s",
+                "7s"
+              ],
+              "opening_hand": [
+                "2p",
+                "2p",
+                "4p",
+                "5p",
+                "6p",
+                "7p",
+                "2s",
+                "7s",
+                "7s",
+                "9s",
+                "2z",
+                "5z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 34000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "accepted",
+                "discards": [
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": true
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "0p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 37600,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "8p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 32400,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 0,
+              "liqibang": 1
+            },
+            "wall_remaining": 34,
+            "dora_indicators": [
+              "4z"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 3,
+              "1m": 2,
+              "9m": 2,
+              "2p": 2,
+              "4p": 1,
+              "5p": 3,
+              "6p": 2,
+              "7p": 3,
+              "8p": 1,
+              "1s": 1,
+              "2s": 2,
+              "4s": 1,
+              "7s": 2,
+              "9s": 1,
+              "1z": 3,
+              "2z": 2,
+              "3z": 1,
+              "4z": 1,
+              "5z": 2
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "5p|5p"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "5p|5p",
+            "called_tile": "0p"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "5p|5p",
+        "called_tile": "0p"
+      },
+      "post_call_discard": "6p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 1,
+      "hand_index": 3,
+      "event_index": 231,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "request": {
+        "board_token": "2df10ef730293e401392bbeef356a569d007029a1fe3b9332e4005265d8f3b7a",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "5s",
+                "6s",
+                "6z",
+                "6z"
+              ],
+              "opening_hand": [
+                "2p",
+                "3p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "6s",
+                "1z",
+                "3z",
+                "6z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 38600,
+                "melds": [],
+                "norths": 2,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 32100,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 34300,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 2,
+              "ben": 1,
+              "liqibang": 0
+            },
+            "wall_remaining": 45,
+            "dora_indicators": [
+              "1p"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 2,
+              "1m": 2,
+              "9p": 1,
+              "1s": 1,
+              "2s": 3,
+              "4s": 1,
+              "5s": 1,
+              "6s": 1,
+              "1p": 1,
+              "9s": 1,
+              "2p": 1,
+              "1z": 1,
+              "3p": 1,
+              "4p": 1,
+              "2z": 1,
+              "3z": 1,
+              "5p": 1,
+              "4z": 3
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2s|2s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2s|2s",
+            "called_tile": "2s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2s|2s",
+        "called_tile": "2s"
+      },
+      "post_call_discard": "9p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 0,
+      "hand_index": 0,
+      "event_index": 46,
+      "called_tile": "0p",
+      "combination": [
+        "5p",
+        "5p"
+      ],
+      "request": {
+        "board_token": "cd61191a53fc9bfcb47815e70e2f5adfd8b9c6180b3c7f7924e321feccbeddd8",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 0,
+            "self": {
+              "hand": [
+                "2p",
+                "2p",
+                "4p",
+                "5p",
+                "5p",
+                "6p",
+                "7p",
+                "7p",
+                "7p",
+                "2s",
+                "4s",
+                "7s",
+                "7s"
+              ],
+              "opening_hand": [
+                "2p",
+                "2p",
+                "4p",
+                "5p",
+                "6p",
+                "7p",
+                "2s",
+                "7s",
+                "7s",
+                "9s",
+                "2z",
+                "5z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": true,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "8p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 35000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 34000,
+                "melds": [],
+                "norths": 0,
+                "riichi": "accepted",
+                "discards": [
+                  {
+                    "tile": "5z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": true
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "0p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 0,
+              "liqibang": 1
+            },
+            "wall_remaining": 34,
+            "dora_indicators": [
+              "4z"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 3,
+              "1m": 2,
+              "9m": 2,
+              "2p": 2,
+              "4p": 1,
+              "5p": 3,
+              "6p": 2,
+              "7p": 3,
+              "8p": 1,
+              "1s": 1,
+              "2s": 2,
+              "4s": 1,
+              "7s": 2,
+              "9s": 1,
+              "1z": 3,
+              "2z": 2,
+              "3z": 1,
+              "4z": 1,
+              "5z": 2
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 0,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "5p|5p"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "5p|5p",
+            "called_tile": "0p"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "5p|5p",
+        "called_tile": "0p"
+      },
+      "post_call_discard": "6p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 0,
+      "hand_index": 2,
+      "event_index": 178,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "request": {
+        "board_token": "62b652a9b7e7f075536273875b834509ab16ef4ff93946f5de95b00e4bd4d351",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 0,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "5s",
+                "6s",
+                "6z",
+                "6z"
+              ],
+              "opening_hand": [
+                "2p",
+                "3p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "6s",
+                "1z",
+                "3z",
+                "6z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": true,
+                "score": 29500,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 36900,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 38600,
+                "melds": [],
+                "norths": 2,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 1,
+              "liqibang": 0
+            },
+            "wall_remaining": 45,
+            "dora_indicators": [
+              "1p"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 2,
+              "1m": 2,
+              "9p": 1,
+              "1s": 1,
+              "2s": 3,
+              "4s": 1,
+              "5s": 1,
+              "6s": 1,
+              "1p": 1,
+              "9s": 1,
+              "2p": 1,
+              "1z": 1,
+              "3p": 1,
+              "4p": 1,
+              "2z": 1,
+              "3z": 1,
+              "5p": 1,
+              "4z": 3
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 0,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2s|2s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2s|2s",
+            "called_tile": "2s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2s|2s",
+        "called_tile": "2s"
+      },
+      "post_call_discard": "9p",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 163,
+      "called_tile": "9s",
+      "combination": [
+        "9s",
+        "9s"
+      ],
+      "request": {
+        "board_token": "e7d56b7639c5b5a6b82697d911acdd742ef546d1c89097fc8ae0561f845a18be",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 1,
+            "self": {
+              "hand": [
+                "1p",
+                "2p",
+                "3p",
+                "1s",
+                "1s",
+                "2s",
+                "0s",
+                "6s",
+                "7s",
+                "9s",
+                "9s",
+                "5z",
+                "5z"
+              ],
+              "opening_hand": [
+                "1p",
+                "2p",
+                "3p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "6s",
+                "7s",
+                "9s",
+                "1z",
+                "5z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 33700,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "4s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": true,
+                "score": 37300,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "5p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "4s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2p",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1z",
+                    "called": true,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": false,
+                "score": 34000,
+                "melds": [
+                  {
+                    "type": 1,
+                    "tiles": [
+                      "1z",
+                      "1z",
+                      "1z"
+                    ]
+                  }
+                ],
+                "norths": 2,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "6z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 1,
+              "ben": 0,
+              "liqibang": 0
+            },
+            "wall_remaining": 31,
+            "dora_indicators": [
+              "4z"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "1m": 3,
+              "6z": 3,
+              "9m": 3,
+              "1p": 2,
+              "2p": 3,
+              "3p": 1,
+              "5p": 1,
+              "6p": 1,
+              "9p": 1,
+              "1s": 2,
+              "2s": 2,
+              "4s": 2,
+              "5s": 1,
+              "6s": 1,
+              "7s": 1,
+              "9s": 3,
+              "1z": 3,
+              "2z": 1,
+              "3z": 2,
+              "4z": 3,
+              "5z": 2
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 1,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "9s|9s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "9s|9s",
+            "called_tile": "9s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "9s|9s",
+        "called_tile": "9s"
+      },
+      "post_call_discard": "2s",
+      "baseline_exact_replay": true
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 2,
+      "hand_index": 2,
+      "event_index": 206,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "request": {
+        "board_token": "3f3eaf7f616a342b4034185b7d47f0fd2adc8403d5e5cd384c6aa3dbb5061b6b",
+        "observation": {
+          "board": {
+            "player_count": 3,
+            "self_seat": 2,
+            "self": {
+              "hand": [
+                "2p",
+                "3p",
+                "4p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "5s",
+                "6s",
+                "6z",
+                "6z"
+              ],
+              "opening_hand": [
+                "2p",
+                "3p",
+                "5p",
+                "9p",
+                "1s",
+                "2s",
+                "2s",
+                "4s",
+                "6s",
+                "1z",
+                "3z",
+                "6z",
+                "6z"
+              ],
+              "drawn_tile": null,
+              "furiten": false,
+              "scoring_context": {
+                "history_complete": false,
+                "win": {}
+              }
+            },
+            "players": [
+              {
+                "seat": 0,
+                "is_self": false,
+                "score": 40100,
+                "melds": [],
+                "norths": 1,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "9s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2s",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 1,
+                "is_self": false,
+                "score": 34000,
+                "melds": [],
+                "norths": 2,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1m",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "2z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              },
+              {
+                "seat": 2,
+                "is_self": true,
+                "score": 30900,
+                "melds": [],
+                "norths": 0,
+                "riichi": "none",
+                "discards": [
+                  {
+                    "tile": "1z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  },
+                  {
+                    "tile": "3z",
+                    "called": false,
+                    "tsumogiri": null,
+                    "riichi": false
+                  }
+                ]
+              }
+            ],
+            "round": {
+              "chang": 0,
+              "ju": 0,
+              "ben": 2,
+              "liqibang": 0
+            },
+            "wall_remaining": 45,
+            "dora_indicators": [
+              "1p"
+            ],
+            "rules": {
+              "open_tanyao": true,
+              "tsumo_loss": true
+            },
+            "visible_tile_counts": {
+              "6z": 2,
+              "1m": 2,
+              "9p": 1,
+              "1s": 1,
+              "2s": 3,
+              "4s": 1,
+              "5s": 1,
+              "6s": 1,
+              "1p": 1,
+              "9s": 1,
+              "2p": 1,
+              "1z": 1,
+              "3p": 1,
+              "4p": 1,
+              "2z": 1,
+              "3z": 1,
+              "5p": 1,
+              "4z": 3
+            },
+            "visibility_complete": true,
+            "available_operations": {
+              "seat": 2,
+              "operation_list": [
+                {
+                  "type": 3,
+                  "combination": [
+                    "2s|2s"
+                  ]
+                }
+              ]
+            },
+            "lobby": {
+              "identified": true,
+              "player_count": 3,
+              "match_length": "east",
+              "label": "3 Player East Wind",
+              "unsupported_rules": []
+            }
+          },
+          "source": {
+            "connection": "offline",
+            "generation": 1
+          }
+        },
+        "actions": [
+          {
+            "kind": "pon",
+            "combination": "2s|2s",
+            "called_tile": "2s"
+          },
+          {
+            "kind": "skip"
+          }
+        ]
+      },
+      "action": {
+        "kind": "pon",
+        "combination": "2s|2s",
+        "called_tile": "2s"
+      },
+      "post_call_discard": "9p",
+      "baseline_exact_replay": true
+    }
+  ]
+}

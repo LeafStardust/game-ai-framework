@@ -67,3 +67,5 @@ $env:PYTHONPATH = 'logs/mahjong_soul/simulator-deps'
 ```
 
 This reruns baselines only, never gameplay input or the live agent. Every full replay must exactly match its saved baseline before a public request is evaluated. Three-Shanten states are explicitly unavailable; a comparison requires both branches to be available. The output records frozen source hashes and incremental completion status; incomplete runs must not be presented as all-case results.
+
+The bounded ready-repair and Ron-sensitivity follow-up is documented in [Completion scenarios](COMPLETION_SCENARIOS_REVIEW.md).

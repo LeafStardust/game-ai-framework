@@ -151,3 +151,11 @@ def test_call_width_candidate_is_offline_and_isolated():
     candidate=Agent("east_speed_call_width");normal=Agent("east_speed")
     assert candidate.policy.registry.get(3,"atk","east").strategy["calls"]["unsecured_opening_min_ukeire"]==8
     assert not normal.policy.registry.get(3,"atk","east").strategy["calls"].get("unsecured_opening_min_ukeire")
+
+
+def test_completion_candidate_is_offline_and_isolated():
+    candidate=Agent("east_speed_completion");normal=Agent("east_speed")
+    assert candidate.policy.registry.get(3,"atk","east").strategy["calls"]["completion_opening_guard"] is True
+    assert not normal.policy.registry.get(3,"atk","east").strategy["calls"].get("completion_opening_guard")
+    assert not candidate.policy.registry.get(4,"atk","east").strategy["calls"].get("completion_opening_guard")
+    assert not candidate.policy.registry.get(4,"atk","south").strategy["calls"].get("completion_opening_guard")
