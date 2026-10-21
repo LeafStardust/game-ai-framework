@@ -96,3 +96,7 @@ The [opponent comparison review](experiments/OPPONENT_REVIEW.md) reports 96 comp
 ## Distinct policy intents
 
 The adapter collapses interchangeable physical-copy actions into one exact tile-label/combination intent, retaining the first legal native binding. Red and normal fives remain separate choices. Riichi offers and operation combinations are unique, matching the live contract. This prevents duplicate normal tiles from taking multiple slots in bounded lookahead. The [offense audit and parity probes](experiments/OFFENSE_AUDIT_REVIEW.md) document the correction and its limits; historical bounded-shortlist experiments need re-evaluation before being interpreted as three-distinct-choice tests.
+
+## Single-call counterfactuals
+
+`python -m agents.mahjong_soul.call_counterfactual --seed 80 --seat 2 --called-tile 2z --opponents callers --output <new-directory>` compares one selected Pon against legal Skip. It matches the public decision token, filters the choice before route memory changes, and then resumes the unchanged policy. It checks a single intervention, identical starting deals and the expected replay divergence. This fixed-wall diagnostic is not a win-rate experiment. The [opening South Wind review](experiments/SOUTH_PON_REVIEW.md) found no recovered win or placement gain from Skip and made no live policy change.

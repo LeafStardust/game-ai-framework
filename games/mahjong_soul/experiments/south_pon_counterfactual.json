@@ -1,0 +1,493 @@
+{
+  "scope": "One fixed deal, two opponent styles, four full matches; not independent strength samples.",
+  "comparisons": [
+    {
+      "seed": 80,
+      "seat": 2,
+      "called_tile": "2z",
+      "occurrence": 1,
+      "opponents": "callers",
+      "engine": "0.4.10",
+      "revision": "eeef42b47eef91c046d5a6d37004a4f6a843e574",
+      "overrides": 1,
+      "first_different_event_index": 8,
+      "first_different_events": {
+        "pon": {
+          "actor": 2,
+          "consumed": [
+            "S",
+            "S"
+          ],
+          "pai": "S",
+          "target": 1,
+          "type": "pon"
+        },
+        "skip": {
+          "actor": 2,
+          "pai": "9s",
+          "type": "tsumo"
+        }
+      },
+      "limitation": "One forced action on one fixed hidden deal; later draws diverge. This is not a win-rate estimate or an optimal-action proof.",
+      "target": {
+        "board_token": "ea05e01fe3777d15a6b2b4db7a9334d2e68af91e812d9794394080869181d3bc",
+        "hand_index": 0,
+        "action": {
+          "kind": "pon",
+          "combination": "2z|2z",
+          "called_tile": "2z"
+        },
+        "analysis": {
+          "shanten": 3,
+          "effective_ukeire": 40,
+          "target_route": "yakuhai",
+          "post_call_discard": {
+            "kind": "discard",
+            "tile": "1m"
+          }
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 80,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "0": "east_speed",
+              "1": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 5,
+                "0": 49,
+                "5": 2,
+                "6": 1,
+                "7": 1,
+                "4": 1,
+                "2": 1
+              },
+              {
+                "2": 6,
+                "0": 52,
+                "9": 2,
+                "11": 4,
+                "7": 3,
+                "5": 1,
+                "4": 1
+              },
+              {
+                "2": 2,
+                "0": 53,
+                "7": 1,
+                "5": 2,
+                "11": 2
+              }
+            ],
+            "scores": [
+              59400,
+              30600,
+              15000
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 4,
+            "wins": 0,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              15,
+              12
+            ],
+            "steps": 189,
+            "seconds": 21.962010800023563,
+            "decision_seconds": 21.94785169948591,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  17000,
+                  -8000,
+                  -8000
+                ],
+                "target": 0,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "1p",
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 9
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 80,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "0": "east_speed",
+              "1": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 4,
+                "0": 38,
+                "7": 1,
+                "5": 1
+              },
+              {
+                "2": 2,
+                "0": 36,
+                "4": 2,
+                "11": 3,
+                "7": 1,
+                "5": 1
+              },
+              {
+                "7": 2,
+                "0": 40,
+                "2": 5,
+                "11": 2,
+                "9": 1
+              }
+            ],
+            "scores": [
+              36000,
+              51200,
+              17800
+            ],
+            "ranks": [
+              2,
+              1,
+              3
+            ],
+            "hands": 3,
+            "wins": 0,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              8,
+              15
+            ],
+            "steps": 139,
+            "seconds": 16.320451399951708,
+            "decision_seconds": 16.309794600238092,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  0,
+                  8000,
+                  -8000
+                ],
+                "target": 2,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 8
+          }
+        }
+      },
+      "full_local_report_sha256": "39369837daa632bc1db3fbef8588736b795d0fd9fd0f34bb781f8efea7fe864a",
+      "source_hashes": {
+        "agents\\mahjong_soul\\__init__.py": "484647fe5e47bdbef6d2b98e23da27ce6e0b4bc462afc7ee2d8aef3efb392475",
+        "agents\\mahjong_soul\\assist_preferences.py": "eec22c2de60b68b1d9b4c50d176731f1ca550218215a16ec9f824e574b422d18",
+        "agents\\mahjong_soul\\attack_defense.py": "d3ec7425b371738cf428f3d5e87559aaa14696ba873f1f84c25d57e79a939b10",
+        "agents\\mahjong_soul\\attack_policy.py": "4d8684706a11bc30984f396d48f3138703a891cea01716462e5c147399a0bfde",
+        "agents\\mahjong_soul\\attack_routes.py": "8bde04b46a1a8a64c8aac1d059d6ada9fabffd2be7240728fa09239b512fa939",
+        "agents\\mahjong_soul\\attack_value.py": "57b4305bb711c077e18e2d903b073def5fc6d850269838d87739fbccf55a1871",
+        "agents\\mahjong_soul\\auto.py": "86ad6804a3b3b8e19fd901162425d2b06504599a8be98fc4acd3275ab15e4501",
+        "agents\\mahjong_soul\\auto_policy.py": "dcd156aae85588535c46e001a3cbcb1db77ec1dadfe9f5d9c5973a3d1e105e83",
+        "agents\\mahjong_soul\\benchmark.py": "3b7cc10d086c804309e3b95a5b49297e26970c9fd124aa6df226e2b5951de8a5",
+        "agents\\mahjong_soul\\call_counterfactual.py": "a75526dde41466a81c36f9005d191eae1d99e47003259d634f2115b187d6d815",
+        "agents\\mahjong_soul\\capture_service.py": "d0eeb6a2f997acf44406b6faf37c3f176e9c5f0b99f51b790070c74c58190eb9",
+        "agents\\mahjong_soul\\compare_simulation.py": "b2dd846747d4af84ffa64bcaec90f91c8b81d77976fbc1d335687400efce0975",
+        "agents\\mahjong_soul\\efficiency.py": "b6aea1ef4c275b85277763b3e1519da8f4c7213842d5242d612e73ea42eab535",
+        "agents\\mahjong_soul\\evaluate.py": "1ff5542d83bacd137473599285e161f11f89aabd15ea9604632dc0fa50ac309d",
+        "agents\\mahjong_soul\\hand_plan.py": "ebecfcb05862b3c08186b37535c76c04eb5996a7e7a39342e0abec03173355d9",
+        "agents\\mahjong_soul\\inspect_run.py": "a75b3f05becb872cc8de599bd1564d1241d6e5f884c7868826e4f74ef28ebbed",
+        "agents\\mahjong_soul\\launch.py": "4c7208080f9b831fb7edc76ae8fc92e2e6c27020718afa54145b59f1124769bd",
+        "agents\\mahjong_soul\\pattern_yaku.py": "5a2dc8bd2d85071b1becfd1f534fbc6a2ee24a95861c604bb0775f303fa5deb5",
+        "agents\\mahjong_soul\\playbook_policy.py": "313952cb94c9f9dddc6da882d0dd1f825a1bce1a4f53fe43412b8c259a97cb99",
+        "agents\\mahjong_soul\\policy.py": "0f483c5a07cd27623ac9af4680caca74fdee70345a8009f7e57f70910df4accf",
+        "agents\\mahjong_soul\\scoring.py": "228f3f190e94e343daab20a18bf5d1ce38a5a35629be8b797c503ce3d145dad6",
+        "agents\\mahjong_soul\\shadow.py": "9e6a731d7f956fb895fd89553840ad8ef4979635ff44c7f98cb99b9e405480e2",
+        "agents\\mahjong_soul\\simulation.py": "723db81cc076b0a3210e0f573e523e8b6d03ad22939b2c8b355f5c086418d407",
+        "agents\\mahjong_soul\\speed_lookahead.py": "0faece79f9123811975cb5ddc37a7949533cb79e79c9ae4265274c15856234c5",
+        "agents\\mahjong_soul\\yaku_catalog.py": "5f87c54684bd598d8d4f4fda6da6cfebca14337406e979ef36d2be9e8ab3dbd6",
+        "agents\\mahjong_soul\\yakuman.py": "1df474e05fc1a7c6cf91821857d285c1dd50151fe0646eef7217531166a4b039",
+        "games\\mahjong_soul\\playbook\\__init__.py": "8f138965d95f33b06b579b1667e4adc30f71716d9d798e22cbb136543ddb74e1",
+        "games\\mahjong_soul\\playbook\\features.py": "c14fd41dfd522b8b2cfe4738559678cd21a5510914b97cc0ea5eeeb9fb876fca",
+        "games\\mahjong_soul\\playbook\\model.py": "82a06a1c729cb42f1905c5a4d41b8b151df6d3889adeb909e29e5fc689374f9b",
+        "games\\mahjong_soul\\playbook\\sanma\\__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "games\\mahjong_soul\\playbook\\sanma\\east_speed.py": "bb9c3013bde1e28a15dabfa852ddcd838c146379666a232446e9a2b3517efbae",
+        "games\\mahjong_soul\\playbook\\yonma\\__init__.py": "8de964bbeee1d8c0154711f3ef9ff15bc9516b086781cdaa4b31120a15a15886",
+        "games\\mahjong_soul\\playbook\\yonma\\east_speed.py": "f350259fed61e9546dfc4ceedad4dff71d8281f3ab4e6f167d87cf707bc218e7",
+        "games\\mahjong_soul\\playbook\\yonma\\south_attack.py": "7e54fb70d608c1121aa8d68d71823f2ca9a9c31c0cf68f29c4868aeb38742bb1"
+      }
+    },
+    {
+      "seed": 80,
+      "seat": 2,
+      "called_tile": "2z",
+      "occurrence": 1,
+      "opponents": "aggressive",
+      "engine": "0.4.10",
+      "revision": "eeef42b47eef91c046d5a6d37004a4f6a843e574",
+      "overrides": 1,
+      "first_different_event_index": 8,
+      "first_different_events": {
+        "pon": {
+          "actor": 2,
+          "consumed": [
+            "S",
+            "S"
+          ],
+          "pai": "S",
+          "target": 1,
+          "type": "pon"
+        },
+        "skip": {
+          "actor": 2,
+          "pai": "9s",
+          "type": "tsumo"
+        }
+      },
+      "limitation": "One forced action on one fixed hidden deal; later draws diverge. This is not a win-rate estimate or an optimal-action proof.",
+      "target": {
+        "board_token": "ea05e01fe3777d15a6b2b4db7a9334d2e68af91e812d9794394080869181d3bc",
+        "hand_index": 0,
+        "action": {
+          "kind": "pon",
+          "combination": "2z|2z",
+          "called_tile": "2z"
+        },
+        "analysis": {
+          "shanten": 3,
+          "effective_ukeire": 40,
+          "target_route": "yakuhai",
+          "post_call_discard": {
+            "kind": "discard",
+            "tile": "1m"
+          }
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 80,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "0": "east_speed_push",
+              "1": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 5,
+                "0": 43,
+                "5": 2,
+                "6": 1,
+                "7": 1,
+                "4": 2,
+                "2": 1
+              },
+              {
+                "2": 4,
+                "0": 45,
+                "9": 2,
+                "11": 4,
+                "7": 3,
+                "5": 1,
+                "4": 1
+              },
+              {
+                "2": 2,
+                "0": 46,
+                "7": 1,
+                "5": 2,
+                "11": 1
+              }
+            ],
+            "scores": [
+              66800,
+              30600,
+              7600
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 4,
+            "wins": 0,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              15,
+              12
+            ],
+            "steps": 166,
+            "seconds": 21.10762760002399,
+            "decision_seconds": 21.094533599738497,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  17000,
+                  -8000,
+                  -8000
+                ],
+                "target": 0,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "1p",
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 9
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 80,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "0": "east_speed_push",
+              "1": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 2,
+                "0": 36,
+                "7": 1,
+                "5": 2,
+                "4": 1
+              },
+              {
+                "2": 2,
+                "0": 35,
+                "4": 1,
+                "11": 3,
+                "7": 1,
+                "5": 1
+              },
+              {
+                "7": 2,
+                "0": 38,
+                "2": 4,
+                "11": 2,
+                "9": 1
+              }
+            ],
+            "scores": [
+              43400,
+              41000,
+              20600
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 3,
+            "wins": 0,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              8
+            ],
+            "steps": 132,
+            "seconds": 11.622637199994642,
+            "decision_seconds": 11.611586900195107,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  0,
+                  8000,
+                  -8000
+                ],
+                "target": 2,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 8
+          }
+        }
+      },
+      "full_local_report_sha256": "b09212cc16fab2be4228bf492247935f56eea45df36eec3d205628e8ced9200a",
+      "source_hashes": {
+        "agents\\mahjong_soul\\__init__.py": "484647fe5e47bdbef6d2b98e23da27ce6e0b4bc462afc7ee2d8aef3efb392475",
+        "agents\\mahjong_soul\\assist_preferences.py": "eec22c2de60b68b1d9b4c50d176731f1ca550218215a16ec9f824e574b422d18",
+        "agents\\mahjong_soul\\attack_defense.py": "d3ec7425b371738cf428f3d5e87559aaa14696ba873f1f84c25d57e79a939b10",
+        "agents\\mahjong_soul\\attack_policy.py": "4d8684706a11bc30984f396d48f3138703a891cea01716462e5c147399a0bfde",
+        "agents\\mahjong_soul\\attack_routes.py": "8bde04b46a1a8a64c8aac1d059d6ada9fabffd2be7240728fa09239b512fa939",
+        "agents\\mahjong_soul\\attack_value.py": "57b4305bb711c077e18e2d903b073def5fc6d850269838d87739fbccf55a1871",
+        "agents\\mahjong_soul\\auto.py": "86ad6804a3b3b8e19fd901162425d2b06504599a8be98fc4acd3275ab15e4501",
+        "agents\\mahjong_soul\\auto_policy.py": "dcd156aae85588535c46e001a3cbcb1db77ec1dadfe9f5d9c5973a3d1e105e83",
+        "agents\\mahjong_soul\\benchmark.py": "3b7cc10d086c804309e3b95a5b49297e26970c9fd124aa6df226e2b5951de8a5",
+        "agents\\mahjong_soul\\call_counterfactual.py": "73d2b088efa3d2e1a3724fa743a81a2e71ad932d408c8e5ccceed06290f81974",
+        "agents\\mahjong_soul\\capture_service.py": "d0eeb6a2f997acf44406b6faf37c3f176e9c5f0b99f51b790070c74c58190eb9",
+        "agents\\mahjong_soul\\compare_simulation.py": "b2dd846747d4af84ffa64bcaec90f91c8b81d77976fbc1d335687400efce0975",
+        "agents\\mahjong_soul\\efficiency.py": "b6aea1ef4c275b85277763b3e1519da8f4c7213842d5242d612e73ea42eab535",
+        "agents\\mahjong_soul\\evaluate.py": "1ff5542d83bacd137473599285e161f11f89aabd15ea9604632dc0fa50ac309d",
+        "agents\\mahjong_soul\\hand_plan.py": "ebecfcb05862b3c08186b37535c76c04eb5996a7e7a39342e0abec03173355d9",
+        "agents\\mahjong_soul\\inspect_run.py": "a75b3f05becb872cc8de599bd1564d1241d6e5f884c7868826e4f74ef28ebbed",
+        "agents\\mahjong_soul\\launch.py": "4c7208080f9b831fb7edc76ae8fc92e2e6c27020718afa54145b59f1124769bd",
+        "agents\\mahjong_soul\\pattern_yaku.py": "5a2dc8bd2d85071b1becfd1f534fbc6a2ee24a95861c604bb0775f303fa5deb5",
+        "agents\\mahjong_soul\\playbook_policy.py": "313952cb94c9f9dddc6da882d0dd1f825a1bce1a4f53fe43412b8c259a97cb99",
+        "agents\\mahjong_soul\\policy.py": "0f483c5a07cd27623ac9af4680caca74fdee70345a8009f7e57f70910df4accf",
+        "agents\\mahjong_soul\\scoring.py": "228f3f190e94e343daab20a18bf5d1ce38a5a35629be8b797c503ce3d145dad6",
+        "agents\\mahjong_soul\\shadow.py": "9e6a731d7f956fb895fd89553840ad8ef4979635ff44c7f98cb99b9e405480e2",
+        "agents\\mahjong_soul\\simulation.py": "723db81cc076b0a3210e0f573e523e8b6d03ad22939b2c8b355f5c086418d407",
+        "agents\\mahjong_soul\\speed_lookahead.py": "0faece79f9123811975cb5ddc37a7949533cb79e79c9ae4265274c15856234c5",
+        "agents\\mahjong_soul\\yaku_catalog.py": "5f87c54684bd598d8d4f4fda6da6cfebca14337406e979ef36d2be9e8ab3dbd6",
+        "agents\\mahjong_soul\\yakuman.py": "1df474e05fc1a7c6cf91821857d285c1dd50151fe0646eef7217531166a4b039",
+        "games\\mahjong_soul\\playbook\\__init__.py": "8f138965d95f33b06b579b1667e4adc30f71716d9d798e22cbb136543ddb74e1",
+        "games\\mahjong_soul\\playbook\\features.py": "c14fd41dfd522b8b2cfe4738559678cd21a5510914b97cc0ea5eeeb9fb876fca",
+        "games\\mahjong_soul\\playbook\\model.py": "82a06a1c729cb42f1905c5a4d41b8b151df6d3889adeb909e29e5fc689374f9b",
+        "games\\mahjong_soul\\playbook\\sanma\\__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "games\\mahjong_soul\\playbook\\sanma\\east_speed.py": "bb9c3013bde1e28a15dabfa852ddcd838c146379666a232446e9a2b3517efbae",
+        "games\\mahjong_soul\\playbook\\yonma\\__init__.py": "8de964bbeee1d8c0154711f3ef9ff15bc9516b086781cdaa4b31120a15a15886",
+        "games\\mahjong_soul\\playbook\\yonma\\east_speed.py": "f350259fed61e9546dfc4ceedad4dff71d8281f3ab4e6f167d87cf707bc218e7",
+        "games\\mahjong_soul\\playbook\\yonma\\south_attack.py": "7e54fb70d608c1121aa8d68d71823f2ca9a9c31c0cf68f29c4868aeb38742bb1"
+      }
+    }
+  ]
+}

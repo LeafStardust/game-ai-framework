@@ -161,11 +161,12 @@ def seat_policies(seat,candidate,opponents):
     return names
 
 
-def run(seed,seat,candidate,*,mode="3p-red-east",max_steps=5000,opponents="efficiency"):
+def run(seed,seat,candidate,*,mode="3p-red-east",max_steps=5000,opponents="efficiency",agent_factory=None):
     from riichienv import RiichiEnv,GameRule
     names=seat_policies(seat,candidate,opponents)
     env=RiichiEnv(game_mode=mode,seed=seed,rule=GameRule.default_mjsoul())
-    observations=env.reset();speed={};agents={p:Agent(names[p]) for p in range(3)}
+    factory=Agent if agent_factory is None else agent_factory
+    observations=env.reset();speed={};agents={p:factory(names[p]) for p in range(3)}
     action_counts=[Counter() for _ in range(3)]
     initial=env.mjai_log[:];steps=0;started=time.monotonic();decision_seconds=0
     while not env.done():
