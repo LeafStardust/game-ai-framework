@@ -1,0 +1,890 @@
+{
+  "board": {
+    "player_count": 3,
+    "self_seat": 1,
+    "self": {
+      "hand": [
+        "4s",
+        "2s",
+        "2z",
+        "9p",
+        "3s",
+        "9s",
+        "2z",
+        "7s",
+        "9p",
+        "9s",
+        "6s",
+        "5p",
+        "6p",
+        "7s"
+      ],
+      "opening_hand": [
+        "4s",
+        "2s",
+        "2z",
+        "9p",
+        "3s",
+        "9s",
+        "2z",
+        "7s",
+        "9p",
+        "9s",
+        "6s",
+        "5p",
+        "6p"
+      ],
+      "drawn_tile": "7s",
+      "furiten": false,
+      "scoring_context": {
+        "history_complete": false,
+        "win": {}
+      }
+    },
+    "players": [
+      {
+        "seat": 0,
+        "is_self": false,
+        "score": 51000,
+        "melds": [],
+        "norths": 0,
+        "riichi": "none",
+        "discards": []
+      },
+      {
+        "seat": 1,
+        "is_self": true,
+        "score": 27000,
+        "melds": [],
+        "norths": 0,
+        "riichi": "none",
+        "discards": []
+      },
+      {
+        "seat": 2,
+        "is_self": false,
+        "score": 27000,
+        "melds": [],
+        "norths": 0,
+        "riichi": "none",
+        "discards": []
+      }
+    ],
+    "round": {
+      "chang": 0,
+      "ju": 0,
+      "ben": 1,
+      "liqibang": 0
+    },
+    "wall_remaining": 44,
+    "dora_indicators": [],
+    "rules": {
+      "open_tanyao": true,
+      "tsumo_loss": true
+    },
+    "visible_tile_counts": {
+      "4s": 1,
+      "2s": 1,
+      "2z": 2,
+      "9p": 2,
+      "3s": 1,
+      "9s": 2,
+      "7s": 2,
+      "6s": 1,
+      "5p": 1,
+      "6p": 1
+    },
+    "visibility_complete": true,
+    "available_operations": {
+      "seat": 1,
+      "operation_list": [
+        {
+          "type": 3,
+          "combination": [
+            "3p|3p"
+          ]
+        }
+      ]
+    },
+    "lobby": {
+      "identified": true,
+      "player_count": 3,
+      "match_length": "east",
+      "label": "3 Player East Wind",
+      "unsupported_rules": []
+    }
+  },
+  "options": [
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "6s"
+      },
+      "shanten": 2,
+      "ukeire": 35,
+      "improving_tiles": [
+        {
+          "tile": "4p",
+          "unseen": 4
+        },
+        {
+          "tile": "5p",
+          "unseen": 3
+        },
+        {
+          "tile": "6p",
+          "unseen": 3
+        },
+        {
+          "tile": "7p",
+          "unseen": 4
+        },
+        {
+          "tile": "9p",
+          "unseen": 2
+        },
+        {
+          "tile": "2s",
+          "unseen": 3
+        },
+        {
+          "tile": "3s",
+          "unseen": 3
+        },
+        {
+          "tile": "4s",
+          "unseen": 3
+        },
+        {
+          "tile": "7s",
+          "unseen": 2
+        },
+        {
+          "tile": "8s",
+          "unseen": 4
+        },
+        {
+          "tile": "9s",
+          "unseen": 2
+        },
+        {
+          "tile": "2z",
+          "unseen": 2
+        }
+      ],
+      "retained_bonus": 0,
+      "yakuhai_units": 0,
+      "has_open_meld": false,
+      "dora_loss": 0,
+      "yakuhai_pair_loss": 0,
+      "yakuhai_triplet_loss": 0,
+      "yakuhai_triplets": [],
+      "safe_against_riichi_seats": [],
+      "routes": {},
+      "route_han": 0,
+      "open_yaku": false,
+      "opened": false,
+      "danger": 0,
+      "total_danger": 0,
+      "danger_by_seat": [],
+      "yaku_potential": {},
+      "pair_break_loss": 0,
+      "value_han": 0,
+      "target_route": "riichi",
+      "target_yaku_han": 1,
+      "projected_han": 1,
+      "route_cost": 0,
+      "open_route": false,
+      "target_suit": null,
+      "shape_shanten": 2,
+      "push_value_estimate": 1,
+      "riichi_offered": false,
+      "wait_value": null,
+      "effective_ukeire": 35,
+      "completion_estimate": {
+        "available": true,
+        "target": "legal_tsumo",
+        "shanten": 2,
+        "horizon": 12,
+        "capped_draw_cost": 11.566956152934319,
+        "completion_probability": 0.13860403319424985,
+        "states": 144,
+        "legal_win_evaluated": true,
+        "ron_evaluated": false,
+        "riichi_assumed": false,
+        "equal_shanten_repairs": false
+      }
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "5p"
+      },
+      "shanten": 2,
+      "ukeire": 31,
+      "improving_tiles": [
+        {
+          "tile": "6p",
+          "unseen": 3
+        },
+        {
+          "tile": "9p",
+          "unseen": 2
+        },
+        {
+          "tile": "2s",
+          "unseen": 3
+        },
+        {
+          "tile": "3s",
+          "unseen": 3
+        },
+        {
+          "tile": "4s",
+          "unseen": 3
+        },
+        {
+          "tile": "5s",
+          "unseen": 4
+        },
+        {
+          "tile": "6s",
+          "unseen": 3
+        },
+        {
+          "tile": "7s",
+          "unseen": 2
+        },
+        {
+          "tile": "8s",
+          "unseen": 4
+        },
+        {
+          "tile": "9s",
+          "unseen": 2
+        },
+        {
+          "tile": "2z",
+          "unseen": 2
+        }
+      ],
+      "retained_bonus": 0,
+      "yakuhai_units": 0,
+      "has_open_meld": false,
+      "dora_loss": 0,
+      "yakuhai_pair_loss": 0,
+      "yakuhai_triplet_loss": 0,
+      "yakuhai_triplets": [],
+      "safe_against_riichi_seats": [],
+      "routes": {},
+      "route_han": 0,
+      "open_yaku": false,
+      "opened": false,
+      "danger": 0,
+      "total_danger": 0,
+      "danger_by_seat": [],
+      "yaku_potential": {},
+      "pair_break_loss": 0,
+      "value_han": 0,
+      "target_route": "riichi",
+      "target_yaku_han": 1,
+      "projected_han": 1,
+      "route_cost": 0,
+      "open_route": false,
+      "target_suit": null,
+      "shape_shanten": 2,
+      "push_value_estimate": 1,
+      "riichi_offered": false,
+      "wait_value": null,
+      "effective_ukeire": 31,
+      "completion_development_proxy": 323
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "6p"
+      },
+      "shanten": 2,
+      "ukeire": 31,
+      "improving_tiles": [
+        {
+          "tile": "5p",
+          "unseen": 3
+        },
+        {
+          "tile": "9p",
+          "unseen": 2
+        },
+        {
+          "tile": "2s",
+          "unseen": 3
+        },
+        {
+          "tile": "3s",
+          "unseen": 3
+        },
+        {
+          "tile": "4s",
+          "unseen": 3
+        },
+        {
+          "tile": "5s",
+          "unseen": 4
+        },
+        {
+          "tile": "6s",
+          "unseen": 3
+        },
+        {
+          "tile": "7s",
+          "unseen": 2
+        },
+        {
+          "tile": "8s",
+          "unseen": 4
+        },
+        {
+          "tile": "9s",
+          "unseen": 2
+        },
+        {
+          "tile": "2z",
+          "unseen": 2
+        }
+      ],
+      "retained_bonus": 0,
+      "yakuhai_units": 0,
+      "has_open_meld": false,
+      "dora_loss": 0,
+      "yakuhai_pair_loss": 0,
+      "yakuhai_triplet_loss": 0,
+      "yakuhai_triplets": [],
+      "safe_against_riichi_seats": [],
+      "routes": {},
+      "route_han": 0,
+      "open_yaku": false,
+      "opened": false,
+      "danger": 0,
+      "total_danger": 0,
+      "danger_by_seat": [],
+      "yaku_potential": {},
+      "pair_break_loss": 0,
+      "value_han": 0,
+      "target_route": "riichi",
+      "target_yaku_han": 1,
+      "projected_han": 1,
+      "route_cost": 0,
+      "open_route": false,
+      "target_suit": null,
+      "shape_shanten": 2,
+      "push_value_estimate": 1,
+      "riichi_offered": false,
+      "wait_value": null,
+      "effective_ukeire": 31,
+      "completion_development_proxy": 323
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "7s"
+      },
+      "shanten": 2,
+      "ukeire": 22,
+      "improving_tiles": [
+        {
+          "tile": "4p",
+          "unseen": 4
+        },
+        {
+          "tile": "7p",
+          "unseen": 4
+        },
+        {
+          "tile": "9p",
+          "unseen": 2
+        },
+        {
+          "tile": "5s",
+          "unseen": 4
+        },
+        {
+          "tile": "8s",
+          "unseen": 4
+        },
+        {
+          "tile": "9s",
+          "unseen": 2
+        },
+        {
+          "tile": "2z",
+          "unseen": 2
+        }
+      ],
+      "retained_bonus": 0,
+      "yakuhai_units": 0,
+      "has_open_meld": false,
+      "dora_loss": 0,
+      "yakuhai_pair_loss": 0,
+      "yakuhai_triplet_loss": 0,
+      "yakuhai_triplets": [],
+      "safe_against_riichi_seats": [],
+      "routes": {},
+      "route_han": 0,
+      "open_yaku": false,
+      "opened": false,
+      "danger": 0,
+      "total_danger": 0,
+      "danger_by_seat": [],
+      "yaku_potential": {},
+      "pair_break_loss": 0,
+      "value_han": 0,
+      "target_route": "yakuhai",
+      "target_yaku_han": 1,
+      "projected_han": 2,
+      "route_cost": 1,
+      "open_route": true,
+      "target_suit": null,
+      "shape_shanten": 2,
+      "push_value_estimate": 1,
+      "riichi_offered": false,
+      "wait_value": null,
+      "effective_ukeire": 22,
+      "completion_development_proxy": 288
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "2z"
+      },
+      "shanten": 2,
+      "ukeire": 22,
+      "improving_tiles": [
+        {
+          "tile": "4p",
+          "unseen": 4
+        },
+        {
+          "tile": "7p",
+          "unseen": 4
+        },
+        {
+          "tile": "9p",
+          "unseen": 2
+        },
+        {
+          "tile": "5s",
+          "unseen": 4
+        },
+        {
+          "tile": "7s",
+          "unseen": 2
+        },
+        {
+          "tile": "8s",
+          "unseen": 4
+        },
+        {
+          "tile": "9s",
+          "unseen": 2
+        }
+      ],
+      "retained_bonus": 0,
+      "yakuhai_units": 0,
+      "has_open_meld": false,
+      "dora_loss": 0,
+      "yakuhai_pair_loss": 1,
+      "yakuhai_triplet_loss": 0,
+      "yakuhai_triplets": [],
+      "safe_against_riichi_seats": [],
+      "routes": {},
+      "route_han": 0,
+      "open_yaku": false,
+      "opened": false,
+      "danger": 0,
+      "total_danger": 0,
+      "danger_by_seat": [],
+      "yaku_potential": {},
+      "pair_break_loss": 0,
+      "value_han": 0,
+      "target_route": "riichi",
+      "target_yaku_han": 1,
+      "projected_han": 1,
+      "route_cost": 0,
+      "open_route": false,
+      "pattern_groups": [],
+      "pattern_pair": null,
+      "pattern_mode": "pinfu",
+      "blocked_heads": [
+        31,
+        32,
+        33,
+        28,
+        27
+      ],
+      "concealed_required": false,
+      "pattern_shanten": 2,
+      "shape_shanten": 2,
+      "target_suit": null,
+      "push_value_estimate": 1,
+      "riichi_offered": false,
+      "wait_value": null,
+      "effective_ukeire": 22,
+      "completion_development_proxy": 356,
+      "completion_estimate": {
+        "available": true,
+        "target": "legal_tsumo",
+        "shanten": 2,
+        "horizon": 12,
+        "capped_draw_cost": 11.32331986662002,
+        "completion_probability": 0.21713155381657942,
+        "states": 54,
+        "legal_win_evaluated": true,
+        "ron_evaluated": false,
+        "riichi_assumed": false,
+        "equal_shanten_repairs": false
+      }
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "9p"
+      },
+      "shanten": 2,
+      "ukeire": 22,
+      "improving_tiles": [
+        {
+          "tile": "4p",
+          "unseen": 4
+        },
+        {
+          "tile": "7p",
+          "unseen": 4
+        },
+        {
+          "tile": "5s",
+          "unseen": 4
+        },
+        {
+          "tile": "7s",
+          "unseen": 2
+        },
+        {
+          "tile": "8s",
+          "unseen": 4
+        },
+        {
+          "tile": "9s",
+          "unseen": 2
+        },
+        {
+          "tile": "2z",
+          "unseen": 2
+        }
+      ],
+      "retained_bonus": 0,
+      "yakuhai_units": 0,
+      "has_open_meld": false,
+      "dora_loss": 0,
+      "yakuhai_pair_loss": 0,
+      "yakuhai_triplet_loss": 0,
+      "yakuhai_triplets": [],
+      "safe_against_riichi_seats": [],
+      "routes": {},
+      "route_han": 0,
+      "open_yaku": false,
+      "opened": false,
+      "danger": 0,
+      "total_danger": 0,
+      "danger_by_seat": [],
+      "yaku_potential": {},
+      "pair_break_loss": 0,
+      "value_han": 0,
+      "target_route": "yakuhai",
+      "target_yaku_han": 1,
+      "projected_han": 2,
+      "route_cost": 1,
+      "open_route": true,
+      "target_suit": null,
+      "shape_shanten": 2,
+      "push_value_estimate": 1,
+      "riichi_offered": false,
+      "wait_value": null,
+      "effective_ukeire": 22,
+      "completion_development_proxy": 356,
+      "completion_estimate": {
+        "available": true,
+        "target": "legal_tsumo",
+        "shanten": 2,
+        "horizon": 12,
+        "capped_draw_cost": 11.32331986662002,
+        "completion_probability": 0.21713155381657942,
+        "states": 54,
+        "legal_win_evaluated": true,
+        "ron_evaluated": false,
+        "riichi_assumed": false,
+        "equal_shanten_repairs": false
+      },
+      "completion_baseline_action": {
+        "kind": "discard",
+        "tile": "6s"
+      }
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "9s"
+      },
+      "shanten": 2,
+      "ukeire": 22,
+      "improving_tiles": [
+        {
+          "tile": "4p",
+          "unseen": 4
+        },
+        {
+          "tile": "7p",
+          "unseen": 4
+        },
+        {
+          "tile": "9p",
+          "unseen": 2
+        },
+        {
+          "tile": "5s",
+          "unseen": 4
+        },
+        {
+          "tile": "7s",
+          "unseen": 2
+        },
+        {
+          "tile": "8s",
+          "unseen": 4
+        },
+        {
+          "tile": "2z",
+          "unseen": 2
+        }
+      ],
+      "retained_bonus": 0,
+      "yakuhai_units": 0,
+      "has_open_meld": false,
+      "dora_loss": 0,
+      "yakuhai_pair_loss": 0,
+      "yakuhai_triplet_loss": 0,
+      "yakuhai_triplets": [],
+      "safe_against_riichi_seats": [],
+      "routes": {},
+      "route_han": 0,
+      "open_yaku": false,
+      "opened": false,
+      "danger": 0,
+      "total_danger": 0,
+      "danger_by_seat": [],
+      "yaku_potential": {},
+      "pair_break_loss": 0,
+      "value_han": 0,
+      "target_route": "yakuhai",
+      "target_yaku_han": 1,
+      "projected_han": 2,
+      "route_cost": 1,
+      "open_route": true,
+      "target_suit": null,
+      "shape_shanten": 2,
+      "push_value_estimate": 1,
+      "riichi_offered": false,
+      "wait_value": null,
+      "effective_ukeire": 22,
+      "completion_development_proxy": 324
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "2s"
+      },
+      "shanten": 2,
+      "ukeire": 15,
+      "improving_tiles": [
+        {
+          "tile": "5p",
+          "unseen": 3
+        },
+        {
+          "tile": "6p",
+          "unseen": 3
+        },
+        {
+          "tile": "3s",
+          "unseen": 3
+        },
+        {
+          "tile": "4s",
+          "unseen": 3
+        },
+        {
+          "tile": "6s",
+          "unseen": 3
+        }
+      ],
+      "retained_bonus": 0,
+      "yakuhai_units": 0,
+      "has_open_meld": false,
+      "dora_loss": 0,
+      "yakuhai_pair_loss": 0,
+      "yakuhai_triplet_loss": 0,
+      "yakuhai_triplets": [],
+      "safe_against_riichi_seats": [],
+      "routes": {},
+      "route_han": 0,
+      "open_yaku": false,
+      "opened": false,
+      "danger": 0,
+      "total_danger": 0,
+      "danger_by_seat": [],
+      "yaku_potential": {},
+      "pair_break_loss": 0,
+      "value_han": 0,
+      "target_route": "chiitoitsu",
+      "target_yaku_han": 2,
+      "projected_han": 3,
+      "route_cost": 3,
+      "open_route": false,
+      "target_suit": null,
+      "shape_shanten": 2,
+      "push_value_estimate": 1,
+      "riichi_offered": false,
+      "wait_value": null,
+      "effective_ukeire": 15,
+      "completion_development_proxy": 135
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "3s"
+      },
+      "shanten": 2,
+      "ukeire": 15,
+      "improving_tiles": [
+        {
+          "tile": "5p",
+          "unseen": 3
+        },
+        {
+          "tile": "6p",
+          "unseen": 3
+        },
+        {
+          "tile": "2s",
+          "unseen": 3
+        },
+        {
+          "tile": "4s",
+          "unseen": 3
+        },
+        {
+          "tile": "6s",
+          "unseen": 3
+        }
+      ],
+      "retained_bonus": 0,
+      "yakuhai_units": 0,
+      "has_open_meld": false,
+      "dora_loss": 0,
+      "yakuhai_pair_loss": 0,
+      "yakuhai_triplet_loss": 0,
+      "yakuhai_triplets": [],
+      "safe_against_riichi_seats": [],
+      "routes": {},
+      "route_han": 0,
+      "open_yaku": false,
+      "opened": false,
+      "danger": 0,
+      "total_danger": 0,
+      "danger_by_seat": [],
+      "yaku_potential": {},
+      "pair_break_loss": 0,
+      "value_han": 0,
+      "target_route": "chiitoitsu",
+      "target_yaku_han": 2,
+      "projected_han": 3,
+      "route_cost": 3,
+      "open_route": false,
+      "target_suit": null,
+      "shape_shanten": 2,
+      "push_value_estimate": 1,
+      "riichi_offered": false,
+      "wait_value": null,
+      "effective_ukeire": 15,
+      "completion_development_proxy": 135
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "4s"
+      },
+      "shanten": 2,
+      "ukeire": 15,
+      "improving_tiles": [
+        {
+          "tile": "5p",
+          "unseen": 3
+        },
+        {
+          "tile": "6p",
+          "unseen": 3
+        },
+        {
+          "tile": "2s",
+          "unseen": 3
+        },
+        {
+          "tile": "3s",
+          "unseen": 3
+        },
+        {
+          "tile": "6s",
+          "unseen": 3
+        }
+      ],
+      "retained_bonus": 0,
+      "yakuhai_units": 0,
+      "has_open_meld": false,
+      "dora_loss": 0,
+      "yakuhai_pair_loss": 0,
+      "yakuhai_triplet_loss": 0,
+      "yakuhai_triplets": [],
+      "safe_against_riichi_seats": [],
+      "routes": {},
+      "route_han": 0,
+      "open_yaku": false,
+      "opened": false,
+      "danger": 0,
+      "total_danger": 0,
+      "danger_by_seat": [],
+      "yaku_potential": {},
+      "pair_break_loss": 0,
+      "value_han": 0,
+      "target_route": "chiitoitsu",
+      "target_yaku_han": 2,
+      "projected_han": 3,
+      "route_cost": 3,
+      "open_route": false,
+      "target_suit": null,
+      "shape_shanten": 2,
+      "push_value_estimate": 1,
+      "riichi_offered": false,
+      "wait_value": null,
+      "effective_ukeire": 15,
+      "completion_development_proxy": 135
+    }
+  ],
+  "baseline": {
+    "kind": "discard",
+    "tile": "6s"
+  },
+  "candidate": {
+    "kind": "discard",
+    "tile": "9p"
+  },
+  "source": "Generated legal Sanma hand; Random(612), sample 101; diagnostic only"
+}

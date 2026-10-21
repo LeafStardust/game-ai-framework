@@ -159,3 +159,11 @@ def test_completion_candidate_is_offline_and_isolated():
     assert not normal.policy.registry.get(3,"atk","east").strategy["calls"].get("completion_opening_guard")
     assert not candidate.policy.registry.get(4,"atk","east").strategy["calls"].get("completion_opening_guard")
     assert not candidate.policy.registry.get(4,"atk","south").strategy["calls"].get("completion_opening_guard")
+
+
+def test_discard_completion_candidate_is_offline_and_isolated():
+    candidate=Agent("east_speed_discard_completion");normal=Agent("east_speed")
+    assert candidate.policy.registry.get(3,"atk","east").thresholds_for("D1")["discard_completion"] is True
+    assert not normal.policy.registry.get(3,"atk","east").thresholds_for("D1").get("discard_completion")
+    assert not candidate.policy.registry.get(4,"atk","east").thresholds_for("D1").get("discard_completion")
+    assert not candidate.policy.registry.get(4,"atk","south").thresholds_for("D1").get("discard_completion")

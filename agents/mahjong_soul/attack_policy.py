@@ -87,6 +87,10 @@ def attack_utility(option,settings):
 
 def offensive(board,options,value):
     if value.get("speed_first"):
+        if value.get("discard_completion"):
+            from agents.mahjong_soul.discard_completion import choose_completion_discard
+            key=lambda o:(-o["shanten"],o["effective_ukeire"],-o.get("danger",0),-o.get("total_danger",0),o["projected_han"],attack_utility(o,value))
+            return choose_completion_discard(board,options,key)
         if value.get("early_development"):
             nearest=min(o["shanten"] for o in options)
             own=own_player(board)
@@ -319,6 +323,8 @@ def choose_attack(owner,request,book,ranker=rank_discards):
         if option:
             owner.last_analysis.update({k:deepcopy(option[k]) for k in ("shanten","ukeire","effective_ukeire","value_han","push_value_estimate","routes","yaku_potential","danger","danger_by_seat","wait_value","improving_tiles","target_route","projected_han","route_cost")})
             owner.last_analysis["retained_value_proxy"]=option["value_han"]
+            if "completion_baseline_action" in option:
+                owner.last_analysis["completion_baseline_action"]=deepcopy(option["completion_baseline_action"])
         return deepcopy(action)
     wins=[a for a in actions if a["kind"] in ("ron","tsumo")]
     if wins:
@@ -343,7 +349,8 @@ def choose_attack(owner,request,book,ranker=rank_discards):
     options=enrich(board,ranker(request),value);best=offensive(board,options,value)
     # Detailed recordings explain alternatives; terminal rendering stays action-only.
     discard_notes=[{k:deepcopy(o.get(k)) for k in ("action","target_route","projected_han","shanten","effective_ukeire","route_cost","wait_value")} |
-                   {"utility":attack_utility(o,value)} for o in options]
+                   {"utility":attack_utility(o,value)} |
+                   ({"completion_estimate":deepcopy(o["completion_estimate"])} if "completion_estimate" in o else {}) for o in options]
     settings=book.thresholds_for("D2")
     if opponents and not settings.get("always_push"):
         alternatives=[o for o in options if o["shanten"]==best["shanten"]
