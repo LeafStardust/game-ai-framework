@@ -27,3 +27,7 @@ Groups separate player count, East/South, AI-room verification, rule configurati
 Keep East Speed's requested order: fastest legal winning progress, then defense, then value. Use actual boards to diagnose missed wins and preserve legal-action masking and Yaku validation. Keep hand-win rate distinct from match first-place rate: small fast wins do not automatically maximize final placement.
 
 An initial [offline Sanma harness](SIMULATION.md) now runs the current policy and a fixed efficiency baseline on matching seeds and seat assignments using RiichiEnv. Engine parity remains under validation. Candidate policies should play the same deals before comparing speed and outcomes. Recorded-board replays alone still show action differences only; they cannot measure counterfactual wins. Learned policies or external-engine adapters require a separately verified rules/features/action mapping and actual usable model artifacts. They are not implemented by adding these references.
+
+## Trained Sanma reference availability
+
+The [checkpoint audit](experiments/TRAINED_SANMA_REVIEW.md) records the inspected revisions and artifact blockers. No trained Sanma model has been integrated or benchmarked. The linked c3 checkpoint in the inspected Sanma-named fork is documented as four-player, so it is not a valid Sanma substitute.
