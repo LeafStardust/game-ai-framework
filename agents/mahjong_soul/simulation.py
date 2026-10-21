@@ -42,7 +42,15 @@ def request(obs,history=None):
     for seat in range(3):
         melds=[{"type":{"Chi":0,"Pon":1,"Daiminkan":2,"Ankan":3,"Kakan":2}[str(m.meld_type).split(".")[-1]],"tiles":[tile(t) for t in m.tiles]} for m in obs.melds[seat]]
         players.append({"seat":seat,"is_self":seat==pid,"score":d["scores"][seat],"melds":melds,"norths":norths[seat],"riichi":"accepted" if d["riichi_declared"][seat] else "none","discards":[{"tile":tile(t),"called":t in all_meld_ids,"tsumogiri":bool(obs.tsumogiri_flags[seat][i]) if i<len(obs.tsumogiri_flags[seat]) else None,"riichi":obs.riichi_sutehais[seat]==t} for i,t in enumerate(d["discards"][seat])]})
-    actions=[];bindings=[];codes=[];native=obs.legal_actions()
+    actions=[];bindings=[];codes=[];native=obs.legal_actions();seen=set()
+    def bind(intent,action):
+        # The engine exposes physical-copy actions; the live contract exposes
+        # one action per exact tile label/combination. Keep the first legal
+        # native binding, preserving red versus normal fives as distinct.
+        key=json.dumps(intent,sort_keys=True)
+        if key in seen:return False
+        seen.add(key);actions.append(intent);bindings.append((intent,action))
+        return True
     for a in native:
         typ=int(a.action_type);intent=None
         if typ==0:intent={"kind":"discard","tile":tile(a.tile)}
@@ -51,7 +59,7 @@ def request(obs,history=None):
                 if int(discard.action_type)!=0:continue
                 hand=list(obs.hand);hand.remove(discard.tile)
                 if calculate_shanten_3p(hand)==0:
-                    choice={"kind":"riichi","tile":tile(discard.tile)};actions.append(choice);bindings.append((choice,a))
+                    choice={"kind":"riichi","tile":tile(discard.tile)};bind(choice,a)
             continue
         elif typ in (2,3,8,9):
             name={2:"pon",3:"open_kan",8:"closed_kan",9:"added_kan"}[typ]
@@ -66,11 +74,18 @@ def request(obs,history=None):
         elif typ in (4,6):continue # Claimed directly from engine-legal actions.
         elif typ==10:continue # Optional Nine Terminals abort is not a policy action.
         else:raise ValueError(f"Unmapped simulator action {typ}")
-        actions.append(intent);bindings.append((intent,a))
+        if not bind(intent,a):continue
         code={0:1,2:3,3:5,8:4,9:6,11:11}.get(typ)
         if code:codes.append({"type":code,"combination":[intent["combination"]] if "combination" in intent else []})
     reaches=[a["tile"] for a in actions if a["kind"]=="riichi"]
     if reaches:codes.append({"type":7,"combination":reaches})
+    # Live operations have one entry per operation type, not per physical tile.
+    grouped={}
+    for code in codes:
+        entry=grouped.setdefault(code["type"],{"type":code["type"],"combination":[]})
+        for combination in code["combination"]:
+            if combination not in entry["combination"]:entry["combination"].append(combination)
+    codes=list(grouped.values())
     opening=start["tehais"][pid]
     def mjtile(t):return {"E":"1z","S":"2z","W":"3z","N":"4z","P":"5z","F":"6z","C":"7z"}.get(t,"0"+t[1] if t.endswith("r") else t)
     drawn=obs.drawn_tile

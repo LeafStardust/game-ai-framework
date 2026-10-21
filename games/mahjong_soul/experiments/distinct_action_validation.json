@@ -1,0 +1,33 @@
+{
+  "scope": "Adapter parity probes only; no win-rate measurement",
+  "results": [
+    {
+      "opponents": "callers",
+      "seed": 80,
+      "seat": 2,
+      "exact_replay_match": true,
+      "scores": [
+        59400,
+        30600,
+        15000
+      ],
+      "hands": 4,
+      "wins": 0,
+      "deal_ins": 1
+    },
+    {
+      "opponents": "aggressive",
+      "seed": 80,
+      "seat": 2,
+      "exact_replay_match": true,
+      "scores": [
+        66800,
+        30600,
+        7600
+      ],
+      "hands": 4,
+      "wins": 0,
+      "deal_ins": 1
+    }
+  ]
+}

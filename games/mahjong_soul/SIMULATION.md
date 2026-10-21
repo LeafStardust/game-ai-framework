@@ -92,3 +92,7 @@ Completed results and recorded-board findings: [scored ready-Yaku review](experi
 ## Active-opponent evaluation
 
 The [opponent comparison review](experiments/OPPONENT_REVIEW.md) reports 96 completed matches against call-capable and aggressive profiles. The narrow ready-push candidate changed actual play but did not improve wins or placement; held-out caller deal-ins increased. It remains offline-only. Settled replay events verify that the new opponents actually called and declared Riichi.
+
+## Distinct policy intents
+
+The adapter collapses interchangeable physical-copy actions into one exact tile-label/combination intent, retaining the first legal native binding. Red and normal fives remain separate choices. Riichi offers and operation combinations are unique, matching the live contract. This prevents duplicate normal tiles from taking multiple slots in bounded lookahead. The [offense audit and parity probes](experiments/OFFENSE_AUDIT_REVIEW.md) document the correction and its limits; historical bounded-shortlist experiments need re-evaluation before being interpreted as three-distinct-choice tests.

@@ -104,3 +104,44 @@ def test_invalid_opponent_setup_is_not_silently_efficiency():
         seat_policies(0,"east_speed","typo")
     with pytest.raises(ValueError,match="Seat must"):
         seat_policies(3,"east_speed","callers")
+
+
+def test_duplicate_physical_discards_have_one_intent_and_keep_red_five():
+    env=engine.RiichiEnv(game_mode="3p-red-single",seed=7);obs=env.reset()[0]
+    native=obs.legal_actions();req,bindings=request(obs)
+    discards=[a for a in req["actions"] if a["kind"]=="discard"]
+    assert sum(int(a.action_type)==0 for a in native)>len(discards)
+    assert {a["tile"] for a in discards}=={tile(t) for t in obs.hand}
+    assert len(discards)==len({a["tile"] for a in discards})
+    assert {"0s","5s"}<={a["tile"] for a in discards}
+    for intent,action in bindings:
+        if intent["kind"]=="discard":
+            first=next(a for a in native if int(a.action_type)==0 and tile(a.tile)==intent["tile"])
+            assert action.tile==first.tile
+    codes=req["observation"]["board"]["available_operations"]["operation_list"]
+    assert len(codes)==len({c["type"] for c in codes})
+    action=next(a for intent,a in bindings if intent=={"kind":"discard","tile":"5s"})
+    env.step({0:action})  # The retained exact physical binding is engine-legal.
+
+
+def test_duplicate_riichi_discard_keeps_one_offer_and_two_stage_binding():
+    from agents.mahjong_soul.simulation import events
+    env=engine.RiichiEnv(game_mode="3p-red-single",seed=0);observations=env.reset()
+    agents={p:Agent("efficiency") for p in range(3)}
+    for _ in range(500):
+        for pid,obs in observations.items():
+            if not any(int(a.action_type)==5 for a in obs.legal_actions()):continue
+            assert [tile(t) for t in obs.hand].count("9p")==2
+            req,bindings=request(obs,agents[pid].history+events(obs))
+            reaches=[a for a in req["actions"] if a["kind"]=="riichi"]
+            assert reaches==[{"kind":"riichi","tile":"9p"}]
+            reach=agents[pid].act(obs)
+            assert int(reach.action_type)==5
+            following=env.step({pid:reach})
+            discard=agents[pid].act(following[pid])
+            assert int(discard.action_type)==0 and tile(discard.tile)=="9p"
+            env.step({pid:discard})
+            return
+        if env.done():break
+        observations=env.step({pid:agents[pid].act(obs) for pid,obs in observations.items()})
+    pytest.fail("Seeded regression did not reach the expected Riichi offer")

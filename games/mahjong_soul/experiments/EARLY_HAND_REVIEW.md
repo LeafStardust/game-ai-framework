@@ -20,3 +20,7 @@ Held-out outcomes were unchanged despite replay differences. Development hand-wi
 No live factory, default policy setting, launcher, capture or input behavior changed. Neither this candidate nor the previous inactive lookahead prototypes should be advertised as win-rate improvements. Replays remain local under `logs/mahjong_soul/experiments/early-development-*`; adjacent JSON includes paired seed details and source hashes. Seeds here are now inspected and cannot be reused as untouched holdout data.
 
 The next research direction is to evaluate a trained Sanma policy as a decision reference, with verified observation/action/rule compatibility. The local hand-shape proxies tested so far have not demonstrated a win-rate gain; adding more of the same without a stronger reference is not justified by these results.
+
+## Subsequent adapter correction
+
+The [offense audit](OFFENSE_AUDIT_REVIEW.md) found duplicate physical-copy intents in the simulator. The three-entry shortlist in this historical run was therefore not guaranteed to contain three distinct discard choices. The recorded outcomes and source hashes remain valid for the old adapter, but a three-distinct-choice interpretation requires re-evaluation under the corrected contract. The prototype remains disabled and no strength gain is claimed.

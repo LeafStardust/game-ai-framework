@@ -1,0 +1,91 @@
+{
+  "seed": 80,
+  "seat": 2,
+  "opponents": "callers",
+  "scores": [
+    59400,
+    30600,
+    15000
+  ],
+  "wins": 0,
+  "actions": {
+    "pon": 2,
+    "discard": 51,
+    "skip": 1,
+    "riichi": 2,
+    "extract_north": 2
+  },
+  "calls": [
+    {
+      "decision_index": 0,
+      "selected": {
+        "kind": "pon",
+        "combination": "2z|2z",
+        "called_tile": "2z"
+      },
+      "evaluations": [
+        {
+          "action": {
+            "kind": "pon",
+            "combination": "2z|2z",
+            "called_tile": "2z"
+          },
+          "accepted": true,
+          "baseline_shanten": 3,
+          "best_shanten": 3,
+          "best_projected_han": 1,
+          "rejections": {
+            "slower_than_post_call_plan": 4
+          }
+        }
+      ]
+    },
+    {
+      "decision_index": 2,
+      "selected": {
+        "kind": "pon",
+        "combination": "3z|3z",
+        "called_tile": "3z"
+      },
+      "evaluations": [
+        {
+          "action": {
+            "kind": "pon",
+            "combination": "3z|3z",
+            "called_tile": "3z"
+          },
+          "accepted": true,
+          "baseline_shanten": 3,
+          "best_shanten": 2,
+          "best_projected_han": 1,
+          "rejections": {
+            "slower_than_post_call_plan": 3
+          }
+        }
+      ]
+    },
+    {
+      "decision_index": 25,
+      "selected": {
+        "kind": "skip"
+      },
+      "evaluations": [
+        {
+          "action": {
+            "kind": "pon",
+            "combination": "0s|5s",
+            "called_tile": "5s"
+          },
+          "accepted": false,
+          "baseline_shanten": 1,
+          "best_shanten": 2,
+          "best_projected_han": 4,
+          "rejections": {
+            "call_loses_progress": 5,
+            "slower_than_post_call_plan": 2
+          }
+        }
+      ]
+    }
+  ]
+}
