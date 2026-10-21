@@ -70,3 +70,10 @@ def test_old_partial_yaku_gate_is_offline_only():
     old=Agent("east_speed_partial_yaku");normal=Agent("east_speed")
     assert not old.policy.registry.get(3,"atk","east").strategy["defense"]["allow_scored_ready_yaku"]
     assert normal.policy.registry.get(3,"atk","east").strategy["defense"]["allow_scored_ready_yaku"]
+
+
+def test_ready_push_candidate_does_not_enable_live_risk_override():
+    candidate=Agent("east_speed_ready_push");normal=Agent("east_speed")
+    settings=candidate.policy.registry.get(3,"atk","east").strategy["defense"]
+    assert settings["ready_push_max_danger"]==90 and settings["ready_push_min_ukeire"]==3
+    assert "ready_push_max_danger" not in normal.policy.registry.get(3,"atk","east").strategy["defense"]

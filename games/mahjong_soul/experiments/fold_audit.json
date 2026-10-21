@@ -1,0 +1,1379 @@
+{
+  "source_revision": "cebf0931",
+  "scope": "Unique recorded fold decisions from all 27 session directories; current East Speed replay only; not all possible game boards.",
+  "boards": 69,
+  "sessions": 6,
+  "zero_risk_selections": 40,
+  "distance_lost": 22,
+  "ready_hands_broken": 5,
+  "boards_with_no_higher_risk_faster_alternative": 0,
+  "cases": [
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 355,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "2s"
+        },
+        "shanten": 3,
+        "effective_ukeire": 54,
+        "danger": 48.75,
+        "total_danger": 48.75
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 44,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 377,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "8s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 48.75,
+        "total_danger": 48.75
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 41,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 400,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "2s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 48.75,
+        "total_danger": 48.75
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 38,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 421,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "3s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 35,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 565,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "6p"
+        },
+        "shanten": 2,
+        "effective_ukeire": 21,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 1,
+      "threats": 1,
+      "wall_remaining": 20,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 941,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1p"
+        },
+        "shanten": 1,
+        "effective_ukeire": 6,
+        "danger": 55,
+        "total_danger": 55
+      },
+      "nearest_shanten": 1,
+      "threats": 1,
+      "wall_remaining": 31,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 974,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1p"
+        },
+        "shanten": 1,
+        "effective_ukeire": 16,
+        "danger": 55,
+        "total_danger": 55
+      },
+      "nearest_shanten": 1,
+      "threats": 1,
+      "wall_remaining": 28,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 1133,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "4p"
+        },
+        "shanten": 3,
+        "effective_ukeire": 26,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 43,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 1153,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1s"
+        },
+        "shanten": 3,
+        "effective_ukeire": 36,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 40,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 1174,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1p"
+        },
+        "shanten": 3,
+        "effective_ukeire": 34,
+        "danger": 35.75,
+        "total_danger": 35.75
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 37,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 1195,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "2z"
+        },
+        "shanten": 3,
+        "effective_ukeire": 46,
+        "danger": 45,
+        "total_danger": 45
+      },
+      "nearest_shanten": 3,
+      "threats": 1,
+      "wall_remaining": 34,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 1216,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9p"
+        },
+        "shanten": 3,
+        "effective_ukeire": 43,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 31,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 1241,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "3p"
+        },
+        "shanten": 3,
+        "effective_ukeire": 41,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 28,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T124308-369100Z",
+      "sequence": 1261,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "7z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 33,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 25,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 102,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "3s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 47,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 38,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 122,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "4z"
+        },
+        "shanten": 3,
+        "effective_ukeire": 54,
+        "danger": 20,
+        "total_danger": 20
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 35,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 158,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9m"
+        },
+        "shanten": 3,
+        "effective_ukeire": 54,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 3,
+      "threats": 1,
+      "wall_remaining": 31,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 181,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9m"
+        },
+        "shanten": 3,
+        "effective_ukeire": 52,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 3,
+      "threats": 1,
+      "wall_remaining": 28,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 204,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "6p"
+        },
+        "shanten": 2,
+        "effective_ukeire": 11,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 25,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 224,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 9,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 22,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 244,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "6z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 9,
+        "danger": 20,
+        "total_danger": 20
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 19,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 268,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "7z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 10,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 15,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 293,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "6z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 10,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 12,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 317,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "3z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 10,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 9,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 818,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9s"
+        },
+        "shanten": 1,
+        "effective_ukeire": 31,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 0,
+      "threats": 1,
+      "wall_remaining": 29,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": [
+        {
+          "action": {
+            "kind": "discard",
+            "tile": "7p"
+          },
+          "copies": 4,
+          "danger": 90,
+          "ron_blocked": false,
+          "ron_points": 12000.0
+        }
+      ]
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 841,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "5s"
+        },
+        "shanten": 1,
+        "effective_ukeire": 8,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 0,
+      "threats": 1,
+      "wall_remaining": 25,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": [
+        {
+          "action": {
+            "kind": "discard",
+            "tile": "7p"
+          },
+          "copies": 4,
+          "danger": 90,
+          "ron_blocked": false,
+          "ron_points": 12000.0
+        }
+      ]
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 868,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1p"
+        },
+        "shanten": 1,
+        "effective_ukeire": 6,
+        "danger": 55,
+        "total_danger": 55
+      },
+      "nearest_shanten": 1,
+      "threats": 2,
+      "wall_remaining": 22,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 894,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "8s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 39,
+        "danger": 48.75,
+        "total_danger": 48.75
+      },
+      "nearest_shanten": 1,
+      "threats": 2,
+      "wall_remaining": 18,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T122443-992610Z",
+      "sequence": 917,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1m"
+        },
+        "shanten": 1,
+        "effective_ukeire": 9,
+        "danger": 55,
+        "total_danger": 110
+      },
+      "nearest_shanten": 1,
+      "threats": 2,
+      "wall_remaining": 15,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 323,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "6s"
+        },
+        "shanten": 1,
+        "effective_ukeire": 8,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 1,
+      "threats": 1,
+      "wall_remaining": 24,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 363,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "6s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 29,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 1,
+      "threats": 1,
+      "wall_remaining": 18,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 384,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "3z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 29,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 15,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 405,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1m"
+        },
+        "shanten": 2,
+        "effective_ukeire": 28,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 12,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 442,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "7s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 27,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 1,
+      "threats": 1,
+      "wall_remaining": 10,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 484,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9s"
+        },
+        "shanten": 1,
+        "effective_ukeire": 7,
+        "danger": 35.75,
+        "total_danger": 35.75
+      },
+      "nearest_shanten": 1,
+      "threats": 2,
+      "wall_remaining": 4,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 521,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "2s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 17,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 1,
+      "threats": 2,
+      "wall_remaining": 0,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 816,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "4s"
+        },
+        "shanten": 1,
+        "effective_ukeire": 23,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 0,
+      "threats": 1,
+      "wall_remaining": 28,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": [
+        {
+          "action": {
+            "kind": "discard",
+            "tile": "7p"
+          },
+          "copies": 3,
+          "danger": 90,
+          "ron_blocked": false,
+          "ron_points": 7700.0
+        }
+      ]
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 881,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "2p"
+        },
+        "shanten": 1,
+        "effective_ukeire": 7,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 0,
+      "threats": 1,
+      "wall_remaining": 19,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": [
+        {
+          "action": {
+            "kind": "discard",
+            "tile": "7p"
+          },
+          "copies": 2,
+          "danger": 58.5,
+          "ron_blocked": true,
+          "ron_points": 7700.0
+        }
+      ]
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 928,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "4p"
+        },
+        "shanten": 1,
+        "effective_ukeire": 7,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 0,
+      "threats": 1,
+      "wall_remaining": 13,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": [
+        {
+          "action": {
+            "kind": "discard",
+            "tile": "7p"
+          },
+          "copies": 2,
+          "danger": 58.5,
+          "ron_blocked": true,
+          "ron_points": 7700.0
+        }
+      ]
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 1361,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "6p"
+        },
+        "shanten": 1,
+        "effective_ukeire": 9,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 1,
+      "threats": 1,
+      "wall_remaining": 4,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 1384,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "5p"
+        },
+        "shanten": 2,
+        "effective_ukeire": 7,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 1,
+      "threats": 2,
+      "wall_remaining": 1,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 1704,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "6z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 24,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 23,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2206,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 41,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2232,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "5p"
+        },
+        "shanten": 3,
+        "effective_ukeire": 53,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 38,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2257,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "8s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 29,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 35,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2286,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "5z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 28,
+        "danger": 45,
+        "total_danger": 45
+      },
+      "nearest_shanten": 2,
+      "threats": 2,
+      "wall_remaining": 31,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2585,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "2z"
+        },
+        "shanten": 3,
+        "effective_ukeire": 46,
+        "danger": 45,
+        "total_danger": 45
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 46,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2608,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "2z"
+        },
+        "shanten": 3,
+        "effective_ukeire": 47,
+        "danger": 20,
+        "total_danger": 20
+      },
+      "nearest_shanten": 3,
+      "threats": 1,
+      "wall_remaining": 43,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2647,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "0p"
+        },
+        "shanten": 3,
+        "effective_ukeire": 44,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 40,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2674,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9p"
+        },
+        "shanten": 3,
+        "effective_ukeire": 43,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 3,
+      "threats": 1,
+      "wall_remaining": 37,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2695,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "7z"
+        },
+        "shanten": 3,
+        "effective_ukeire": 42,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 3,
+      "threats": 1,
+      "wall_remaining": 34,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2716,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 21,
+        "danger": 45,
+        "total_danger": 45
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 31,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2737,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "3z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 45,
+        "total_danger": 90
+      },
+      "nearest_shanten": 2,
+      "threats": 2,
+      "wall_remaining": 28,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2761,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "3z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 45,
+        "total_danger": 90
+      },
+      "nearest_shanten": 2,
+      "threats": 2,
+      "wall_remaining": 24,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2785,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9m"
+        },
+        "shanten": 2,
+        "effective_ukeire": 26,
+        "danger": 55,
+        "total_danger": 55
+      },
+      "nearest_shanten": 2,
+      "threats": 2,
+      "wall_remaining": 21,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T120330-675251Z",
+      "sequence": 2806,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1p"
+        },
+        "shanten": 1,
+        "effective_ukeire": 8,
+        "danger": 55,
+        "total_danger": 55
+      },
+      "nearest_shanten": 1,
+      "threats": 2,
+      "wall_remaining": 18,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T110201-036825Z",
+      "sequence": 1134,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 10,
+        "danger": 55,
+        "total_danger": 55
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 34,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T110201-036825Z",
+      "sequence": 1157,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9s"
+        },
+        "shanten": 2,
+        "effective_ukeire": 22,
+        "danger": 55,
+        "total_danger": 55
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 31,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T110201-036825Z",
+      "sequence": 1178,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9m"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 55,
+        "total_danger": 55
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 28,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T110201-036825Z",
+      "sequence": 1199,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "2z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 45,
+        "total_danger": 45
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 25,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T110201-036825Z",
+      "sequence": 1223,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1p"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 55,
+        "total_danger": 55
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 22,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T110201-036825Z",
+      "sequence": 1246,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "9m"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 55,
+        "total_danger": 55
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 19,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T110201-036825Z",
+      "sequence": 1274,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1m"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 1,
+      "wall_remaining": 16,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T110201-036825Z",
+      "sequence": 1297,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "7z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 2,
+      "threats": 2,
+      "wall_remaining": 13,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T110201-036825Z",
+      "sequence": 1320,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "1p"
+        },
+        "shanten": 2,
+        "effective_ukeire": 14,
+        "danger": 35.75,
+        "total_danger": 35.75
+      },
+      "nearest_shanten": 2,
+      "threats": 2,
+      "wall_remaining": 10,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T064806-180747Z",
+      "sequence": 1656,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "2s"
+        },
+        "shanten": 3,
+        "effective_ukeire": 45,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 3,
+      "threats": 1,
+      "wall_remaining": 28,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T064806-180747Z",
+      "sequence": 1679,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "2z"
+        },
+        "shanten": 3,
+        "effective_ukeire": 44,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 3,
+      "threats": 1,
+      "wall_remaining": 25,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T062747-902083Z",
+      "sequence": 594,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "7p"
+        },
+        "shanten": 1,
+        "effective_ukeire": 5,
+        "danger": 0,
+        "total_danger": 0
+      },
+      "nearest_shanten": 1,
+      "threats": 1,
+      "wall_remaining": 8,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    },
+    {
+      "session": "20261020T062747-902083Z",
+      "sequence": 652,
+      "selected": {
+        "action": {
+          "kind": "discard",
+          "tile": "6z"
+        },
+        "shanten": 2,
+        "effective_ukeire": 8,
+        "danger": 20,
+        "total_danger": 20
+      },
+      "nearest_shanten": 1,
+      "threats": 2,
+      "wall_remaining": 5,
+      "no_higher_risk_faster_alternatives": 0,
+      "ready_alternatives": []
+    }
+  ],
+  "limitation": "Risk is the current heuristic, not a calibrated deal-in probability; recorded alternatives do not prove counterfactual wins."
+}

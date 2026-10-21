@@ -69,3 +69,7 @@ Completed earlier-hand screening: [early-hand review](experiments/EARLY_HAND_REV
 `east_speed_partial_yaku` is an offline reference retaining the former requirement for an already completed open Yaku in the push gate. Current `east_speed` can instead use exact legal Ron scoring to prove a ready hand's Yaku, including Dragon pair waits. Both retain the same defensive thresholds. Development seeds are 60-63 and held-out seeds are 160-163, all at seats 0, 1 and 2. This is a correctness fix, not a new always-push strategy or evidence of increased win rate.
 
 Completed results and recorded-board findings: [scored ready-Yaku review](experiments/SCORED_READY_YAKU_REVIEW.md). No changed match replays or win-rate gain were observed in this sample.
+
+## Narrow ready-hand push experiment
+
+`east_speed_ready_push` is an offline-only candidate allowing a danger score of 90 for exact-scored Tenpai with at least three available legal Ron copies, while retaining the other push gates. Live East Speed does not set this override. The [fold audit and ready-push review](experiments/READY_PUSH_REVIEW.md) records the inspected boards, frozen development/held-out seed sets, actual action exposure and outcomes. The candidate was not promoted: the two changed held-out matches offset each other in placement and did not demonstrate a win-rate gain.

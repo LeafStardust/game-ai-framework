@@ -135,8 +135,14 @@ def offensive(board,options,value):
 def may_push(option,opponents,wall,settings):
     if settings.get("always_push") or not opponents:return True
     if len(opponents)!=1 or type(wall) is not int or wall<(4 if option["shanten"]==0 else settings["push_min_wall"]):return False
-    if option["shanten"]>settings["push_max_shanten"] or option["danger"]>settings["push_max_danger"]:return False
     profile=option["wait_value"]
+    limit=settings["push_max_danger"]
+    # Offline candidate only unless a playbook explicitly enables it. Require
+    # real available Ron waits, rather than a shape-only Tenpai projection.
+    if (option["shanten"]==0 and profile and not profile["ron_blocked"]
+            and profile["dama_ukeire"]>=settings.get("ready_push_min_ukeire",3)):
+        limit=max(limit,settings.get("ready_push_max_danger",limit))
+    if option["shanten"]>settings["push_max_shanten"] or option["danger"]>limit:return False
     # A pair wait may acquire its Yaku only when the winning tile arrives.
     # For East Speed, exact legal Ron scoring can prove that ready route;
     # partial-hand Yaku flags cannot. Keep every danger/value/wall gate below.
