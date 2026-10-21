@@ -100,3 +100,7 @@ The adapter collapses interchangeable physical-copy actions into one exact tile-
 ## Single-call counterfactuals
 
 `python -m agents.mahjong_soul.call_counterfactual --seed 80 --seat 2 --called-tile 2z --opponents callers --output <new-directory>` compares one selected Pon against legal Skip. It matches the public decision token, filters the choice before route memory changes, and then resumes the unchanged policy. It checks a single intervention, identical starting deals and the expected replay divergence. This fixed-wall diagnostic is not a win-rate experiment. The [opening South Wind review](experiments/SOUTH_PON_REVIEW.md) found no recovered win or placement gain from Skip and made no live policy change.
+
+## Exhaustive opening-call diagnostics
+
+`python -m agents.mahjong_soul.call_batch --profiles callers aggressive --output <new-directory>` enumerates all non-value first-opening Pon in the existing second-/third-place baseline corpus. It reuses one verified baseline per match and applies each Skip as a separate, guarded intervention. Profiles can run separately in separate output directories. The [full opening-call review](experiments/ALL_OPENING_CALLS_REVIEW.md) defines the corpus and its selection bias; these branches are diagnostics, not an unbiased win-rate benchmark.

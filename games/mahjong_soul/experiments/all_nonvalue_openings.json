@@ -1,0 +1,5383 @@
+{
+  "scope": "Complete diagnostic set, not unbiased policy performance",
+  "complete": true,
+  "eligible_cases": 28,
+  "unique_public_board_tokens": 21,
+  "provenance": {
+    "callers": {
+      "revision": "3ded9c77bed648880c2740abf94f98839ce5face",
+      "source_hashes": {
+        "agents\\mahjong_soul\\__init__.py": "484647fe5e47bdbef6d2b98e23da27ce6e0b4bc462afc7ee2d8aef3efb392475",
+        "agents\\mahjong_soul\\assist_preferences.py": "eec22c2de60b68b1d9b4c50d176731f1ca550218215a16ec9f824e574b422d18",
+        "agents\\mahjong_soul\\attack_defense.py": "d3ec7425b371738cf428f3d5e87559aaa14696ba873f1f84c25d57e79a939b10",
+        "agents\\mahjong_soul\\attack_policy.py": "4d8684706a11bc30984f396d48f3138703a891cea01716462e5c147399a0bfde",
+        "agents\\mahjong_soul\\attack_routes.py": "8bde04b46a1a8a64c8aac1d059d6ada9fabffd2be7240728fa09239b512fa939",
+        "agents\\mahjong_soul\\attack_value.py": "57b4305bb711c077e18e2d903b073def5fc6d850269838d87739fbccf55a1871",
+        "agents\\mahjong_soul\\auto.py": "86ad6804a3b3b8e19fd901162425d2b06504599a8be98fc4acd3275ab15e4501",
+        "agents\\mahjong_soul\\auto_policy.py": "dcd156aae85588535c46e001a3cbcb1db77ec1dadfe9f5d9c5973a3d1e105e83",
+        "agents\\mahjong_soul\\benchmark.py": "3b7cc10d086c804309e3b95a5b49297e26970c9fd124aa6df226e2b5951de8a5",
+        "agents\\mahjong_soul\\call_batch.py": "7da012022a688e6a4e212c8cd2f67b7af808b8a8b7c7a1fe3ef0e778efb765b5",
+        "agents\\mahjong_soul\\call_counterfactual.py": "a90b8076423b261cfe1ea9efb3648ebb6b9c799d282d1e51587095985f6e8d8a",
+        "agents\\mahjong_soul\\capture_service.py": "d0eeb6a2f997acf44406b6faf37c3f176e9c5f0b99f51b790070c74c58190eb9",
+        "agents\\mahjong_soul\\compare_simulation.py": "b2dd846747d4af84ffa64bcaec90f91c8b81d77976fbc1d335687400efce0975",
+        "agents\\mahjong_soul\\efficiency.py": "b6aea1ef4c275b85277763b3e1519da8f4c7213842d5242d612e73ea42eab535",
+        "agents\\mahjong_soul\\evaluate.py": "1ff5542d83bacd137473599285e161f11f89aabd15ea9604632dc0fa50ac309d",
+        "agents\\mahjong_soul\\hand_plan.py": "ebecfcb05862b3c08186b37535c76c04eb5996a7e7a39342e0abec03173355d9",
+        "agents\\mahjong_soul\\inspect_run.py": "a75b3f05becb872cc8de599bd1564d1241d6e5f884c7868826e4f74ef28ebbed",
+        "agents\\mahjong_soul\\launch.py": "4c7208080f9b831fb7edc76ae8fc92e2e6c27020718afa54145b59f1124769bd",
+        "agents\\mahjong_soul\\pattern_yaku.py": "5a2dc8bd2d85071b1becfd1f534fbc6a2ee24a95861c604bb0775f303fa5deb5",
+        "agents\\mahjong_soul\\playbook_policy.py": "313952cb94c9f9dddc6da882d0dd1f825a1bce1a4f53fe43412b8c259a97cb99",
+        "agents\\mahjong_soul\\policy.py": "0f483c5a07cd27623ac9af4680caca74fdee70345a8009f7e57f70910df4accf",
+        "agents\\mahjong_soul\\scoring.py": "228f3f190e94e343daab20a18bf5d1ce38a5a35629be8b797c503ce3d145dad6",
+        "agents\\mahjong_soul\\shadow.py": "9e6a731d7f956fb895fd89553840ad8ef4979635ff44c7f98cb99b9e405480e2",
+        "agents\\mahjong_soul\\simulation.py": "723db81cc076b0a3210e0f573e523e8b6d03ad22939b2c8b355f5c086418d407",
+        "agents\\mahjong_soul\\speed_lookahead.py": "0faece79f9123811975cb5ddc37a7949533cb79e79c9ae4265274c15856234c5",
+        "agents\\mahjong_soul\\yaku_catalog.py": "5f87c54684bd598d8d4f4fda6da6cfebca14337406e979ef36d2be9e8ab3dbd6",
+        "agents\\mahjong_soul\\yakuman.py": "1df474e05fc1a7c6cf91821857d285c1dd50151fe0646eef7217531166a4b039",
+        "games\\mahjong_soul\\playbook\\__init__.py": "8f138965d95f33b06b579b1667e4adc30f71716d9d798e22cbb136543ddb74e1",
+        "games\\mahjong_soul\\playbook\\features.py": "c14fd41dfd522b8b2cfe4738559678cd21a5510914b97cc0ea5eeeb9fb876fca",
+        "games\\mahjong_soul\\playbook\\model.py": "82a06a1c729cb42f1905c5a4d41b8b151df6d3889adeb909e29e5fc689374f9b",
+        "games\\mahjong_soul\\playbook\\sanma\\__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "games\\mahjong_soul\\playbook\\sanma\\east_speed.py": "bb9c3013bde1e28a15dabfa852ddcd838c146379666a232446e9a2b3517efbae",
+        "games\\mahjong_soul\\playbook\\yonma\\__init__.py": "8de964bbeee1d8c0154711f3ef9ff15bc9516b086781cdaa4b31120a15a15886",
+        "games\\mahjong_soul\\playbook\\yonma\\east_speed.py": "f350259fed61e9546dfc4ceedad4dff71d8281f3ab4e6f167d87cf707bc218e7",
+        "games\\mahjong_soul\\playbook\\yonma\\south_attack.py": "7e54fb70d608c1121aa8d68d71823f2ca9a9c31c0cf68f29c4868aeb38742bb1"
+      },
+      "engine": "0.4.10",
+      "scope": {
+        "scanned_baseline_matches": 24,
+        "non_first_matches": 16,
+        "eligible_calls": 14
+      },
+      "complete": true,
+      "limitation": "Selected losing matches, overlapping calls and reused seeds are correlated diagnostics; never an unbiased win-rate estimate."
+    },
+    "aggressive": {
+      "revision": "3ded9c77bed648880c2740abf94f98839ce5face",
+      "source_hashes": {
+        "agents\\mahjong_soul\\__init__.py": "484647fe5e47bdbef6d2b98e23da27ce6e0b4bc462afc7ee2d8aef3efb392475",
+        "agents\\mahjong_soul\\assist_preferences.py": "eec22c2de60b68b1d9b4c50d176731f1ca550218215a16ec9f824e574b422d18",
+        "agents\\mahjong_soul\\attack_defense.py": "d3ec7425b371738cf428f3d5e87559aaa14696ba873f1f84c25d57e79a939b10",
+        "agents\\mahjong_soul\\attack_policy.py": "4d8684706a11bc30984f396d48f3138703a891cea01716462e5c147399a0bfde",
+        "agents\\mahjong_soul\\attack_routes.py": "8bde04b46a1a8a64c8aac1d059d6ada9fabffd2be7240728fa09239b512fa939",
+        "agents\\mahjong_soul\\attack_value.py": "57b4305bb711c077e18e2d903b073def5fc6d850269838d87739fbccf55a1871",
+        "agents\\mahjong_soul\\auto.py": "86ad6804a3b3b8e19fd901162425d2b06504599a8be98fc4acd3275ab15e4501",
+        "agents\\mahjong_soul\\auto_policy.py": "dcd156aae85588535c46e001a3cbcb1db77ec1dadfe9f5d9c5973a3d1e105e83",
+        "agents\\mahjong_soul\\benchmark.py": "3b7cc10d086c804309e3b95a5b49297e26970c9fd124aa6df226e2b5951de8a5",
+        "agents\\mahjong_soul\\call_batch.py": "7da012022a688e6a4e212c8cd2f67b7af808b8a8b7c7a1fe3ef0e778efb765b5",
+        "agents\\mahjong_soul\\call_counterfactual.py": "a90b8076423b261cfe1ea9efb3648ebb6b9c799d282d1e51587095985f6e8d8a",
+        "agents\\mahjong_soul\\capture_service.py": "d0eeb6a2f997acf44406b6faf37c3f176e9c5f0b99f51b790070c74c58190eb9",
+        "agents\\mahjong_soul\\compare_simulation.py": "b2dd846747d4af84ffa64bcaec90f91c8b81d77976fbc1d335687400efce0975",
+        "agents\\mahjong_soul\\efficiency.py": "b6aea1ef4c275b85277763b3e1519da8f4c7213842d5242d612e73ea42eab535",
+        "agents\\mahjong_soul\\evaluate.py": "1ff5542d83bacd137473599285e161f11f89aabd15ea9604632dc0fa50ac309d",
+        "agents\\mahjong_soul\\hand_plan.py": "ebecfcb05862b3c08186b37535c76c04eb5996a7e7a39342e0abec03173355d9",
+        "agents\\mahjong_soul\\inspect_run.py": "a75b3f05becb872cc8de599bd1564d1241d6e5f884c7868826e4f74ef28ebbed",
+        "agents\\mahjong_soul\\launch.py": "4c7208080f9b831fb7edc76ae8fc92e2e6c27020718afa54145b59f1124769bd",
+        "agents\\mahjong_soul\\pattern_yaku.py": "5a2dc8bd2d85071b1becfd1f534fbc6a2ee24a95861c604bb0775f303fa5deb5",
+        "agents\\mahjong_soul\\playbook_policy.py": "313952cb94c9f9dddc6da882d0dd1f825a1bce1a4f53fe43412b8c259a97cb99",
+        "agents\\mahjong_soul\\policy.py": "0f483c5a07cd27623ac9af4680caca74fdee70345a8009f7e57f70910df4accf",
+        "agents\\mahjong_soul\\scoring.py": "228f3f190e94e343daab20a18bf5d1ce38a5a35629be8b797c503ce3d145dad6",
+        "agents\\mahjong_soul\\shadow.py": "9e6a731d7f956fb895fd89553840ad8ef4979635ff44c7f98cb99b9e405480e2",
+        "agents\\mahjong_soul\\simulation.py": "723db81cc076b0a3210e0f573e523e8b6d03ad22939b2c8b355f5c086418d407",
+        "agents\\mahjong_soul\\speed_lookahead.py": "0faece79f9123811975cb5ddc37a7949533cb79e79c9ae4265274c15856234c5",
+        "agents\\mahjong_soul\\yaku_catalog.py": "5f87c54684bd598d8d4f4fda6da6cfebca14337406e979ef36d2be9e8ab3dbd6",
+        "agents\\mahjong_soul\\yakuman.py": "1df474e05fc1a7c6cf91821857d285c1dd50151fe0646eef7217531166a4b039",
+        "games\\mahjong_soul\\playbook\\__init__.py": "8f138965d95f33b06b579b1667e4adc30f71716d9d798e22cbb136543ddb74e1",
+        "games\\mahjong_soul\\playbook\\features.py": "c14fd41dfd522b8b2cfe4738559678cd21a5510914b97cc0ea5eeeb9fb876fca",
+        "games\\mahjong_soul\\playbook\\model.py": "82a06a1c729cb42f1905c5a4d41b8b151df6d3889adeb909e29e5fc689374f9b",
+        "games\\mahjong_soul\\playbook\\sanma\\__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "games\\mahjong_soul\\playbook\\sanma\\east_speed.py": "bb9c3013bde1e28a15dabfa852ddcd838c146379666a232446e9a2b3517efbae",
+        "games\\mahjong_soul\\playbook\\yonma\\__init__.py": "8de964bbeee1d8c0154711f3ef9ff15bc9516b086781cdaa4b31120a15a15886",
+        "games\\mahjong_soul\\playbook\\yonma\\east_speed.py": "f350259fed61e9546dfc4ceedad4dff71d8281f3ab4e6f167d87cf707bc218e7",
+        "games\\mahjong_soul\\playbook\\yonma\\south_attack.py": "7e54fb70d608c1121aa8d68d71823f2ca9a9c31c0cf68f29c4868aeb38742bb1"
+      },
+      "engine": "0.4.10",
+      "scope": {
+        "scanned_baseline_matches": 24,
+        "non_first_matches": 18,
+        "eligible_calls": 14
+      },
+      "complete": true,
+      "limitation": "Selected losing matches, overlapping calls and reused seeds are correlated diagnostics; never an unbiased win-rate estimate."
+    }
+  },
+  "records": [
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 80,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 89,
+      "called_tile": "3p",
+      "combination": [
+        "3p",
+        "3p"
+      ],
+      "board_token": "d58e7b49372e5183adc3ddf69d49685219e954ebb1f90662e7b2541a03b21751",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 7,
+        "target_route": "tanyao",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9m"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 80,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 5,
+                "0": 49,
+                "5": 2,
+                "6": 1,
+                "7": 1,
+                "4": 1,
+                "2": 1
+              },
+              {
+                "2": 6,
+                "0": 52,
+                "9": 2,
+                "11": 4,
+                "7": 3,
+                "5": 1,
+                "4": 1
+              },
+              {
+                "2": 2,
+                "0": 53,
+                "7": 1,
+                "5": 2,
+                "11": 2
+              }
+            ],
+            "scores": [
+              59400,
+              30600,
+              15000
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              7,
+              8,
+              15,
+              7
+            ],
+            "steps": 189,
+            "seconds": 21.022543200000655,
+            "decision_seconds": 21.008269599755295,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "deltas": [
+                  -1000,
+                  -1000,
+                  2000
+                ],
+                "reason": "exhaustive_draw",
+                "type": "ryukyoku"
+              }
+            ],
+            "own_discards": 17
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 80,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 5,
+                "0": 42,
+                "5": 2,
+                "6": 1,
+                "7": 1,
+                "4": 1,
+                "2": 1
+              },
+              {
+                "2": 5,
+                "0": 44,
+                "9": 1,
+                "11": 2,
+                "7": 4,
+                "5": 2,
+                "6": 1,
+                "4": 1
+              },
+              {
+                "2": 2,
+                "0": 45,
+                "11": 3,
+                "5": 2
+              }
+            ],
+            "scores": [
+              54900,
+              39200,
+              10900
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 4,
+            "wins": 2,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              7,
+              5,
+              15,
+              7
+            ],
+            "steps": 165,
+            "seconds": 14.12372910004342,
+            "decision_seconds": 14.110770999919623,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -4100,
+                  8200,
+                  -2100
+                ],
+                "target": 1,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "4s"
+                ]
+              }
+            ],
+            "own_discards": 9
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 1
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 80,
+      "seat": 2,
+      "hand_index": 0,
+      "event_index": 8,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "board_token": "ea05e01fe3777d15a6b2b4db7a9334d2e68af91e812d9794394080869181d3bc",
+      "target_analysis": {
+        "shanten": 3,
+        "effective_ukeire": 40,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "1m"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 80,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "0": "east_speed",
+              "1": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 5,
+                "0": 49,
+                "5": 2,
+                "6": 1,
+                "7": 1,
+                "4": 1,
+                "2": 1
+              },
+              {
+                "2": 6,
+                "0": 52,
+                "9": 2,
+                "11": 4,
+                "7": 3,
+                "5": 1,
+                "4": 1
+              },
+              {
+                "2": 2,
+                "0": 53,
+                "7": 1,
+                "5": 2,
+                "11": 2
+              }
+            ],
+            "scores": [
+              59400,
+              30600,
+              15000
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 4,
+            "wins": 0,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              15,
+              12
+            ],
+            "steps": 189,
+            "seconds": 18.044558299996424,
+            "decision_seconds": 18.029085200454574,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  17000,
+                  -8000,
+                  -8000
+                ],
+                "target": 0,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "1p",
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 9
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 80,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "0": "east_speed",
+              "1": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 4,
+                "0": 38,
+                "7": 1,
+                "5": 1
+              },
+              {
+                "2": 2,
+                "0": 36,
+                "4": 2,
+                "11": 3,
+                "7": 1,
+                "5": 1
+              },
+              {
+                "7": 2,
+                "0": 40,
+                "2": 5,
+                "11": 2,
+                "9": 1
+              }
+            ],
+            "scores": [
+              36000,
+              51200,
+              17800
+            ],
+            "ranks": [
+              2,
+              1,
+              3
+            ],
+            "hands": 3,
+            "wins": 0,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              8,
+              15
+            ],
+            "steps": 139,
+            "seconds": 11.054301600030158,
+            "decision_seconds": 11.044012199970894,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  0,
+                  8000,
+                  -8000
+                ],
+                "target": 2,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 8
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 3,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 81,
+      "seat": 1,
+      "hand_index": 0,
+      "event_index": 24,
+      "called_tile": "3p",
+      "combination": [
+        "3p",
+        "3p"
+      ],
+      "board_token": "826c3788566c9d173aab534a93c03408f1ef32252a5ec6483bc8342108e22fea",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 7,
+        "target_route": "tanyao",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9m"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 81,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 3,
+                "0": 41,
+                "7": 1,
+                "5": 1,
+                "4": 1,
+                "2": 1
+              },
+              {
+                "0": 44,
+                "7": 3,
+                "2": 4,
+                "11": 3,
+                "9": 1,
+                "5": 1,
+                "4": 1
+              },
+              {
+                "0": 44,
+                "7": 1,
+                "5": 2,
+                "11": 2
+              }
+            ],
+            "scores": [
+              43200,
+              38800,
+              23000
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 3,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              8,
+              15,
+              7
+            ],
+            "steps": 154,
+            "seconds": 6.400747300009243,
+            "decision_seconds": 6.389040799695067,
+            "initial_deal_digest": "4908af66a9a2bb2d1d499433f67ea9b7c3a1f7e51a5837368f6df585c2a4b7ae"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "deltas": [
+                  -1000,
+                  -1000,
+                  2000
+                ],
+                "reason": "exhaustive_draw",
+                "type": "ryukyoku"
+              }
+            ],
+            "own_discards": 17
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 81,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 3,
+                "0": 34,
+                "7": 1,
+                "5": 1,
+                "4": 1,
+                "2": 1
+              },
+              {
+                "0": 36,
+                "7": 4,
+                "5": 2,
+                "6": 1,
+                "2": 3,
+                "11": 1,
+                "4": 1
+              },
+              {
+                "0": 36,
+                "11": 3,
+                "5": 2
+              }
+            ],
+            "scores": [
+              39000,
+              47000,
+              19000
+            ],
+            "ranks": [
+              2,
+              1,
+              3
+            ],
+            "hands": 3,
+            "wins": 2,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              5,
+              15,
+              7
+            ],
+            "steps": 130,
+            "seconds": 7.981013300013728,
+            "decision_seconds": 7.969948799523991,
+            "initial_deal_digest": "4908af66a9a2bb2d1d499433f67ea9b7c3a1f7e51a5837368f6df585c2a4b7ae"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -4000,
+                  8000,
+                  -2000
+                ],
+                "target": 1,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "4s"
+                ]
+              }
+            ],
+            "own_discards": 9
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 1
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 83,
+      "seat": 0,
+      "hand_index": 4,
+      "event_index": 344,
+      "called_tile": "6s",
+      "combination": [
+        "6s",
+        "6s"
+      ],
+      "board_token": "13f96a8e3c5ed4252b757d305e1c58d3c8fb1629da15695fd8a5c7e3c3025c59",
+      "target_analysis": {
+        "shanten": 2,
+        "effective_ukeire": 17,
+        "target_route": "tanyao",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9m"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 83,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "1": "east_speed",
+              "2": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 53,
+                "5": 4,
+                "11": 5,
+                "7": 1,
+                "6": 2,
+                "2": 1
+              },
+              {
+                "0": 55,
+                "2": 7,
+                "4": 1,
+                "5": 1,
+                "7": 1,
+                "11": 1
+              },
+              {
+                "0": 55,
+                "7": 3,
+                "5": 2,
+                "11": 4,
+                "4": 2,
+                "3": 1
+              }
+            ],
+            "scores": [
+              16200,
+              38900,
+              49900
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 5,
+            "wins": 2,
+            "deal_ins": 3,
+            "shape_tenpai_discards": [
+              12,
+              8,
+              5,
+              6
+            ],
+            "steps": 199,
+            "seconds": 23.953818699985277,
+            "decision_seconds": 23.936653700307943,
+            "initial_deal_digest": "d4c7634cb5199e4a1438e1331b36b0447ef32cd9b902444a163f3ad30055ec5b"
+          },
+          "target_hand": {
+            "hand_index": 4,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -12000,
+                  0,
+                  13000
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "1m"
+                ]
+              }
+            ],
+            "own_discards": 11
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 83,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "1": "east_speed",
+              "2": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 55,
+                "5": 4,
+                "11": 5,
+                "7": 2,
+                "6": 2
+              },
+              {
+                "0": 57,
+                "2": 7,
+                "4": 1,
+                "5": 1,
+                "7": 1,
+                "11": 1
+              },
+              {
+                "0": 58,
+                "7": 3,
+                "5": 2,
+                "11": 4,
+                "4": 2,
+                "3": 1
+              }
+            ],
+            "scores": [
+              12200,
+              38900,
+              53900
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 5,
+            "wins": 2,
+            "deal_ins": 3,
+            "shape_tenpai_discards": [
+              12,
+              8,
+              5,
+              6
+            ],
+            "steps": 206,
+            "seconds": 27.873052300012205,
+            "decision_seconds": 27.85446619958384,
+            "initial_deal_digest": "d4c7634cb5199e4a1438e1331b36b0447ef32cd9b902444a163f3ad30055ec5b"
+          },
+          "target_hand": {
+            "hand_index": 4,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -16000,
+                  0,
+                  17000
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "1m"
+                ]
+              }
+            ],
+            "own_discards": 13
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 3,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 83,
+      "seat": 1,
+      "hand_index": 0,
+      "event_index": 22,
+      "called_tile": "9s",
+      "combination": [
+        "9s",
+        "9s"
+      ],
+      "board_token": "5b08165b4fb75e8fa9787885413be9ce212c2a5659ca78cc19c1b484d6575cbb",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 15,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "8p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 83,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 53,
+                "5": 4,
+                "11": 5,
+                "7": 1,
+                "6": 2,
+                "2": 1
+              },
+              {
+                "0": 55,
+                "2": 7,
+                "4": 1,
+                "5": 1,
+                "7": 1,
+                "11": 1
+              },
+              {
+                "0": 55,
+                "7": 3,
+                "5": 2,
+                "11": 4,
+                "4": 2,
+                "3": 1
+              }
+            ],
+            "scores": [
+              16200,
+              38900,
+              49900
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 5,
+            "wins": 1,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              9,
+              9,
+              5,
+              11
+            ],
+            "steps": 199,
+            "seconds": 28.969494900025893,
+            "decision_seconds": 28.952233299496584,
+            "initial_deal_digest": "d4c7634cb5199e4a1438e1331b36b0447ef32cd9b902444a163f3ad30055ec5b"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -12000,
+                  0,
+                  14000
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "1m"
+                ]
+              }
+            ],
+            "own_discards": 12
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 83,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 51,
+                "11": 6,
+                "5": 4,
+                "7": 1,
+                "6": 2,
+                "2": 1
+              },
+              {
+                "0": 53,
+                "7": 2,
+                "2": 7,
+                "4": 1,
+                "5": 1,
+                "11": 1
+              },
+              {
+                "0": 53,
+                "7": 2,
+                "5": 2,
+                "11": 4,
+                "4": 2,
+                "3": 1
+              }
+            ],
+            "scores": [
+              16200,
+              38900,
+              49900
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 5,
+            "wins": 1,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              9,
+              5,
+              11
+            ],
+            "steps": 194,
+            "seconds": 29.31091280002147,
+            "decision_seconds": 29.292732100642752,
+            "initial_deal_digest": "d4c7634cb5199e4a1438e1331b36b0447ef32cd9b902444a163f3ad30055ec5b"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -12000,
+                  0,
+                  14000
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "1m"
+                ]
+              }
+            ],
+            "own_discards": 10
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": true,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "seed": 83,
+      "seat": 1,
+      "hand_index": 4,
+      "event_index": 316,
+      "called_tile": "5s",
+      "combination": [
+        "0s",
+        "5s"
+      ],
+      "board_token": "1a02c2b28862661492a9194069d95293ac253c4617de4d3bdd2b7785df1beab2",
+      "target_analysis": {
+        "shanten": 3,
+        "effective_ukeire": 35,
+        "target_route": "honitsu",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "7p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 83,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 53,
+                "5": 4,
+                "11": 5,
+                "7": 1,
+                "6": 2,
+                "2": 1
+              },
+              {
+                "0": 55,
+                "2": 7,
+                "4": 1,
+                "5": 1,
+                "7": 1,
+                "11": 1
+              },
+              {
+                "0": 55,
+                "7": 3,
+                "5": 2,
+                "11": 4,
+                "4": 2,
+                "3": 1
+              }
+            ],
+            "scores": [
+              16200,
+              38900,
+              49900
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 5,
+            "wins": 1,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              9,
+              9,
+              5,
+              11
+            ],
+            "steps": 199,
+            "seconds": 28.969494900025893,
+            "decision_seconds": 28.952233299496584,
+            "initial_deal_digest": "d4c7634cb5199e4a1438e1331b36b0447ef32cd9b902444a163f3ad30055ec5b"
+          },
+          "target_hand": {
+            "hand_index": 4,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -12000,
+                  0,
+                  13000
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "1m"
+                ]
+              }
+            ],
+            "own_discards": 11
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 83,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 56,
+                "5": 5,
+                "11": 5,
+                "7": 2,
+                "6": 2
+              },
+              {
+                "0": 57,
+                "2": 4,
+                "4": 1,
+                "5": 1,
+                "7": 5,
+                "11": 1
+              },
+              {
+                "0": 58,
+                "7": 3,
+                "5": 2,
+                "11": 4,
+                "4": 2,
+                "3": 1
+              }
+            ],
+            "scores": [
+              20200,
+              38900,
+              45900
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 5,
+            "wins": 1,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              9,
+              9,
+              5,
+              11
+            ],
+            "steps": 209,
+            "seconds": 31.091200799972285,
+            "decision_seconds": 31.07258969976101,
+            "initial_deal_digest": "d4c7634cb5199e4a1438e1331b36b0447ef32cd9b902444a163f3ad30055ec5b"
+          },
+          "target_hand": {
+            "hand_index": 4,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -8000,
+                  0,
+                  9000
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "1m"
+                ]
+              }
+            ],
+            "own_discards": 13
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": true,
+      "baseline_shanten": 3,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 180,
+      "seat": 1,
+      "hand_index": 2,
+      "event_index": 176,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "board_token": "c50f6b666761c4e9e7ea668fbe80e5c352c7729d496b77de32bbc468b95a995c",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 9,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "8p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 180,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 4,
+                "0": 51,
+                "7": 5,
+                "5": 2,
+                "6": 1
+              },
+              {
+                "7": 1,
+                "0": 55,
+                "5": 2,
+                "11": 1,
+                "2": 3,
+                "4": 1
+              },
+              {
+                "2": 2,
+                "0": 54,
+                "7": 2,
+                "11": 3,
+                "5": 2,
+                "6": 2
+              }
+            ],
+            "scores": [
+              35900,
+              28500,
+              40600
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              8,
+              7,
+              5
+            ],
+            "steps": 191,
+            "seconds": 31.306508800014853,
+            "decision_seconds": 31.290502099320292,
+            "initial_deal_digest": "256791dbd5c749a44cf514f5e2aa838bc02939eb54e2ada01882772f47a43a7a"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -1000,
+                  -2000,
+                  4000
+                ],
+                "target": 2,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 17
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 180,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 6,
+                "0": 78,
+                "7": 6,
+                "5": 4,
+                "6": 1
+              },
+              {
+                "7": 6,
+                "0": 78,
+                "5": 2,
+                "11": 6,
+                "2": 2,
+                "4": 1
+              },
+              {
+                "2": 3,
+                "0": 77,
+                "7": 7,
+                "11": 5,
+                "5": 1,
+                "6": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              38900,
+              25600,
+              40500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 6,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              8,
+              5,
+              12
+            ],
+            "steps": 285,
+            "seconds": 47.30280990002211,
+            "decision_seconds": 47.275585400057025,
+            "initial_deal_digest": "256791dbd5c749a44cf514f5e2aa838bc02939eb54e2ada01882772f47a43a7a"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "deltas": [
+                  2000,
+                  -1000,
+                  -1000
+                ],
+                "reason": "exhaustive_draw",
+                "type": "ryukyoku"
+              }
+            ],
+            "own_discards": 17
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 181,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 96,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "board_token": "94819e28420f20318b59ae96b3c891e0e30a20441713e64996aa7561b19c74eb",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 9,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "8p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 181,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 2,
+                "0": 40,
+                "7": 4,
+                "5": 1
+              },
+              {
+                "0": 44,
+                "2": 3,
+                "5": 1,
+                "4": 1
+              },
+              {
+                "11": 3,
+                "0": 43,
+                "7": 1,
+                "5": 2,
+                "6": 2,
+                "2": 1
+              }
+            ],
+            "scores": [
+              27000,
+              33600,
+              44400
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 3,
+            "wins": 1,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              7,
+              5
+            ],
+            "steps": 148,
+            "seconds": 25.270242400001734,
+            "decision_seconds": 25.25706639973214,
+            "initial_deal_digest": "6621979a018b4f8dcdbda0602525ec1215c08b453fa08d63144b49e2c5e542a0"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -1000,
+                  -2000,
+                  4000
+                ],
+                "target": 2,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 17
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 181,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "11": 3,
+                "0": 43,
+                "7": 5,
+                "5": 2
+              },
+              {
+                "0": 44,
+                "2": 1,
+                "7": 4,
+                "5": 1,
+                "4": 1
+              },
+              {
+                "11": 5,
+                "0": 44,
+                "7": 2,
+                "5": 1,
+                "6": 1,
+                "2": 1
+              }
+            ],
+            "scores": [
+              29000,
+              35800,
+              40200
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 3,
+            "wins": 1,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              5
+            ],
+            "steps": 158,
+            "seconds": 31.899932100030128,
+            "decision_seconds": 31.88412660046015,
+            "initial_deal_digest": "6621979a018b4f8dcdbda0602525ec1215c08b453fa08d63144b49e2c5e542a0"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "deltas": [
+                  2000,
+                  -1000,
+                  -1000
+                ],
+                "reason": "exhaustive_draw",
+                "type": "ryukyoku"
+              }
+            ],
+            "own_discards": 17
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 148,
+      "called_tile": "0p",
+      "combination": [
+        "5p",
+        "5p"
+      ],
+      "board_token": "3ad5fbe693651b36b3bc47b9ea0b85e9b3634dd724690bb90a1799f1588b0416",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 12,
+        "target_route": "tanyao",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "6p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 182,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 58,
+                "2": 3,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "7": 2
+              },
+              {
+                "0": 57,
+                "5": 1,
+                "6": 1,
+                "2": 2,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "11": 3,
+                "0": 56,
+                "7": 2,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              80500,
+              36600,
+              -12100
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 5,
+            "wins": 2,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              6,
+              5
+            ],
+            "steps": 205,
+            "seconds": 26.99173690000316,
+            "decision_seconds": 26.97265090054134,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  4600,
+                  -2600,
+                  0
+                ],
+                "target": 1,
+                "type": "hora",
+                "ura_markers": [
+                  "S"
+                ]
+              }
+            ],
+            "own_discards": 18
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 182,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 53,
+                "2": 3,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "7": 2
+              },
+              {
+                "0": 52,
+                "5": 1,
+                "6": 1,
+                "7": 7,
+                "2": 1,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "11": 3,
+                "0": 51,
+                "7": 3,
+                "2": 1,
+                "4": 1,
+                "5": 1
+              }
+            ],
+            "scores": [
+              79500,
+              36600,
+              -11100
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 5,
+            "wins": 2,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              6,
+              5
+            ],
+            "steps": 190,
+            "seconds": 35.487092400027905,
+            "decision_seconds": 35.46837160002906,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  3600,
+                  -2600,
+                  0
+                ],
+                "target": 1,
+                "type": "hora",
+                "ura_markers": [
+                  "S"
+                ]
+              }
+            ],
+            "own_discards": 13
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": true,
+      "baseline_shanten": 1,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 1,
+      "hand_index": 3,
+      "event_index": 300,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "board_token": "78d9fb3d747773a802b9cae6696a80b6335041c7186993341a32361e5a6b4254",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 11,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 182,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 58,
+                "2": 3,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "7": 2
+              },
+              {
+                "0": 57,
+                "5": 1,
+                "6": 1,
+                "2": 2,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "11": 3,
+                "0": 56,
+                "7": 2,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              80500,
+              36600,
+              -12100
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 5,
+            "wins": 2,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              6,
+              5
+            ],
+            "steps": 205,
+            "seconds": 26.99173690000316,
+            "decision_seconds": 26.97265090054134,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 3,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -4100,
+                  4100,
+                  0
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 5
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 182,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 53,
+                "2": 3,
+                "5": 1,
+                "4": 1,
+                "11": 4,
+                "7": 3
+              },
+              {
+                "0": 51,
+                "5": 2,
+                "6": 2,
+                "2": 1,
+                "7": 5
+              },
+              {
+                "11": 2,
+                "0": 50,
+                "7": 2,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              33500,
+              42700,
+              28800
+            ],
+            "ranks": [
+              2,
+              1,
+              3
+            ],
+            "hands": 4,
+            "wins": 2,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              6,
+              7
+            ],
+            "steps": 184,
+            "seconds": 38.95498189999489,
+            "decision_seconds": 38.93614060006803,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 3,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -3100,
+                  11200,
+                  -6100
+                ],
+                "target": 1,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "P"
+                ]
+              }
+            ],
+            "own_discards": 8
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 2,
+      "hand_index": 2,
+      "event_index": 265,
+      "called_tile": "9s",
+      "combination": [
+        "9s",
+        "9s"
+      ],
+      "board_token": "4790da11014987358d4aea6516753fbbb891ce5570e835c92a4d9b2b9d354d78",
+      "target_analysis": {
+        "shanten": 0,
+        "effective_ukeire": 2,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "2s"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 182,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "0": "east_speed",
+              "1": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 58,
+                "2": 3,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "7": 2
+              },
+              {
+                "0": 57,
+                "5": 1,
+                "6": 1,
+                "2": 2,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "11": 3,
+                "0": 56,
+                "7": 2,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              80500,
+              36600,
+              -12100
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 5,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              13,
+              9,
+              9
+            ],
+            "steps": 205,
+            "seconds": 38.360557200037874,
+            "decision_seconds": 38.34089129982749,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  0,
+                  -2900,
+                  2900
+                ],
+                "target": 1,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 10
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 182,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "0": "east_speed",
+              "1": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 60,
+                "2": 3,
+                "5": 2,
+                "4": 2,
+                "11": 5,
+                "7": 2
+              },
+              {
+                "0": 59,
+                "5": 1,
+                "6": 1,
+                "2": 2,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "11": 3,
+                "0": 58,
+                "7": 3,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              80500,
+              36600,
+              -12100
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 5,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              13,
+              11,
+              9
+            ],
+            "steps": 213,
+            "seconds": 41.98579269996844,
+            "decision_seconds": 41.963047399767675,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  0,
+                  -2900,
+                  2900
+                ],
+                "target": 1,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 12
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 1,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 0,
+      "hand_index": 0,
+      "event_index": 46,
+      "called_tile": "0p",
+      "combination": [
+        "5p",
+        "5p"
+      ],
+      "board_token": "c6aa6dac647c18a32f4e324d8546eadae334eb0454540310211eb80b34f0e50e",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 12,
+        "target_route": "tanyao",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "6p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 183,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "1": "east_speed",
+              "2": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 41,
+                "2": 2,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 42,
+                "7": 1,
+                "5": 2,
+                "2": 1,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 41,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "2": 1,
+                "7": 2
+              }
+            ],
+            "scores": [
+              33600,
+              -11100,
+              82500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              5
+            ],
+            "steps": 152,
+            "seconds": 28.742461599991657,
+            "decision_seconds": 28.72672390000662,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -2600,
+                  0,
+                  4600
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "S"
+                ]
+              }
+            ],
+            "own_discards": 18
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 183,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "1": "east_speed",
+              "2": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 36,
+                "7": 7,
+                "2": 1,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 37,
+                "7": 2,
+                "2": 1,
+                "4": 1,
+                "11": 2,
+                "5": 1
+              },
+              {
+                "0": 36,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "2": 1,
+                "7": 2
+              }
+            ],
+            "scores": [
+              33600,
+              -10100,
+              81500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              5
+            ],
+            "steps": 137,
+            "seconds": 26.585057999996934,
+            "decision_seconds": 26.570740900177043,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -2600,
+                  0,
+                  3600
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "S"
+                ]
+              }
+            ],
+            "own_discards": 13
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": true,
+      "baseline_shanten": 1,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 0,
+      "hand_index": 2,
+      "event_index": 198,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "board_token": "62b652a9b7e7f075536273875b834509ab16ef4ff93946f5de95b00e4bd4d351",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 11,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 183,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "1": "east_speed",
+              "2": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 41,
+                "2": 2,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 42,
+                "7": 1,
+                "5": 2,
+                "2": 1,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 41,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "2": 1,
+                "7": 2
+              }
+            ],
+            "scores": [
+              33600,
+              -11100,
+              82500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              5
+            ],
+            "steps": 152,
+            "seconds": 28.742461599991657,
+            "decision_seconds": 28.72672390000662,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  4100,
+                  0,
+                  -4100
+                ],
+                "target": 2,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 5
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 183,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "1": "east_speed",
+              "2": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 44,
+                "2": 1,
+                "7": 8,
+                "5": 1,
+                "6": 1,
+                "11": 2
+              },
+              {
+                "0": 45,
+                "7": 1,
+                "5": 3,
+                "2": 1,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 45,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "2": 1,
+                "7": 4
+              }
+            ],
+            "scores": [
+              39700,
+              -18200,
+              83500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              7
+            ],
+            "steps": 167,
+            "seconds": 29.562877300020773,
+            "decision_seconds": 29.54613439994864,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  11200,
+                  -6100,
+                  -3100
+                ],
+                "target": 0,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "P"
+                ]
+              }
+            ],
+            "own_discards": 8
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 163,
+      "called_tile": "9s",
+      "combination": [
+        "9s",
+        "9s"
+      ],
+      "board_token": "c7a769e92c5617f3c5a29ca0e60e7c983da486f47b6f513b4fb9c6017e979cd2",
+      "target_analysis": {
+        "shanten": 0,
+        "effective_ukeire": 2,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "2s"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 183,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 41,
+                "2": 2,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 42,
+                "7": 1,
+                "5": 2,
+                "2": 1,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 41,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "2": 1,
+                "7": 2
+              }
+            ],
+            "scores": [
+              33600,
+              -11100,
+              82500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              13,
+              9,
+              9
+            ],
+            "steps": 152,
+            "seconds": 23.568414400040638,
+            "decision_seconds": 23.55460920050973,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -2900,
+                  2900,
+                  0
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 10
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 183,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "callers",
+            "opponents_by_seat": {
+              "2": "east_speed",
+              "0": "east_speed"
+            },
+            "action_counts": [
+              {
+                "0": 43,
+                "2": 2,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 44,
+                "7": 2,
+                "5": 2,
+                "2": 1,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 43,
+                "5": 2,
+                "4": 2,
+                "11": 5,
+                "2": 1,
+                "7": 2
+              }
+            ],
+            "scores": [
+              33600,
+              -11100,
+              82500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              13,
+              11,
+              9
+            ],
+            "steps": 160,
+            "seconds": 24.439989799982868,
+            "decision_seconds": 24.425106700102333,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -2900,
+                  2900,
+                  0
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 12
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 1,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "development",
+      "seed": 80,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 89,
+      "called_tile": "3p",
+      "combination": [
+        "3p",
+        "3p"
+      ],
+      "board_token": "d58e7b49372e5183adc3ddf69d49685219e954ebb1f90662e7b2541a03b21751",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 7,
+        "target_route": "tanyao",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9m"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 80,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 5,
+                "0": 48,
+                "5": 2,
+                "6": 1,
+                "7": 1,
+                "2": 1,
+                "4": 1
+              },
+              {
+                "2": 5,
+                "0": 50,
+                "9": 2,
+                "11": 4,
+                "7": 3,
+                "5": 1,
+                "4": 1
+              },
+              {
+                "2": 2,
+                "0": 51,
+                "7": 1,
+                "5": 3,
+                "4": 1
+              }
+            ],
+            "scores": [
+              57400,
+              31400,
+              16200
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              7,
+              8,
+              7
+            ],
+            "steps": 182,
+            "seconds": 21.698031800042372,
+            "decision_seconds": 21.683843399805482,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "deltas": [
+                  -1000,
+                  -1000,
+                  2000
+                ],
+                "reason": "exhaustive_draw",
+                "type": "ryukyoku"
+              }
+            ],
+            "own_discards": 17
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 80,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 5,
+                "0": 41,
+                "5": 2,
+                "6": 1,
+                "7": 1,
+                "2": 1,
+                "4": 1
+              },
+              {
+                "2": 4,
+                "0": 42,
+                "9": 1,
+                "11": 2,
+                "7": 4,
+                "5": 2,
+                "4": 2
+              },
+              {
+                "2": 2,
+                "0": 43,
+                "5": 2,
+                "4": 1
+              }
+            ],
+            "scores": [
+              54300,
+              36900,
+              13800
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 4,
+            "wins": 2,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              7,
+              5,
+              7
+            ],
+            "steps": 156,
+            "seconds": 9.312612399982754,
+            "decision_seconds": 9.300689200230408,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -4100,
+                  5100,
+                  0
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "4s"
+                ]
+              }
+            ],
+            "own_discards": 9
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 1
+    },
+    {
+      "profile": "aggressive",
+      "split": "development",
+      "seed": 80,
+      "seat": 2,
+      "hand_index": 0,
+      "event_index": 8,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "board_token": "ea05e01fe3777d15a6b2b4db7a9334d2e68af91e812d9794394080869181d3bc",
+      "target_analysis": {
+        "shanten": 3,
+        "effective_ukeire": 40,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "1m"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 80,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "0": "east_speed_push",
+              "1": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 5,
+                "0": 43,
+                "5": 2,
+                "6": 1,
+                "7": 1,
+                "4": 2,
+                "2": 1
+              },
+              {
+                "2": 4,
+                "0": 45,
+                "9": 2,
+                "11": 4,
+                "7": 3,
+                "5": 1,
+                "4": 1
+              },
+              {
+                "2": 2,
+                "0": 46,
+                "7": 1,
+                "5": 2,
+                "11": 1
+              }
+            ],
+            "scores": [
+              66800,
+              30600,
+              7600
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 4,
+            "wins": 0,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              15,
+              12
+            ],
+            "steps": 166,
+            "seconds": 8.530544599983841,
+            "decision_seconds": 8.51760529994499,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  17000,
+                  -8000,
+                  -8000
+                ],
+                "target": 0,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "1p",
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 9
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 80,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "0": "east_speed_push",
+              "1": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 2,
+                "0": 36,
+                "7": 1,
+                "5": 2,
+                "4": 1
+              },
+              {
+                "2": 2,
+                "0": 35,
+                "4": 1,
+                "11": 3,
+                "7": 1,
+                "5": 1
+              },
+              {
+                "7": 2,
+                "0": 38,
+                "2": 4,
+                "11": 2,
+                "9": 1
+              }
+            ],
+            "scores": [
+              43400,
+              41000,
+              20600
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 3,
+            "wins": 0,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              8
+            ],
+            "steps": 132,
+            "seconds": 11.28014320001239,
+            "decision_seconds": 11.268969900032971,
+            "initial_deal_digest": "b3ffd5368de077e02b6dc3fd43685e1e727e8011670c498d3c2e37e2292d03cc"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  0,
+                  8000,
+                  -8000
+                ],
+                "target": 2,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 8
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 3,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "development",
+      "seed": 81,
+      "seat": 1,
+      "hand_index": 0,
+      "event_index": 24,
+      "called_tile": "3p",
+      "combination": [
+        "3p",
+        "3p"
+      ],
+      "board_token": "826c3788566c9d173aab534a93c03408f1ef32252a5ec6483bc8342108e22fea",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 7,
+        "target_route": "tanyao",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9m"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 81,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 3,
+                "0": 40,
+                "7": 1,
+                "5": 1,
+                "2": 1,
+                "4": 1
+              },
+              {
+                "0": 42,
+                "7": 3,
+                "2": 3,
+                "11": 3,
+                "9": 1,
+                "5": 1,
+                "4": 1
+              },
+              {
+                "0": 42,
+                "7": 1,
+                "5": 3,
+                "4": 1
+              }
+            ],
+            "scores": [
+              41400,
+              39600,
+              24000
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 3,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              8,
+              7
+            ],
+            "steps": 147,
+            "seconds": 6.957294500025455,
+            "decision_seconds": 6.945785199932288,
+            "initial_deal_digest": "4908af66a9a2bb2d1d499433f67ea9b7c3a1f7e51a5837368f6df585c2a4b7ae"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "deltas": [
+                  -1000,
+                  -1000,
+                  2000
+                ],
+                "reason": "exhaustive_draw",
+                "type": "ryukyoku"
+              }
+            ],
+            "own_discards": 17
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 81,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 3,
+                "0": 33,
+                "7": 1,
+                "5": 1,
+                "2": 1,
+                "4": 1
+              },
+              {
+                "0": 34,
+                "7": 4,
+                "5": 2,
+                "4": 2,
+                "2": 2,
+                "11": 1
+              },
+              {
+                "0": 34,
+                "5": 2,
+                "4": 1
+              }
+            ],
+            "scores": [
+              38500,
+              44700,
+              21800
+            ],
+            "ranks": [
+              2,
+              1,
+              3
+            ],
+            "hands": 3,
+            "wins": 2,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              5,
+              7
+            ],
+            "steps": 121,
+            "seconds": 5.332233400025871,
+            "decision_seconds": 5.322789100406226,
+            "initial_deal_digest": "4908af66a9a2bb2d1d499433f67ea9b7c3a1f7e51a5837368f6df585c2a4b7ae"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -3900,
+                  4900,
+                  0
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "4s"
+                ]
+              }
+            ],
+            "own_discards": 9
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 1
+    },
+    {
+      "profile": "aggressive",
+      "split": "development",
+      "seed": 83,
+      "seat": 1,
+      "hand_index": 0,
+      "event_index": 22,
+      "called_tile": "9s",
+      "combination": [
+        "9s",
+        "9s"
+      ],
+      "board_token": "5b08165b4fb75e8fa9787885413be9ce212c2a5659ca78cc19c1b484d6575cbb",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 15,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "8p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 83,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 42,
+                "5": 3,
+                "11": 2,
+                "7": 2,
+                "2": 2
+              },
+              {
+                "0": 41,
+                "2": 2,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "3": 1,
+                "11": 1
+              },
+              {
+                "0": 39,
+                "7": 2,
+                "5": 2,
+                "11": 3,
+                "4": 1,
+                "2": 1,
+                "6": 1
+              }
+            ],
+            "scores": [
+              -2300,
+              53000,
+              54300
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 4,
+            "wins": 2,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              9,
+              9,
+              5,
+              8
+            ],
+            "steps": 148,
+            "seconds": 16.663335899997037,
+            "decision_seconds": 16.65015489963116,
+            "initial_deal_digest": "d4c7634cb5199e4a1438e1331b36b0447ef32cd9b902444a163f3ad30055ec5b"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -12000,
+                  0,
+                  14000
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "1m"
+                ]
+              }
+            ],
+            "own_discards": 12
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 83,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 40,
+                "11": 3,
+                "5": 3,
+                "7": 2,
+                "2": 2
+              },
+              {
+                "0": 39,
+                "7": 1,
+                "2": 2,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "3": 1,
+                "11": 1
+              },
+              {
+                "0": 37,
+                "7": 1,
+                "5": 2,
+                "11": 3,
+                "4": 1,
+                "2": 1,
+                "6": 1
+              }
+            ],
+            "scores": [
+              -2300,
+              53000,
+              54300
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 4,
+            "wins": 2,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              9,
+              5,
+              8
+            ],
+            "steps": 143,
+            "seconds": 10.680091100046411,
+            "decision_seconds": 10.668059899820946,
+            "initial_deal_digest": "d4c7634cb5199e4a1438e1331b36b0447ef32cd9b902444a163f3ad30055ec5b"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -12000,
+                  0,
+                  14000
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "1m"
+                ]
+              }
+            ],
+            "own_discards": 10
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": true,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 180,
+      "seat": 1,
+      "hand_index": 2,
+      "event_index": 176,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "board_token": "c50f6b666761c4e9e7ea668fbe80e5c352c7729d496b77de32bbc468b95a995c",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 9,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "8p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 180,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 7,
+                "0": 45,
+                "7": 5,
+                "5": 2,
+                "6": 1
+              },
+              {
+                "7": 1,
+                "0": 46,
+                "5": 2,
+                "11": 1,
+                "2": 2
+              },
+              {
+                "2": 2,
+                "0": 46,
+                "7": 2,
+                "11": 3,
+                "5": 2,
+                "6": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              34300,
+              25900,
+              44800
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 0,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              8,
+              7,
+              5
+            ],
+            "steps": 169,
+            "seconds": 29.12297749996651,
+            "decision_seconds": 29.107559999625664,
+            "initial_deal_digest": "256791dbd5c749a44cf514f5e2aa838bc02939eb54e2ada01882772f47a43a7a"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -2600,
+                  0,
+                  3600
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 8
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 180,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 12,
+                "0": 65,
+                "7": 7,
+                "5": 3,
+                "6": 1,
+                "4": 1,
+                "2": 1
+              },
+              {
+                "7": 5,
+                "0": 65,
+                "5": 2,
+                "11": 1,
+                "2": 2,
+                "4": 1
+              },
+              {
+                "2": 3,
+                "0": 67,
+                "7": 3,
+                "11": 6,
+                "5": 1,
+                "6": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              44600,
+              27100,
+              33300
+            ],
+            "ranks": [
+              1,
+              3,
+              2
+            ],
+            "hands": 6,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              8,
+              5,
+              5
+            ],
+            "steps": 248,
+            "seconds": 46.772534299991094,
+            "decision_seconds": 46.74850549933035,
+            "initial_deal_digest": "256791dbd5c749a44cf514f5e2aa838bc02939eb54e2ada01882772f47a43a7a"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  13000,
+                  0,
+                  -12000
+                ],
+                "target": 2,
+                "type": "hora",
+                "ura_markers": [
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 13
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 181,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 96,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "board_token": "94819e28420f20318b59ae96b3c891e0e30a20441713e64996aa7561b19c74eb",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 9,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "8p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 181,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 5,
+                "0": 34,
+                "7": 4,
+                "5": 1
+              },
+              {
+                "0": 35,
+                "2": 2,
+                "5": 1
+              },
+              {
+                "11": 3,
+                "0": 35,
+                "7": 1,
+                "5": 2,
+                "6": 1,
+                "4": 1,
+                "2": 1
+              }
+            ],
+            "scores": [
+              25400,
+              31000,
+              48600
+            ],
+            "ranks": [
+              3,
+              2,
+              1
+            ],
+            "hands": 3,
+            "wins": 0,
+            "deal_ins": 0,
+            "shape_tenpai_discards": [
+              7,
+              5
+            ],
+            "steps": 126,
+            "seconds": 21.055308100010734,
+            "decision_seconds": 21.044682500127237,
+            "initial_deal_digest": "6621979a018b4f8dcdbda0602525ec1215c08b453fa08d63144b49e2c5e542a0"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -2600,
+                  0,
+                  3600
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 8
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 181,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "11": 10,
+                "0": 63,
+                "7": 7,
+                "5": 3,
+                "4": 2,
+                "2": 1
+              },
+              {
+                "0": 63,
+                "2": 2,
+                "7": 7,
+                "5": 1,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "11": 7,
+                "0": 65,
+                "7": 2,
+                "5": 2,
+                "6": 1,
+                "2": 2,
+                "4": 1
+              }
+            ],
+            "scores": [
+              83700,
+              32200,
+              -10900
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 6,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              5,
+              5
+            ],
+            "steps": 241,
+            "seconds": 33.056060099974275,
+            "decision_seconds": 33.03458399954252,
+            "initial_deal_digest": "6621979a018b4f8dcdbda0602525ec1215c08b453fa08d63144b49e2c5e542a0"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  13000,
+                  0,
+                  -12000
+                ],
+                "target": 2,
+                "type": "hora",
+                "ura_markers": [
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 13
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 0,
+      "hand_index": 0,
+      "event_index": 26,
+      "called_tile": "2z",
+      "combination": [
+        "2z",
+        "2z"
+      ],
+      "board_token": "24b70864a1203bb5a933593746129a87195619db787b3f20c2c39ae29da64997",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 9,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "8p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 182,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "1": "east_speed_push",
+              "2": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 48,
+                "2": 2,
+                "5": 1,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 51,
+                "5": 2,
+                "4": 2,
+                "2": 2,
+                "11": 2
+              },
+              {
+                "11": 8,
+                "0": 49,
+                "7": 4,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              35200,
+              -5300,
+              75100
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 5,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              7,
+              5,
+              5
+            ],
+            "steps": 183,
+            "seconds": 28.01220390002709,
+            "decision_seconds": 27.995928299962543,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  0,
+                  3600,
+                  -2600
+                ],
+                "target": 2,
+                "type": "hora",
+                "ura_markers": [
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 8
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 182,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "1": "east_speed_push",
+              "2": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 53,
+                "7": 7,
+                "5": 1,
+                "2": 1,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 56,
+                "11": 4,
+                "7": 1,
+                "2": 2,
+                "4": 1,
+                "5": 1
+              },
+              {
+                "11": 9,
+                "0": 54,
+                "7": 5,
+                "5": 3,
+                "4": 2,
+                "2": 1
+              }
+            ],
+            "scores": [
+              35200,
+              -19900,
+              89700
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 5,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              5,
+              5
+            ],
+            "steps": 203,
+            "seconds": 33.13730950001627,
+            "decision_seconds": 33.1185520994477,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  0,
+                  -12000,
+                  13000
+                ],
+                "target": 1,
+                "type": "hora",
+                "ura_markers": [
+                  "F"
+                ]
+              }
+            ],
+            "own_discards": 13
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 0,
+      "hand_index": 3,
+      "event_index": 259,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "board_token": "62f8414796c20e3c94b74a1ca8210da4ac5d53d337c0f672defc0718678570fd",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 11,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 182,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "1": "east_speed_push",
+              "2": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 48,
+                "2": 2,
+                "5": 1,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 51,
+                "5": 2,
+                "4": 2,
+                "2": 2,
+                "11": 2
+              },
+              {
+                "11": 8,
+                "0": 49,
+                "7": 4,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              35200,
+              -5300,
+              75100
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 5,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              7,
+              5,
+              5
+            ],
+            "steps": 183,
+            "seconds": 28.01220390002709,
+            "decision_seconds": 27.995928299962543,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 3,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  4300,
+                  0,
+                  -4300
+                ],
+                "target": 2,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 5
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 182,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "1": "east_speed_push",
+              "2": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 51,
+                "2": 1,
+                "5": 2,
+                "7": 7,
+                "6": 1,
+                "11": 2
+              },
+              {
+                "0": 54,
+                "5": 3,
+                "4": 2,
+                "2": 2,
+                "11": 2
+              },
+              {
+                "11": 8,
+                "0": 53,
+                "7": 6,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              41300,
+              -12500,
+              76200
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 5,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              7,
+              5,
+              7
+            ],
+            "steps": 197,
+            "seconds": 35.39708259998588,
+            "decision_seconds": 35.37823880038923,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 3,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  11400,
+                  -6200,
+                  -3200
+                ],
+                "target": 0,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "P"
+                ]
+              }
+            ],
+            "own_discards": 8
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 99,
+      "called_tile": "0p",
+      "combination": [
+        "5p",
+        "5p"
+      ],
+      "board_token": "2298476a5987636e31754ed13e46d159f4fbbfa5b7c17ca1c9f85e69fbe4e2ad",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 12,
+        "target_route": "tanyao",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "6p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 182,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 45,
+                "2": 2,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "7": 2
+              },
+              {
+                "0": 45,
+                "5": 1,
+                "4": 2,
+                "2": 2,
+                "7": 6,
+                "11": 2
+              },
+              {
+                "11": 5,
+                "0": 45,
+                "7": 2,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              82500,
+              36200,
+              -13700
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 5,
+            "wins": 2,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              6,
+              5
+            ],
+            "steps": 170,
+            "seconds": 32.24171319999732,
+            "decision_seconds": 32.22563010000158,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  4600,
+                  -2600,
+                  0
+                ],
+                "target": 1,
+                "type": "hora",
+                "ura_markers": [
+                  "S"
+                ]
+              }
+            ],
+            "own_discards": 14
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 182,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 44,
+                "2": 2,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "7": 2
+              },
+              {
+                "0": 44,
+                "5": 1,
+                "4": 2,
+                "7": 7,
+                "2": 1,
+                "11": 2
+              },
+              {
+                "11": 3,
+                "0": 44,
+                "7": 3,
+                "2": 1,
+                "4": 1,
+                "5": 1
+              }
+            ],
+            "scores": [
+              81500,
+              36200,
+              -12700
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 5,
+            "wins": 2,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              6,
+              5
+            ],
+            "steps": 165,
+            "seconds": 31.659504699986428,
+            "decision_seconds": 31.643054499756545,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  3600,
+                  -2600,
+                  0
+                ],
+                "target": 1,
+                "type": "hora",
+                "ura_markers": [
+                  "S"
+                ]
+              }
+            ],
+            "own_discards": 13
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": true,
+      "baseline_shanten": 1,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 182,
+      "seat": 1,
+      "hand_index": 3,
+      "event_index": 231,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "board_token": "2df10ef730293e401392bbeef356a569d007029a1fe3b9332e4005265d8f3b7a",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 11,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 182,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 45,
+                "2": 2,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "7": 2
+              },
+              {
+                "0": 45,
+                "5": 1,
+                "4": 2,
+                "2": 2,
+                "7": 6,
+                "11": 2
+              },
+              {
+                "11": 5,
+                "0": 45,
+                "7": 2,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              82500,
+              36200,
+              -13700
+            ],
+            "ranks": [
+              1,
+              2,
+              3
+            ],
+            "hands": 5,
+            "wins": 2,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              6,
+              5
+            ],
+            "steps": 170,
+            "seconds": 32.24171319999732,
+            "decision_seconds": 32.22563010000158,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 3,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -4100,
+                  4100,
+                  0
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 5
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 182,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 40,
+                "2": 2,
+                "5": 1,
+                "4": 1,
+                "11": 4,
+                "7": 3
+              },
+              {
+                "0": 39,
+                "5": 2,
+                "4": 1,
+                "2": 1,
+                "7": 4,
+                "6": 1
+              },
+              {
+                "11": 4,
+                "0": 39,
+                "7": 2,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              }
+            ],
+            "scores": [
+              35500,
+              42300,
+              27200
+            ],
+            "ranks": [
+              2,
+              1,
+              3
+            ],
+            "hands": 4,
+            "wins": 2,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              6,
+              7
+            ],
+            "steps": 148,
+            "seconds": 33.14729380002245,
+            "decision_seconds": 33.131637399608735,
+            "initial_deal_digest": "50bd2dcc63c12c10df38b285f4ffd8b0f3f60dfd650c4f70eb3a78760a2f06c9"
+          },
+          "target_hand": {
+            "hand_index": 3,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -3100,
+                  11200,
+                  -6100
+                ],
+                "target": 1,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "P"
+                ]
+              }
+            ],
+            "own_discards": 8
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 0,
+      "hand_index": 0,
+      "event_index": 46,
+      "called_tile": "0p",
+      "combination": [
+        "5p",
+        "5p"
+      ],
+      "board_token": "cd61191a53fc9bfcb47815e70e2f5adfd8b9c6180b3c7f7924e321feccbeddd8",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 12,
+        "target_route": "tanyao",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "6p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 183,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "1": "east_speed_push",
+              "2": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 37,
+                "2": 2,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 38,
+                "7": 1,
+                "11": 4,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              },
+              {
+                "0": 37,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "2": 1,
+                "7": 2
+              }
+            ],
+            "scores": [
+              33600,
+              -11100,
+              82500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              5
+            ],
+            "steps": 142,
+            "seconds": 13.452660899958573,
+            "decision_seconds": 13.438041600340512,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -2600,
+                  0,
+                  4600
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "S"
+                ]
+              }
+            ],
+            "own_discards": 14
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 183,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "1": "east_speed_push",
+              "2": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 36,
+                "7": 7,
+                "2": 1,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 37,
+                "7": 2,
+                "2": 1,
+                "4": 1,
+                "11": 2,
+                "5": 1
+              },
+              {
+                "0": 36,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "2": 1,
+                "7": 2
+              }
+            ],
+            "scores": [
+              33600,
+              -10100,
+              81500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              5
+            ],
+            "steps": 137,
+            "seconds": 21.1008967999951,
+            "decision_seconds": 21.08650469989516,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 0,
+            "wins": 0,
+            "deal_in": true,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -2600,
+                  0,
+                  3600
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": [
+                  "S"
+                ]
+              }
+            ],
+            "own_discards": 13
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": true,
+      "baseline_shanten": 1,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 0,
+      "hand_index": 2,
+      "event_index": 178,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "board_token": "62b652a9b7e7f075536273875b834509ab16ef4ff93946f5de95b00e4bd4d351",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 11,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 183,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "1": "east_speed_push",
+              "2": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 37,
+                "2": 2,
+                "7": 6,
+                "4": 1,
+                "11": 2
+              },
+              {
+                "0": 38,
+                "7": 1,
+                "11": 4,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              },
+              {
+                "0": 37,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "2": 1,
+                "7": 2
+              }
+            ],
+            "scores": [
+              33600,
+              -11100,
+              82500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              5
+            ],
+            "steps": 142,
+            "seconds": 13.452660899958573,
+            "decision_seconds": 13.438041600340512,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  4100,
+                  0,
+                  -4100
+                ],
+                "target": 2,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 5
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 183,
+            "seat": 0,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "1": "east_speed_push",
+              "2": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 40,
+                "2": 1,
+                "7": 7,
+                "5": 1,
+                "6": 1,
+                "11": 2
+              },
+              {
+                "0": 41,
+                "7": 1,
+                "11": 4,
+                "5": 3,
+                "2": 1,
+                "4": 1
+              },
+              {
+                "0": 41,
+                "5": 2,
+                "4": 2,
+                "11": 4,
+                "2": 1,
+                "7": 4
+              }
+            ],
+            "scores": [
+              39700,
+              -18200,
+              83500
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 2,
+            "shape_tenpai_discards": [
+              7
+            ],
+            "steps": 156,
+            "seconds": 30.54102549998788,
+            "decision_seconds": 30.52438499982236,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 0,
+                "deltas": [
+                  11200,
+                  -6100,
+                  -3100
+                ],
+                "target": 0,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "P"
+                ]
+              }
+            ],
+            "own_discards": 8
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 1,
+      "hand_index": 1,
+      "event_index": 163,
+      "called_tile": "9s",
+      "combination": [
+        "9s",
+        "9s"
+      ],
+      "board_token": "e7d56b7639c5b5a6b82697d911acdd742ef546d1c89097fc8ae0561f845a18be",
+      "target_analysis": {
+        "shanten": 0,
+        "effective_ukeire": 2,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "2s"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 183,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 42,
+                "2": 3,
+                "7": 4,
+                "4": 2
+              },
+              {
+                "0": 43,
+                "7": 1,
+                "5": 2,
+                "4": 2,
+                "2": 1,
+                "11": 2
+              },
+              {
+                "0": 41,
+                "5": 2,
+                "11": 4,
+                "2": 1,
+                "7": 2,
+                "4": 1
+              }
+            ],
+            "scores": [
+              35900,
+              -8800,
+              77900
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 2,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              13,
+              9,
+              10
+            ],
+            "steps": 152,
+            "seconds": 28.291503600019496,
+            "decision_seconds": 28.27565389953088,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -2900,
+                  2900,
+                  0
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 10
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 183,
+            "seat": 1,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "2": "east_speed_push",
+              "0": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 44,
+                "2": 3,
+                "7": 4,
+                "4": 2
+              },
+              {
+                "0": 45,
+                "7": 2,
+                "5": 2,
+                "4": 2,
+                "2": 1,
+                "11": 2
+              },
+              {
+                "0": 43,
+                "5": 2,
+                "11": 5,
+                "2": 1,
+                "7": 2,
+                "4": 1
+              }
+            ],
+            "scores": [
+              35900,
+              -8800,
+              77900
+            ],
+            "ranks": [
+              2,
+              3,
+              1
+            ],
+            "hands": 4,
+            "wins": 2,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              13,
+              11,
+              10
+            ],
+            "steps": 160,
+            "seconds": 29.916977000015322,
+            "decision_seconds": 29.899886699626222,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 1,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 1,
+                "deltas": [
+                  -2900,
+                  2900,
+                  0
+                ],
+                "target": 0,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 12
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 1,
+      "target_win_delta": 0
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "seed": 183,
+      "seat": 2,
+      "hand_index": 2,
+      "event_index": 206,
+      "called_tile": "2s",
+      "combination": [
+        "2s",
+        "2s"
+      ],
+      "board_token": "3f3eaf7f616a342b4034185b7d47f0fd2adc8403d5e5cd384c6aa3dbb5061b6b",
+      "target_analysis": {
+        "shanten": 1,
+        "effective_ukeire": 11,
+        "target_route": "yakuhai",
+        "post_call_discard": {
+          "kind": "discard",
+          "tile": "9p"
+        }
+      },
+      "branches": {
+        "pon": {
+          "metrics": {
+            "seed": 183,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "0": "east_speed_push",
+              "1": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 43,
+                "2": 2,
+                "4": 1,
+                "11": 2,
+                "5": 1
+              },
+              {
+                "0": 42,
+                "7": 3,
+                "11": 7,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              },
+              {
+                "0": 40,
+                "5": 1,
+                "7": 6,
+                "2": 1,
+                "4": 1,
+                "11": 2
+              }
+            ],
+            "scores": [
+              -7900,
+              77700,
+              35200
+            ],
+            "ranks": [
+              3,
+              1,
+              2
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              5,
+              5
+            ],
+            "steps": 155,
+            "seconds": 25.85460580000654,
+            "decision_seconds": 25.83925099967746,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  0,
+                  -4300,
+                  4300
+                ],
+                "target": 1,
+                "type": "hora",
+                "ura_markers": []
+              }
+            ],
+            "own_discards": 5
+          }
+        },
+        "skip": {
+          "metrics": {
+            "seed": 183,
+            "seat": 2,
+            "candidate": "east_speed",
+            "opponent_profile": "aggressive",
+            "opponents_by_seat": {
+              "0": "east_speed_push",
+              "1": "east_speed_push"
+            },
+            "action_counts": [
+              {
+                "0": 46,
+                "2": 2,
+                "4": 1,
+                "11": 2,
+                "5": 2
+              },
+              {
+                "0": 46,
+                "7": 5,
+                "11": 7,
+                "5": 2,
+                "2": 1,
+                "4": 1
+              },
+              {
+                "0": 43,
+                "5": 2,
+                "7": 7,
+                "6": 1,
+                "11": 2
+              }
+            ],
+            "scores": [
+              -15100,
+              78800,
+              41300
+            ],
+            "ranks": [
+              3,
+              1,
+              2
+            ],
+            "hands": 4,
+            "wins": 1,
+            "deal_ins": 1,
+            "shape_tenpai_discards": [
+              5,
+              7
+            ],
+            "steps": 169,
+            "seconds": 27.984438099956606,
+            "decision_seconds": 27.96781519963406,
+            "initial_deal_digest": "da6341856765b849bc25860e5cb28e05a96c6cd635350d6d190249c5be22a8d7"
+          },
+          "target_hand": {
+            "hand_index": 2,
+            "wins": 1,
+            "deal_in": false,
+            "settlements": [
+              {
+                "actor": 2,
+                "deltas": [
+                  -6200,
+                  -3200,
+                  11400
+                ],
+                "target": 2,
+                "tsumo": true,
+                "type": "hora",
+                "ura_markers": [
+                  "P"
+                ]
+              }
+            ],
+            "own_discards": 8
+          }
+        }
+      },
+      "exact_target_divergence": true,
+      "baseline_exact_replay": true,
+      "post_call_secured_yaku": false,
+      "baseline_shanten": 2,
+      "target_win_delta": 0
+    }
+  ]
+}

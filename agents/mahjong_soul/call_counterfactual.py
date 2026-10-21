@@ -9,28 +9,35 @@ import subprocess
 from agents.mahjong_soul.simulation import Agent,run,OPPONENT_PROFILES,ENGINE_VERSION,KINDS
 
 
-def compare_call(seed,seat,called_tile,*,opponents='callers',occurrence=1,mode='3p-red-east'):
-    if occurrence<1:raise ValueError('Occurrence must be positive')
-    target={};seen=0;overrides=0
-    def baseline_factory(name):
+def capture_calls(seed,seat,*,opponents='callers',mode='3p-red-east'):
+    """Trace chosen Pon using own hand/public state; no hidden feature access."""
+    from collections import Counter
+    from agents.mahjong_soul.attack_value import own_player
+    from games.mahjong_soul.playbook.features import value_honors
+    from games.mahjong_soul.live.runtime.kan import tile_kind
+    targets=[];seen=Counter()
+    def factory(name):
         agent=Agent(name)
         if agent.policy:
             choose=agent.policy.choose
             def traced(request):
-                nonlocal seen
-                action=choose(request)
-                if (request['observation']['board']['self_seat']==seat and
-                        action['kind']=='pon' and action.get('called_tile')==called_tile):
-                    seen+=1
-                    if seen==occurrence:
-                        target.update(request=deepcopy(request),action=deepcopy(action),
-                                      analysis=deepcopy(agent.policy.last_analysis),
-                                      hand_index=sum(e['type']=='start_kyoku' for e in agent.history)-1)
+                action=choose(request);board=request['observation']['board']
+                if board['self_seat']==seat and action['kind']=='pon':
+                    called=action['called_tile'];seen[called]+=1
+                    targets.append({'request':deepcopy(request),'action':deepcopy(action),
+                                    'analysis':deepcopy(agent.policy.last_analysis),'occurrence':seen[called],
+                                    'opening':not any(m['type']!=3 for m in own_player(board)['melds']),
+                                    'value_call':tile_kind(called) in value_honors(board),
+                                    'hand_index':sum(e['type']=='start_kyoku' for e in agent.history)-1})
                 return action
             agent.policy.choose=traced
         return agent
-    baseline=run(seed,seat,'east_speed',opponents=opponents,mode=mode,agent_factory=baseline_factory)
-    if not target:raise ValueError('Requested selected Pon was not encountered')
+    return run(seed,seat,'east_speed',opponents=opponents,mode=mode,agent_factory=factory),targets
+
+
+def skip_target(seed,seat,baseline,target,*,opponents='callers',mode='3p-red-east'):
+    """Reuse a baseline, but rerun exactly one target with legal Skip."""
+    called_tile=target['action']['called_tile'];overrides=0
     def skip_factory(name):
         agent=Agent(name)
         if agent.policy:
@@ -76,13 +83,22 @@ def compare_call(seed,seat,called_tile,*,opponents='callers',occurrence=1,mode='
                 'settlements':[e for e in events if e['type'] in ('hora','ryukyoku')],
                 'own_discards':sum(e['type']=='dahai' and e.get('actor')==seat for e in events)}
     report={'mode':'offline_single_call_counterfactual','seed':seed,'seat':seat,'called_tile':called_tile,
-            'occurrence':occurrence,'opponents':opponents,'engine':ENGINE_VERSION,
+            'occurrence':target.get('occurrence',1),'opponents':opponents,'engine':ENGINE_VERSION,
             'target':target,'overrides':overrides,'first_different_event_index':first,
             'first_different_events':{'pon':baseline['log'][first],'skip':skipped['log'][first]},
             'branches':{name:{'metrics':{k:v for k,v in result.items() if k!='log'},'target_hand':hand_summary(result)}
                         for name,result in [('pon',baseline),('skip',skipped)]},
             'limitation':'One forced action on one fixed hidden deal; later draws diverge. This is not a win-rate estimate or an optimal-action proof.'}
     return report,baseline['log'],skipped['log']
+
+
+
+def compare_call(seed,seat,called_tile,*,opponents='callers',occurrence=1,mode='3p-red-east'):
+    if occurrence<1:raise ValueError('Occurrence must be positive')
+    baseline,targets=capture_calls(seed,seat,opponents=opponents,mode=mode)
+    target=next((t for t in targets if t['action']['called_tile']==called_tile and t['occurrence']==occurrence),None)
+    if target is None:raise ValueError('Requested selected Pon was not encountered')
+    return skip_target(seed,seat,baseline,target,opponents=opponents,mode=mode)
 
 
 def main():
