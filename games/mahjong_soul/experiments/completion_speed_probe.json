@@ -1,0 +1,121 @@
+{
+  "model": "useful-draw-only structural Tenpai and scored legal Tsumo",
+  "results": [
+    {
+      "board_token": "d58e7b49372e5183adc3ddf69d49685219e954ebb1f90662e7b2541a03b21751",
+      "action": {
+        "kind": "pon",
+        "combination": "3p|3p",
+        "called_tile": "3p"
+      },
+      "post_call_discard": "9m",
+      "skip": {
+        "available": true,
+        "target": "structural_tenpai",
+        "shanten": 2,
+        "horizon": 12,
+        "capped_draw_cost": 7.091187026681164,
+        "tenpai_probability": 0.7888797017018778,
+        "states": 188,
+        "legal_win_evaluated": false
+      },
+      "pon": {
+        "available": true,
+        "target": "structural_tenpai",
+        "shanten": 1,
+        "horizon": 12,
+        "capped_draw_cost": 5.557865559482559,
+        "tenpai_probability": 0.8705090635334132,
+        "states": 13,
+        "legal_win_evaluated": false
+      },
+      "tsumo_skip": {
+        "available": true,
+        "target": "legal_tsumo",
+        "shanten": 2,
+        "horizon": 12,
+        "capped_draw_cost": 11.065760588426961,
+        "completion_probability": 0.26212885986699097,
+        "states": 188,
+        "legal_win_evaluated": true,
+        "ron_evaluated": false,
+        "riichi_assumed": false,
+        "equal_shanten_repairs": false
+      },
+      "tsumo_pon": {
+        "available": true,
+        "target": "legal_tsumo",
+        "shanten": 1,
+        "horizon": 12,
+        "capped_draw_cost": 11.746496524480172,
+        "completion_probability": 0.062254570119891287,
+        "states": 13,
+        "legal_win_evaluated": true,
+        "ron_evaluated": false,
+        "riichi_assumed": false,
+        "equal_shanten_repairs": false
+      },
+      "seconds": 0.36988669994752854,
+      "live_eligible": false,
+      "reason": "own_draw_model_excludes_calls_ron_and_equal_shanten_repairs"
+    },
+    {
+      "board_token": "826c3788566c9d173aab534a93c03408f1ef32252a5ec6483bc8342108e22fea",
+      "action": {
+        "kind": "pon",
+        "combination": "3p|3p",
+        "called_tile": "3p"
+      },
+      "post_call_discard": "9m",
+      "skip": {
+        "available": true,
+        "target": "structural_tenpai",
+        "shanten": 2,
+        "horizon": 12,
+        "capped_draw_cost": 7.091187026681164,
+        "tenpai_probability": 0.7888797017018778,
+        "states": 188,
+        "legal_win_evaluated": false
+      },
+      "pon": {
+        "available": true,
+        "target": "structural_tenpai",
+        "shanten": 1,
+        "horizon": 12,
+        "capped_draw_cost": 5.557865559482559,
+        "tenpai_probability": 0.8705090635334132,
+        "states": 13,
+        "legal_win_evaluated": false
+      },
+      "tsumo_skip": {
+        "available": true,
+        "target": "legal_tsumo",
+        "shanten": 2,
+        "horizon": 12,
+        "capped_draw_cost": 11.065760588426961,
+        "completion_probability": 0.26212885986699097,
+        "states": 188,
+        "legal_win_evaluated": true,
+        "ron_evaluated": false,
+        "riichi_assumed": false,
+        "equal_shanten_repairs": false
+      },
+      "tsumo_pon": {
+        "available": true,
+        "target": "legal_tsumo",
+        "shanten": 1,
+        "horizon": 12,
+        "capped_draw_cost": 11.746496524480172,
+        "completion_probability": 0.062254570119891287,
+        "states": 13,
+        "legal_win_evaluated": true,
+        "ron_evaluated": false,
+        "riichi_assumed": false,
+        "equal_shanten_repairs": false
+      },
+      "seconds": 0.025810099963564426,
+      "live_eligible": false,
+      "reason": "own_draw_model_excludes_calls_ron_and_equal_shanten_repairs"
+    }
+  ]
+}
