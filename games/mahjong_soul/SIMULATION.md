@@ -104,3 +104,7 @@ The adapter collapses interchangeable physical-copy actions into one exact tile-
 ## Exhaustive opening-call diagnostics
 
 `python -m agents.mahjong_soul.call_batch --profiles callers aggressive --output <new-directory>` enumerates all non-value first-opening Pon in the existing second-/third-place baseline corpus. It reuses one verified baseline per match and applies each Skip as a separate, guarded intervention. Profiles can run separately in separate output directories. The [full opening-call review](experiments/ALL_OPENING_CALLS_REVIEW.md) defines the corpus and its selection bias; these branches are diagnostics, not an unbiased win-rate benchmark.
+
+## Unsecured-opening width candidate
+
+`east_speed_call_width` tests a minimum of eight improving copies when an initial opening takes a two-Shanten hand into an unsecured one-Shanten route. It preserves Tenpai, secured Yaku and later calls. It is experimental and does not change live playbook defaults. The [fresh-match review](experiments/CALL_WIDTH_REVIEW.md) records the diagnostic basis, frozen seeds and actual exposure/results.

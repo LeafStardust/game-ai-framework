@@ -1,0 +1,100 @@
+{
+  "baseline": "east_speed",
+  "candidate": "east_speed_call_width",
+  "engine": "0.4.10",
+  "opponents": "aggressive",
+  "revision": "3ded9c77bed648880c2740abf94f98839ce5face",
+  "policy_tree_sha256": "3d3d083a63757762ad7cc67ff43285dfcfc208c556a21344656d12eb1f5fea2f",
+  "mode": "3p-red-east",
+  "independent_seeds": 4,
+  "paired_seat_assignments": 12,
+  "baseline_metrics": {
+    "matches": 12,
+    "hands": 43,
+    "first_place_rate": 0.25,
+    "average_rank": 2.1666666666666665,
+    "hand_win_rate": 0.2558139534883721,
+    "deal_in_rate": 0.18604651162790697,
+    "shape_tenpai_reach_rate": 0.5581395348837209,
+    "conditional_shape_tenpai_discard_mean": 7.708333333333333
+  },
+  "candidate_metrics": {
+    "matches": 12,
+    "hands": 43,
+    "first_place_rate": 0.25,
+    "average_rank": 2.1666666666666665,
+    "hand_win_rate": 0.2558139534883721,
+    "deal_in_rate": 0.18604651162790697,
+    "shape_tenpai_reach_rate": 0.5581395348837209,
+    "conditional_shape_tenpai_discard_mean": 7.708333333333333
+  },
+  "per_seed_candidate_minus_baseline": [
+    {
+      "seed": 200,
+      "first_place_rate": 0.0,
+      "average_rank": 0.0,
+      "hand_win_rate": 0.0,
+      "deal_in_rate": 0.0,
+      "shape_tenpai_reach_rate": 0.0
+    },
+    {
+      "seed": 201,
+      "first_place_rate": 0.0,
+      "average_rank": 0.0,
+      "hand_win_rate": 0.0,
+      "deal_in_rate": 0.0,
+      "shape_tenpai_reach_rate": 0.0
+    },
+    {
+      "seed": 202,
+      "first_place_rate": 0.0,
+      "average_rank": 0.0,
+      "hand_win_rate": 0.0,
+      "deal_in_rate": 0.0,
+      "shape_tenpai_reach_rate": 0.0
+    },
+    {
+      "seed": 203,
+      "first_place_rate": 0.0,
+      "average_rank": 0.0,
+      "hand_win_rate": 0.0,
+      "deal_in_rate": 0.0,
+      "shape_tenpai_reach_rate": 0.0
+    }
+  ],
+  "seed_cluster_bootstrap_95": {
+    "first_place_rate": [
+      0.0,
+      0.0
+    ],
+    "average_rank": [
+      0.0,
+      0.0
+    ],
+    "hand_win_rate": [
+      0.0,
+      0.0
+    ],
+    "deal_in_rate": [
+      0.0,
+      0.0
+    ],
+    "shape_tenpai_reach_rate": [
+      0.0,
+      0.0
+    ]
+  },
+  "limitations": [
+    "Exploratory intervals from very few seeds are unstable; they are not proof of superiority.",
+    "Seat assignments and hands within a seed are correlated; resampling is by seed.",
+    "Tenpai discard mean is conditional on reaching shape Tenpai, not a legal-win guarantee.",
+    "Fixed heuristic opponents do not represent Steam AI or human opponents."
+  ],
+  "replay_coverage": {
+    "checked_pairs": 12,
+    "different_replays": 0,
+    "missing_pairs": 0,
+    "candidate_exercised": false,
+    "note": "Identical replays provide no observed action-change exposure; outcome equality is not proof of general equivalence."
+  }
+}

@@ -193,6 +193,11 @@ def _call_options(request,book,ranker,diagnostics=None,value=None):
             if option["shanten"]>nearest:reason="slower_than_post_call_plan"
             elif not credible:reason="no_reachable_open_yaku"
             elif option["shanten"]>settings["max_shanten"]:reason="too_far_from_win"
+            elif (settings.get("unsecured_opening_min_ukeire",0)>0
+                  and baseline==2 and option["shanten"]==1 and not option["open_yaku"]
+                  and not any(m["type"]!=3 for m in own["melds"])
+                  and option["effective_ukeire"]<settings["unsecured_opening_min_ukeire"]):
+                reason="narrow_unsecured_opening"
             elif profile and (profile["dama_ukeire"]==0 or profile["permanent_furiten"]):reason="no_legal_ron_wait"
             elif option["projected_han"]<settings["minimum_han"] and not (settings.get("allow_cheap_tenpai",True) and profile and profile["dama_ukeire"]>=settings["cheap_tenpai_waits"]):reason="low_value_open_hand"
             elif option["shanten"]>baseline:

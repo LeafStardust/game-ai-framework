@@ -145,3 +145,9 @@ def test_duplicate_riichi_discard_keeps_one_offer_and_two_stage_binding():
         if env.done():break
         observations=env.step({pid:agents[pid].act(obs) for pid,obs in observations.items()})
     pytest.fail("Seeded regression did not reach the expected Riichi offer")
+
+
+def test_call_width_candidate_is_offline_and_isolated():
+    candidate=Agent("east_speed_call_width");normal=Agent("east_speed")
+    assert candidate.policy.registry.get(3,"atk","east").strategy["calls"]["unsecured_opening_min_ukeire"]==8
+    assert not normal.policy.registry.get(3,"atk","east").strategy["calls"].get("unsecured_opening_min_ukeire")

@@ -96,9 +96,9 @@ def request(obs,history=None):
 
 class Agent:
     def __init__(self,name):
-        if name not in ("efficiency","east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw","east_speed_development","east_speed_partial_yaku","east_speed_ready_push"):
+        if name not in ("efficiency","east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw","east_speed_development","east_speed_partial_yaku","east_speed_ready_push","east_speed_call_width"):
             raise ValueError("Unknown simulation candidate")
-        self.name=name;self.policy=make_policy("playbook","atk") if name in ("east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw","east_speed_development","east_speed_partial_yaku","east_speed_ready_push") else None
+        self.name=name;self.policy=make_policy("playbook","atk") if name in ("east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw","east_speed_development","east_speed_partial_yaku","east_speed_ready_push","east_speed_call_width") else None
         if name=="east_speed_push":
             # Experiment only: isolate the cost of giving up winning progress
             # against Riichi. Never change production playbook factories.
@@ -116,6 +116,8 @@ class Agent:
         if name=="east_speed_ready_push":
             self.policy.registry.get(3,"atk","east").strategy["defense"].update(
                 ready_push_max_danger=90,ready_push_min_ukeire=3)
+        if name=="east_speed_call_width":
+            self.policy.registry.get(3,"atk","east").strategy["calls"]["unsecured_opening_min_ukeire"]=8
         self.reach_tile=None
         self.history=[]
 
@@ -196,7 +198,7 @@ def run(seed,seat,candidate,*,mode="3p-red-east",max_steps=5000,opponents="effic
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--seeds",type=int,nargs="+",default=[0]);parser.add_argument("--seats",type=int,nargs="+",default=[0,1,2]);parser.add_argument("--candidates",nargs="+",choices=["efficiency","east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw","east_speed_development","east_speed_partial_yaku","east_speed_ready_push"],default=["efficiency","east_speed"]);parser.add_argument("--output",type=Path,required=True);parser.add_argument("--single-hand",action="store_true")
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--seeds",type=int,nargs="+",default=[0]);parser.add_argument("--seats",type=int,nargs="+",default=[0,1,2]);parser.add_argument("--candidates",nargs="+",choices=["efficiency","east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw","east_speed_development","east_speed_partial_yaku","east_speed_ready_push","east_speed_call_width"],default=["efficiency","east_speed"]);parser.add_argument("--output",type=Path,required=True);parser.add_argument("--single-hand",action="store_true")
     parser.add_argument("--opponents",choices=list(OPPONENT_PROFILES),default="efficiency")
     args=parser.parse_args()
     if any(s not in range(3) for s in args.seats):parser.error("Seats must be 0, 1 or 2")
