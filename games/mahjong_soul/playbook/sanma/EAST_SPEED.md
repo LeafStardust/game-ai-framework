@@ -1,10 +1,10 @@
-# Three-Player East Speed v0.6
+# Three-Player East Speed v0.7
 
 The authenticated three-player East lobby selects this playbook through the existing `--playstyle atk` policy family. It prioritizes speed, then defense, then hand value. South sanma remains unsupported. East games have three scheduled dealer positions but can include repeats and extensions.
 
 ## Stronger speed priority
 
-As with Four-Player East Speed, choose the nearest reachable scoring hand, then the most available improving copies, then relative safety, then value. There is zero allowance to sacrifice improving copies for projected Han, and no deliberate Yakuman pursuit. Productive Pon can be considered up to four-Shanten rather than three; same-distance calls must increase improving copies or enable legal Ron. One-Han wins and calls with a valid Yaku are acceptable. Riichi needs one available winning copy rather than two in an unthreatened hand, two rather than four against a single threat, and at least four wall tiles. A Riichi alternative cannot sacrifice available winning copies for value. Offered Ron/Tsumo takes priority over every development action.
+Choose the nearest reachable scoring hand. Normally immediate improving copies precede relative safety and value. In unthreatened closed two-Shanten hands, v0.7 instead compares the original choice with up to two distinct development alternatives using bounded legal-completion cost. It can trade immediate improving copies for a lower completion estimate, while preserving Shanten; it does not rebuild for projected Han. There is zero allowance to sacrifice improving copies for projected Han, and no deliberate Yakuman pursuit. Productive Pon can be considered up to four-Shanten rather than three; same-distance calls must increase improving copies or enable legal Ron. One-Han wins and calls with a valid Yaku are acceptable. Riichi needs one available winning copy rather than two in an unthreatened hand, two rather than four against a single threat, and at least four wall tiles. A Riichi alternative cannot sacrifice available winning copies for value. Offered Ron/Tsumo takes priority over every development action.
 
 Defense still applies to distant hands and multiple threats. Against a single threat, viable close hands can push with six remaining wall tiles and relative danger up to 85, compared with eight and 75 for four-player East. These values are initial heuristics, not calibrated probabilities. The unchanged shared Kan policy rejects Kan under threat and requires no loss of improving copies.
 
@@ -35,3 +35,9 @@ Speed-first calls may lose projected Han when they preserve legal winning distan
 ## Ready-hand Yaku proof
 
 A ready open hand can earn its Yaku when the winning tile completes a Dragon or value-Wind triplet. Exact legal Ron scoring now proves that route for the push check even if the partial hand has no completed Yaku yet. This does not relax danger, remaining-wall, available-wait, Furiten or minimum-point limits. South Attack is unchanged.
+
+## Bounded earlier-hand completion (v0.7)
+
+The lookahead is limited to closed hands without fixed melds or recognized threats. It collapses interchangeable honor/normal-red forecasts, estimates at most twelve own draws using the remaining wall, and retains the original discard if any shortlisted forecast exceeds its 2,000-state budget. Other stages keep the existing speed, call and defense rules. Terminal output stays the recommended action only; decision records include the shortlisted estimates and original offensive choice.
+
+The [completed offline review](../../experiments/EARLY_COMPLETION_REVIEW.md) records 96 fresh full matches, actual changed replays and small-sample limits. Held-out callers gained two hand wins and two first places with one fewer deal-in; held-out aggressive opponents gained one hand win with unchanged deal-in count and placement. Development outcome totals were unchanged. This supports provisional adoption, not a claim of established Steam or human win-rate improvement. Live input validation of v0.7 remains next.

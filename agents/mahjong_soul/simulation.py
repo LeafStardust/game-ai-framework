@@ -99,6 +99,10 @@ class Agent:
         if name not in ("efficiency","east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw","east_speed_development","east_speed_partial_yaku","east_speed_ready_push","east_speed_call_width","east_speed_completion","east_speed_discard_completion"):
             raise ValueError("Unknown simulation candidate")
         self.name=name;self.policy=make_policy("playbook","atk") if name in ("east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw","east_speed_development","east_speed_partial_yaku","east_speed_ready_push","east_speed_call_width","east_speed_completion","east_speed_discard_completion") else None
+        # Keep the control and older experiments independent of the promoted
+        # live default. Only the named completion candidate enables this flag.
+        if self.policy:
+            self.policy.registry.get(3,"atk","east").strategy["discard_value"]["discard_completion"]=False
         if name=="east_speed_push":
             # Experiment only: isolate the cost of giving up winning progress
             # against Riichi. Never change production playbook factories.

@@ -5,11 +5,11 @@ from games.mahjong_soul.playbook.yonma.east_speed import east_speed_playbook
 
 def three_player_east_speed_playbook():
     base=east_speed_playbook();settings=base.strategy
-    # Zero loss of improving copies; never rebuild for value. More permissive
-    # productive Pon/ready-hand pushes than the four-player East policy.
-    settings["discard_value"].update(riichi_speed_first=True)
+    # Bounded closed two-Shanten lookahead can trade immediate copies for
+    # lower completion cost. Keep productive Pon and ready-hand pushes.
+    settings["discard_value"].update(riichi_speed_first=True,discard_completion=True)
     settings["calls"].update(max_shanten=4,max_route_cost=4)
     settings["riichi"].update(minimum_ukeire=1,minimum_ukeire_under_threat=2,minimum_wall=4,
                               dama_gain_ratio=1.0)
     settings["defense"].update(push_min_wall=6,push_max_danger=85,ready_push_min_points=1000)
-    return replace(base,player_count=3,name="Three-Player East Speed",version="0.6",strategy=settings)
+    return replace(base,player_count=3,name="Three-Player East Speed",version="0.7",strategy=settings)

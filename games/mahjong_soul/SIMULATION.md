@@ -114,3 +114,9 @@ The adapter collapses interchangeable physical-copy actions into one exact tile-
 The [completion scenario review](experiments/COMPLETION_SCENARIOS_REVIEW.md) records bounded Tenpai repairs, exact scored waits, explicit Ron assumptions and a reusable verified public-request corpus. `east_speed_completion` enables the opening-call guard only in the offline simulator; production factories leave it disabled.
 
 All 28 inspected call states were evaluated under four settings, followed by 96 fresh full East matches against call-capable and aggressive profiles. All 48 fresh paired replays were identical, so the candidate was not promoted and no win-rate gain is claimed. Model evaluation can reuse the tracked public snapshots without rerunning baseline matches or launching the game.
+
+## Earlier-hand completion and the promoted control
+
+Three-Player East Speed v0.7 enables bounded closed two-Shanten completion ranking. The [early completion review](experiments/EARLY_COMPLETION_REVIEW.md) records the generated/native regressions, complete development exposure screen, 96 fresh matches and provisional promotion basis. Fourteen of 48 fresh pairs changed replay; held-out hand wins increased under both tested profiles without extra deal-ins.
+
+For controlled reproduction after promotion, the simulator's `east_speed` reference explicitly disables `discard_completion`; older experimental variants also leave it disabled. `east_speed_discard_completion` enables the tested setting. Production `make_policy` still routes authenticated Three-Player East rooms to the enabled v0.7 default. Use candidate source commit `1bb6080f` to reproduce the original pre-promotion source rather than assuming the current production default is the old control.

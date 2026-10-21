@@ -87,10 +87,6 @@ def attack_utility(option,settings):
 
 def offensive(board,options,value):
     if value.get("speed_first"):
-        if value.get("discard_completion"):
-            from agents.mahjong_soul.discard_completion import choose_completion_discard
-            key=lambda o:(-o["shanten"],o["effective_ukeire"],-o.get("danger",0),-o.get("total_danger",0),o["projected_han"],attack_utility(o,value))
-            return choose_completion_discard(board,options,key)
         if value.get("early_development"):
             nearest=min(o["shanten"] for o in options)
             own=own_player(board)
@@ -116,6 +112,10 @@ def offensive(board,options,value):
             if len(tied)>1 and nearest==1 and all(o["action"]["tile"] in board["self"]["hand"] for o in tied):
                 from agents.mahjong_soul.speed_lookahead import next_wait_quality
                 for option in tied:option["next_wait_quality"]=next_wait_quality(board,option)
+        if value.get("discard_completion"):
+            from agents.mahjong_soul.discard_completion import choose_completion_discard
+            key=lambda o:(-o["shanten"],o["effective_ukeire"],o.get("next_wait_quality",0),-o.get("danger",0),-o.get("total_danger",0),o["projected_han"],attack_utility(o,value))
+            return choose_completion_discard(board,options,key)
         return max(options,key=lambda o:(-o["shanten"],o["effective_ukeire"],o.get("next_wait_quality",0),-o.get("danger",0),
                                          -o.get("total_danger",0),o["projected_han"],attack_utility(o,value)))
     distance=min(o["shanten"] for o in options)

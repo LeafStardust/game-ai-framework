@@ -15,7 +15,7 @@ def position():
     board['self']['hand'].append('1z');board['visible_tile_counts']['1z']=board['visible_tile_counts'].get('1z',0)+1
     board['self']['drawn_tile']='1z'
     req={'observation':{'board':board},'actions':[{'kind':'discard','tile':t} for t in sorted(set(board['self']['hand']))]}
-    settings=three_player_east_speed_playbook().thresholds_for('D1')
+    settings=three_player_east_speed_playbook().thresholds_for('D1');settings['discard_completion']=False
     options=enrich(board,rank_discards(req),settings)
     key=lambda o:(-o['shanten'],o['effective_ukeire'],-o['danger'],-o['total_danger'],o['projected_han'],attack_utility(o,settings))
     return board,options,key,settings
@@ -66,7 +66,7 @@ def test_threat_or_open_hand_does_not_run_expensive_forecasts():
 def test_generated_legal_position_changes_decision_at_equal_shanten():
     fixture=json.loads((Path(__file__).parent/'fixtures/discard_completion.json').read_text())
     board=fixture['board'];original=deepcopy(board);options=deepcopy(fixture['options'])
-    settings=three_player_east_speed_playbook().thresholds_for('D1')
+    settings=three_player_east_speed_playbook().thresholds_for('D1');settings['discard_completion']=False
     assert offensive(board,options,settings)['action']==fixture['baseline']
     settings['discard_completion']=True;chosen=offensive(board,options,settings)
     assert chosen['action']==fixture['candidate']
@@ -100,8 +100,12 @@ def test_recorded_native_choice_is_reproduced_by_the_complete_policy():
     fixture=json.loads((Path(__file__).parent/'fixtures/discard_completion_native.json').read_text())
     request=fixture['request'];original=deepcopy(request)
     normal=make_policy('playbook','atk');candidate=make_policy('playbook','atk')
+    normal.registry.get(3,'atk','east').strategy['discard_value']['discard_completion']=False
     candidate.registry.get(3,'atk','east').strategy['discard_value']['discard_completion']=True
     assert normal.choose(request)==fixture['baseline']
     assert candidate.choose(request)==fixture['candidate']
+    from agents.mahjong_soul.simulation import Agent
+    assert Agent('east_speed').policy.choose(request)==fixture['baseline']
+    assert Agent('east_speed_discard_completion').policy.choose(request)==fixture['candidate']
     assert any('completion_estimate' in note for note in candidate.last_analysis['discard_evaluations'])
     assert request==original

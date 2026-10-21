@@ -25,3 +25,7 @@ Fifteen complete matches contain 81 ended hands and 17 hand wins. The most recen
 The current Three-Player East Speed 0.5 changes have no completed recorded match in this snapshot. These historical numbers cannot establish whether those changes improved play.
 
 Regenerate the detailed JSON with the command in [RESEARCH.md](RESEARCH.md). It includes separate groups by rules, player count, East/South, AI verification, revision and playbook version, rate uncertainty intervals and per-round coverage. See that document for measurement limitations and the next controlled evaluation work.
+
+## Three-Player East v0.7 offline update
+
+The [earlier-hand completion evaluation](experiments/EARLY_COMPLETION_REVIEW.md) separately compares 96 fresh simulated East matches, not the historical live recordings above. It supports provisional adoption of bounded two-Shanten completion ranking in Three-Player East v0.7. Held-out callers gained two hand wins and two first places; held-out aggressive opponents gained one hand win, with no extra deal-ins in either profile. The sample is small and does not establish live Steam or human strength. Four-player policies are unchanged.

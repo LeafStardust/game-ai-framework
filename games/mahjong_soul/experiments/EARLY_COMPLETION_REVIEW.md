@@ -1,6 +1,6 @@
 # Earlier-hand discard completion
 
-`east_speed_discard_completion` is an offline Three-Player East candidate. It compares earlier discard choices using bounded legal-Tsumo completion cost, rather than treating immediate improving-copy count as the entire speed objective. Production playbooks and terminal formatting are unchanged.
+`east_speed_discard_completion` was evaluated as an offline Three-Player East candidate. It compares earlier discard choices using bounded legal-Tsumo completion cost, rather than treating immediate improving-copy count as the entire speed objective. After the completed fresh evaluation below, Three-Player East v0.7 provisionally enables it. Other playbooks and terminal formatting are unchanged.
 
 ## Frozen candidate
 
@@ -41,3 +41,26 @@ The four seed clusters in each split are small, rotated seats are correlated, ca
 ## Verification
 
 All 870 Mahjong tests passed with pinned optional simulator dependencies available. New tests cover real forecasts, immutable public state, nearest-Shanten preservation, insufficient-wall bypass, unavailable-option fallback, open/threat protection, equivalent-honor grouping, a generated choice difference, the captured native policy decision and isolation from production factories. This verifies behavior, not improved win rate.
+
+## Completed fresh results and promotion
+
+All 96 full East matches completed, with identical initial deals in all 48 paired assignments and one verified frozen policy hash. Fourteen pairs changed their actual full replay: one per development profile, five caller held-out pairs and seven aggressive held-out pairs.
+
+| Opponents / split | Baseline to candidate hand wins | Deal-ins | First places / 12 | Average rank | Changed pairs / 12 |
+| --- | --- | --- | --- | --- | --- |
+| Callers / development | 17/54 to 17/54 | 9 to 9 | 4 to 4 | 2.000 to 2.000 | 1 |
+| Aggressive / development | 15/48 to 15/48 | 7 to 7 | 4 to 4 | 2.083 to 2.083 | 1 |
+| Callers / held-out | 15/54 to 17/54 | 14 to 13 | 4 to 6 | 2.000 to 1.833 | 5 |
+| Aggressive / held-out | 7/50 to 8/51 | 11 to 11 | 2 to 2 | 2.333 to 2.333 | 7 |
+
+Thus the held-out realized hand-win rate rose from 27.78% to 31.48% against callers and 14.00% to 15.69% against aggressive opponents. Development outcome totals were unchanged. The aggressive candidate played one additional hand; its denominator must not be silently held at fifty. These are small offline sample results, not a measured improvement against Steam AI or humans. Caller baseline seat rotations reuse the same all-baseline game, so their one-third first-place rate is not independent strength evidence.
+
+[Caller development](early_completion_callers_development.json), [caller held-out](early_completion_callers_held_out.json), [aggressive development](early_completion_aggressive_development.json), and [aggressive held-out](early_completion_aggressive_held_out.json) retain full paired comparisons, replay coverage and seed-cluster uncertainty. No setting was tuned using these outcomes.
+
+The consistent direction across both held-out profiles, unchanged development outcomes and no extra held-out deal-ins support a **provisional** promotion to Three-Player East Speed v0.7. This is not evidence of a universally stronger policy; four seed clusters per split remain a limited screen. Four-Player East, Four-Player South, calls and defense thresholds are unchanged. The adverse inspected seed-606 game is preserved above and remains outside the prospective comparison.
+
+The [latency observations](early_completion_latency.json) cover two inspected fixtures, not worst-case latency. Full policy selection took 1.658 seconds on the first native fixture and a 0.113-second warm median. The generated fixture's first evaluation took 0.678 seconds after shared caches were already warm, then a 0.124-second warm median. Input recognition/clicking was not included and no live gameplay input was sent. Existing freshness and native preflight checks remain in force.
+
+The fresh runs recorded HEAD `0cd992c7` while the pending candidate source was subsequently committed as `1bb6080f`. All four frozen policy hashes were verified against that unchanged candidate before promotion. Historical reproduction should use `1bb6080f`, rather than the recorded earlier HEAD alone. Promotion changes the default factory afterward. The simulator explicitly disables the promoted flag for its `east_speed` control and older experimental variants; `east_speed_discard_completion` explicitly enables it, preserving a meaningful control/candidate comparison.
+
+The final production configuration passes all 870 Mahjong tests, including native fixture parity between the enabled policy and evaluated candidate. Next is live Three-Player East AI-room validation using the normal agent launcher and its existing recordings. The Steam app and live automatic runner were not launched during this work.

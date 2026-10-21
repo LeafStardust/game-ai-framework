@@ -161,9 +161,12 @@ def test_completion_candidate_is_offline_and_isolated():
     assert not candidate.policy.registry.get(4,"atk","south").strategy["calls"].get("completion_opening_guard")
 
 
-def test_discard_completion_candidate_is_offline_and_isolated():
+def test_discard_completion_is_enabled_only_for_three_player_east():
     candidate=Agent("east_speed_discard_completion");normal=Agent("east_speed")
     assert candidate.policy.registry.get(3,"atk","east").thresholds_for("D1")["discard_completion"] is True
-    assert not normal.policy.registry.get(3,"atk","east").thresholds_for("D1").get("discard_completion")
+    assert normal.policy.registry.get(3,"atk","east").thresholds_for("D1")["discard_completion"] is False
+    from agents.mahjong_soul.policy import make_policy
+    production=make_policy("playbook","atk").registry.get(3,"atk","east")
+    assert production.version=="0.7" and production.thresholds_for("D1")["discard_completion"] is True
     assert not candidate.policy.registry.get(4,"atk","east").thresholds_for("D1").get("discard_completion")
     assert not candidate.policy.registry.get(4,"atk","south").thresholds_for("D1").get("discard_completion")

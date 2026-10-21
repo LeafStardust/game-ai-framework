@@ -1,0 +1,25 @@
+{
+  "scope": "Two inspected fixtures, first/warm cache observations; not a worst-case or live latency guarantee",
+  "results": [
+    {
+      "fixture": "native",
+      "first_seconds": 1.6579104999545962,
+      "warm_median_seconds": 0.11314599995967001,
+      "max_seconds": 1.6579104999545962,
+      "action": {
+        "kind": "discard",
+        "tile": "6z"
+      }
+    },
+    {
+      "fixture": "generated",
+      "first_seconds": 0.6779559000278823,
+      "warm_median_seconds": 0.12371419998817146,
+      "max_seconds": 0.6779559000278823,
+      "action": {
+        "kind": "discard",
+        "tile": "9p"
+      }
+    }
+  ]
+}

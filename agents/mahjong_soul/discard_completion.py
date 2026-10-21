@@ -1,4 +1,4 @@
-"""Offline legal-completion ranking for closed two-Shanten discards."""
+"""Bounded legal-completion ranking for Three-Player East discards."""
 from copy import deepcopy
 from agents.mahjong_soul.attack_value import own_player
 from agents.mahjong_soul.attack_defense import threats
@@ -14,7 +14,7 @@ def choose_completion_discard(board, options, key, *, estimator=estimate_tsumo_d
     Development potential selects two alternatives; immediate copies can be
     traded only when the bounded completion cost favors that path. A failed forecast for
     any shortlisted option preserves the baseline rather than biasing selection.
-    No live factory enables this experimental branch.
+    Three-Player East v0.7 enables this branch; other playbooks leave it off.
     """
     baseline=max(options,key=key);own=own_player(board)
     if (board['player_count']!=3 or baseline['shanten']!=2 or own['melds']
