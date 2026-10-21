@@ -130,14 +130,33 @@ class Agent:
         return result
 
 
-def run(seed,seat,candidate,*,mode="3p-red-east",max_steps=5000):
+OPPONENT_PROFILES={
+    "efficiency":("efficiency","efficiency"),
+    "callers":("east_speed","east_speed"),
+    "aggressive":("east_speed_push","east_speed_push"),
+    "mixed":("east_speed","east_speed_push"),
+}
+
+
+def seat_policies(seat,candidate,opponents):
+    if seat not in range(3):raise ValueError("Seat must be 0, 1 or 2")
+    if opponents not in OPPONENT_PROFILES:raise ValueError("Unknown opponent profile")
+    names={seat:candidate}
+    for offset,name in enumerate(OPPONENT_PROFILES[opponents],start=1):names[(seat+offset)%3]=name
+    return names
+
+
+def run(seed,seat,candidate,*,mode="3p-red-east",max_steps=5000,opponents="efficiency"):
     from riichienv import RiichiEnv,GameRule
+    names=seat_policies(seat,candidate,opponents)
     env=RiichiEnv(game_mode=mode,seed=seed,rule=GameRule.default_mjsoul())
-    observations=env.reset();speed={};agents={p:Agent(candidate if p==seat else "efficiency") for p in range(3)}
+    observations=env.reset();speed={};agents={p:Agent(names[p]) for p in range(3)}
+    action_counts=[Counter() for _ in range(3)]
     initial=env.mjai_log[:];steps=0;started=time.monotonic();decision_seconds=0
     while not env.done():
         if steps>=max_steps:raise ValueError("Simulator step limit reached; no partial result accepted")
         tick=time.monotonic();actions={pid:agents[pid].act(obs) for pid,obs in observations.items()}
+        for pid,action in actions.items():action_counts[pid][str(int(action.action_type))]+=1
         if seat in actions and int(actions[seat].action_type)==0:
             from riichienv import calculate_shanten_3p
             start=next(e for e in reversed(agents[seat].history) if e["type"]=="start_kyoku")
@@ -157,11 +176,12 @@ def run(seed,seat,candidate,*,mode="3p-red-east",max_steps=5000):
         if event["type"]=="start_kyoku":hand_index+=1
         if event["type"]=="hora" and event.get("target")==seat and event.get("actor")!=seat:deal_in_hands.add(hand_index)
     dealins=len(deal_in_hands)
-    return {"seed":seed,"seat":seat,"candidate":candidate,"scores":env.scores(),"ranks":env.ranks(),"hands":hands,"wins":wins,"deal_ins":dealins,"shape_tenpai_discards":[v["first_shape_tenpai_discard"] for v in speed.values() if v["first_shape_tenpai_discard"] is not None],"steps":steps,"seconds":time.monotonic()-started,"decision_seconds":decision_seconds,"initial_deal_digest":hashlib.sha256(json.dumps(initial,sort_keys=True).encode()).hexdigest(),"log":history}
+    return {"seed":seed,"seat":seat,"candidate":candidate,"opponent_profile":opponents,"opponents_by_seat":{str(p):name for p,name in names.items() if p!=seat},"action_counts":action_counts,"scores":env.scores(),"ranks":env.ranks(),"hands":hands,"wins":wins,"deal_ins":dealins,"shape_tenpai_discards":[v["first_shape_tenpai_discard"] for v in speed.values() if v["first_shape_tenpai_discard"] is not None],"steps":steps,"seconds":time.monotonic()-started,"decision_seconds":decision_seconds,"initial_deal_digest":hashlib.sha256(json.dumps(initial,sort_keys=True).encode()).hexdigest(),"log":history}
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--seeds",type=int,nargs="+",default=[0]);parser.add_argument("--seats",type=int,nargs="+",default=[0,1,2]);parser.add_argument("--candidates",nargs="+",choices=["efficiency","east_speed","east_speed_push","east_speed_lookahead","east_speed_two_draw","east_speed_development","east_speed_partial_yaku","east_speed_ready_push"],default=["efficiency","east_speed"]);parser.add_argument("--output",type=Path,required=True);parser.add_argument("--single-hand",action="store_true")
+    parser.add_argument("--opponents",choices=list(OPPONENT_PROFILES),default="efficiency")
     args=parser.parse_args()
     if any(s not in range(3) for s in args.seats):parser.error("Seats must be 0, 1 or 2")
     if any(seed<0 for seed in args.seeds):parser.error("Seeds must be nonnegative")
@@ -180,13 +200,13 @@ def main():
         for seat in args.seats:
             digest=None
             for candidate in args.candidates:
-                result=run(seed,seat,candidate,mode=mode)
+                result=run(seed,seat,candidate,mode=mode,opponents=args.opponents)
                 if digest is not None and digest!=result["initial_deal_digest"]:raise ValueError("Paired starting deals differ")
                 digest=result["initial_deal_digest"]
                 log=result.pop("log");path=args.output/f"{seed}-{seat}-{candidate}.json"
                 path.write_text(json.dumps({"metrics":result,"events":log},indent=2),encoding="utf-8");records.append(result)
                 print(json.dumps(result),flush=True)
-                (args.output/"summary.json").write_text(json.dumps({"engine":ENGINE_VERSION,"mode":mode,"opponents":"fixed efficiency","rules":"GameRule.default_mjsoul; preset flow 3p-red-east or single","revision":revision,"adapter_sha256":source_hash,"policy_tree_sha256":policy_digest.hexdigest(),"records":records,"limitation":"Small samples are smoke tests; engine defaults are not verified identical to every Steam room. Divergent actions change later draws."},indent=2),encoding="utf-8")
+                (args.output/"summary.json").write_text(json.dumps({"engine":ENGINE_VERSION,"mode":mode,"opponents":args.opponents,"rules":"GameRule.default_mjsoul; preset flow 3p-red-east or single","revision":revision,"adapter_sha256":source_hash,"policy_tree_sha256":policy_digest.hexdigest(),"records":records,"limitation":"Small samples are smoke tests; engine defaults are not verified identical to every Steam room. Divergent actions change later draws."},indent=2),encoding="utf-8")
     return 0
 
 

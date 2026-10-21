@@ -13,7 +13,22 @@ Use an isolated experiment environment, or install the optional requirements int
 
 During development the package was installed with `--target logs/mahjong_soul/simulator-deps`, leaving the normal agent environment unchanged. To use that installation for a command, set `$env:PYTHONPATH = 'logs/mahjong_soul/simulator-deps'` in that experiment terminal first.
 
-Each seed is evaluated at all three candidate seats against two fixed efficiency opponents. Both `efficiency` and `east_speed` candidates start from an identical seeded deal; the runner checks its digest. Opponents take legal wins, extract North, choose immediate tile efficiency, declare Riichi on the selected legal discard, and pass calls. They are a deterministic baseline, not the Steam AI or a strong learned opponent. No client toggle optimization is simulated: every legal call offer reaches the policy.
+Each seed is evaluated at all three candidate seats against the selected fixed opponent profile. Candidate policies start from an identical seeded deal; the runner checks its digest. The default `efficiency` opponents take legal wins, extract North, choose immediate tile efficiency, declare Riichi on the selected legal discard, and pass calls. Additional profiles exercise active calling and different push behavior:
+
+| `--opponents` | Next seat relative to candidate | Other seat | Behavior |
+| --- | --- | --- | --- |
+| `efficiency` (default) | Efficiency | Efficiency | Immediate efficiency; passes calls. |
+| `callers` | East Speed | East Speed | Current call-capable policy, including its defense. |
+| `aggressive` | East Speed Push | East Speed Push | Same call-capable policy with always-push enabled. |
+| `mixed` | East Speed | East Speed Push | One of each, rotated relative to the candidate seat. |
+
+Each player owns a separate policy instance and public-observation history. No opponent receives simulator hidden hands or wall contents. These opponents share our heuristic implementation; they are neither independent learned references nor Steam AI. Calling them aggressive describes their settings, not proven strength. No client toggle optimization is simulated: every legal call offer reaches the policy.
+
+```powershell
+python -m agents.mahjong_soul.simulation --seeds 80 81 82 83 --opponents callers --candidates east_speed east_speed_ready_push --output logs/mahjong_soul/experiments/example-callers
+```
+
+Match records include the opponent profile, opponent policy names by absolute seat, and submitted native action counts by player. Integer action keys follow the adapter mapping (2 Pon, 3 Open Kan, 5 Riichi, 8 Closed Kan, 9 Added Kan, 11 Kita). Submitted counts are diagnostics; actual settled calls must be checked in the replay. Comparisons reject pairs with different opponent profiles or seat assignments. Run each opponent profile in a separate output directory; do not pool their outcomes as one opponent distribution.
 
 The engine owns hidden hands and the wall. The policy adapter receives only its public observation, its own hand, legal actions and visible events. Exact physical tile bindings preserve red fives. Riichi is mapped as a two-stage engine declaration followed by its selected discard. Unmapped or illegal choices fail the experiment rather than silently choosing a fallback.
 
@@ -73,3 +88,7 @@ Completed results and recorded-board findings: [scored ready-Yaku review](experi
 ## Narrow ready-hand push experiment
 
 `east_speed_ready_push` is an offline-only candidate allowing a danger score of 90 for exact-scored Tenpai with at least three available legal Ron copies, while retaining the other push gates. Live East Speed does not set this override. The [fold audit and ready-push review](experiments/READY_PUSH_REVIEW.md) records the inspected boards, frozen development/held-out seed sets, actual action exposure and outcomes. The candidate was not promoted: the two changed held-out matches offset each other in placement and did not demonstrate a win-rate gain.
+
+## Active-opponent evaluation
+
+The [opponent comparison review](experiments/OPPONENT_REVIEW.md) reports 96 completed matches against call-capable and aggressive profiles. The narrow ready-push candidate changed actual play but did not improve wins or placement; held-out caller deal-ins increased. It remains offline-only. Settled replay events verify that the new opponents actually called and declared Riichi.

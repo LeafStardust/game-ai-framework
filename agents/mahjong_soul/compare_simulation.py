@@ -28,6 +28,8 @@ def compare(data,baseline="east_speed",candidate="east_speed_push"):
     if not pairs or any(set(pair)!={baseline,candidate} for pair in pairs.values()):raise ValueError("Every seed/seat must have both candidates")
     for pair in pairs.values():
         if pair[baseline]["initial_deal_digest"]!=pair[candidate]["initial_deal_digest"]:raise ValueError("Paired starting deals differ")
+        for key in ("opponent_profile","opponents_by_seat"):
+            if pair[baseline].get(key)!=pair[candidate].get(key):raise ValueError("Paired opponents differ")
     base=summarize([p[baseline] for p in pairs.values()]);other=summarize([p[candidate] for p in pairs.values()])
     seeds=sorted({key[0] for key in pairs});per_seed=[]
     metrics=("first_place_rate","average_rank","hand_win_rate","deal_in_rate","shape_tenpai_reach_rate")
@@ -39,7 +41,7 @@ def compare(data,baseline="east_speed",candidate="east_speed_push"):
         for metric in metrics:
             estimates=sorted(sum(rng.choice(per_seed)[metric] for _ in seeds)/len(seeds) for _ in range(2000))
             intervals[metric]=[estimates[49],estimates[1949]]
-    return {"baseline":baseline,"candidate":candidate,"engine":data.get("engine"),"revision":data.get("revision"),"policy_tree_sha256":data.get("policy_tree_sha256"),"mode":data.get("mode"),"independent_seeds":len(seeds),"paired_seat_assignments":len(pairs),"baseline_metrics":base,"candidate_metrics":other,"per_seed_candidate_minus_baseline":per_seed,"seed_cluster_bootstrap_95":intervals,"limitations":["Exploratory intervals from very few seeds are unstable; they are not proof of superiority.","Seat assignments and hands within a seed are correlated; resampling is by seed.","Tenpai discard mean is conditional on reaching shape Tenpai, not a legal-win guarantee.","Fixed efficiency opponents do not represent Steam AI or human opponents."]}
+    return {"baseline":baseline,"candidate":candidate,"engine":data.get("engine"),"opponents":data.get("opponents"),"revision":data.get("revision"),"policy_tree_sha256":data.get("policy_tree_sha256"),"mode":data.get("mode"),"independent_seeds":len(seeds),"paired_seat_assignments":len(pairs),"baseline_metrics":base,"candidate_metrics":other,"per_seed_candidate_minus_baseline":per_seed,"seed_cluster_bootstrap_95":intervals,"limitations":["Exploratory intervals from very few seeds are unstable; they are not proof of superiority.","Seat assignments and hands within a seed are correlated; resampling is by seed.","Tenpai discard mean is conditional on reaching shape Tenpai, not a legal-win guarantee.","Fixed heuristic opponents do not represent Steam AI or human opponents."]}
 
 
 def replay_coverage(summary,baseline,candidate):

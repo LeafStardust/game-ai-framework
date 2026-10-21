@@ -77,3 +77,30 @@ def test_ready_push_candidate_does_not_enable_live_risk_override():
     settings=candidate.policy.registry.get(3,"atk","east").strategy["defense"]
     assert settings["ready_push_max_danger"]==90 and settings["ready_push_min_ukeire"]==3
     assert "ready_push_max_danger" not in normal.policy.registry.get(3,"atk","east").strategy["defense"]
+
+
+@pytest.mark.parametrize("seat",[0,1,2])
+def test_mixed_opponents_rotate_relative_to_candidate_seat(seat):
+    from agents.mahjong_soul.simulation import seat_policies
+    names=seat_policies(seat,"east_speed_ready_push","mixed")
+    assert names[seat]=="east_speed_ready_push"
+    assert names[(seat+1)%3]=="east_speed"
+    assert names[(seat+2)%3]=="east_speed_push"
+
+
+@pytest.mark.parametrize("profile",["callers","aggressive","mixed"])
+def test_call_capable_opponents_complete_legal_reproducible_hand(profile):
+    a=run(3,0,"east_speed",mode="3p-red-single",opponents=profile)
+    b=run(3,0,"east_speed",mode="3p-red-single",opponents=profile)
+    assert a["log"]==b["log"] and a["hands"]==1
+    assert a["opponent_profile"]==profile
+    assert set(a["opponents_by_seat"])=={"1","2"}
+    assert all(counts for counts in a["action_counts"])
+
+
+def test_invalid_opponent_setup_is_not_silently_efficiency():
+    from agents.mahjong_soul.simulation import seat_policies
+    with pytest.raises(ValueError,match="Unknown opponent profile"):
+        seat_policies(0,"east_speed","typo")
+    with pytest.raises(ValueError,match="Seat must"):
+        seat_policies(3,"east_speed","callers")

@@ -1,0 +1,131 @@
+{
+  "scope": "Actual opponent-actor events in all 96 offline MJAI replays; repeated seats and hands are correlated.",
+  "records": [
+    {
+      "profile": "callers",
+      "split": "development",
+      "candidate": "east_speed",
+      "matches": 12,
+      "settled_opponent_events": {
+        "pon": 54,
+        "dahai": 1114,
+        "tsumo": 1140,
+        "kakan": 6,
+        "kita": 68,
+        "reach": 40,
+        "reach_accepted": 40,
+        "hora": 26,
+        "daiminkan": 2
+      }
+    },
+    {
+      "profile": "callers",
+      "split": "development",
+      "candidate": "east_speed_ready_push",
+      "matches": 12,
+      "settled_opponent_events": {
+        "pon": 54,
+        "dahai": 1093,
+        "tsumo": 1119,
+        "kakan": 6,
+        "kita": 68,
+        "reach": 40,
+        "reach_accepted": 40,
+        "hora": 26,
+        "daiminkan": 2
+      }
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "candidate": "east_speed",
+      "matches": 12,
+      "settled_opponent_events": {
+        "tsumo": 1198,
+        "dahai": 1164,
+        "pon": 38,
+        "reach": 38,
+        "reach_accepted": 34,
+        "kita": 60,
+        "hora": 32
+      }
+    },
+    {
+      "profile": "callers",
+      "split": "held-out",
+      "candidate": "east_speed_ready_push",
+      "matches": 12,
+      "settled_opponent_events": {
+        "tsumo": 1156,
+        "dahai": 1125,
+        "pon": 38,
+        "reach": 38,
+        "reach_accepted": 34,
+        "kita": 60,
+        "hora": 32
+      }
+    },
+    {
+      "profile": "aggressive",
+      "split": "development",
+      "candidate": "east_speed",
+      "matches": 12,
+      "settled_opponent_events": {
+        "pon": 36,
+        "dahai": 924,
+        "tsumo": 946,
+        "kakan": 6,
+        "kita": 46,
+        "reach": 41,
+        "reach_accepted": 41,
+        "hora": 32
+      }
+    },
+    {
+      "profile": "aggressive",
+      "split": "development",
+      "candidate": "east_speed_ready_push",
+      "matches": 12,
+      "settled_opponent_events": {
+        "pon": 36,
+        "dahai": 912,
+        "tsumo": 934,
+        "kakan": 6,
+        "kita": 46,
+        "reach": 38,
+        "reach_accepted": 38,
+        "hora": 32
+      }
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "candidate": "east_speed",
+      "matches": 12,
+      "settled_opponent_events": {
+        "tsumo": 1028,
+        "dahai": 976,
+        "pon": 32,
+        "reach": 39,
+        "reach_accepted": 35,
+        "kita": 78,
+        "hora": 27
+      }
+    },
+    {
+      "profile": "aggressive",
+      "split": "held-out",
+      "candidate": "east_speed_ready_push",
+      "matches": 12,
+      "settled_opponent_events": {
+        "tsumo": 1028,
+        "dahai": 976,
+        "pon": 32,
+        "reach": 39,
+        "reach_accepted": 35,
+        "kita": 78,
+        "hora": 27
+      }
+    }
+  ]
+}

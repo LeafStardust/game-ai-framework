@@ -35,3 +35,10 @@ def test_identical_replays_do_not_count_as_candidate_exposure(tmp_path):
     assert not replay_coverage(summary,"east_speed","east_speed_push")["candidate_exercised"]
     (tmp_path/"0-0-east_speed_push.json").write_text(json.dumps({"events":[{"type":"different"}]}))
     assert replay_coverage(summary,"east_speed","east_speed_push")["different_replays"]==1
+
+
+@pytest.mark.parametrize("key,value",[("opponent_profile","aggressive"),("opponents_by_seat",{"1":"east_speed_push","2":"east_speed_push"})])
+def test_different_paired_opponents_are_rejected(key,value):
+    d=data();d["records"][0][key]=value
+    with pytest.raises(ValueError,match="Paired opponents differ"):
+        compare(d)
