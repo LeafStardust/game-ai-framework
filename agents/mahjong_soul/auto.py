@@ -394,6 +394,7 @@ def main():
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
         paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
                "games/mahjong_soul/live/runtime/windows_ocr.ps1","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
+               "games/mahjong_soul/playbook/sanma/south_attack.py",
                "agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
                "agents/mahjong_soul/attack_value.py","agents/mahjong_soul/attack_defense.py",
                "agents/mahjong_soul/attack_routes.py","agents/mahjong_soul/yakuman.py","agents/mahjong_soul/hand_plan.py","agents/mahjong_soul/scoring.py","agents/mahjong_soul/yaku_catalog.py",

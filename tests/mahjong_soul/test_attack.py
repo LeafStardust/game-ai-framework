@@ -29,11 +29,11 @@ def threat(report, seat=1):
     report["state"]["discards"][seat] = [{"tile":"2m","called":False}]
 
 
-def test_only_four_player_atk_is_registered_and_balanced_still_resolves():
+def test_south_atk_formats_registered_and_unknown_lobby_still_blocked():
     registry=default_mahjong_playbooks()
     assert registry.get(4,"atk").name == "Four-Player South Attack"
     assert registry.get(4).style == registry.get(3).style == "balanced"
-    with pytest.raises(LookupError):registry.get(3,"atk")
+    assert registry.get(3,"atk").name == "Three-Player South Attack"
     report=board();report["state"]["player_count"]=3
     from games.mahjong_soul.playbook.model import UnsupportedLobby
     with pytest.raises(UnsupportedLobby):decide(PlaybookPolicy(style="atk"),report,lambda:report)

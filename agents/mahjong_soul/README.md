@@ -64,9 +64,9 @@ The five current-policy Riichi recommendations were East 1 step 85 (discard 6 So
 
 ## Playbook strategy
 
-The versioned three/four-player [playbooks](../../games/mahjong_soul/playbook/README.md) now add dora/yakuhai-shape tie-breaks, basic genbutsu defense against Riichi, and configurable Riichi threat handling. This remains a manual-only suggestion pipeline. Run with `--policy playbook`; no automatic input is connected.
+The versioned three/four-player [playbooks](../../games/mahjong_soul/playbook/README.md) now add dora/yakuhai-shape tie-breaks, basic genbutsu defense against Riichi, and configurable Riichi threat handling. Run with `--policy playbook` for suggestions, or `MahjongSoulAgent.bat` for capture, recording and automatic input.
 
-Four-player attack is available as `--policy playbook --playstyle atk`; see [SOUTH_ATTACK.md](../../games/mahjong_soul/playbook/yonma/SOUTH_ATTACK.md) for exact value, push and Riichi criteria. Balanced stays the default. Three-player East uses the Speed playbook; three-player South is not implemented. The suggestion commands are read-only; MahjongSoulAgent.bat enables automatic input.
+Four-player attack is available as `--policy playbook --playstyle atk`; see [SOUTH_ATTACK.md](../../games/mahjong_soul/playbook/yonma/SOUTH_ATTACK.md) for exact value, push and Riichi criteria. Balanced stays the default. Three-player East uses the Speed playbook; three-player South uses [Three-Player South Attack](../../games/mahjong_soul/playbook/sanma/SOUTH_ATTACK.md). The suggestion commands are read-only; MahjongSoulAgent.bat enables automatic input.
 
 ## Automatic ATK play and recordings
 
