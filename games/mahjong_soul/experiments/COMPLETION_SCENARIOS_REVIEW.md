@@ -66,3 +66,22 @@ Fresh development seeds are 400-403; held-out seeds are 500-503. All three seats
 The focused tests cover repair of no-Yaku Tenpai, accepted Riichi preventing changes, an analytic single-cycle Ron calculation, conservative Ron blocking after an untracked miss, Furiten with an exhausted structural wait, chosen repair discards causing Furiten, zero-extension agreement on optimal capped Tsumo cost, input validation and explicit state-budget failures. Batch tests cover immutable public requests, the post-call discard river, missing legal actions, duplicate/unverified/incomplete sources, preservation of existing files and interruption reporting.
 
 All 861 Mahjong tests passed with the pinned optional simulator installed. These checks establish implementation behavior, not playing strength.
+
+## Completed fresh-match results
+
+All 96 full East matches completed: 48 paired candidate/current comparisons across both profiles and both splits. Every pair began with an identical initial deal, all summaries share one frozen policy hash, and **all 48 full replays are identical**. There were no observed fresh-game action changes. The candidate remains offline; this screen does not demonstrate a win-rate benefit, harm, or universal policy equivalence.
+
+Each row below shows the same realized outcomes for both policies, not a candidate improvement:
+
+| Opponents / split | Hand wins | Deal-ins | First places | Average rank |
+| --- | --- | --- | --- | --- |
+| Call-capable / development | 13/48 | 8/48 | 4/12 | 2.000 |
+| Call-capable / held-out | 13/39 | 1/39 | 4/12 | 2.000 |
+| Aggressive / development | 18/57 | 8/57 | 6/12 | 1.750 |
+| Aggressive / held-out | 13/41 | 1/41 | 4/12 | 1.917 |
+
+[Caller development](completion_call_callers_development.json), [caller held-out](completion_call_callers_held_out.json), [aggressive development](completion_call_aggressive_development.json), and [aggressive held-out](completion_call_aggressive_held_out.json) include pairing checks, replay coverage and explicit interpretation limits. Caller baseline seat rotations reuse the same underlying all-baseline game; their one-third first-place rate is not independent evidence of strength.
+
+The run summaries recorded HEAD `232c0ffb` while the candidate source was pending in the worktree. That frozen source was subsequently committed as `ac89c752`. All four policy hashes were checked against the committed candidate's unchanged working files. Reproduce the candidate from `ac89c752` or later, not the earlier recorded HEAD alone.
+
+The next useful development target is non-ready discard improvement, where decision opportunities are more frequent. Confirm actual action exposure before another broad tournament. The ready-repair/Ron model and reusable public snapshots are available for that work, but a live improvement remains unproven. No game launch is required.

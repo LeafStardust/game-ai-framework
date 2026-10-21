@@ -108,3 +108,9 @@ The adapter collapses interchangeable physical-copy actions into one exact tile-
 ## Unsecured-opening width candidate
 
 `east_speed_call_width` tests a minimum of eight improving copies when an initial opening takes a two-Shanten hand into an unsecured one-Shanten route. It preserves Tenpai, secured Yaku and later calls. It is experimental and does not change live playbook defaults. The [fresh-match review](experiments/CALL_WIDTH_REVIEW.md) records the diagnostic basis, frozen seeds and actual exposure/results.
+
+## Completion speed, ready repairs and Ron sensitivity
+
+The [completion scenario review](experiments/COMPLETION_SCENARIOS_REVIEW.md) records bounded Tenpai repairs, exact scored waits, explicit Ron assumptions and a reusable verified public-request corpus. `east_speed_completion` enables the opening-call guard only in the offline simulator; production factories leave it disabled.
+
+All 28 inspected call states were evaluated under four settings, followed by 96 fresh full East matches against call-capable and aggressive profiles. All 48 fresh paired replays were identical, so the candidate was not promoted and no win-rate gain is claimed. Model evaluation can reuse the tracked public snapshots without rerunning baseline matches or launching the game.
