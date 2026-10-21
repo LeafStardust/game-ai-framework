@@ -7,7 +7,7 @@ def east_speed_playbook():
     base=south_attack_playbook()
     # Each call constructs independent settings; South is never mutated.
     settings=base.strategy
-    settings["discard_value"].update(speed_first=True,max_ukeire_sacrifice=0,minimum_ukeire_fraction=1,
+    settings["discard_value"].update(attack_completion=False,speed_first=True,max_ukeire_sacrifice=0,minimum_ukeire_fraction=1,
                                       han_weight=1,route_cost_weight=0,allow_value_rebuild=False)
     settings["defense"].update(always_push=False,push_max_shanten=1,push_value_floor=1,
                                push_min_wall=8,push_max_danger=75,allow_scored_ready_yaku=True)

@@ -1,4 +1,4 @@
-# Three-Player South Attack v0.1
+# Three-Player South Attack v0.2
 
 Priority: **attack, then speed, then defense**. The authenticated three-player
 South match (mode 12) selects this book through the existing `atk` policy family.
@@ -7,7 +7,7 @@ The current round Wind does not change the selected match-format playbook.
 
 ## Decisions
 
-This initial version inherits Four-Player South Attack v0.12's tested value and
+This initial version inherits Four-Player South Attack v0.22's tested value and
 winning-progress settings, with at most two opposing Riichi threats. Factories
 create independent settings; Three-Player East Speed remains unchanged.
 
@@ -51,3 +51,14 @@ The initial book is an adaptation of Four-Player South, not a trained Sanma mode
 No live win-rate claim is made. Next validation is a user-started three-player
 South AI room with normal recording enabled; no extra calibration is required
 solely because the match length changes.
+
+## Value-preserving completion lookahead (v0.2)
+
+South now adapts East's bounded completion model instead of inheriting only its
+older value settings. See [the adaptation and limits](../../experiments/SOUTH_COMPLETION_REVIEW.md).
+In closed two-Shanten hands, after the existing progress and value guards,
+compare at most three discards on the same projected-Han and Yaku route. Protect
+Dora, pairs and route cost. Forecasts count only legal Tsumo completions meeting
+the baseline projected Han. Completion speed decides within that protected set.
+Qualified Yakuman, open hands and threatened hands retain their existing policies.
+No East defense thresholds or cheap-call preference are copied into South.

@@ -4,11 +4,11 @@ Playbooks contain versioned strategy settings. Shared scoring, legal-action vali
 
 | Playbook | Module | Documentation | Version |
 | --- | --- | --- | --- |
-| Four-Player South Attack | `yonma/south_attack.py` | [South Attack](yonma/SOUTH_ATTACK.md) | 0.12 |
+| Four-Player South Attack | `yonma/south_attack.py` | [South Attack](yonma/SOUTH_ATTACK.md) | 0.13 |
 | Four-Player East Speed | `yonma/east_speed.py` | [East Speed](yonma/EAST_SPEED.md) | 0.3 |
 | Four-Player Balanced | `model.py` | Generic baseline settings | 0.1 |
 | Three-Player East Speed | `sanma/east_speed.py` | [Three-Player East Speed](sanma/EAST_SPEED.md) | 0.7 |
-| Three-Player South Attack | `sanma/south_attack.py` | [Three-Player South Attack](sanma/SOUTH_ATTACK.md) | 0.1 |
+| Three-Player South Attack | `sanma/south_attack.py` | [Three-Player South Attack](sanma/SOUTH_ATTACK.md) | 0.2 |
 | Three-Player Balanced | `model.py` | Generic baseline settings | 0.1 |
 
 ## Naming conventions

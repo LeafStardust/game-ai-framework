@@ -130,10 +130,14 @@ def offensive(board,options,value):
     if value.get("allow_value_rebuild",True) and type(wall) is int and wall>=value["value_rebuild_min_wall"]:
         candidates += [o for o in options if o["shanten"]==distance+1 and o["effective_ukeire"]>0
                        and o["projected_han"]>=best_han+value["value_rebuild_han_gain"]]
-    return max(candidates,key=lambda o:(attack_utility(o,value),-o["shanten"],o["effective_ukeire"],
-                                       -o["dora_loss"],-o["pair_break_loss"],
-                                       not o["action"]["tile"].startswith("0"),
-                                       o["action"]["tile"]==board["self"].get("drawn_tile"),o["action"]["tile"]))
+    key=lambda o:(attack_utility(o,value),-o["shanten"],o["effective_ukeire"],
+                  -o["dora_loss"],-o["pair_break_loss"],
+                  not o["action"]["tile"].startswith("0"),
+                  o["action"]["tile"]==board["self"].get("drawn_tile"),o["action"]["tile"])
+    if value.get("attack_completion"):
+        from agents.mahjong_soul.discard_completion import choose_attack_completion_discard
+        return choose_attack_completion_discard(board,candidates,key)
+    return max(candidates,key=key)
 
 
 def may_push(option,opponents,wall,settings):
@@ -325,6 +329,8 @@ def choose_attack(owner,request,book,ranker=rank_discards):
             owner.last_analysis["retained_value_proxy"]=option["value_han"]
             if "completion_baseline_action" in option:
                 owner.last_analysis["completion_baseline_action"]=deepcopy(option["completion_baseline_action"])
+            if "completion_objective" in option:
+                owner.last_analysis["completion_objective"]=option["completion_objective"]
         return deepcopy(action)
     wins=[a for a in actions if a["kind"] in ("ron","tsumo")]
     if wins:

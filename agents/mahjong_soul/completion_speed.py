@@ -92,13 +92,14 @@ def estimate_tenpai_draws(hand, unseen, *, meld_count=0, horizon=12, max_states=
             'legal_win_evaluated': _ready_copies is not None}
 
 
-def estimate_tsumo_draws(board, *, horizon=12, max_states=20000):
+def estimate_tsumo_draws(board, *, horizon=12, max_states=20000, minimum_han=0):
     """Offline own-draw-only legal completion, with exact scored ready waits.
 
     No hypothetical Riichi or situational Yaku are granted. Furiten cannot
     prohibit Tsumo. Equal-Shanten repairs and calls remain excluded, including
     repair of no-Yaku Tenpai; these branches remain blocked in this model.
-    Canonical normal fives suffice for legality; this model never values Han.
+    The optional South Han floor counts only scored waits meeting that floor.
+    Without it, canonical normal fives preserve the original legality-only model.
     """
     from copy import deepcopy
     from agents.mahjong_soul.attack_value import tenpai_value, own_player
@@ -122,14 +123,21 @@ def estimate_tsumo_draws(board, *, horizon=12, max_states=20000):
         for suit in 'mps':
             normal = '5' + suit; red = '0' + suit
             fixed = [t for m in own['melds'] for t in m['tiles']]
-            if red not in fixed and tiles.count(normal) + fixed.count(normal) > 3:
+            known_red=minimum_han>0 and red in base['self']['hand'] and normal in tiles
+            if red not in fixed and (known_red or tiles.count(normal) + fixed.count(normal) > 3):
                 tiles[tiles.index(normal)] = red
         profile = tenpai_value(trial, tiles)
-        return profile['tsumo_ukeire'] if profile else 0
+        if not profile:return 0
+        if minimum_han:
+            return sum(w['unseen'] for w in profile['waits']
+                       if w.get('values',{}).get('tsumo',{}).get('legal')
+                       and w['values']['tsumo']['han']>=minimum_han)
+        return profile['tsumo_ukeire']
 
     result = estimate_tenpai_draws(board['self']['hand'], unseen,
                                   meld_count=len(own['melds']), horizon=horizon,
                                   max_states=max_states, _ready_copies=ready_copies)
+    if minimum_han:result['minimum_han']=minimum_han
     result['ron_evaluated'] = False
     result['riichi_assumed'] = False
     result['equal_shanten_repairs'] = False

@@ -87,3 +87,13 @@ Authentication metadata is retained per game connection and propagated through s
 The registry selects by player count, style and match length. The policy family now has four-player South ATK and four-player East Speed entries. Three-player, unidentified and recognized unsupported custom rules produce a readable message and no action. Adding another format-specific playbook registers another entry without changing policy routing. Existing generic Balanced books remain available across match lengths. Old offline snapshots without a lobby field retain legacy explicit selection; every live reader snapshot supplies an identified or unknown lobby, so this compatibility path does not bypass live detection. Metadata is refreshed on authentication and is never inherited by another connection. The reader and shared policy serve both the automatic launcher and monitor.
 
 Supported rule handling remains limited to the implemented standard scoring profile. Open Tanyao is consumed by the scorer; Red Dora configuration and other raw settings are recorded. Recognized special modes and incompatible scoring switches are rejected; capturing a field does not mean arbitrary custom rules have been implemented. If capture began after authentication, reconnect or start a fresh room to supply the missing metadata.
+
+## Value-preserving completion lookahead (v0.13)
+
+South adapts the bounded completion machinery developed for East, while retaining
+attack before speed and no opponent-Riichi folding. The same-Yaku/value shortlist
+and exact completion-Han floor are described in the
+[South completion review](../../experiments/SOUTH_COMPLETION_REVIEW.md).
+Four-player forecasts budget remaining draws using wall / 4; Sanma uses wall / 3.
+This is a new heuristic adaptation, not a demonstrated strength gain or a learned
+policy. Existing Yakuman qualification and Kokushi Dama rules remain in force.

@@ -396,6 +396,7 @@ def main():
                "games/mahjong_soul/live/runtime/windows_ocr.ps1","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
                "games/mahjong_soul/playbook/sanma/south_attack.py",
                "agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
+               "agents/mahjong_soul/discard_completion.py","agents/mahjong_soul/completion_speed.py","agents/mahjong_soul/speed_lookahead.py",
                "agents/mahjong_soul/attack_value.py","agents/mahjong_soul/attack_defense.py",
                "agents/mahjong_soul/attack_routes.py","agents/mahjong_soul/yakuman.py","agents/mahjong_soul/hand_plan.py","agents/mahjong_soul/scoring.py","agents/mahjong_soul/yaku_catalog.py",
                "agents/mahjong_soul/pattern_yaku.py","games/mahjong_soul/live/runtime/scoring_context.py","games/mahjong_soul/playbook/yonma/south_attack.py",

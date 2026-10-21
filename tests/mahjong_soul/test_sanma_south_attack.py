@@ -19,7 +19,7 @@ def south(hand):
 def test_south_routes_during_east_round_and_preserves_report():
     r=south("19m123p456p789s112z");before=deepcopy(r)
     action,a=choose(r)
-    assert a["playbook"]=="Three-Player South Attack" and a["playbook_version"]=="0.1"
+    assert a["playbook"]=="Three-Player South Attack" and a["playbook_version"]=="0.2"
     assert a["lobby"]["match_length"]=="south" and r["state"]["round"]["chang"]==0
     assert action in decision_request(r)["actions"]
     assert all(t["tile"] not in {str(i)+"m" for i in range(2,9)} for t in a["improving_tiles"])
@@ -97,4 +97,3 @@ def test_south_kokushi_narrow_wait_stays_dama():
     action,a=choose(r)
     assert action=={"kind":"discard","tile":"6s"}
     assert a["playbook"]=="Three-Player South Attack"
-
