@@ -51,3 +51,28 @@ def test_two_draw_candidate_is_bounded_and_preserves_shanten(monkeypatch):
     assert offensive(board,options,settings)["action"]["tile"]=="7s"
     options[0]["shanten"]=0;options[0]["effective_ukeire"]=1
     assert offensive(board,options,settings)["action"]["tile"]=="7s"
+
+
+def test_early_development_changes_an_actual_equal_ukeire_shape_choice():
+    from agents.mahjong_soul.speed_lookahead import development_quality
+    data=json.loads((Path(__file__).parent/"fixtures/early_development.json").read_text())
+    before=deepcopy(data["board"])
+    assert [development_quality(data["board"],o) for o in data["options"]]==data["qualities"]
+    assert data["qualities"][1]>data["qualities"][0]
+    settings=three_player_east_speed_playbook().thresholds_for("D1")
+    options=[dict(o,projected_han=1,route_cost=0,wait_value=None,danger=0,total_danger=0) for o in data["options"]]
+    assert offensive(data["board"],options,settings)["action"]["tile"]=="1p"
+    settings["early_development"]=True
+    assert offensive(data["board"],options,settings)["action"]["tile"] in ("1z","2z")
+    assert data["board"]==before
+
+
+def test_early_development_never_sacrifices_shanten_or_more_than_two_copies(monkeypatch):
+    data=json.loads((Path(__file__).parent/"fixtures/early_development.json").read_text());b=data["board"]
+    settings=three_player_east_speed_playbook().thresholds_for("D1");settings["early_development"]=True
+    options=[dict(o,projected_han=1,route_cost=0,wait_value=None,danger=0,total_danger=0) for o in data["options"][:2]]
+    monkeypatch.setattr("agents.mahjong_soul.speed_lookahead.development_quality",lambda b,o:100 if o["action"]["tile"]=="1z" else 1)
+    options[1]["effective_ukeire"]=options[0]["effective_ukeire"]-3
+    assert offensive(b,options,settings)["action"]["tile"]=="1p"
+    options[1]["effective_ukeire"]=options[0]["effective_ukeire"];options[1]["shanten"]+=1
+    assert offensive(b,options,settings)["action"]["tile"]=="1p"

@@ -87,6 +87,15 @@ def attack_utility(option,settings):
 
 def offensive(board,options,value):
     if value.get("speed_first"):
+        if value.get("early_development"):
+            nearest=min(o["shanten"] for o in options)
+            own=own_player(board)
+            if nearest in (2,3) and not own["melds"]:
+                maximum=max(o["effective_ukeire"] for o in options if o["shanten"]==nearest)
+                shortlist=sorted([o for o in options if o["shanten"]==nearest and o["effective_ukeire"]>=max(1,maximum-2)],key=lambda o:(o["effective_ukeire"],-o.get("danger",0),o["projected_han"]),reverse=True)[:3]
+                if shortlist:
+                    from agents.mahjong_soul.speed_lookahead import development_quality
+                    return max(shortlist,key=lambda o:(development_quality(board,o),o["effective_ukeire"],-o.get("danger",0),-o.get("total_danger",0),o["projected_han"]))
         if value.get("two_draw_progress"):
             nearest=min(o["shanten"] for o in options)
             own=own_player(board)

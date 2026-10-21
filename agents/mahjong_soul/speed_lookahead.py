@@ -1,4 +1,4 @@
-"""Bounded closed-hand one-Shanten tie-break; no hidden tile information."""
+"""Bounded closed-hand development experiments; no hidden tile information."""
 from functools import lru_cache
 from agents.mahjong_soul.efficiency import KINDS,counts34,shanten,tile_supply
 from games.mahjong_soul.live.runtime.kan import tile_kind
@@ -53,3 +53,41 @@ def next_wait_quality(board,option):
     draws=tuple((KINDS.index(tile_kind(t["tile"])),t["unseen"]) for t in option["improving_tiles"] if t["unseen"]>0)
     river=tuple(sorted({KINDS.index(tile_kind(d["tile"])) for d in own["discards"]}|{KINDS.index(tile_kind(discard))}))
     return _quality(after,tuple(visible),pool,river,draws)
+
+
+@lru_cache(maxsize=12000)
+def _development(after,visible,pool,distance):
+    total=0
+    for draw,supply in enumerate(pool):
+        copies=supply-visible[draw]
+        if copies<=0 or after[draw]>=4:continue
+        hand=list(after);hand[draw]+=1
+        if shanten(tuple(hand))>=distance:continue
+        seen=list(visible);seen[draw]+=1;best=0
+        for discard,n in enumerate(hand):
+            if not n:continue
+            hand[discard]-=1
+            if shanten(tuple(hand))==distance-1:
+                improving=0
+                for future,supply2 in enumerate(pool):
+                    remaining=supply2-seen[future]
+                    if remaining<=0 or hand[future]>=4:continue
+                    hand[future]+=1
+                    if shanten(tuple(hand))<distance-1:improving+=remaining
+                    hand[future]-=1
+                best=max(best,improving)
+            hand[discard]+=1
+        total+=copies*best
+    return total
+
+
+def development_quality(board,option):
+    """Public-copy-weighted two-stage progress proxy for closed 2/3-Shanten."""
+    own=next(p for p in board["players"] if p["seat"]==board["self_seat"])
+    distance=option["shanten"]
+    if own["melds"] or own.get("riichi") in ("declared","accepted") or distance not in (2,3):return 0
+    hand=list(board["self"]["hand"]);hand.remove(option["action"]["tile"]);after=counts34(hand)
+    if shanten(after)!=distance:return 0
+    visible=[0]*34
+    for t,n in board["visible_tile_counts"].items():visible[KINDS.index(tile_kind(t))]+=n
+    return _development(after,tuple(visible),tuple(tile_supply(board,t) for t in KINDS),distance)

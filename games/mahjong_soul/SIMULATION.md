@@ -55,3 +55,11 @@ The strict one-Shanten tie-break produced identical full replays in all 24 pairs
 A broader frozen candidate, `east_speed_two_draw`, compares total useful-draw-weighted next-wait copies among closed one-Shanten discards within two improving copies of the immediate maximum. It preserves the nearest Shanten, but can trade at most two immediate copies for greater two-draw completion potential. This is a deliberate multi-step speed hypothesis, not a claim that immediate Ukeire is higher. Other policy stages and opponents remain unchanged. Development seeds are 40?43 and held-out seeds are 140?143, across all seats. The two-copy bound and Ron/Tsumo heuristic weight are frozen before evaluation.
 
 Completed lookahead screening: [wait-quality review](experiments/WAIT_QUALITY_REVIEW.md). Neither prototype was promoted. The comparison CLI now reports full-replay divergence so unexercised candidates cannot be mistaken for validated improvements.
+
+## Earlier-hand development experiment
+
+`east_speed_development` is a frozen offline candidate for closed two-/three-Shanten hands. It retains the nearest legal-route Shanten and evaluates at most three discard choices within two immediate improving copies of the maximum. The proxy sums public remaining-copy-weighted next-stage improving copies after a useful draw and best subsequent discard. It is a two-step shape-development heuristic, not a calibrated win probability. Calls and fold handling remain unchanged, and production factories do not enable it.
+
+An exposure screen first tested seed 50 seat 0 (identical replay), then seed 51 seat 0 (different replay). A generated legal Sanma hand also provides a reproducible offensive choice difference at equal 47-copy Ukeire. Development seeds are 50?53, including those inspected screen seeds. Held-out seeds are 150?153, uninspected before freezing the candidate. Both sets cover all three candidate seats. The two-copy margin, three-option bound and scoring formula are fixed before outcome evaluation.
+
+Completed earlier-hand screening: [early-hand review](experiments/EARLY_HAND_REVIEW.md). The proxy changed actual play but was not promoted because no win-rate gain was demonstrated.

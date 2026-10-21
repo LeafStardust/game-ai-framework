@@ -1,0 +1,344 @@
+{
+  "board": {
+    "player_count": 3,
+    "self_seat": 0,
+    "self": {
+      "hand": [
+        "6p",
+        "1z",
+        "3z",
+        "5z",
+        "2z",
+        "1p",
+        "5p",
+        "7p",
+        "5p",
+        "7p",
+        "3p",
+        "4p",
+        "9s",
+        "3z"
+      ],
+      "opening_hand": [
+        "6p",
+        "1z",
+        "3z",
+        "5z",
+        "2z",
+        "1p",
+        "5p",
+        "7p",
+        "5p",
+        "7p",
+        "3p",
+        "4p",
+        "9s"
+      ],
+      "drawn_tile": null,
+      "furiten": false,
+      "scoring_context": {
+        "history_complete": true,
+        "win": {
+          "tenhou": false
+        },
+        "double_riichi_available": true,
+        "double_riichi": false,
+        "ippatsu": false
+      }
+    },
+    "players": [
+      {
+        "seat": 0,
+        "is_self": true,
+        "score": null,
+        "discards": [],
+        "melds": [],
+        "norths": 0,
+        "riichi": "none"
+      },
+      {
+        "seat": 1,
+        "is_self": false,
+        "score": null,
+        "discards": [],
+        "melds": [],
+        "norths": 0,
+        "riichi": "none"
+      },
+      {
+        "seat": 2,
+        "is_self": false,
+        "score": null,
+        "discards": [],
+        "melds": [],
+        "norths": 0,
+        "riichi": "none"
+      }
+    ],
+    "round": {
+      "chang": 0,
+      "ju": 0
+    },
+    "last_actor": null,
+    "wall_remaining": 40,
+    "dora_indicators": [],
+    "rules": {
+      "open_tanyao": true
+    },
+    "visible_tile_counts": {
+      "6p": 1,
+      "1z": 1,
+      "3z": 2,
+      "5z": 1,
+      "2z": 1,
+      "1p": 1,
+      "5p": 2,
+      "7p": 2,
+      "3p": 1,
+      "4p": 1,
+      "9s": 1
+    },
+    "visibility_complete": true,
+    "available_operations": {
+      "seat": 0,
+      "operation_list": [
+        {
+          "type": 1
+        }
+      ]
+    },
+    "lobby": {
+      "source": "authGame",
+      "identified": true,
+      "player_count": 4,
+      "match_length": "south",
+      "mode_code": 2,
+      "category": null,
+      "ai": null,
+      "room_id": null,
+      "rule_details": {},
+      "unsupported_rules": [],
+      "label": "4 Player South Wind"
+    }
+  },
+  "options": [
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "1p"
+      },
+      "shanten": 3,
+      "ukeire": 47,
+      "improving_tiles": [
+        {
+          "tile": "2p",
+          "unseen": 4
+        },
+        {
+          "tile": "3p",
+          "unseen": 3
+        },
+        {
+          "tile": "4p",
+          "unseen": 3
+        },
+        {
+          "tile": "5p",
+          "unseen": 2
+        },
+        {
+          "tile": "6p",
+          "unseen": 3
+        },
+        {
+          "tile": "7p",
+          "unseen": 2
+        },
+        {
+          "tile": "8p",
+          "unseen": 4
+        },
+        {
+          "tile": "9p",
+          "unseen": 4
+        },
+        {
+          "tile": "7s",
+          "unseen": 4
+        },
+        {
+          "tile": "8s",
+          "unseen": 4
+        },
+        {
+          "tile": "9s",
+          "unseen": 3
+        },
+        {
+          "tile": "1z",
+          "unseen": 3
+        },
+        {
+          "tile": "2z",
+          "unseen": 3
+        },
+        {
+          "tile": "3z",
+          "unseen": 2
+        },
+        {
+          "tile": "5z",
+          "unseen": 3
+        }
+      ],
+      "effective_ukeire": 47
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "1z"
+      },
+      "shanten": 3,
+      "ukeire": 47,
+      "improving_tiles": [
+        {
+          "tile": "1p",
+          "unseen": 3
+        },
+        {
+          "tile": "2p",
+          "unseen": 4
+        },
+        {
+          "tile": "3p",
+          "unseen": 3
+        },
+        {
+          "tile": "4p",
+          "unseen": 3
+        },
+        {
+          "tile": "5p",
+          "unseen": 2
+        },
+        {
+          "tile": "6p",
+          "unseen": 3
+        },
+        {
+          "tile": "7p",
+          "unseen": 2
+        },
+        {
+          "tile": "8p",
+          "unseen": 4
+        },
+        {
+          "tile": "9p",
+          "unseen": 4
+        },
+        {
+          "tile": "7s",
+          "unseen": 4
+        },
+        {
+          "tile": "8s",
+          "unseen": 4
+        },
+        {
+          "tile": "9s",
+          "unseen": 3
+        },
+        {
+          "tile": "2z",
+          "unseen": 3
+        },
+        {
+          "tile": "3z",
+          "unseen": 2
+        },
+        {
+          "tile": "5z",
+          "unseen": 3
+        }
+      ],
+      "effective_ukeire": 47
+    },
+    {
+      "action": {
+        "kind": "discard",
+        "tile": "2z"
+      },
+      "shanten": 3,
+      "ukeire": 47,
+      "improving_tiles": [
+        {
+          "tile": "1p",
+          "unseen": 3
+        },
+        {
+          "tile": "2p",
+          "unseen": 4
+        },
+        {
+          "tile": "3p",
+          "unseen": 3
+        },
+        {
+          "tile": "4p",
+          "unseen": 3
+        },
+        {
+          "tile": "5p",
+          "unseen": 2
+        },
+        {
+          "tile": "6p",
+          "unseen": 3
+        },
+        {
+          "tile": "7p",
+          "unseen": 2
+        },
+        {
+          "tile": "8p",
+          "unseen": 4
+        },
+        {
+          "tile": "9p",
+          "unseen": 4
+        },
+        {
+          "tile": "7s",
+          "unseen": 4
+        },
+        {
+          "tile": "8s",
+          "unseen": 4
+        },
+        {
+          "tile": "9s",
+          "unseen": 3
+        },
+        {
+          "tile": "1z",
+          "unseen": 3
+        },
+        {
+          "tile": "3z",
+          "unseen": 2
+        },
+        {
+          "tile": "5z",
+          "unseen": 3
+        }
+      ],
+      "effective_ukeire": 47
+    }
+  ],
+  "qualities": [
+    1447,
+    1793,
+    1793
+  ]
+}
