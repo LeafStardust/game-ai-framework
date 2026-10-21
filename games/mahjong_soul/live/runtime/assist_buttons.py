@@ -66,6 +66,13 @@ class AssistButtons:
             key,target,deadline=self.pending
             if states is not None and states.get(key)==target:
                 owner._record("assist_confirmed",control=key,enabled=target);self.pending=None
+            elif (states is not None and desired.get(key)!=target
+                  and states.get(key)==desired.get(key)):
+                # A hand can finish before the clicked Riichi assist is visible.
+                # Resolve from a fresh observed state, never replay the old click.
+                owner._record("assist_superseded",control=key,enabled=target,
+                              observed=states[key],desired=desired[key])
+                self.pending=None
             elif owner.clock()>deadline:
                 owner._record("assist_unconfirmed",control=key,enabled=target)
                 self.failed=True;self.pending=None

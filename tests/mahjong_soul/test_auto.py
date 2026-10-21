@@ -321,3 +321,13 @@ def test_recorded_riichi_highlights_red_and_normal_five(monkeypatch):
     assert set(bright)=={"1p","0p","5p","7p"} and "0p" in tiles
     with pytest.raises(ValueError,match="Bright Riichi"):
         run(["1p","0p"])
+
+
+def test_action_poll_omits_redundant_passive_frame_but_keeps_preflight(monkeypatch):
+    f,r,p,e,m=setup(monkeypatch)
+    monkeypatch.setattr('agents.mahjong_soul.shadow.ShadowFollower.poll',lambda _:e)
+    f._passive_frame=lambda _:pytest.fail('Action preflight provides the recording')
+    frames=[]
+    f.recorder.frame=lambda geometry:frames.append(geometry) or b'frame'
+    assert f.poll()['kind']=='submitted'
+    assert len(frames)==2 and len(m.clicks)==1

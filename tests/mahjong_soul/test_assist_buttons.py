@@ -84,3 +84,25 @@ def test_actual_bright_gameplay_sidebar_is_recognized(monkeypatch):
     handler=AssistButtons()
     assert handler.read(b"frame")=={"arrange":True,"auto_win":False,"skip_calls":False,"auto_discard":False,"auto_kita":False}
     assert handler.layout=="collapsed"
+
+
+def test_expired_riichi_assist_resolves_when_next_hand_observably_unlocked(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    o.clock=lambda:10
+    rgb=panel()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    handler=AssistButtons();handler.pending=("auto_discard",True,3)
+    desired={"auto_win":False,"skip_calls":False,"auto_discard":False,"auto_kita":False}
+    assert handler.poll(o,desired) is None
+    assert handler.pending is None and not handler.failed and not o.halted and not m.clicks
+    assert logs[-1][0]=="assist_superseded"
+
+
+def test_obsolete_assist_with_unreadable_state_still_blocks(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    o.clock=lambda:10
+    handler=AssistButtons();handler.pending=("auto_discard",True,3)
+    monkeypatch.setattr(handler,"read",lambda _:None)
+    desired={"auto_win":False,"skip_calls":False,"auto_discard":False,"auto_kita":False}
+    assert handler.poll(o,desired)["kind"]=="blocked"
+    assert not m.clicks and o.halted

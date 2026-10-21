@@ -254,7 +254,10 @@ class AutoFollower(ShadowFollower):
                 self._passive_frame("halted")
             return {"kind":"blocked","reason":self.halted}
         event = super().poll()
-        self._passive_frame("observe")
+        # Action preflight records its own fresh frames. Avoid a third capture
+        # immediately before those two verification frames.
+        if event.get("kind")!="suggestion" and self.candidate is None:
+            self._passive_frame("observe")
         if self.enabled and self.reader is not None and self.clock()-self.last_result_scan>=.5:
             self.last_result_scan=self.clock()
             try:
