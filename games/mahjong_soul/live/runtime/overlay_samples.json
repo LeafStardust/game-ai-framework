@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "overlays": [
+    {
+      "name": "settings",
+      "source": "logs\\mahjong_soul\\sessions\\20261022T103714-684756Z\\frames\\0001956.png",
+      "sha256": "2584187181db524cddb91d48624f51bef3aa81df2506ddb65563d3f2bfce0364",
+      "patches": [
+        {
+          "bounds": [
+            950,
+            170,
+            300,
+            90
+          ],
+          "sample": "GCM8GSM8GSM9GSQ9GSM9GSQ9GSQ9GSQ9GSQ9GSQ9GSM9GSM8GiQ+GiQ/GiU/GiVAGiVAGiVAGyVAGyVAGiVAGiVAGiU/GiU/GiQ/GiU/GiVAGiVAGyVAGyZAGyZBGyZBGiZAGiVAGiVAGiU/GiU/GiU/GiVAGiVAGyVAGyVAGyZBGyVBGyVAGiVAGiVAGiU/GiQ/GiU/GiVAGyVAGyVBGyVBGyZBGyZBGiVAGiVAGiVAGiU/GiU/GiU/GyVAUUpMGyZAJy5DGyZBGyZBGyVAGyVAGiVAGiU/GiVAGyVAGyZA5a1tGyZBLzNFGyZBGyZBGyVBGyZAGyVAGyVAGiVAGiVAGiZAU0tNZVdRfWhWmHlcHylCRkJKYFRPGyVAGyVAGiVAGiVAGiZAQT9JmHlcgGlXeGRV0J9oxZdmlnhbGyVAGyVAGiVAGiVAGiVAx5lm0J5oGyZBGyZBd2NVNDZGknVbGyVAGyVAGiU/GiVAGiVAVk1OT0lMHSdBNTdGZ1lRHSdBT0lMGyVAGiVAGiU/GiVAGiVA2KRqsopiv5NlpYJfVExNwJNlj3NaGiVAGiVAGiU/GiVAGiVAQT5JIytCPj1IISpCJSxDQkBJQD5JGiZAGiVAGiU/GiVAGiVAGiVAGyZBGyZBGyZBGyVB0Z9pGyVBGiZAGiVAGiU/GiVAGiVAGiVAGyZBGyZBGyZBGyVBGyZBGyVAGiZAGiVAGiU/GiU/GiVAGiVAGyZBGyZBGyZBGyVBGyZAGyVAGiZAGiVAGiU/GiU/GiVAGiVAGyZBGyZBGyZBGyVBGyZAGyZAGiZAGiVAGiU/GiU/GiVAGiZAGyZBGyZBGyZBGyVBGyZAGyZAGiZAGiVA"
+        },
+        {
+          "bounds": [
+            1520,
+            173,
+            65,
+            65
+          ],
+          "sample": "ExwyExwyExwyExwyExwxExwxExwxExsxExwxExsxExswEhswExwyExwyExwyExwyExwyExwxExsxExsxExsxExsxExswEhswExwyExwyExwyExwyExwyExwxExsxExsxExsxExsxEhsxExswFBwyExwyGSM3LDVHExwyExwyExsxExwyLTZIExsxExsxExwwFB0yFB0zSFJfYWx0Hig7FBwyExwyNT9PYm11KTJEExwxExsxFBwyFB0zV2JsZXB4RE5bFB0yHyc7W2VvZXB4NkBQExwxExsxFBwyFBwzKTJFYWx0ZG93NkBQUVtnZXB4UVtmFx80ExwxExsxFBwyFBwzFB0yNkBPZXB4Ym12ZXB4YWx0Hic6ExsxExwxExsxExwyFBwzFBwyGCE1W2VvZXB4ZXB4RE5bFBsxExsxExsxExsxExwyFBwzFBwyFB4yVF9qZXB4ZXB4OEFRFBsxExsxExsxExsxExwyFBwzFBwyKTJEZG93ZXB4ZXB4WmVvGB80ExwxExsxExsxExwyFBwzHyc8W2ZvZXB4RVBdW2VvZXB4RE5bExwxExsxExsxExwyFBwzUFpmZXB4UVtmFyA1KDFEYWx0ZG93MDlKExsxExsxExwyFBwzUl1oZG93KDJDExwyExwyRE5cZG93MjxMExsxEhsxExwyFBwyISo+PEVUExwyExwyExwyFyA1PUdVFB0yExsxEhsxFBwyFBwyFBwyFR4zExwyExwyExwyExwxFR4yExwxExwxEhswFBwyFBwyFBwyFBwyExwyExwyExwyExwxExwxExwxExwxEhswFBwyFBwyFBwyFBwyExwyExwyExwyExwxExwxExwxExwxEhsw"
+        }
+      ]
+    }
+  ]
+}

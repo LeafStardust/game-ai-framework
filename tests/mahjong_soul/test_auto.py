@@ -134,6 +134,8 @@ def test_independent_recorded_hand_has_correct_visual_order(monkeypatch):
     values=[base64.b64decode(value) for value in fixture['samples']]
     assert [vision.classify(value) for value in values]==fixture['expected']
     monkeypatch.setattr('games.mahjong_soul.live.runtime.visual.decode_frame',lambda _:b'pixels')
+    # This fixture contains tile samples only; modal checks use full-region fixtures.
+    monkeypatch.setattr(vision,'require_gameplay',lambda *args,**kwargs:None)
     samples=iter(values)
     monkeypatch.setattr('games.mahjong_soul.live.runtime.visual.sample',lambda *args:next(samples))
     profile={'client_size':[1920,1080],'slots':[[.5,.9]]*14}

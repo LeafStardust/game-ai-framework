@@ -118,6 +118,8 @@ class TileVision:
                            for kind,entries in declarations["buttons"].items()}
         if set(self.declarations)!={"riichi","ron","tsumo"} or any(not values or any(len(v)!=648 for v in values) for values in self.declarations.values()):
             raise ValueError("Invalid declaration button samples")
+        overlays=json.loads(Path(__file__).with_name("overlay_samples.json").read_text())
+        self.overlays=overlays["overlays"]
         self.skip = base64.b64decode(data["skip"],validate=True)
         if not self.tiles or any(len(value)!=648 for _,value in self.tiles) or len(self.skip)!=648:
             raise ValueError("Invalid visual samples")
@@ -167,9 +169,18 @@ class TileVision:
             raise ValueError("Small alignment corrections disagree on the exact tile")
         return matches[0]
 
+    def require_gameplay(self,png,*,rgb=None):
+        """Reject reviewed modal overlays even when the hand remains visible."""
+        if rgb is None:rgb=decode_frame(png)
+        for overlay in self.overlays:
+            if all(distance(sample(rgb,*patch["bounds"]),base64.b64decode(patch["sample"]))<=8
+                   for patch in overlay["patches"]):
+                raise ValueError("Close the Mahjong "+overlay["name"]+" overlay to resume input")
+
     def hand(self, png, profile, expected):
         if profile["client_size"] != [1920,1080]: raise ValueError("Automatic input supports 1080p only")
         rgb = decode_frame(png)
+        self.require_gameplay(png,rgb=rgb)
         samples = [sample(rgb, round(x*1919), round(y*1079)) for x,y in profile["slots"]]
         tiles=[];self.last_diagnostics={"slots":[]}
         for index,value in enumerate(samples):
