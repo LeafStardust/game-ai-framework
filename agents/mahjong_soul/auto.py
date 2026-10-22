@@ -256,9 +256,11 @@ class AutoFollower(ShadowFollower):
         event = super().poll()
         # Action preflight records its own fresh frames. Avoid a third capture
         # immediately before those two verification frames.
-        if event.get("kind")!="suggestion" and self.candidate is None:
+        result_view=(self.reader is not None and (self.reader.snapshot().get("state") or {}).get("status")
+                     in ("round_ended","match_ended"))
+        if event.get("kind")!="suggestion" and self.candidate is None and not (self.enabled and result_view):
             self._passive_frame("observe")
-        if self.enabled and self.reader is not None and self.clock()-self.last_result_scan>=.5:
+        if self.enabled and self.reader is not None and self.clock()-self.last_result_scan>=.2:
             self.last_result_scan=self.clock()
             try:
                 result=self.result_buttons.poll(self)
@@ -393,7 +395,8 @@ def main():
         journal=SessionJournal(args.recordings,max_bytes=args.recording_mb*1024**2)
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
         paths=["games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
-               "games/mahjong_soul/live/runtime/windows_ocr.ps1","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
+               "games/mahjong_soul/live/runtime/windows_ocr.ps1","games/mahjong_soul/live/runtime/result_samples.json",
+               "agents/mahjong_soul/assist_preferences.py","games/mahjong_soul/live/runtime/assist_buttons.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
                "games/mahjong_soul/playbook/sanma/south_attack.py",
                "agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
                "agents/mahjong_soul/discard_completion.py","agents/mahjong_soul/completion_speed.py","agents/mahjong_soul/speed_lookahead.py",

@@ -85,7 +85,7 @@ class AssistButtons:
         self.observed=states
         layout=self.layout
         # Disable irreversible automatic discards first when unlocking.
-        keys=("auto_discard","skip_calls","auto_kita","auto_win")
+        keys=("auto_discard","skip_calls","auto_win","auto_kita")
         key=next((k for k in keys if states[k]!=desired[k]),None)
         if key is None:return None
         target=desired[key]

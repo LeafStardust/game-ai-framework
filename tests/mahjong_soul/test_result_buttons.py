@@ -129,3 +129,45 @@ def test_result_click_uses_one_ocr_and_rechecks_state_after_fresh_frame(monkeypa
     o._frame=frame
     assert ResultButtons(ocr).poll(o) is None and not m.clicks
     assert logs[-1][1]["reason"]=="state_changed_before_click"
+
+
+def test_win_and_score_confirm_at_same_position_are_separate_stages(monkeypatch):
+    o,r,m,_=owner(monkeypatch);words=[labels(word("Confirm"))]
+    handler=ResultButtons(lambda _:words[0]);o.clock=lambda:1
+    words[0]=[word("Han",y=250),word("Confirm")]
+    assert handler.poll(o)["button"]=="confirm"
+    words[0]=[word("Counter",y=250),word("0Repeat",y=200),word("Confirm")]
+    assert handler.poll(o)["button"]=="confirm"
+    assert len(m.clicks)==2
+
+
+def test_same_result_has_one_bounded_verified_retry(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);now=[1];o.clock=lambda:now[0]
+    handler=ResultButtons(lambda _:labels(word()))
+    assert handler.poll(o)["button"]=="continue"
+    assert handler.poll(o) is None
+    now[0]=3
+    assert handler.poll(o)["button"]=="continue"
+    now[0]=6
+    assert handler.poll(o) is None and len(m.clicks)==2
+
+
+def test_reviewed_templates_require_context_and_avoid_ocr(monkeypatch):
+    import base64,json,zlib
+    from pathlib import Path
+    handler=ResultButtons(lambda _:pytest.fail("Reviewed layout should avoid OCR"))
+    rows=json.loads((Path(__file__).parent/"fixtures/result_fast.json").read_text())
+    for row in rows:
+        rgb=bytearray(1920*1080*3)
+        for patch in row["patches"]:
+            x,y,w,h=patch["bounds"];raw=zlib.decompress(base64.b64decode(patch["rgb_zlib"]))
+            for j in range(h):rgb[((y+j)*1920+x)*3:((y+j)*1920+x+w)*3]=raw[j*w*3:(j+1)*w*3]
+        monkeypatch.setattr("games.mahjong_soul.live.runtime.result_buttons.decode_frame",lambda _:rgb)
+        x,y=row["pixel"]
+        assert handler.visual_button(b"frame")==("confirm",x,y,row["stage"])
+        o,r,m,_=owner(monkeypatch)
+        # owner configures a decoder for other tests; restore this fixture.
+        monkeypatch.setattr("games.mahjong_soul.live.runtime.result_buttons.decode_frame",lambda _:rgb)
+        assert handler.poll(o)["button"]=="confirm" and len(m.clicks)==1
+        rgb[:]=bytes(len(rgb))
+        assert handler.visual_button(b"frame") is None

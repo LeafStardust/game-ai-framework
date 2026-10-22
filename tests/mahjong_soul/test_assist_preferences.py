@@ -47,3 +47,20 @@ def test_recorded_closed_hand_can_call_white_dragon_for_legal_tenpai():
     assert notes[0]["accepted"] and notes[0]["baseline_shanten"]==1 and notes[0]["best_shanten"]==0
     prefs=assist_preferences(req,{"kind":"discard"},{"shanten":1,"hand_plan":{"current":["riichi",None]}})
     assert not prefs["skip_calls"]
+
+
+def test_auto_kita_enabled_in_ordinary_sanma_but_not_yonma():
+    r=request();b=r["observation"]["board"];b.update(player_count=3,self={"hand":["1p"]})
+    assert assist_preferences(r,{"kind":"discard"},{})["auto_kita"]
+    b["player_count"]=4
+    assert not assist_preferences(r,{"kind":"discard"},{})["auto_kita"]
+
+
+def test_auto_kita_respects_retained_north_and_yakuman():
+    r=request();b=r["observation"]["board"];b.update(player_count=3,self={"hand":["4z"]})
+    assert assist_preferences(r,{"kind":"extract_north"},{})["auto_kita"]
+    assert not assist_preferences(r,{"kind":"discard","tile":"1p"},{})["auto_kita"]
+    for route in ("yakuman_kokushi","yakuman_all_honors"):
+        assert not assist_preferences(r,{"kind":"extract_north"},{"target_route":route})["auto_kita"]
+    b["self"]["hand"].append("4z")
+    assert not assist_preferences(r,{"kind":"discard"},{})["auto_kita"]

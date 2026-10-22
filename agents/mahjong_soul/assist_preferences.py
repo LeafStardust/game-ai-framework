@@ -12,10 +12,16 @@ def assist_preferences(request, action, analysis):
     # can gain legal Tenpai from a Yakuhai Pon, so keep those offers visible.
     # Accepted Riichi is the only current irreversible closed commitment.
     skip_calls=accepted
-    # North can be part of a pair, triplet or Thirteen Orphans. Do not authorize
-    # automatic extraction of future draws from a single favorable offer.
+    hand=board.get("self",{}).get("hand",[])
+    route=str(analysis.get("target_route", ""))
+    plan=(analysis.get("hand_plan") or {}).get("current") or []
+    protect_north=(route in ("yakuman_kokushi","yakuman_all_honors")
+                   or any(p in ("yakuman_kokushi","yakuman_all_honors") for p in plan)
+                   or hand.count("4z")>=2
+                   or ("4z" in hand and action.get("kind")!="extract_north" and not accepted))
+    auto_kita=board.get("player_count")==3 and not protect_north
     return {"auto_win":True,"skip_calls":skip_calls,"auto_discard":accepted,
-            "auto_kita":False,
+            "auto_kita":auto_kita,
             "reason":"accepted_riichi" if accepted else "keep_options_open",
-            "kita_reason":"evaluate_each_offer",
+            "kita_reason":"north_required_in_hand" if protect_north else "automatic_sanma_extraction",
             "delivery":"reviewed_three_player_layout_only"}
