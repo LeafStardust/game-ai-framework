@@ -47,6 +47,20 @@ def result_button(words,scores=()):
     return matches[0]
 
 
+def heading_matches(actual,reference):
+    """Match the reviewed heading ink independently of changing board pixels."""
+    if distance(actual,reference)<=3:return True
+    def ink(value):
+        result=set()
+        for i in range(0,len(value),3):
+            r,g,b=value[i:i+3]
+            if (r>120 and r>g*1.12 and g>b*1.2) or (min(r,g,b)>160 and max(r,g,b)-min(r,g,b)<55):
+                result.add(i//3)
+        return result
+    expected=ink(reference);observed=ink(actual)
+    return len(expected)>=16 and len(expected&observed)/len(expected|observed)>=.9
+
+
 class ResultButtons:
     def __init__(self,ocr=windows_words):
         self.ocr=ocr;self.attempted=set();self.pending=None;self.deliveries={}
@@ -58,10 +72,15 @@ class ResultButtons:
         for row in self.templates:
             x,y=row["pixel"];cx,cy,w,h=row["context_bounds"]
             if (distance(sample(rgb,x,y,100,40),base64.b64decode(row["sample"]))<=3
-                    and distance(sample(rgb,cx,cy,w,h),base64.b64decode(row["context_sample"]))<=3):
+                    and heading_matches(sample(rgb,cx,cy,w,h),base64.b64decode(row["context_sample"]))):
                 matches.append((row["label"],x,y,row["stage"]))
-        unique=set(matches)
-        return next(iter(unique)) if len(unique)==1 else None
+        if not matches:return None
+        # OCR centers can differ by a pixel from the reviewed center. Multiple
+        # references to that same button are agreement, not two visible buttons.
+        if (len({(m[0],m[3]) for m in matches})==1
+                and max(m[1] for m in matches)-min(m[1] for m in matches)<=4
+                and max(m[2] for m in matches)-min(m[2] for m in matches)<=4):return matches[0]
+        return None
 
     def remember(self,png,words,label,x,y,stage):
         # Learn only from OCR-verified result text and a separate result heading.
@@ -82,8 +101,10 @@ class ResultButtons:
     @staticmethod
     def ocr_stage(words):
         text=" ".join(w["text"].lower() for w in words)
+        if "exhaustive" in text and "draw" in text:return "exhaustive_draw"
         if "counter" in text:return "round_scores"
-        if "han" in text or "fu" in text or "yakuman" in text:return "win_detail"
+        tokens=[re.sub(r"[^a-z0-9]","",w["text"].lower()) for w in words]
+        if any(re.fullmatch(r"[0-9]*(?:han|fu)",t) or t=="yakuman" for t in tokens):return "win_detail"
         return "match_results"
 
     @staticmethod

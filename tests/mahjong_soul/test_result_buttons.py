@@ -171,3 +171,37 @@ def test_reviewed_templates_require_context_and_avoid_ocr(monkeypatch):
         assert handler.poll(o)["button"]=="confirm" and len(m.clicks)==1
         rgb[:]=bytes(len(rgb))
         assert handler.visual_button(b"frame") is None
+
+
+def test_all_six_recorded_ocr_fallbacks_now_use_fast_path(monkeypatch):
+    import base64,json,zlib
+    from pathlib import Path
+    rows=json.loads((Path(__file__).parent/"fixtures/result_context_variants.json").read_text())
+    for row in rows:
+        rgb=bytearray(1920*1080*3)
+        for patch in row["patches"]:
+            x,y,w,h=patch["bounds"];raw=zlib.decompress(base64.b64decode(patch["rgb_zlib"]))
+            for j in range(h):rgb[((y+j)*1920+x)*3:((y+j)*1920+x+w)*3]=raw[j*w*3:(j+1)*w*3]
+        monkeypatch.setattr("games.mahjong_soul.live.runtime.result_buttons.decode_frame",lambda _:rgb)
+        handler=ResultButtons(lambda _:pytest.fail("Recorded result should not require OCR"))
+        result=handler.visual_button(b"frame")
+        if row["stage"] is None:
+            assert result is None
+        else:
+            assert result[0]=="confirm" and result[3]==row["stage"]
+
+
+def test_context_glyphs_allow_changed_background_but_require_same_letters():
+    from games.mahjong_soul.live.runtime.result_buttons import heading_matches
+    reference=bytearray(bytes([20,50,75])*216);actual=bytearray(bytes([35,70,95])*216)
+    for i in range(25):
+        reference[i*3:i*3+3]=bytes([230,180,120])
+        actual[i*3:i*3+3]=bytes([230,180,120])
+    assert heading_matches(bytes(actual),bytes(reference))
+    actual[:]=bytes([35,70,95])*216
+    assert not heading_matches(bytes(actual),bytes(reference))
+
+
+def test_draw_context_is_distinct_from_han_and_hand_words():
+    assert ResultButtons.ocr_stage([word("Exhaustive"),word("Draw"),word("Ready Hand")])=="exhaustive_draw"
+    assert ResultButtons.ocr_stage([word("Ready Hand")])!="win_detail"

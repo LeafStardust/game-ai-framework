@@ -55,6 +55,78 @@
       "context_sample": "DhYqFxojDhYqGBkgDhYqGRgeDBIdGRgcDBIeGRgcERYjGBcdDhYqDhYqDhYqDhYqDhYqDhYqCxEcDhYqDBEdDhYqEBUiDhYqDhYqDhYqDhYqDxcrDRUpDhYqCxEcEBcrDBEdDhYqDxQhDhYqXF5rUFNhDhYqgoKLDRQmUVVjChAaWl1qT1FZDhYqGB0nDhYq6OHg7ufnDBEY9OzrCA4T3NbWBQkMf36CpaGhCQ8YCw8SCQ8Y49zb9u7tEBIQ7eXlAwsMysTEAQcJZGVmUVNVAwoMAggLAwkMx8G/8OnnTVBP6OHhDhkcuba2AgwQU1hbBA4SPkRHLTQ3Ag0Ruray6+Ti6eLg9e3suba3yMTEAg8VRk1RKjQ419LRuri4Ag8UtLCt6eLgsq6t6+Tjx8LA5t/fAhAVRU1QUVdaiouNO0NHAg8Vr6yp5+DfXmJk3tnYQkhKwb2+AhAVSVBUP0dLam5xAg8VAhAVqaej6OHfTlRY3djXAxEWpKSlAhAVUVhbAhAVZmtuAg8UAg8UpaOf6+TiaW1w3NbWAxAVoaChAhAVX2VnDRoeam5xBBEWAhAVnpya8Onox8PD3tnYKzU5nJydAhAVeXx+g4WHdHh6Ljc7AhAVh4mK7ufmrKil7+fn4dvakZOUAhAVo6Kj2dPTk5SVu7i5AhAVa3BytLGuUVJMzMfFj5GSd3t9AhAVa3ByYmhqWmBjVl1gAhAVIi4yNT49JywlVFZSCxgdKTM3AxEWGSYqAxEWCRcbBBIXAhEVAhEVAhEWCBUYBBIXAxEWAhEWAxEWAxEWAhEWAhEWAhEWAhEVAhEVAhEWAhEWAxIXAxIXAxIWAxIXAxIWAxIWAhEWAhEWAhEW",
       "source": "logs\\mahjong_soul\\sessions\\20261022T043546-483121Z\\frames\\0001470.png",
       "sha256": "a8a2a1c7a0af196cb73e298a5187a3a7686357bf3f19e8673d15b8cb12c2cda8"
+    },
+    {
+      "stage": "exhaustive_draw",
+      "label": "confirm",
+      "pixel": [
+        1779,
+        1002
+      ],
+      "sample": "NEV+NEV+NEV+NUV+NUV+NUV+NUV+NUV/NUV+NUV+NEV+NUV+NER7NER7NER7NER7NER7NER7NER7NER8NER7NER7NER7NER8M0N4M0N4M0N4M0N4M0N4M0N4M0N4M0N5M0N4M0N4M0N4NER7M0J1M0J1M0J1M0J1M0J1M0J1M0J1M0J1M0J1M0J1M0J2NEN4MkBwa2NxMkFxMkFxMkFxMkBxemxxYF1xMkFxM0J0N0mDM0J1NkJuooRwNUJuMUBuMUBuMUBuoYRwfm5vMUBuMkFxOk2MNUZ8Sk5sl31tN0JrOURrNUFrNkJrjHZtcWZtPUZsNUJtPU+JOUuEamFrUlJqNkJpdmlsYl1rYFtrgXBsdGdsbWRsVFVuaGaBSFSEg3BrNEBmQ0lopoZtmn9sjHZsh3NrjHZsrIpuaGFwlX95X2F/jndqMDxje2tpjXZqoYNrl3xqYFpmknpqr4tsW1hplX93dGx6i3VpTE1jjndpg3Boj3dpknlpU1JkkHhpkHhpV1VlindzcmlyfmxmiXNoiXNomH1pknlpk3ppVVNjmH1phXFnYVtkjHZscWdvX1limn5ob2Nkk3lojXZnj3dnVlNhmH1of21mZV1jgG1mbmZxND5cRklePENdSkxeU1FfV1NgQUZdWlZgUVBfREdeTU9jT1V0LjlaLjlaLjpaLjlaMjxbMz1bMTxbMz1aMz1bLztaNUFlOkh0LjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZMkBpNkVyLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYM0FqNkVxLTlXLTlXLTlXLTlYLTlXLTlXLTlXLTlXLTlXLTlXM0BoNUVw",
+      "context_bounds": [
+        950,
+        430,
+        300,
+        100
+      ],
+      "context_sample": "PTxAV0t2MjA2Sj5ZHhshMzA2MzA2MzA1HxwkIB0lOTY9PT1ARkZJeGCDIBwlNi4/KygyJCEqJCEqJCEqLSoxRjtTHxwiOzs+TUxPXE9/IB0mTUFeMzA3IigyIB0mHx0mT0dXXk9IHxwkNDQ4V1NbemaGUUVpYVN5TkJhZFd5V0pyWk53Zll9XlB5VUlyVkpqW09sX1B3fmiGXFB1XFF0qZmyXVF1tqu8uq6/gHCFuKy8b2KAWEx1bmSBlIyafHCIbmR/l4OgU0l0koacbmN7XlN4u7K/pJilpJWwuK+/tK23sqa3YVV1sae4sbKykoSWaV98XVNzdGmDj4yYdWqDZVl8Wk11aF17WE15dm6FZVl+XVB6XVB1WUx2WUx1XVB4c214HRYTEhAVKSMvEhAUHRghAwMEMS41Ojc+aFc0IBwlJCMoi4uLXEY0NygjXU4xNS1AJSEsHzY/IjxGMC00IR0lIBwlJCMoj4+PaE86IB0lJSEmZl16bmaCHyUuHx8oLyw0a1o1KSInJCMokpKSbVI6SzctV0oxhoKThX6SKCMwIB0mLywzUEQvIx4mJCMolZWVSz87Ih4mJCAmXVB9KSU0U0xwHThAQDxEIB0mIB0mJSQplpaWNzU7IBwlIB0mXFN2LCYzXk93XU92bWaAXU94WEtzJiQpl5eYODU8JSIoIB0mmpCRXVJ6bVuLpp6VxszOe3eJXFB4JSQpPT0+OTY9QD1DIB0mubzGwcXJHRgjYVF7wMTDrKyuUEVeJiUpKyoxOjc9QT5EIB0mxMnNjYKEIh0fSDxasrS4e3aKFBAXJyUqIiElKigtPzxCIR8lV0t0QzlaU0YvWko2dGyGWkx1DQwOKCcs",
+      "source": "logs\\mahjong_soul\\sessions\\20261022T064356-902665Z\\frames\\0000502.png",
+      "sha256": "4db12b6aa80cab3cb12350ad9d8ec2b319a4a27ff67bfbfd2276cdefb236f7b9"
+    },
+    {
+      "stage": "round_scores",
+      "label": "confirm",
+      "pixel": [
+        1779,
+        1002
+      ],
+      "sample": "NEV+NEV+NEV+NUV+NUV+NUV+NUV+NUV/NUV+NUV+NEV+NUV+NER7NER7NER7NER7NER7NER7NER7NER8NER7NER7NER7NER8M0N4M0N4M0N4M0N4M0N4M0N4M0N4M0N5M0N4M0N4M0N4NER7M0J1M0J1M0J1M0J1M0J1M0J1NkR1NEN1M0J1M0J1M0J2NEN4MkBwfG1yMkFxMkFxMkFxMkBxinZxZWBxMkFxM0J0N0mDM0J1NUFupodwO0VuMUBuMUBuMUBupYZvdWlvMUBuMkFxOk2MNUZ8R0xshHJtO0VrRkxsOkVrP0dsi3ZtY15tSk5sO0VtQ1KIPEyEY11rP0dpOUNpiHRtbWNrbmRskHhtbWRsfW1sWllvdm5/VFqDfGxqMT5mQkhorIptnoFsmH5slnxsi3VrtI9uZ2JxnIR4cWt9h3NpMT1jd2loeWlomH1qlnxqZ19ninRpp4ZsTE9pj3t4gnR4gW5oV1RkhnFoempnjnZplXtqYltljHVpjndpS01kindzgHFybGFllXtpd2hmmn5plXtpmH1pY1xkl3xpjHVoV1Rji3Zsfm9vTE1gmn5oWlVikXhninRnj3dnYVpjkHhog3BmVlNieWlld2txLzpbP0VdMz1cQ0ddSUteT09fQkZdTk5fS0xfOEBcRUpiTlR0LjlaLjlaLjpaLjlaLzpaMDtaLztaLztaMDtbLjpaMj9lN0d0LjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZMkBpNkVyLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYM0FqNkVxLTlXLTlXLTlXLTlYLTlXLTlXLTlXLTlXLTlXLTlXM0BoNUVw",
+      "context_bounds": [
+        1180,
+        85,
+        150,
+        55
+      ],
+      "context_sample": "BBcgBBcgBBcgBBcfBBYgBhghCRsiBhghBBYfBBYgBBYfFyowBBcgBBcgBBcgBBcgBBcgBBcgBhghCRsiBhggBBcgBBcfFiowAxggBBggBBggBBggBBcgBBcgBBcgCRsiCRsjBRggBBcgCBsjVFFDBBggAxggBBggBBcgBBcgBBcfHCgqBhghCBsiBBggBBcf0ql5AxggAxggAxghAxcgBBcgAxcgEyInBBcgBhkhCBsjBBcgzaV3AxggBBghAxghBBgiBBghAxcgBRghCx0kAxcgBxoiBxoibmNPBBghTEtALjYzLjYzLzc0TUtAFiUpeWpTCBsiHSkrUk9CDiAmCh0k0Kd4jXhcaV9Me2xUsZJrmIBgwJxyX1hIjXhcsZJrAxkhRkc9jHhckXxeVVFEdGdRX1lIpIlmRUY9s5Ns0ah5y6R3AxoipYlmHSosgXFXQ0U9Y1xKOT44Cx0kBBghfG1Vl39gwZ1yP0M7v5xxIi4ue2xUPkI7Z15MOT44AxkhBxsjoodlLjYzl4BgrY9qwJxyWVVGcmdRWlZHeGtUPkM7AxohSEk/aWBNREY9jXhca2JOqY1ot5ZuV1RGt5ZupIpmUE9DAxoii3hblX9gd2pThHNYDiInX1lJlH5fIS4unYRjmIFhUVBDAxoiRUg+zqZ4IS8ueWxUBBsiESQoGSosBBsiHCwtNT03FygqAxoiCB0kUVBDAxohPUI6BBsjBR0kBBsjAxsjBBsiBRsjBBsiAxoiBBsjAxoiAxoiBRsjBBwjBRwkAxsjAxsjBBsjAxsjAxsjAxsjAxsjAxsiAxoiAxoiBBwkAxwjBBsjAxsjAxsjAxsjAxsjAxsjAxojAxsiAxoiAxoi",
+      "source": "logs\\mahjong_soul\\sessions\\20261022T064356-902665Z\\frames\\0001661.png",
+      "sha256": "3735858c8ee4c52116478c65acf49208cc692c45fed0d8d9b2a5f54a6297be99"
+    },
+    {
+      "stage": "round_scores",
+      "label": "confirm",
+      "pixel": [
+        1779,
+        1002
+      ],
+      "sample": "NEV+NEV+NEV+NUV+NUV+NUV+NUV+NUV/NUV+NUV+NEV+NUV+NER7NER7NER7NER7NER7NER7NER7NER8NER7NER7NER7NER8M0N4M0N4M0N4M0N4M0N4M0N4M0N4M0N5M0N4M0N4M0N4NER7M0J1M0J1M0J1M0J1M0J1M0J1NkR1NEN1M0J1M0J1M0J2NEN4MkBwfG1yMkFxMkFxMkFxMkBxinZxZWBxMkFxM0J0N0mDM0J1NUFupodwO0VuMUBuMUBuMUBupYZvdWlvMUBuMkFxOk2MNUZ8R0xshHJtO0VrRkxsOkVrP0dsi3ZtY15tSk5sO0VtQ1KIPEyEY11rP0dpOUNpiHRtbWNrbmRskHhtbWRsfW1sWllvdm5/VFqDfGxqMT5mQkhorIptnoFsmH5slnxsi3VrtI9uZ2JxnIR4cWt9h3NpMT1jd2loeWlomH1qlnxqZ19ninRpp4ZsTE9pj3t4gnR4gW5oV1RkhnFoempnjnZplXtqYltljHVpjndpS01kindzgHFybGFllXtpd2hmmn5plXtpmH1pY1xkl3xpjHVoV1Rji3Zsfm9vTE1gmn5oWlVikXhninRnj3dnYVpjkHhog3BmVlNieWlld2txLzpbP0VdMz1cQ0ddSUteT09fQkZdTk5fS0xfOEBcRUpiTlR0LjlaLjlaLjpaLjlaLzpaMDtaLztaLztaMDtbLjpaMj9lN0d0LjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZMkBpNkVyLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYM0FqNkVxLTlXLTlXLTlXLTlYLTlXLTlXLTlXLTlXLTlXLTlXM0BoNUVw",
+      "context_bounds": [
+        1195,
+        85,
+        150,
+        55
+      ],
+      "context_sample": "BBcgBBcgBBYgBBYgBhghCRsiBRcgBBYfBBYfBBYfFCcuBBYfBBcgBBcgBBcgBBcgBBcgBhkhCRsiBRggBBcfBBcgFCcuBBYfBBggBBggBBcgBBcgBBcgBBcgBhkhECAlBBcgBBcgCBsjAxcfMjg0AxggBBcgBBcgBBcgBBcfBBcgU09CCBoiBBcgBBcfAxcfsJFrAxghAxggAxcgBBcgAxcgBBcgZFtKBxoiBxoiBBcgBBcg37J/BBghBBkhAxghBBchAxchAxcgTUtACx0kCBsjBhkhAxcggG9WBBghO0A5HystNjs2Iy4uRUY9VFBDUU5CFyUpDiAlKDEwDR8lKjQywJxyn4Vkp4pnln9gvptxsJFrfG1VjXhcSEg+dGdRAxkhln9gv5xx2q99rpBqyqN2qYxoqIxoLzczk31ff25Vu5lwCx4lwJ1yc2ZRy6R3nYRju5lwkXxeQ0U8BBghQkQ8REY9gG9Wa2FNmYFheGpTxaB0mIBhvJpwknxeREY9DB8lmIBhDR8lPkE6l4Bhm4NirI9qw59zr5FryKJ1l4BgRkg+S0tAPkI7QUQ7NDo1MDk1x6J1xaB0sZJs2a580Kd4qo1oRkk+UU9CZl5LREc9KzUyBBsjp4xoXllIYFpJrZBqtJRtp4tnOT85EiQozKV3CB0jIS4uBBsjLTg0CR4lDiInMzs2SUo/PkM7FCYpAxoiU1FEAhkhDyImBBsjAxsjBBsjBBsiBBsjBRwjBBsjBBsjAxoiAxoiAxoiAxohBBsjBBsjAxsjBBsjAxsjAxsjAxoiAxoiAxsiAxoiAxoiAxoiBBskBBsjAxskAxsjAxsjAxsjAxsjAxoiAxsiAxoiAxoiAxoi",
+      "source": "logs\\mahjong_soul\\sessions\\20261022T064356-902665Z\\frames\\0003622.png",
+      "sha256": "613d1772cbfa57d22f3abde8751c27ea0eab253e1b304aa388a5953df6247e4d"
+    },
+    {
+      "stage": "round_scores",
+      "label": "confirm",
+      "pixel": [
+        1779,
+        1002
+      ],
+      "sample": "NEV+NEV+NEV+NUV+NUV+NUV+NUV+NUV/NUV+NUV+NEV+NUV+NER7NER7NER7NER7NER7NER7NER7NER8NER7NER7NER7NER8M0N4M0N4M0N4M0N4M0N4M0N4M0N4M0N5M0N4M0N4M0N4NER7M0J1M0J1M0J1M0J1M0J1M0J1NkR1NEN1M0J1M0J1M0J2NEN4MkBwfG1yMkFxMkFxMkFxMkBxinZxZWBxMkFxM0J0N0mDM0J1NUFupodwO0VuMUBuMUBuMUBupYZvdWlvMUBuMkFxOk2MNUZ8R0xshHJtO0VrRkxsOkVrP0dsi3ZtY15tSk5sO0VtQ1KIPEyEY11rP0dpOUNpiHRtbWNrbmRskHhtbWRsfW1sWllvdm5/VFqDfGxqMT5mQkhorIptnoFsmH5slnxsi3VrtI9uZ2JxnIR4cWt9h3NpMT1jd2loeWlomH1qlnxqZ19ninRpp4ZsTE9pj3t4gnR4gW5oV1RkhnFoempnjnZplXtqYltljHVpjndpS01kindzgHFybGFllXtpd2hmmn5plXtpmH1pY1xkl3xpjHVoV1Rji3Zsfm9vTE1gmn5oWlVikXhninRnj3dnYVpjkHhog3BmVlNieWlld2txLzpbP0VdMz1cQ0ddSUteT09fQkZdTk5fS0xfOEBcRUpiTlR0LjlaLjlaLjpaLjlaLzpaMDtaLztaLztaMDtbLjpaMj9lN0d0LjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZLjlZMkBpNkVyLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYLjlYM0FqNkVxLTlXLTlXLTlXLTlYLTlXLTlXLTlXLTlXLTlXLTlXM0BoNUVw",
+      "context_bounds": [
+        1180,
+        85,
+        150,
+        55
+      ],
+      "context_sample": "BBcgBBcgBBcgBBcfBBYgBhghCRsiBhghBBYfBBYgBBYfFyowBBcgBBcgBBcgBBcgBBcgBBcgBhghCRsiBhggBBcgBBcfFiowAxggBBggBBggBBggBBcgBBcgBBcgDR4kCRsjBRggBBcgCBsjMTg0BBggAxggBBggBBcgBBcgBBcfUU1BBhghCBsiBBggBBcfsJFrAxggAxggAxghAxcgBBcgAxcgZVtKBBcgBhkhCBsjBBcg37J/AxggBBghAxghBBgiBBghAxcgTEtACx0kAxcgBxoiBxoigG9WBBghOz85HystNjw3Iy4vRUY9VFBDUk5CFiUpChwjKzQyDR8lKjMxwJxyn4Vkpopnln9gvptxsJFrfG1UjXhcRkY9cmVQAxkhln9gv5tx2q99rpBqyqN2qYxoqIxoLzc0k31ef25WuphvCx8mwJxyc2ZRy6R3nYRju5lwkXxeQ0U8BBghQkQ8RUY9gG9Wa2FOmYFheGpTxaB0mIBhvJpwknxeREY9DB8ll4BgDR8lPkI6l4Bhm4NirI9qw59zr5FryKJ1l4BhRkg+TEtAPkM7QUQ7Mzo2MDk1x6J1xaB0sZJr2a590Kd4qo1oR0k/UVBDZl5MRUc9KzUyBBsjp4xnXllJYFpJrZBqtJRtp4tnOUA5EiQozKV3CB0kIS8uBBsiLjg0CR4lDiInMzs2SUpAPkM7FCYpAxoiVFJEAxohDyImBBsjBR0kBBsjAxsjBBsjBRwjBBsjAxoiBBsjAxoiAxoiAxoiBBwjBRwkAxsjAxsjBBsjAxsjAxsjAxsjAxsjAxsiAxoiAxoiBBwkAxwjBBsjAxsjAxsjAxsjAxsjAxsjAxojAxsiAxoiAxoi",
+      "source": "logs\\mahjong_soul\\sessions\\20261022T064356-902665Z\\frames\\0000802.png",
+      "sha256": "d91e81a0f8133c22b640b54685f298232e93ab0065b6a1421e5de07f64025170"
     }
   ]
 }

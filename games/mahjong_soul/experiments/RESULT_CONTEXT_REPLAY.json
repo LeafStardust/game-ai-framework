@@ -1,0 +1,22 @@
+{
+  "mode": "offline_saved_frame_replay",
+  "session": "20261022T064356-902665Z",
+  "frames": 557,
+  "counts": {
+    "None_frames": 1,
+    "waiting_for_round_frames": 2,
+    "tracking_frames": 442,
+    "round_ended_frames": 93,
+    "round_ended_matches": 13,
+    "match_ended_frames": 19,
+    "match_ended_matches": 4
+  },
+  "unexpected_gameplay_matches": [],
+  "median_recognition_seconds": 0.056989300006534904,
+  "max_recognition_seconds": 0.10300970001844689,
+  "limitations": [
+    "Recognizes static saved images, not live input timing.",
+    "Reviewed OCR-miss samples are development inputs, not held-out recognition accuracy.",
+    "A missing result match can be correct during animation or on menus."
+  ]
+}
