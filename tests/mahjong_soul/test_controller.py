@@ -186,3 +186,18 @@ def test_delivery_failure_cannot_be_cleared_by_late_confirmation():
     with pytest.raises(OSError):controller.submit(plan_discard(report,profile,0,"0p",now=10),report,enabled=True,now=11)
     assert not controller.observe("game",confirmed(),now=20)
     assert controller.snapshot()["status"]=="blocked"
+
+
+@pytest.mark.parametrize("change",["same_step","foreign_connection","generation","tracking"])
+def test_finished_recovery_rejects_unproven_advancement(change):
+    report,profile=inputs();controller=InputController(Mouse())
+    controller.submit(plan_discard(report,profile,0,"0p",now=10),report,enabled=True,now=11)
+    controller.update(report,now=16)
+    report["state"].update(status="round_ended",step=3)
+    report["last_event"]={"name":"ActionHule","step":3}
+    if change=="same_step":report["last_event"]["step"]=0
+    if change=="foreign_connection":report["game_connection"]="other"
+    if change=="generation":report["game_generation"]=99
+    if change=="tracking":report["state"]["status"]="tracking"
+    assert not controller.retire_finished(report)
+    assert controller.snapshot()["status"]=="blocked"

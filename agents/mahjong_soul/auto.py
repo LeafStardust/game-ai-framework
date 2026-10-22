@@ -256,12 +256,43 @@ class AutoFollower(ShadowFollower):
         self.call_pending=None
         self._park()
 
+    def _recover_advanced_input(self):
+        snapshot=self.controller.snapshot()
+        if snapshot["status"]!="blocked" or not snapshot.get("pending"):return False
+        report=self.reader.snapshot()
+        previous=self.halted or snapshot["reason"]
+        if self.controller.retire_finished(report):
+            self.halted=None;self.candidate=None;self.riichi_pending=None;self.call_pending=None
+            self._record("input_recovered",reason=previous,confirmation="server_round_ended")
+            return True
+        try:
+            report=self._current()
+            pending=snapshot["pending"]
+            if board_token(report)==pending["token"]:return False
+            from games.mahjong_soul.live.runtime.decision import decision_request
+            request=decision_request(report)
+            action=next((a for a in request["actions"] if a["kind"]=="discard"),None)
+            if action is None:return False
+            # _plan performs the normal two-frame hand, foreground, freshness,
+            # AI-room and board-token checks, but sends no input.
+            _,current=self._plan({"action":action,"board_token":board_token(report)})
+            self.controller.recover(current,visually_verified=True)
+        except (ValueError,OSError):return False
+        self.halted=None;self.candidate=None;self.riichi_pending=None;self.call_pending=None
+        self._record("input_recovered",reason=previous,confirmation="newer_board_visually_verified")
+        return True
+
     def poll(self):
         if self.halted:
             if self.path is not None:
                 self._drain()
-                self._passive_frame("halted")
-            return {"kind":"blocked","reason":self.halted}
+                if not self._recover_advanced_input():
+                    self._passive_frame("halted")
+                    snapshot=self.controller.snapshot()
+                    if snapshot["status"]=="blocked" and snapshot.get("pending"):
+                        return {"kind":"status","reason":"waiting_for_input_recovery","detail":self.halted}
+                    return {"kind":"blocked","reason":self.halted}
+            else:return {"kind":"blocked","reason":self.halted}
         event = super().poll()
         # Action preflight records its own fresh frames. Avoid a third capture
         # immediately before those two verification frames.
@@ -285,6 +316,16 @@ class AutoFollower(ShadowFollower):
             self.source = source
             snapshot = self.controller.update(self.reader.snapshot(),now=self.clock())
             if snapshot["status"] == "blocked" and snapshot["reason"]==InputController.TIMEOUT:
+                if self._recover_advanced_input():
+                    # Shadow polling may have just consumed the newer turn's
+                    # recommendation. Preserve it so recovery cannot lose it.
+                    if event.get("kind")=="suggestion":
+                        self.candidate=event;self.candidate_until=self.clock()+8
+                        prefs=event.get("analysis",{}).get("client_assists",{})
+                        for key in self.assist_desired:
+                            if type(prefs.get(key)) is bool:self.assist_desired[key]=prefs[key]
+                        self._record("decision",event=event,report=self.reader.snapshot())
+                    return {"kind":"status","reason":"input_recovered"}
                 pending=snapshot.get("pending") or {}
                 # Retry only ordinary discards, once, after the same full visual
                 # preflight used for initial input. _current also requires fresh capture.

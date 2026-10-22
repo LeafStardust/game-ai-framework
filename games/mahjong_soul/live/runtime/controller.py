@@ -247,6 +247,24 @@ class InputController:
             self._deadline = None
             self._blocked = None
 
+    def retire_finished(self,report):
+        """Retire uncertain input after a later server-confirmed end, never resend."""
+        with self._lock:
+            if not self._blocked or self._active is None:return False
+            plan=self._active.pending;state=report.get("state") or {}
+            end=report.get("last_event") or {}
+            if (plan is None or report.get("game_connection")!=plan.connection
+                    or report.get("game_generation",0)!=self._active_key[1]
+                    or state.get("status") not in ("round_ended","match_ended")
+                    or end.get("name") not in ("ActionHule","ActionNoTile","ActionLiuJu")):return False
+            meta=state.get("round") or {}
+            current_round=tuple(meta.get(k,0) for k in ("chang","ju","ben"))
+            old_round=self._active_key[2:5]
+            if current_round<old_round or (current_round==old_round and end.get("step",-1)<=plan.step):return False
+            self._active.pending=None;self._active=None;self._active_key=None
+            self._deadline=None;self._blocked=None
+            return True
+
     def was_attempted(self,report,step):
         with self._lock:return self._key(report,step) in self._attempted
 

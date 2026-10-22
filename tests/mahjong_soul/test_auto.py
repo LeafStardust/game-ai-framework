@@ -331,3 +331,74 @@ def test_action_poll_omits_redundant_passive_frame_but_keeps_preflight(monkeypat
     f.recorder.frame=lambda geometry:frames.append(geometry) or b'frame'
     assert f.poll()['kind']=='submitted'
     assert len(frames)==2 and len(m.clicks)==1
+
+
+def failed_focus_input(monkeypatch):
+    from types import SimpleNamespace
+    f,r,p,e,m=setup(monkeypatch);logs=[]
+    f.reader=SimpleNamespace(snapshot=lambda:deepcopy(r))
+    f._record=lambda kind,**data:logs.append((kind,data))
+    def fail(*args):raise ValueError("Mahjong Soul is not the foreground window")
+    m.double_click=fail
+    plan,current=f._plan(e)
+    with pytest.raises(ValueError):f.controller.submit(plan,current,enabled=True,now=1)
+    f.halted="Mahjong Soul is not the foreground window"
+    return f,r,e,m,logs
+
+
+def test_focus_failure_resumes_only_after_newer_board_visual_verification(monkeypatch):
+    f,r,e,m,logs=failed_focus_input(monkeypatch)
+    assert not f._recover_advanced_input() and f.halted
+    r["state"]["step"]+=2
+    assert f._recover_advanced_input()
+    assert f.halted is None and f.controller.snapshot()["status"]=="idle"
+    assert not m.clicks and f.controller.was_attempted(r,0)
+    assert logs[-1][1]["confirmation"]=="newer_board_visually_verified"
+
+
+def test_newer_board_with_unverified_visuals_keeps_waiting(monkeypatch):
+    f,r,e,m,logs=failed_focus_input(monkeypatch);r["state"]["step"]+=2
+    f.recorder.geometry=lambda:None
+    assert not f._recover_advanced_input()
+    assert f.controller.snapshot()["status"]=="blocked" and not m.clicks
+
+
+def test_server_round_end_retires_uncertain_input_without_click(monkeypatch):
+    f,r,e,m,logs=failed_focus_input(monkeypatch)
+    r["state"].update(status="round_ended",step=5);r["state_ready"]=False
+    r["last_event"]={"name":"ActionHule","step":5}
+    assert f._recover_advanced_input()
+    assert f.controller.snapshot()["status"]=="idle" and not m.clicks
+    assert logs[-1][1]["confirmation"]=="server_round_ended"
+
+
+def test_poll_automatically_resumes_and_submits_only_the_new_step(monkeypatch):
+    from pathlib import Path
+    f,r,e,m,logs=failed_focus_input(monkeypatch)
+    from types import SimpleNamespace
+    f.path=Path("unused");f.identity=(1,2);f.source=(f.path,f.identity)
+    f.tail=SimpleNamespace(reset=False);f._drain=lambda:None
+    f._passive_frame=lambda _:None
+    r["state"]["step"]+=2;e["board_token"]=board_token(r)
+    m.double_click=lambda *args:m.clicks.append(args)
+    monkeypatch.setattr("agents.mahjong_soul.shadow.ShadowFollower.poll",lambda _:e)
+    assert f.poll()["kind"]=="submitted"
+    assert len(m.clicks)==1 and f.halted is None
+    assert f.controller.snapshot()["attempted_steps"]==2
+    assert any(k=="input_recovered" for k,_ in logs)
+
+
+def test_timeout_recovery_preserves_already_considered_new_turn(monkeypatch):
+    from pathlib import Path
+    from types import SimpleNamespace
+    f,r,p,e,m=setup(monkeypatch)
+    f.reader=SimpleNamespace(snapshot=lambda:deepcopy(r))
+    plan,current=f._plan(e);f.controller.submit(plan,current,enabled=True,now=1)
+    assert f.controller.update(r,now=10)["status"]=="blocked"
+    f.path=Path("unused");f.identity=(1,2);f.source=(f.path,f.identity)
+    f.tail=SimpleNamespace(reset=False)
+    r["state"]["step"]+=2;e["board_token"]=board_token(r)
+    events=iter([e,{"kind":"status","reason":"board_already_considered"}])
+    monkeypatch.setattr("agents.mahjong_soul.shadow.ShadowFollower.poll",lambda _:next(events))
+    assert f.poll()["reason"]=="input_recovered"
+    assert f.poll()["kind"]=="submitted" and len(m.clicks)==2
