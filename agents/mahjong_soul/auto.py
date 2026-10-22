@@ -113,7 +113,16 @@ class AutoFollower(ShadowFollower):
     def _button_kind(kind):
         return "kan" if kind in ("closed_kan","open_kan","added_kan") else kind
 
-    def _plan(self, event):
+    def _plan(self,event):
+        started=self.clock();success=False
+        try:
+            result=self._build_plan(event);success=True
+            return result
+        finally:
+            self._record("preflight_timing",action=event.get("action"),
+                         elapsed_seconds=max(0,self.clock()-started),successful=success)
+
+    def _build_plan(self, event):
         report = self._current()
         if board_token(report) != event["board_token"]: raise ValueError("Board changed before visual check")
         if self.require_ai and (report.get("game_connection"),report.get("game_generation",0)) not in self.ai_games:

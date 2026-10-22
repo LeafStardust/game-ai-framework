@@ -1,0 +1,48 @@
+{
+  "mode": "offline_recorded_hand_recognition",
+  "source": "logs\\mahjong_soul\\sessions\\20261022T043546-483121Z\\frames\\0000036.png",
+  "sha256": "d067f15995b0ed6039905bc9de1d4fc656e11808a5da70fcc12b3b2d20761e38",
+  "measurements": {
+    "scalar_reference": {
+      "median_seconds": 0.20798659999854863,
+      "samples_seconds": [
+        0.20771759998751804,
+        0.21493610000470653,
+        0.21104040002683178,
+        0.20689599995967,
+        0.20798659999854863,
+        0.20973509998293594,
+        0.20623559999512509
+      ]
+    },
+    "optimized_cold": {
+      "median_seconds": 0.08256789995357394,
+      "samples_seconds": [
+        0.08256789995357394,
+        0.08720020001055673,
+        0.08503839996410534,
+        0.08842149999691173,
+        0.08251619996735826,
+        0.081685799988918,
+        0.08205670001916587
+      ]
+    },
+    "optimized_warm": {
+      "median_seconds": 0.05056290002539754,
+      "samples_seconds": [
+        0.05056290002539754,
+        0.050958900013938546,
+        0.05155839998042211,
+        0.050684799964074045,
+        0.050277700007427484,
+        0.0497987000271678,
+        0.050077699997927994
+      ]
+    }
+  },
+  "limits": [
+    "Single stable 14-tile screenshot, seven passes per condition; not a live latency benchmark.",
+    "Includes PNG decode, sampling and classification; excludes capture, journal writes, input and animations.",
+    "Scalar reference uses the original per-channel distance loop, without result caching."
+  ]
+}

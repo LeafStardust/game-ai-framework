@@ -5,6 +5,7 @@ skins, selected/animated tiles and ambiguous matches remain unsupported.
 """
 import base64
 from collections import Counter
+from functools import lru_cache
 import json
 from pathlib import Path
 import struct
@@ -63,6 +64,27 @@ def distance(a,b):
     return sum(abs(x-y) for x,y in zip(a,b))/len(a)
 
 
+# Each RGB byte occupies its own unsigned 16-bit lane. The high bit prevents
+# subtraction borrowing between lanes; the low byte contains the exact |a-b|.
+# This replaces thousands of Python per-channel loops with integer operations.
+_SAMPLE_BYTES=648
+_LANE_HIGH=int.from_bytes(b"\0\x80"*_SAMPLE_BYTES,"little")
+_LANE_LOW=int.from_bytes(b"\xff\0"*_SAMPLE_BYTES,"little")
+
+
+def _pack_sample(value):
+    if len(value)!=_SAMPLE_BYTES:raise ValueError("Invalid sample dimensions")
+    lanes=bytearray(_SAMPLE_BYTES*2);lanes[::2]=value
+    return int.from_bytes(lanes,"little")
+
+
+def _packed_distance(a,b):
+    delta=(a|_LANE_HIGH)-b
+    positive=((delta&_LANE_HIGH)>>15)*65535
+    absolute=((delta&positive)|(((b|_LANE_HIGH)-a)&~positive))&_LANE_LOW
+    return sum(absolute.to_bytes(_SAMPLE_BYTES*2,"little")[::2])/_SAMPLE_BYTES
+
+
 class TileVision:
     MAX_DISTANCE = 10.0
     MIN_MARGIN = 4.0
@@ -76,6 +98,11 @@ class TileVision:
         calls = json.loads(Path(__file__).with_name("call_samples.json").read_text(encoding="utf-8"))
         if calls.get("version") != 1 or calls.get("client_size") != [1920,1080]:
             raise ValueError("Unsupported call sample bank")
+        self._packed_tiles=tuple((tile,_pack_sample(value)) for tile,value in self.tiles)
+        self._tile_scores=lru_cache(maxsize=2048)(self._compute_tile_scores)
+        self._shape_tiles=tuple(("5"+tile[1:] if tile.startswith("0") else tile,
+                                 bytes(min(value[i:i+3]) for i in range(0,len(value),3)))
+                                for tile,value in self.tiles)
         self.calls = {kind:base64.b64decode(entry["sample"],validate=True)
                       for kind,entry in calls["buttons"].items()}
         if not {"chi","pon"} <= set(self.calls) <= {"chi","pon","kan","extract_north"} or any(len(v)!=648 for v in self.calls.values()):
@@ -95,24 +122,23 @@ class TileVision:
         if not self.tiles or any(len(value)!=648 for _,value in self.tiles) or len(self.skip)!=648:
             raise ValueError("Invalid visual samples")
 
+    def _compute_tile_scores(self,value):
+        query=_pack_sample(value);scores={}
+        for tile,reference in self._packed_tiles:
+            scores[tile]=min(scores.get(tile,float("inf")),_packed_distance(query,reference))
+        return tuple(scores.items())
+
     def scores(self, value):
-        scores={}
-        for tile,reference in self.tiles:
-            scores[tile]=min(scores.get(tile,float("inf")),distance(value,reference))
-        return sorted(({"tile":tile,"distance":score} for tile,score in scores.items()),key=lambda x:x["distance"])
+        return sorted(({"tile":tile,"distance":score} for tile,score in self._tile_scores(value)),key=lambda x:x["distance"])
 
     def classify(self, value):
-        scores = {}
-        for tile, reference in self.tiles:
-            scores[tile] = min(scores.get(tile,float("inf")), distance(value,reference))
+        scores=dict(self._tile_scores(value))
         ranked = sorted(scores, key=scores.get)
         if len(ranked)<2 or scores[ranked[0]] > self.MAX_DISTANCE or scores[ranked[1]]-scores[ranked[0]] < self.MIN_MARGIN:
             # Red 5 Sou shares the five-bamboo glyph; require its shape and red ink.
             shape=lambda data:bytes(min(data[i:i+3]) for i in range(0,len(data),3))
             query=shape(value);shape_scores={}
-            for tile,reference in self.tiles:
-                tile="5"+tile[1:] if tile.startswith("0") else tile
-                reference_shape=shape(reference)
+            for tile,reference_shape in self._shape_tiles:
                 error=sum(abs(a-b) for a,b in zip(query,reference_shape))/len(query)
                 shape_scores[tile]=min(shape_scores.get(tile,999),error)
             order=sorted(shape_scores,key=shape_scores.get)
