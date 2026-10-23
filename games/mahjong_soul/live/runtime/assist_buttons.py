@@ -59,6 +59,7 @@ class AssistButtons:
         if owner.controller.snapshot()["status"]!="idle":return None
         geometry=owner.recorder.geometry()
         if not geometry or (geometry["width"],geometry["height"])!=(1920,1080):return None
+        captured=owner.clock()
         first=owner._frame(geometry,report,"assist_preflight")
         if first is None:return None
         states=self.read(first)
@@ -87,7 +88,9 @@ class AssistButtons:
         # Disable irreversible automatic discards first when unlocking.
         keys=("auto_discard","skip_calls","auto_win","auto_kita")
         key=next((k for k in keys if states[k]!=desired[k]),None)
-        if key is None:return None
+        if key is None:
+            owner.assist_frame=(first,geometry,board_token(report),captured)
+            return None
         target=desired[key]
         x,y=(40,self.profile["collapsed"][key]["y"]) if layout=="collapsed" else (60,self.profile["rows"][key]["y"])
         token=board_token(report);owner.sleep(.1)

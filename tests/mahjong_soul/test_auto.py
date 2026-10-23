@@ -404,3 +404,12 @@ def test_timeout_recovery_preserves_already_considered_new_turn(monkeypatch):
     monkeypatch.setattr("agents.mahjong_soul.shadow.ShadowFollower.poll",lambda _:next(events))
     assert f.poll()["reason"]=="input_recovered"
     assert f.poll()["kind"]=="submitted" and len(m.clicks)==2
+
+
+@pytest.mark.parametrize("age,token,expected_frames",[(.1,True,1),(.3,True,2),(.1,False,2)])
+def test_fresh_assist_frame_reuse_still_captures_distinct_second_frame(monkeypatch,age,token,expected_frames):
+    f,r,p,e,m=setup(monkeypatch);captured=[]
+    f.assist_frame=(b"assist",f.recorder.geometry(),e["board_token"] if token else "old",1-age)
+    f.recorder.frame=lambda geometry:captured.append(geometry) or b"fresh"
+    f._plan(e)
+    assert len(captured)==expected_frames and not m.clicks

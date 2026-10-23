@@ -43,6 +43,7 @@ class AutoFollower(ShadowFollower):
         self.source = None
         self.candidate = None
         self.candidate_until = None
+        self.assist_frame = None
         from games.mahjong_soul.live.runtime.result_buttons import ResultButtons
         self.result_buttons=ResultButtons()
         self.last_result_scan=float("-inf")
@@ -137,7 +138,12 @@ class AutoFollower(ShadowFollower):
         if profile is not None and report.get("last_event",{}).get("name")=="ActionChiPengGang":
             profile["forbidden_tiles"]=[tile for op in report["state"]["operations"]["operation_list"]
                                         if op["type"]==1 for tile in op.get("combination",[])]
-        first = self._frame(geometry,report,"preflight")
+        cached=self.assist_frame;self.assist_frame=None
+        if (cached is not None and cached[1]==geometry and cached[2]==event["board_token"]
+                and 0<=self.clock()-cached[3]<=.25):
+            first=cached[0]
+            self._record("preflight_frame_reused",age_seconds=self.clock()-cached[3])
+        else:first = self._frame(geometry,report,"preflight")
         if first is None: raise ValueError("Cannot capture Mahjong client")
         if action["kind"] in ("discard","riichi"):
             tiles, samples = self.vision.hand(first,profile,report["state"]["hand"])
@@ -283,6 +289,7 @@ class AutoFollower(ShadowFollower):
         return True
 
     def poll(self):
+        self.assist_frame=None
         if self.halted:
             if self.path is not None:
                 self._drain()
@@ -502,6 +509,7 @@ def main():
             except OSError:pass
         print("Agent stopped: "+str(error),flush=True)
     finally:
+        follower.result_buttons.close()
         if lease is not None:lease.close()
         if journal is not None:
             try:journal.close("blocked" if follower.halted else "stopped")

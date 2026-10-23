@@ -205,3 +205,30 @@ def test_context_glyphs_allow_changed_background_but_require_same_letters():
 def test_draw_context_is_distinct_from_han_and_hand_words():
     assert ResultButtons.ocr_stage([word("Exhaustive"),word("Draw"),word("Ready Hand")])=="exhaustive_draw"
     assert ResultButtons.ocr_stage([word("Ready Hand")])!="win_detail"
+
+
+def test_async_ocr_pending_does_not_block_poll_or_run_input(monkeypatch):
+    from concurrent.futures import Future
+    o,r,m,_=owner(monkeypatch)
+    handler=ResultButtons(lambda _:pytest.fail("Only the worker may call OCR"))
+    tasks=[]
+    class Worker:
+        def submit(self,fn,png):
+            future=Future();tasks.append((future,png));return future
+    handler.worker=Worker()
+    assert handler.poll(o) is None and len(tasks)==1 and not m.clicks
+    assert handler.poll(o) is None and len(tasks)==1 and not m.clicks
+    tasks[0][0].set_result(labels(word()))
+    assert handler.poll(o)["button"]=="continue" and len(m.clicks)==1
+
+
+def test_async_ocr_old_board_result_is_discarded(monkeypatch):
+    from concurrent.futures import Future
+    o,r,m,_=owner(monkeypatch);handler=ResultButtons(lambda _:[]);tasks=[]
+    class Worker:
+        def submit(self,fn,png):
+            future=Future();tasks.append(future);return future
+    handler.worker=Worker()
+    assert handler.poll(o) is None
+    r["state"]["step"]+=1;tasks[0].set_result(labels(word()))
+    assert handler.poll(o) is None and len(tasks)==2 and not m.clicks

@@ -3,6 +3,7 @@
 Separate from gameplay proposals: only known result states and explicit labels
 are accepted. No menus, room joins, purchases or new matches are selected.
 """
+from concurrent.futures import ThreadPoolExecutor
 import base64
 import time
 import json
@@ -64,8 +65,28 @@ def heading_matches(actual,reference):
 class ResultButtons:
     def __init__(self,ocr=windows_words):
         self.ocr=ocr;self.attempted=set();self.pending=None;self.deliveries={}
+        self.worker=ThreadPoolExecutor(max_workers=1,thread_name_prefix="mahjong-result-ocr") if ocr is windows_words else None
+        self.ocr_job=None;self.ocr_source=None
         data=json.loads(Path(__file__).with_name("result_samples.json").read_text())
         self.templates=data["templates"]
+
+    def close(self):
+        if self.worker is not None:self.worker.shutdown(wait=False,cancel_futures=True)
+
+    def words(self,png,token,geometry):
+        """OCR workers read pixels only; all state checks and input stay here."""
+        self.ocr_source=png
+        if self.worker is None:return self.ocr(png)
+        if self.ocr_job is not None:
+            future,source,old_token,old_geometry=self.ocr_job
+            if not future.done():return None
+            self.ocr_job=None
+            words=future.result()
+            if old_token==token and old_geometry==geometry:
+                self.ocr_source=source
+                return words
+        self.ocr_job=(self.worker.submit(self.ocr,png),png,token,dict(geometry))
+        return None
 
     def visual_button(self,png):
         rgb=decode_frame(png);matches=[]
@@ -133,11 +154,26 @@ class ResultButtons:
         recognized=self.visual_button(first)
         method="template"
         if recognized is None:
-            words=self.ocr(first)
+            words=self.words(first,token,geometry)
+            if words is None:return None
             try:button=result_button(words,state.get("scores",[]))
             except ValueError:return None
             label,x,y=button;stage=self.ocr_stage(words);method="ocr"
-            self.remember(first,words,label,x,y,stage)
+            source=self.ocr_source
+            self.remember(source,words,label,x,y,stage)
+            if source!=first:
+                current=self.visual_button(first)
+                same=(current is not None and current[0]==label and current[3]==stage
+                      and abs(current[1]-x)<=4 and abs(current[2]-y)<=4)
+                if same:recognized=current
+                if not same:
+                    # An unknown heading may not be cacheable. Require both
+                    # the label and central result panel to remain unchanged.
+                    a=decode_frame(source);b=decode_frame(first)
+                    if (distance(sample(a,x,y,100,40),sample(b,x,y,100,40))>1
+                            or distance(sample(a,960,500,650,650),sample(b,960,500,650,650))>1):
+                        owner._record("result_button_withheld",button=label,reason="async_ocr_screen_changed")
+                        return None
         else:label,x,y,stage=recognized
         # Win detail and score transfer can share a Confirm position. Separate
         # stages; allow one delayed retry only after another full visual check.
