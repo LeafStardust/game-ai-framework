@@ -1,7 +1,7 @@
 """Post-round Continue/Confirm clicks from OCR and a fresh matching pixel observation.
 
 Separate from gameplay proposals: only known result states and explicit labels
-are accepted. No menus, room joins, purchases or new matches are selected.
+are accepted. Completed custom AI rooms can restart from a verified Start view.
 """
 from concurrent.futures import ThreadPoolExecutor
 import base64
@@ -64,7 +64,7 @@ def heading_matches(actual,reference):
 
 class ResultButtons:
     def __init__(self,ocr=windows_words):
-        self.ocr=ocr;self.attempted=set();self.pending=None;self.deliveries={}
+        self.ocr=ocr;self.attempted=set();self.pending=None;self.deliveries={};self.restart_attempted=set()
         self.worker=ThreadPoolExecutor(max_workers=1,thread_name_prefix="mahjong-result-ocr") if ocr is windows_words else None
         self.ocr_job=None;self.ocr_source=None
         data=json.loads(Path(__file__).with_name("result_samples.json").read_text())
@@ -157,7 +157,9 @@ class ResultButtons:
             words=self.words(first,token,geometry)
             if words is None:return None
             try:button=result_button(words,state.get("scores",[]))
-            except ValueError:return None
+            except ValueError:
+                from games.mahjong_soul.live.runtime.room_restart import restart_room
+                return restart_room(self,owner,report,geometry,first,words,self.ocr_source)
             label,x,y=button;stage=self.ocr_stage(words);method="ocr"
             source=self.ocr_source
             self.remember(source,words,label,x,y,stage)
