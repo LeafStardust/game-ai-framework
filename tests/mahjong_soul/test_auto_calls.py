@@ -134,10 +134,13 @@ def test_call_choice_panel_animation_never_sends_selection(monkeypatch):
 
 def test_first_choice_frame_is_saved_even_immediately_after_menu_click(monkeypatch):
     follower,report,_,_,_=setup(monkeypatch)
-    frames=[]
+    frames=[];timings=[]
     class Journal:
         def frame(self,png,**kwargs):frames.append(kwargs)
+        def write(self,kind,**kwargs):timings.append((kind,kwargs))
     follower.journal=Journal();follower.last_recorded_frame=1
     follower._frame(follower.recorder.geometry(),report,"call_choices")
     follower._frame(follower.recorder.geometry(),report,"call_choices")
     assert len(frames)==1 and frames[0]["phase"]=="call_choices"
+
+    assert len(timings)==2 and all(kind=="frame_timing" and data["capture_seconds"]>=0 for kind,data in timings)

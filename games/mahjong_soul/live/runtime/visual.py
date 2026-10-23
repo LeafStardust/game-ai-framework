@@ -50,12 +50,12 @@ def sample(rgb, x, y, width=68, height=110):
         py = top + (2*row+1)*height//36
         for col in range(12):
             px = left + (2*col+1)*width//24
-            totals = [0,0,0]
-            for dy in (-2,-1,0,1,2):
-                for dx in (-2,-1,0,1,2):
-                    index = ((py+dy)*1920+px+dx)*3
-                    for channel in range(3): totals[channel] += rgb[index+channel]
-            result.extend(value//25 for value in totals)
+            # Join the same 5x5 pixels, then sum channels in C rather than
+            # executing 75 Python additions per sample. Integer flooring and
+            # sampled coordinates remain exactly identical.
+            patch=b"".join(rgb[((py+dy)*1920+px-2)*3:((py+dy)*1920+px+3)*3]
+                           for dy in (-2,-1,0,1,2))
+            result.extend(sum(patch[channel::3])//25 for channel in range(3))
     return bytes(result)
 
 

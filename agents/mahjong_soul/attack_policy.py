@@ -42,7 +42,7 @@ def enrich(board,options,settings=None):
             target,distance,improving=max(practical or targets,key=lambda item:(sum(t["unseen"] for t in item[2]),item[0]["projected_han"]))
         else:
             target,distance,improving=max(practical or targets,key=lambda item:(
-            item[0]["projected_han"]*settings["han_weight"]-item[1]*settings["shanten_cost"]-item[0]["route_cost"]*settings["route_cost_weight"]
+            credible_han(item[0],settings)*settings["han_weight"]-item[1]*settings["shanten_cost"]-item[0]["route_cost"]*settings["route_cost_weight"]
             +math.sqrt(sum(t["unseen"] for t in item[2]))*settings["ukeire_weight"]
             +(6 if settings.get("preferred_plan")== (item[0]["target_route"],item[0].get("target_suit") or item[0].get("yakuman_suit")) else 0),-item[1]))
         option.update(target);option["shanten"]=distance;option["improving_tiles"]=improving
@@ -70,6 +70,18 @@ def enrich(board,options,settings=None):
     return options
 
 
+def credible_han(option,settings):
+    """Discount uncompleted target value, never a scored winning hand.
+
+    Route cost measures replacements still needed for the claimed Yaku. This
+    is a bounded planning heuristic, not an expected score or probability.
+    """
+    han=option["projected_han"]
+    discount=settings.get("route_value_discount",0)
+    if option.get("wait_value") or not discount:return han
+    return han/(1+max(0,option.get("route_cost",0))*discount)
+
+
 def attack_utility(option,settings):
     profile=option.get("wait_value")
     points=0
@@ -77,7 +89,7 @@ def attack_utility(option,settings):
         points=max(profile["dama_points"] if profile["dama_ukeire"] else 0,
                    profile["riichi_points"] if option.get("riichi_offered") else 0,
                    profile["tsumo_points"] if profile["tsumo_ukeire"] else 0)
-    return (option["projected_han"]*settings["han_weight"]
+    return (credible_han(option,settings)*settings["han_weight"]
             -option["shanten"]*settings["shanten_cost"]
             -option["route_cost"]*settings["route_cost_weight"]
             +math.sqrt(max(0,option["effective_ukeire"]))*settings["ukeire_weight"]

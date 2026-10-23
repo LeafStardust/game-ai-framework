@@ -78,12 +78,16 @@ class AutoFollower(ShadowFollower):
         if self.journal is not None:self.journal.write(kind,**data)
 
     def _frame(self,geometry,report,phase):
+        started=self.clock()
         png=self.recorder.frame(geometry)
+        captured=self.clock()
         first_choice=phase=="call_choices" and board_token(report)!=self.last_choice_token
         if png is not None and self.journal is not None and (phase in ("before_input","before_result_input","before_assist_input") or first_choice or self.clock()-self.last_recorded_frame>=2):
             self.journal.frame(png,geometry=geometry,report=report,phase=phase)
             self.last_recorded_frame=self.clock()
             if phase=="call_choices":self.last_choice_token=board_token(report)
+        self._record("frame_timing",phase=phase,capture_seconds=max(0,captured-started),
+                     recording_seconds=max(0,self.clock()-captured),available=png is not None)
         return png
 
     def _park(self):

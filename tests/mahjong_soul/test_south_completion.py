@@ -67,7 +67,7 @@ def test_live_policy_runs_south_objective_on_recorded_sanma_board():
     before=deepcopy(request);policy=make_policy("playbook","atk")
     action=policy.choose(request)
     assert action in request["actions"]
-    assert policy.last_analysis["playbook_version"]=="0.2"
+    assert policy.last_analysis["playbook_version"]=="0.3"
     assert policy.last_analysis["completion_objective"]=="attack_value_preserving"
     assert request==before
 
