@@ -43,6 +43,7 @@ class AutoFollower(ShadowFollower):
         self.source = None
         self.candidate = None
         self.candidate_until = None
+        self.candidate_started = None
         self.assist_frame = None
         from games.mahjong_soul.live.runtime.result_buttons import ResultButtons
         self.result_buttons=ResultButtons()
@@ -157,7 +158,7 @@ class AutoFollower(ShadowFollower):
             elif action["kind"] in CODES:plan_call(report,profile,action,now=self.clock())
             else:plan_win(report,profile,action["kind"],now=self.clock())
             samples=[value]
-        self.sleep(.1)
+        self.sleep(.05)
         if self.recorder.geometry() != geometry: raise ValueError("Game window moved during verification")
         second = self._frame(geometry,report,"before_input")
         if second is None: raise ValueError("Cannot recheck Mahjong client")
@@ -288,6 +289,21 @@ class AutoFollower(ShadowFollower):
         self._record("input_recovered",reason=previous,confirmation="newer_board_visually_verified")
         return True
 
+    def _between_turn_assists(self):
+        if self.reader is None:return None
+        report=self.reader.snapshot();state=report.get("state") or {}
+        if state.get("status")!="tracking" or state.get("player_count")!=3:return None
+        try:
+            from games.mahjong_soul.live.runtime.observation import observation_from_snapshot
+            from agents.mahjong_soul.assist_preferences import assist_preferences
+            prefs=assist_preferences({"observation":observation_from_snapshot(report)},
+                                     {"kind":"discard"},{})
+            for key in self.assist_desired:self.assist_desired[key]=prefs[key]
+            return self.assist_buttons.poll(self,self.assist_desired)
+        except (ValueError,OSError) as error:
+            self._record("assist_unavailable",reason=str(error))
+            return None
+
     def poll(self):
         self.assist_frame=None
         if self.halted:
@@ -301,6 +317,7 @@ class AutoFollower(ShadowFollower):
                     return {"kind":"blocked","reason":self.halted}
             else:return {"kind":"blocked","reason":self.halted}
         event = super().poll()
+        recommendation_time=self.clock()
         # Action preflight records its own fresh frames. Avoid a third capture
         # immediately before those two verification frames.
         result_view=(self.reader is not None and (self.reader.snapshot().get("state") or {}).get("status")
@@ -327,7 +344,7 @@ class AutoFollower(ShadowFollower):
                     # Shadow polling may have just consumed the newer turn's
                     # recommendation. Preserve it so recovery cannot lose it.
                     if event.get("kind")=="suggestion":
-                        self.candidate=event;self.candidate_until=self.clock()+8
+                        self.candidate=event;self.candidate_started=recommendation_time;self.candidate_until=self.clock()+8
                         prefs=event.get("analysis",{}).get("client_assists",{})
                         for key in self.assist_desired:
                             if type(prefs.get(key)) is bool:self.assist_desired[key]=prefs[key]
@@ -371,6 +388,7 @@ class AutoFollower(ShadowFollower):
                 if type(prefs.get(key)) is bool:self.assist_desired[key]=prefs[key]
         if event.get("kind") == "suggestion":
             self.candidate = event
+            self.candidate_started = recommendation_time
             self.candidate_until = self.clock()+8
             self._record("decision",event=event,report=self.reader.snapshot() if self.reader else None)
             try:self._park()
@@ -380,7 +398,9 @@ class AutoFollower(ShadowFollower):
                 self.candidate = None
                 return event
             event = self.candidate
-        else: return event
+        else:
+            assist=self._between_turn_assists()
+            return assist if assist is not None else event
         if self.reader is not None:
             state=self.reader.snapshot().get("state") or {}
             seat=state.get("seat");riichi=state.get("riichi",[])
@@ -414,6 +434,11 @@ class AutoFollower(ShadowFollower):
                 self.riichi_pending=plan,profile
             self._park()
             self._record("submitted",event=event,controller=self.controller.snapshot())
+            if self.candidate_started is not None:
+                elapsed=max(0,self.clock()-self.candidate_started)
+                self._record("input_latency",elapsed_seconds=elapsed,ideal_seconds=1.0,
+                             upper_target_seconds=1.5,over_target=elapsed>1.5,
+                             action=event["action"],board_token=event["board_token"])
         except (ValueError,OSError) as error:
             if self.controller.snapshot()["status"] != "idle": self.halted = str(error)
             self._record("preflight_failed",reason=str(error),board_token=event["board_token"],image=self.journal.last_frame if self.journal else None,visual=getattr(self.vision,"last_diagnostics",None))
@@ -500,7 +525,7 @@ def main():
                 journal.write("heartbeat",capture=str(follower.path),controller=follower.controller.snapshot(),halted=follower.halted)
                 heartbeat=time.monotonic()
             if args.once: break
-            time.sleep(.1)
+            time.sleep(.05)
     except KeyboardInterrupt: pass
     except Exception as error:
         follower.halted=str(error)

@@ -64,3 +64,9 @@ def test_auto_kita_respects_retained_north_and_yakuman():
         assert not assist_preferences(r,{"kind":"extract_north"},{"target_route":route})["auto_kita"]
     b["self"]["hand"].append("4z")
     assert not assist_preferences(r,{"kind":"discard"},{})["auto_kita"]
+
+
+def test_between_turn_setup_preserves_naturally_qualified_kokushi():
+    r=request();b=r["observation"]["board"]
+    b.update(player_count=3,self={"hand":["1m","9m","1p","9p","1s","9s","1z","2z","3z","5z","2p","3p","4p"]})
+    assert not assist_preferences(r,{"kind":"discard"},{})["auto_kita"]

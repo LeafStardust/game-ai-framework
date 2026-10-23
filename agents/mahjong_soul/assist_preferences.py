@@ -13,9 +13,17 @@ def assist_preferences(request, action, analysis):
     # Accepted Riichi is the only current irreversible closed commitment.
     skip_calls=accepted
     hand=board.get("self",{}).get("hand",[])
+    # Also protect natural Yakuman qualification before the next policy turn,
+    # so between-turn setup cannot extract a newly needed North prematurely.
+    from collections import Counter
+    from agents.mahjong_soul.yakuman import ORPHANS
+    counts=Counter(hand)
+    counts.update(t for meld in own.get("melds",[]) for t in meld.get("tiles",[]))
+    north_sensitive=(sum(counts[t]>0 for t in ORPHANS)+int(any(counts[t]>=2 for t in ORPHANS))>=10
+                     or sum(min(n,3) for t,n in counts.items() if t.endswith("z"))>=10)
     route=str(analysis.get("target_route", ""))
     plan=(analysis.get("hand_plan") or {}).get("current") or []
-    protect_north=(route in ("yakuman_kokushi","yakuman_all_honors")
+    protect_north=(north_sensitive or route in ("yakuman_kokushi","yakuman_all_honors")
                    or any(p in ("yakuman_kokushi","yakuman_all_honors") for p in plan)
                    or hand.count("4z")>=2
                    or ("4z" in hand and action.get("kind")!="extract_north" and not accepted))

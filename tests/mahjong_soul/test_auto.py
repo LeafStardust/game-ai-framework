@@ -413,3 +413,16 @@ def test_fresh_assist_frame_reuse_still_captures_distinct_second_frame(monkeypat
     f.recorder.frame=lambda geometry:captured.append(geometry) or b"fresh"
     f._plan(e)
     assert len(captured)==expected_frames and not m.clicks
+
+
+def test_assists_are_prepared_between_turns_before_next_recommendation(monkeypatch):
+    from types import SimpleNamespace
+    from tests.mahjong_soul.test_sanma_east_speed import sanma
+    f,_,_,_,m=setup(monkeypatch);r=sanma("19m123p456p789s112z")
+    r["state"]["operations"]=None
+    f.reader=SimpleNamespace(snapshot=lambda:r);calls=[]
+    f.assist_buttons.poll=lambda owner,desired:calls.append(dict(desired)) or None
+    monkeypatch.setattr("agents.mahjong_soul.shadow.ShadowFollower.poll",lambda _:{"kind":"status","reason":"waiting_for_offer"})
+    assert f.poll()["kind"]=="status"
+    assert calls and calls[0]["auto_win"] and calls[0]["auto_kita"]
+    assert not m.clicks

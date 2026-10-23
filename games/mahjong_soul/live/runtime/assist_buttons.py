@@ -51,7 +51,9 @@ class AssistButtons:
 
     def poll(self,owner,desired):
         if self.failed:return None
-        if owner.clock()-self.last_scan<.5:return None
+        mismatch=bool(self.observed) and any(self.observed.get(k)!=desired[k] for k in desired)
+        if owner.clock()-self.last_scan<(.1 if self.pending or mismatch else .5):
+            return {"kind":"status","reason":"awaiting_assist_setup"} if mismatch else None
         self.last_scan=owner.clock()
         report=owner._current();state=report.get("state") or {}
         if state.get("status")!="tracking" or state.get("player_count")!=3:return None
@@ -106,4 +108,13 @@ class AssistButtons:
             self.failed=True;owner.halted="Assist input failed; inspect before restarting"
             raise
         owner._record("assist_delivered",control=key,enabled=target)
+        # The click backend already waits for release consumption. Read its
+        # outcome immediately instead of adding a half-second polling wait.
+        if owner.recorder.geometry()==geometry and board_token(owner._current())==token:
+            after=owner._frame(geometry,report,"assist_confirmation")
+            current=self.read(after) if after is not None else None
+            if current is not None and current.get(key)==target:
+                owner._record("assist_confirmed",control=key,enabled=target)
+                self.pending=None;self.observed=current
+                if all(current[k]==desired[k] for k in keys):return None
         return {"kind":"status","reason":"assist_submitted"}

@@ -106,3 +106,19 @@ def test_obsolete_assist_with_unreadable_state_still_blocks(monkeypatch):
     desired={"auto_win":False,"skip_calls":False,"auto_discard":False,"auto_kita":False}
     assert handler.poll(o,desired)["kind"]=="blocked"
     assert not m.clicks and o.halted
+
+
+def test_switch_confirms_immediately_without_half_second_poll_delay(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    o.clock=lambda:1;rgb=panel();handler=AssistButtons()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    original=m.click
+    def click(*args):
+        original(*args)
+        for y in range(539,546):
+            for x in range(57,64):rgb[(y*1920+x)*3:(y*1920+x)*3+3]=bytes(handler.profile["on"])
+    m.click=click
+    desired={"auto_win":True,"skip_calls":False,"auto_discard":False,"auto_kita":False}
+    assert handler.poll(o,desired) is None
+    assert handler.pending is None and len(m.clicks)==1
+    assert logs[-1][0]=="assist_confirmed"
