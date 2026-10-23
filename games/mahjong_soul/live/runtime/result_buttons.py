@@ -139,6 +139,11 @@ class ResultButtons:
             cached=reader.snapshot().get("state") or {}
             if cached.get("status") not in ("round_ended","match_ended"):return None
         report=self.snapshot(owner);state=report.get("state") or {}
+        # Snapshot reads can drain a just-arrived final result. Enforce the
+        # budget here too, before any result or room Start input is considered.
+        if hasattr(owner,"_game_limit"):
+            finished=owner._game_limit()
+            if finished is not None:return finished
         if state.get("status") not in ("round_ended","match_ended"):
             if self.pending:
                 owner._record("result_button_confirmed",button=self.pending,confirmation="game_state_advanced")

@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 import time
 
+from agents.mahjong_soul.game_budget import GameBudget,positive_games
 from agents.mahjong_soul.policy import make_policy
 from agents.mahjong_soul.auto_policy import AutomaticPolicy
 from agents.mahjong_soul.shadow import ShadowFollower, format_suggestion
@@ -25,10 +26,11 @@ from games.mahjong_soul.live.runtime.visual import TileVision, distance
 
 class AutoFollower(ShadowFollower):
     def __init__(self, schema, *, controller, recorder, vision, enabled=False,
-                 sleep=time.sleep, journal=None, require_ai=False, **kwargs):
+                 sleep=time.sleep, journal=None, require_ai=False, games=None, **kwargs):
         super().__init__(schema, **kwargs)
         self.controller, self.recorder, self.vision = controller, recorder, vision
         self.enabled, self.sleep = enabled, sleep
+        self.game_budget=GameBudget(games)
         self.require_ai=require_ai
         self.ai_games=set()
         self.journal=journal
@@ -308,11 +310,27 @@ class AutoFollower(ShadowFollower):
             self._record("assist_unavailable",reason=str(error))
             return None
 
+    def _game_limit(self):
+        if self.reader is None:return None
+        before=len(self.game_budget.completed)
+        self.game_budget.observe(self.reader.snapshot())
+        completed=len(self.game_budget.completed)
+        if completed!=before:
+            self._record("game_completed",completed=completed,limit=self.game_budget.limit)
+        if self.game_budget.done:
+            self.enabled=False;self.candidate=None;self.halted=None
+            return {"kind":"finished","reason":"game_limit_reached",
+                    "completed":completed,"limit":self.game_budget.limit}
+        return None
+
     def poll(self):
         self.assist_frame=None
+        if self.game_budget.done:return self._game_limit()
         if self.halted:
             if self.path is not None:
                 self._drain()
+                finished=self._game_limit()
+                if finished is not None:return finished
                 if not self._recover_advanced_input():
                     self._passive_frame("halted")
                     snapshot=self.controller.snapshot()
@@ -321,6 +339,8 @@ class AutoFollower(ShadowFollower):
                     return {"kind":"blocked","reason":self.halted}
             else:return {"kind":"blocked","reason":self.halted}
         event = super().poll()
+        finished=self._game_limit()
+        if finished is not None:return finished
         recommendation_time=self.clock()
         # Action preflight records its own fresh frames. Avoid a third capture
         # immediately before those two verification frames.
@@ -458,6 +478,7 @@ class AutoFollower(ShadowFollower):
 def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--games",type=positive_games,help="Stop after X completed matches; omit for unlimited play")
     parser.add_argument("--execute",action="store_true",help="Enable mouse input; AI room testing")
     parser.add_argument("--playstyle",choices=["balanced","atk"],default="atk")
     parser.add_argument("--file",type=Path)
@@ -492,21 +513,21 @@ def main():
                "games/mahjong_soul/live/runtime/calls.py","games/mahjong_soul/live/runtime/kan.py",
                "games/mahjong_soul/live/runtime/call_selection.py","games/mahjong_soul/live/runtime/choice_vision.py",
                "games/mahjong_soul/live/runtime/call_samples.json","games/mahjong_soul/live/runtime/declaration_samples.json",
-               "agents/mahjong_soul/auto.py","agents/mahjong_soul/playbook_policy.py",
+               "agents/mahjong_soul/auto.py","agents/mahjong_soul/game_budget.py","agents/mahjong_soul/playbook_policy.py",
                "games/mahjong_soul/live/runtime/visual.py","games/mahjong_soul/live/runtime/visual_samples.json","games/mahjong_soul/live/runtime/overlay_samples.json",
                "games/mahjong_soul/live/runtime/controller.py","games/mahjong_soul/live/runtime/windows_input.py",
                "games/mahjong_soul/live/runtime/riichi.py",
                "games/mahjong_soul/live/runtime/decision.py","games/mahjong_soul/live/runtime/session.py"]
         try:revision=subprocess.check_output(["git","rev-parse","HEAD"],cwd=root,text=True,stderr=subprocess.DEVNULL).strip()
         except (OSError,subprocess.SubprocessError):revision=None
-        journal.write("configuration",playstyle=args.playstyle,revision=revision,
+        journal.write("configuration",games=args.games,playstyle=args.playstyle,revision=revision,
                       source_hashes={name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in paths})
         print("Recording: "+str(journal.directory),flush=True)
     else: backend = None
     follower = AutoFollower(LiqiSchema.load(root/"liqi-reference.json"),
         file=args.file,directory=root/"logs/mahjong_soul",policy=AutomaticPolicy(make_policy("playbook",args.playstyle)) if args.execute else make_policy("playbook",args.playstyle),
         controller=InputController(backend,attempted_keys=attempted_keys),recorder=recorder,vision=vision,enabled=args.execute,
-        journal=journal,bootstrap_current=args.resume_current,require_ai=True)
+        journal=journal,bootstrap_current=args.resume_current,require_ai=True,games=args.games)
     print("Automatic play enabled: discard, Skip, Riichi, Ron, Tsumo, Chi, Pon and kan, including visually verified call choices. Ctrl+C stops." if args.execute else "Suggestions only; mouse input disabled.",flush=True)
     start=time.monotonic(); previous=None; recorded_status=None; heartbeat=start
     try:
@@ -528,6 +549,9 @@ def main():
             if journal is not None and time.monotonic()-heartbeat>=5:
                 journal.write("heartbeat",capture=str(follower.path),controller=follower.controller.snapshot(),halted=follower.halted)
                 heartbeat=time.monotonic()
+            if kind=="finished":
+                print(f"Completed {event['completed']} games; automatic play stopped.",flush=True)
+                break
             if args.once: break
             time.sleep(.05)
     except KeyboardInterrupt: pass

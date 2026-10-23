@@ -14,6 +14,7 @@ import uuid
 
 from games.mahjong_soul.live.__main__ import main as capture_main
 from games.mahjong_soul.live.runtime.session import AgentLease
+from agents.mahjong_soul.game_budget import positive_games
 from agents.mahjong_soul.capture_service import read_service, publish, stop_service
 
 
@@ -103,12 +104,22 @@ def supervise(command, worker, *, cwd, output, startup_timeout=120,
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--games",type=positive_games,help="Stop automatic play after this many completed matches")
     parser.add_argument("--stop-capture",action="store_true",help="Explicitly stop resident capture after stopping the agent")
     parser.add_argument("--monitor",action="store_true",help="Read-only suggestions with capture; never starts mouse input")
     parser.add_argument("--process",default="Jantama_MahjongSoul.exe")
     parser.add_argument("--port",type=int,default=8080)
     parser.add_argument("--startup-timeout",type=float,default=120)
+    argv=list(sys.argv[1:] if argv is None else argv)
+    # The BAT interface accepts X as its first argument. Normalize it before
+    # parsing, so values for forwarded options cannot become a game count.
+    if argv and (not argv[0].startswith("-") or argv[0][1:].isdigit()):
+        try:count=positive_games(argv[0])
+        except argparse.ArgumentTypeError as error:parser.error(str(error))
+        argv=["--games",str(count),*argv[1:]]
     args,extra=parser.parse_known_args(argv)
+    if args.games is not None and (args.monitor or args.stop_capture):
+        parser.error("A game count applies only to automatic play")
     if not math.isfinite(args.startup_timeout) or args.startup_timeout<=0:
         parser.error("Startup timeout must be finite and positive")
     if any(value=="--file" or value.startswith("--file=") for value in extra):
@@ -119,6 +130,7 @@ def main(argv=None):
     output=root/"logs/mahjong_soul"/("capture-"+stamp+".jsonl")
     module="agents.mahjong_soul.shadow" if args.monitor else "agents.mahjong_soul.auto"
     options=["--policy","playbook","--playstyle","atk"] if args.monitor else ["--execute","--resume-current"]
+    if args.games is not None:options += ["--games",str(args.games)]
     worker=[sys.executable,"-u","-m",module,*options,"--file",str(output),*extra]
     lease=None
     try:

@@ -31,3 +31,18 @@ human opponent, missing OCR, inactive button, stale screen or background window
 prevents a click. The three-player South screen is covered by a real recording;
 four-player and East recognition use the same strict text checks but still need
 live coverage. No game was started by the coding assistant during implementation.
+
+## Limit the run to X games
+
+Run `.\MahjongSoulAgent.bat 5` to play five completed matches, restarting the
+verified custom AI room between them. Replace `5` with any positive integer.
+With no number, automatic play remains unlimited until stopped manually.
+
+Each match counts once, including a match already in progress when the agent
+attaches. Individual rounds, reconnects, repeated final-state messages and a
+previously finished match found in capture history do not count. When X is
+reached, the automatic worker exits immediately at the match-end event; it does
+not click final result controls or start game X+1. The existing package supervisor
+then performs its normal capture cleanup. There is no extra BAT file.
+The agent still needs the game open in the supported foreground viewport, with
+an active AI match or the same previously verified custom room available.
