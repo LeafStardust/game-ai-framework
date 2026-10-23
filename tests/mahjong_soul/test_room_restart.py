@@ -77,3 +77,36 @@ def test_start_input_failure_is_not_replayed(monkeypatch):
     o.controller.backend.click=fail
     with pytest.raises(OSError):handler.poll(o)
     assert o.halted and handler.poll(o) is None
+
+
+def test_failed_recorded_header_uses_focused_ocr_and_exact_room_id(monkeypatch):
+    from games.mahjong_soul.live.runtime import result_buttons as rb
+    data=json.loads((Path(__file__).parent/"fixtures/custom_room_header_96219.json").read_text())
+    words=[w for w in data["words"] if not w["text"].lower().startswith("room#")]
+    # This is the original failure: Start and the AI names exist, header absent.
+    lobby={"ai":True,"room_id":96219,"player_count":3,"match_length":"south"}
+    assert room_start(words,lobby) is None
+    rgb=bytearray(1920*1080*3);x,y,w,h=data["bounds"]
+    raw=zlib.decompress(base64.b64decode(data["rgb_zlib"]))
+    for j in range(h):rgb[((y+j)*1920+x)*3:((y+j)*1920+x+w)*3]=raw[j*w*3:(j+1)*w*3]
+    # The raw OCR result for the enlarged, high-contrast saved heading.
+    focused={"text":"Room#96219","x":499,"y":234,"width":791,"height":146}
+    reads=[]
+    def ocr(png):
+        reads.append(png)
+        return words if len(reads)==1 else [focused]
+    monkeypatch.setattr(rb,"_windows_words",ocr)
+    monkeypatch.setattr(rb,"decode_frame",lambda _:rgb)
+    recognized=rb.windows_words(b"source")
+    assert len(reads)==2 and reads[1].startswith(b"\x89PNG")
+    assert room_start(recognized,lobby)==(1142,999)
+    assert room_start(recognized,{**lobby,"room_id":96218}) is None
+
+
+def test_result_ocr_does_not_add_header_pass_without_start(monkeypatch):
+    from games.mahjong_soul.live.runtime import result_buttons as rb
+    calls=[]
+    def ocr(png):calls.append(png);return [{"text":"Confirm","y":950}]
+    monkeypatch.setattr(rb,"_windows_words",ocr)
+    assert rb.windows_words(b"result")==[{"text":"Confirm","y":950}]
+    assert calls==[b"result"]

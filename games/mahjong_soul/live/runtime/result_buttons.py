@@ -16,7 +16,7 @@ from games.mahjong_soul.live.runtime.input import board_token
 from games.mahjong_soul.live.runtime.visual import decode_frame,distance,sample
 
 
-def windows_words(png):
+def _windows_words(png):
     decode_frame(png)  # Enforce the same physical viewport as native input.
     with tempfile.TemporaryDirectory(prefix="mahjong-result-") as directory:
         path=Path(directory)/"frame.png";path.write_bytes(png)
@@ -26,6 +26,34 @@ def windows_words(png):
                               creationflags=subprocess.CREATE_NO_WINDOW if os.name=="nt" else 0)
         if result.returncode:raise ValueError("Result-button OCR unavailable: "+result.stderr.strip()[:200])
         return json.loads(result.stdout)["words"]
+
+
+def room_header_frame(png):
+    """Enlarge only the gold custom-room heading for reliable numeric OCR."""
+    from games.mahjong_soul.live.runtime.windows_recording import png_from_bgra
+    rgb=decode_frame(png);canvas=bytearray(b"\xff"*(1920*1080*4))
+    for row in range(70):
+        for col in range(310):
+            i=((50+row)*1920+750+col)*3;r,g,b=rgb[i:i+3]
+            if r>150 and g>115 and r>b*1.2:
+                for dy in range(3):
+                    j=((200+row*3+dy)*1920+400+col*3)*4
+                    canvas[j:j+12]=b"\x00\x00\x00\xff"*3
+    return png_from_bgra(bytes(canvas),1920,1080)
+
+
+def windows_words(png):
+    words=_windows_words(png)
+    # Result views keep the ordinary single pass. Room headings use a second
+    # read of the same source pixels, never a guessed/captured room number.
+    if not any(w["text"].lower()=="start" and w["y"]>900 for w in words):return words
+    header=_windows_words(room_header_frame(png))
+    matches=[w for w in header if re.fullmatch(r"room#[0-9]+",w["text"].lower())]
+    if len(matches)!=1:return words
+    word=dict(matches[0]);word.update(x=750+(word["x"]-400)/3,
+        y=50+(word["y"]-200)/3,width=word["width"]/3,height=word["height"]/3)
+    # Replace any full-screen header misread with this independent focused read.
+    return [w for w in words if not (500<w["x"]<1300 and w["y"]<150 and w["text"].lower().startswith("room"))]+[word]
 
 
 def result_button(words,scores=()):

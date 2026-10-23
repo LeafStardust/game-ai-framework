@@ -51,7 +51,13 @@ def restart_room(buttons,owner,report,geometry,first,words,source):
     # must independently contain only AI opponents in the same custom room.
     if (report.get("game_connection"),report.get("game_generation",0)) not in owner.ai_games:return None
     found=room_start(words,lobby)
-    if found is None:return None
+    if found is None:
+        context=(lobby.get("room_id"),tuple(w["text"] for w in words if w["y"]<150))
+        if getattr(buttons,"restart_rejection",None)!=context:
+            owner._record("room_start_withheld",reason="room_header_format_or_ai_roster_not_verified",
+                          room_id=lobby.get("room_id"),header_words=list(context[1]))
+            buttons.restart_rejection=context
+        return None
     key=(report.get("game_connection"),report.get("game_generation",0),lobby["room_id"])
     if key in buttons.restart_attempted:return None
     x,y=found;token=board_token(report)
