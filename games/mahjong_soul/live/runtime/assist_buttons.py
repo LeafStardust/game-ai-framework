@@ -53,7 +53,7 @@ class AssistButtons:
     def poll(self,owner,desired,*,prepare_optional=True):
         if self.failed:return None
         mismatch=bool(self.observed) and any(self.observed.get(k)!=desired[k] for k in desired if k not in self.unavailable
-                                            and (prepare_optional or k not in ("auto_win","auto_kita") or desired[k] is False))
+                                            and (prepare_optional or desired[k] is False))
         if owner.clock()-self.last_scan<(.1 if self.pending or mismatch else .5):
             return {"kind":"status","reason":"awaiting_assist_setup"} if mismatch else None
         self.last_scan=owner.clock()
@@ -84,9 +84,9 @@ class AssistButtons:
                 self.pending=None
             elif owner.clock()>deadline:
                 owner._record("assist_unconfirmed",control=key,enabled=target)
-                if key in ("auto_win","auto_kita") and target is True and states is not None and states.get(key) is False:
+                if key in ("auto_win","auto_kita","skip_calls","auto_discard") and target is True and states is not None and states.get(key) is False:
                     # A fresh observation proves the optional automatic switch
-                    # stayed OFF. Native win/Kita actions remain available.
+                    # stayed OFF. Native policy actions remain available.
                     # Do not replay the uncertain click within this hand.
                     self.unavailable.add(key);self.pending=None;self.observed=states
                     owner._record("assist_native_fallback",control=key,reason="verified_off_after_timeout")
@@ -108,7 +108,7 @@ class AssistButtons:
         # Disable irreversible automatic discards first when unlocking.
         keys=("auto_discard","skip_calls","auto_win","auto_kita")
         key=next((k for k in keys if k not in self.unavailable and states[k]!=desired[k]
-                  and (prepare_optional or k not in ("auto_win","auto_kita") or desired[k] is False)),None)
+                  and (prepare_optional or desired[k] is False)),None)
         if key is None:
             owner.assist_frame=(first,geometry,board_token(report),captured)
             return None

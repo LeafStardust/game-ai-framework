@@ -127,12 +127,13 @@ def test_switch_confirms_immediately_without_half_second_poll_delay(monkeypatch)
     assert logs[-1][0]=="assist_confirmed"
 
 
-def test_uncertain_auto_discard_still_blocks_instead_of_guessing(monkeypatch):
+def test_unknown_auto_discard_still_blocks_instead_of_guessing(monkeypatch):
     o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
     now=[1];o.clock=lambda:now[0];rgb=panel()
     monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
     handler=AssistButtons();desired={"auto_win":False,"skip_calls":False,"auto_discard":True,"auto_kita":False}
     assert handler.poll(o,desired)["reason"]=="assist_submitted"
+    handler.read=lambda _:None
     now[0]=6
     assert handler.poll(o,desired)["kind"]=="blocked" and o.halted
     assert len(m.clicks)==1
@@ -172,3 +173,12 @@ def test_own_turn_still_disables_auto_kita_when_north_is_required(monkeypatch):
     desired={"auto_win":True,"skip_calls":False,"auto_discard":False,"auto_kita":False}
     assert handler.poll(o,desired,prepare_optional=False)["reason"]=="assist_submitted"
     assert handler.pending[:2]==("auto_kita",False) and len(m.clicks)==1
+
+
+def test_new_call_and_discard_assists_are_prepared_between_turns(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    o.clock=lambda:1;rgb=panel()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    desired={"auto_win":True,"skip_calls":True,"auto_discard":True,"auto_kita":False}
+    handler=AssistButtons()
+    assert handler.poll(o,desired,prepare_optional=False) is None and not m.clicks

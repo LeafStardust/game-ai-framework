@@ -11,7 +11,12 @@ def assist_preferences(request, action, analysis):
     # A chosen closed route is provisional. Even one-Shanten closed hands
     # can gain legal Tenpai from a Yakuhai Pon, so keep those offers visible.
     # Accepted Riichi is the only current irreversible closed commitment.
-    skip_calls=accepted
+    from agents.mahjong_soul.assist_lock import ready_lock
+    lock={} if accepted else ready_lock(board,action)
+    skip_calls=accepted or lock.get("skip_calls",False)
+    drawn=board.get("self",{}).get("drawn_tile")
+    may_discard=(action.get("tile")==drawn or len(board.get("self",{}).get("hand",[]))%3==1)
+    auto_discard=accepted or bool(lock.get("auto_discard") and may_discard)
     hand=board.get("self",{}).get("hand",[])
     # Also protect natural Yakuman qualification before the next policy turn,
     # so between-turn setup cannot extract a newly needed North prematurely.
@@ -28,8 +33,9 @@ def assist_preferences(request, action, analysis):
                    or hand.count("4z")>=2
                    or ("4z" in hand and action.get("kind")!="extract_north" and not accepted))
     auto_kita=board.get("player_count")==3 and not protect_north
-    return {"auto_win":True,"skip_calls":skip_calls,"auto_discard":accepted,
+    return {"auto_win":True,"skip_calls":skip_calls,"auto_discard":auto_discard,
             "auto_kita":auto_kita,
-            "reason":"accepted_riichi" if accepted else "keep_options_open",
+            "reason":"accepted_riichi" if accepted else lock.get("reason","keep_options_open"),
+            "ready_hand_check":lock,
             "kita_reason":"north_required_in_hand" if protect_north else "automatic_sanma_extraction",
             "delivery":"reviewed_three_player_layout_only"}

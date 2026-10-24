@@ -306,6 +306,11 @@ class AutoFollower(ShadowFollower):
             prefs=assist_preferences({"observation":observation_from_snapshot(report)},
                                      {"kind":"discard"},{})
             for key in self.assist_desired:self.assist_desired[key]=prefs[key]
+            seat=state.get("seat");riichi=state.get("riichi",[])
+            accepted=isinstance(seat,int) and seat<len(riichi) and riichi[seat]=="accepted"
+            if not accepted and (self.assist_buttons.observed.get("auto_win") is not True
+                                 or self.assist_desired["auto_kita"] and self.assist_buttons.observed.get("auto_kita") is not True):
+                self.assist_desired["auto_discard"]=False
             return self.assist_buttons.poll(self,self.assist_desired)
         except (ValueError,OSError) as error:
             self._record("assist_unavailable",reason=str(error))
@@ -430,7 +435,9 @@ class AutoFollower(ShadowFollower):
             state=self.reader.snapshot().get("state") or {}
             seat=state.get("seat");riichi=state.get("riichi",[])
             locked=isinstance(seat,int) and seat<len(riichi) and riichi[seat]=="accepted"
-            self.assist_desired["auto_discard"]=locked
+            if locked:self.assist_desired["auto_discard"]=True
+            elif (self.assist_buttons.observed.get("auto_win") is not True
+                  or self.assist_desired["auto_kita"] and self.assist_buttons.observed.get("auto_kita") is not True):self.assist_desired["auto_discard"]=False
             if locked:self.assist_desired["skip_calls"]=True
             elif not state.get("hand"):self.assist_desired["skip_calls"]=False
             try:
@@ -443,7 +450,7 @@ class AutoFollower(ShadowFollower):
             if pending and not optional_off:return {"kind":"status","reason":"awaiting_assist_confirmation"}
             if self.assist_buttons.observed.get("auto_win") and event.get("action",{}).get("kind") in ("ron","tsumo"):
                 return {"kind":"status","reason":"client_auto_win"}
-            if self.assist_buttons.observed.get("auto_discard") and locked and event.get("action",{}).get("kind")=="discard":
+            if self.assist_buttons.observed.get("auto_discard") and self.assist_desired["auto_discard"] and event.get("action",{}).get("kind")=="discard":
                 return {"kind":"status","reason":"client_auto_discard"}
         if event["action"]["kind"] not in ("discard","skip","riichi","ron","tsumo","extract_north",*CODES):
             self.candidate = None
@@ -507,7 +514,7 @@ def main():
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
         paths=["games/mahjong_soul/live/runtime/room_restart.py","games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
                "games/mahjong_soul/live/runtime/windows_ocr.ps1","games/mahjong_soul/live/runtime/result_samples.json",
-               "agents/mahjong_soul/assist_preferences.py","games/mahjong_soul/live/runtime/assist_buttons.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
+               "agents/mahjong_soul/assist_preferences.py","agents/mahjong_soul/assist_lock.py","games/mahjong_soul/live/runtime/assist_buttons.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
                "games/mahjong_soul/playbook/sanma/south_attack.py",
                "agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
                "agents/mahjong_soul/discard_completion.py","agents/mahjong_soul/completion_speed.py","agents/mahjong_soul/speed_lookahead.py",

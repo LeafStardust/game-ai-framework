@@ -34,6 +34,9 @@ def enrich(board,options,settings=None):
             targets.append((target,distance,improving))
         if not targets:
             targets=[(option,8,[])]
+        option["pair_route_comparison"]=[{"route":target["target_route"],"shanten":distance,
+             "ukeire":sum(t["unseen"] for t in improving),"projected_han":target["projected_han"]}
+             for target,distance,improving in targets if target["target_route"] in ("chiitoitsu","toitoi")]
         nearest=min(item[1] for item in targets)
         # Value competes between routes that can actually win equally soon.
         # Do not advertise generic one-Shanten speed for a three-Shanten flush.
@@ -339,6 +342,7 @@ def choose_attack(owner,request,book,ranker=rank_discards):
         if option:
             owner.last_analysis.update({k:deepcopy(option[k]) for k in ("shanten","ukeire","effective_ukeire","value_han","push_value_estimate","routes","yaku_potential","danger","danger_by_seat","wait_value","improving_tiles","target_route","projected_han","route_cost")})
             owner.last_analysis["retained_value_proxy"]=option["value_han"]
+            owner.last_analysis["pair_route_comparison"]=deepcopy(option.get("pair_route_comparison",[]))
             if "completion_baseline_action" in option:
                 owner.last_analysis["completion_baseline_action"]=deepcopy(option["completion_baseline_action"])
             if "completion_objective" in option:
