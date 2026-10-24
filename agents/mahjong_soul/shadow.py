@@ -123,7 +123,8 @@ class ShadowFollower:
             from games.mahjong_soul.playbook.model import UnsupportedLobby
             if isinstance(error,UnsupportedLobby):return {**status("unsupported_lobby"),"message":str(error),"board_token":token}
             retry=(getattr(self,"retry_expired",False) and isinstance(error,ValueError)
-                   and str(error)=="Decision request expired or clock is invalid"
+                   and str(error) in ("Decision request expired or clock is invalid",
+                                      "Capture became stale or incomplete during policy evaluation")
                    and token not in self.decision_retries)
             if retry:
                 self.decision_retries.add(token);self.seen.discard(token)

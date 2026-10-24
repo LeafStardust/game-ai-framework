@@ -177,10 +177,23 @@ class TileVision:
                    for patch in overlay["patches"]):
                 raise ValueError("Close the Mahjong "+overlay["name"]+" overlay to resume input")
 
+    def require_settled_call(self,rgb,profile):
+        """Reject standing call tiles still visible beyond the shortened hand."""
+        slots=profile.get("slots",[])
+        if profile.get("trigger")!="ActionChiPengGang" or len(slots)<2:return
+        x,y=slots[-1];stride=x-slots[-2][0]
+        for offset in (1,2):
+            px=round((x+stride*offset)*1919);py=round(y*1079)
+            if not 34<=px<1886:continue
+            try:self.classify(sample(rgb,px,py))
+            except ValueError:continue
+            raise ValueError("Call animation still shows standing tiles beyond the concealed hand")
+
     def hand(self, png, profile, expected):
         if profile["client_size"] != [1920,1080]: raise ValueError("Automatic input supports 1080p only")
         rgb = decode_frame(png)
         self.require_gameplay(png,rgb=rgb)
+        self.require_settled_call(rgb,profile)
         samples = [sample(rgb, round(x*1919), round(y*1079)) for x,y in profile["slots"]]
         tiles=[];self.last_diagnostics={"slots":[]}
         for index,value in enumerate(samples):

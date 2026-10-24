@@ -196,3 +196,17 @@ def test_auto_expiry_retry_is_bounded(tmp_path,monkeypatch):
     assert follower.poll()["reason"]=="decision_retry_pending"
     assert follower.poll()["reason"]=="decision_rejected"
     assert follower.poll()["reason"]=="board_already_considered"
+
+
+def test_transient_capture_rejection_gets_one_fresh_attempt(tmp_path,monkeypatch):
+    path,report,follower=setup(tmp_path,monkeypatch)
+    follower.retry_expired=True;follower.decision_retries=set()
+    append(path,row(advance(report)))
+    original=follower._current;calls=[]
+    def current():
+        calls.append(1)
+        if len(calls)==1:raise ValueError("Capture became stale or incomplete during policy evaluation")
+        return original()
+    follower._current=current
+    assert follower.poll()["reason"]=="decision_retry_pending"
+    assert follower.poll()["kind"]=="suggestion"
