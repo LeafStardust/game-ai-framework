@@ -4,6 +4,7 @@ from copy import deepcopy
 from functools import lru_cache
 import json
 import time
+from agents.mahjong_soul.ready_commit import committed_ready
 from agents.mahjong_soul.attack_value import own_player,tenpai_value
 from agents.mahjong_soul.efficiency import counts34,shanten,KINDS,tile_supply
 from games.mahjong_soul.live.runtime.kan import tile_kind
@@ -13,7 +14,7 @@ def ready_lock(board,action):
     required={"players","self","self_seat","round","visible_tile_counts","dora_indicators","player_count"}
     if not required<=board.keys():return {}
     own=own_player(board)
-    if any(p.get("riichi") in ("accepted","declared") for p in board["players"] if not p.get("is_self")):return {}
+    if board.get("lobby",{}).get("match_length")!="south" and any(p.get("riichi") in ("accepted","declared") for p in board["players"] if not p.get("is_self")):return {}
     if action.get("kind") not in ("discard",):return {}
     after=deepcopy(board);hand=after["self"]["hand"];fixed=len(own["melds"])
     if len(hand)==14-3*fixed:
@@ -45,6 +46,9 @@ def _check(encoded):
     base=tenpai_value(board,hand)
     if not base or base["ron_blocked"] or not base["dama_ukeire"]:return {}
     speed_first=board.get("lobby",{}).get("match_length")=="east"
+    if committed_ready(board,base):
+        return {"skip_calls":True,"auto_discard":True,"reason":"committed_open_tenpai",
+                "ron_points":base["dama_points"],"live_waits":base["dama_ukeire"]}
     deadline=time.perf_counter()+.12
     counts=Counter(tile_kind(t) for t in hand)
     visible=Counter()

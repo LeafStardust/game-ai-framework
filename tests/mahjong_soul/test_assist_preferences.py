@@ -70,3 +70,12 @@ def test_between_turn_setup_preserves_naturally_qualified_kokushi():
     r=request();b=r["observation"]["board"]
     b.update(player_count=3,self={"hand":["1m","9m","1p","9p","1s","9s","1z","2z","3z","5z","2p","3p","4p"]})
     assert not assist_preferences(r,{"kind":"discard"},{})["auto_kita"]
+
+
+def test_between_turn_singleton_north_is_not_automatically_marked_essential():
+    from tests.mahjong_soul.test_sanma_south_attack import south
+    from games.mahjong_soul.live.runtime.observation import observation_from_snapshot
+    r=south("19m135p246s1245z6p")
+    b=observation_from_snapshot(r)["board"]
+    prefs=assist_preferences({"observation":{"board":b}},{"kind":"discard"},{})
+    assert prefs["auto_kita"]

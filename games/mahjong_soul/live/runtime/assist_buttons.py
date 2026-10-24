@@ -50,6 +50,15 @@ class AssistButtons:
             states[key]=choice=="on"
         return states
 
+    @staticmethod
+    def guard(report,key):
+        state=report.get("state") or {}
+        # Opponents' unrelated discards must not starve sidebar preparation.
+        # Our hand, round, connection and declarations still bind the action.
+        return (report.get("game_connection"),report.get("game_generation",0),report.get("connection_open"),state.get("status"),
+                tuple(sorted((state.get("round") or {}).items())),
+                tuple(sorted(state.get("hand",[]))),tuple(state.get("riichi",[])),tuple(state.get("doras",[])))
+
     def poll(self,owner,desired,*,prepare_optional=True):
         if self.failed:return None
         mismatch=bool(self.observed) and any(self.observed.get(k)!=desired[k] for k in desired if k not in self.unavailable
@@ -62,7 +71,10 @@ class AssistButtons:
         meta=state.get("round") or {}
         context=(report.get("game_connection"),report.get("game_generation",0),meta.get("chang"),meta.get("ju"),meta.get("ben"))
         if context!=self.context:
-            self.context=context;self.unavailable.clear()
+            if self.context is not None and self.pending and self.pending[0] in ("auto_win","auto_kita"):
+                owner._record("assist_retired",control=self.pending[0],enabled=self.pending[1],reason="new_hand")
+                self.pending=None
+            self.context=context;self.unavailable.clear();self.observed={}
         if owner.require_ai and (report.get("game_connection"),report.get("game_generation",0)) not in owner.ai_games:return None
         if owner.controller.snapshot()["status"]!="idle":return None
         geometry=owner.recorder.geometry()
@@ -106,7 +118,9 @@ class AssistButtons:
         self.observed=states
         layout=self.layout
         # Disable irreversible automatic discards first when unlocking.
-        keys=("auto_discard","skip_calls","auto_win","auto_kita")
+        order=("auto_discard","skip_calls","auto_win","auto_kita")
+        keys=tuple(k for k in order if states[k] and not desired[k])+tuple(
+            k for k in ("auto_win","auto_kita","skip_calls","auto_discard") if not states[k] or desired[k])
         key=next((k for k in keys if k not in self.unavailable and states[k]!=desired[k]
                   and (prepare_optional or desired[k] is False)),None)
         if key is None:
@@ -114,12 +128,17 @@ class AssistButtons:
             return None
         target=desired[key]
         x,y=(40,self.profile["collapsed"][key]["y"]) if layout=="collapsed" else (60,self.profile["rows"][key]["y"])
-        token=board_token(report);owner.sleep(.1)
-        if owner.recorder.geometry()!=geometry or board_token(owner._current())!=token:return None
+        token=self.guard(report,key);owner.sleep(.1)
+        if owner.recorder.geometry()!=geometry or self.guard(owner._current(),key)!=token:return None
         second=owner._frame(geometry,report,"before_assist_input")
         if second is None:return None
         if self.read(second)!=states or self.layout!=layout:return None
-        if owner.recorder.geometry()!=geometry or board_token(owner._current())!=token:return None
+        current=owner._current()
+        if owner.recorder.geometry()!=geometry or self.guard(current,key)!=token:return None
+        if key in ("skip_calls","auto_discard"):
+            if hasattr(owner,"_assist_target_allowed"):
+                if not owner._assist_target_allowed(current,key,target):return None
+            elif board_token(current)!=board_token(report):return None
         self.pending=key,target,owner.clock()+3
         owner._record("assist_attempt",control=key,enabled=target,pixel=[x,y])
         try:owner.controller.backend.click(x/1919,y/1079,1920,1080)
@@ -129,7 +148,7 @@ class AssistButtons:
         owner._record("assist_delivered",control=key,enabled=target)
         # The click backend already waits for release consumption. Read its
         # outcome immediately instead of adding a half-second polling wait.
-        if owner.recorder.geometry()==geometry and board_token(owner._current())==token:
+        if owner.recorder.geometry()==geometry and self.guard(owner._current(),key)==token:
             after=owner._frame(geometry,report,"assist_confirmation")
             current=self.read(after) if after is not None else None
             if current is not None and current.get(key)==target:

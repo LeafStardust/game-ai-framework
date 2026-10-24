@@ -28,10 +28,17 @@ def assist_preferences(request, action, analysis):
                      or sum(min(n,3) for t,n in counts.items() if t.endswith("z"))>=10)
     route=str(analysis.get("target_route", ""))
     plan=(analysis.get("hand_plan") or {}).get("current") or []
+    retained_north=False
+    if "4z" in hand and not accepted:
+        from agents.mahjong_soul.efficiency import shanten,counts34
+        melds=own.get("melds",[]);fixed=len(melds)
+        if len(hand)==13-3*fixed:
+            retained_north=shanten(counts34(hand),fixed)==0
+        else:
+            retained_north=action.get("kind")!="extract_north"
     protect_north=(north_sensitive or route in ("yakuman_kokushi","yakuman_all_honors")
                    or any(p in ("yakuman_kokushi","yakuman_all_honors") for p in plan)
-                   or hand.count("4z")>=2
-                   or ("4z" in hand and action.get("kind")!="extract_north" and not accepted))
+                   or hand.count("4z")>=2 or retained_north)
     auto_kita=board.get("player_count")==3 and not protect_north
     return {"auto_win":True,"skip_calls":skip_calls,"auto_discard":auto_discard,
             "auto_kita":auto_kita,

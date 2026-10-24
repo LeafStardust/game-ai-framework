@@ -3,7 +3,7 @@ from games.mahjong_soul.playbook.model import MahjongPlaybook
 
 
 def south_attack_playbook():
-    return MahjongPlaybook(4,"Four-Player South Attack",style="atk",match_length="south",version="0.15",strategy={
+    return MahjongPlaybook(4,"Four-Player South Attack",style="atk",match_length="south",version="0.16",strategy={
         "discard_value":{"attack_completion":True,"route_value_discount":.25,"dora_loss_weight":2.0,"yakuhai_pair_loss_weight":1.25,
                          "yakuhai_triplet_loss_weight":4.0,"max_ukeire_sacrifice":14,
                          "ukeire_per_value":2.0,"pair_break_weight":2.0,"points_per_ukeire":2000,"potential_weight":.75,

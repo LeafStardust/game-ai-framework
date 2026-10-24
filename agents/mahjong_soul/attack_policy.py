@@ -6,6 +6,7 @@ from copy import deepcopy
 from agents.mahjong_soul.efficiency import counts34,shanten,rank_discards,KINDS
 from agents.mahjong_soul.attack_value import yaku_routes,tenpai_value,own_player,yaku_potential
 from agents.mahjong_soul.attack_defense import threats,danger
+from agents.mahjong_soul.ready_commit import committed_ready
 from agents.mahjong_soul.attack_routes import project_attack,known_bonus,route_progress
 from games.mahjong_soul.playbook.features import discard_features
 from games.mahjong_soul.live.runtime.kan import tile_kind
@@ -191,6 +192,7 @@ def _call_options(request,book,ranker,diagnostics=None,value=None):
     fixed=len(own["melds"]);baseline=shanten(counts34(hand),fixed)
     opponents=threats(board);settings=book.strategy["calls"];candidates=[]
     before_value=tenpai_value(board,hand) if baseline==0 else None
+    if committed_ready(board,before_value):return None
     before_target=project_attack(board,hand,known_bonus(board,hand),preferred=value.get("preferred_plan"))
     for action in request["actions"]:
         if action["kind"] not in ("chi","pon"):continue
@@ -222,7 +224,11 @@ def _call_options(request,book,ranker,diagnostics=None,value=None):
                   and option["effective_ukeire"]<settings["unsecured_opening_min_ukeire"]):
                 reason="narrow_unsecured_opening"
             elif profile and (profile["dama_ukeire"]==0 or profile["permanent_furiten"]):reason="no_legal_ron_wait"
-            elif option["projected_han"]<settings["minimum_han"] and not (settings.get("allow_cheap_tenpai",True) and profile and profile["dama_ukeire"]>=settings["cheap_tenpai_waits"]):reason="low_value_open_hand"
+            elif option["projected_han"]<settings["minimum_han"] and not (
+                    settings.get("allow_cheap_tenpai",True) and profile and profile["dama_ukeire"]>=settings["cheap_tenpai_waits"]
+                    or any(m["type"]!=3 for m in own["melds"]) and not yaku_routes(board,hand)["open_yaku"]
+                    and option["shanten"]==0 and profile and not profile["ron_blocked"]
+                    and profile["dama_ukeire"]>=3):reason="low_value_open_hand"
             elif option["shanten"]>baseline:
                 wall=board.get("wall_remaining")
                 if (option["shanten"]>baseline+1 or option["projected_han"]<before_target["projected_han"]+2
@@ -285,7 +291,7 @@ def draw_ukeire(board,hand,fixed):
     return total
 
 
-def _kan_option(request,book,best=None):
+def _kan_option(request,book,best=None,diagnostics=None):
     board=request["observation"]["board"];own=own_player(board);settings=book.strategy["calls"]
     if (threats(board) and settings.get("avoid_kan_under_threat",True)) or own["riichi"] in ("declared","accepted"):return None
     wall=board.get("wall_remaining")
@@ -293,6 +299,7 @@ def _kan_option(request,book,best=None):
     hand=board["self"]["hand"];fixed=len(own["melds"])
     if any(t["target_route"] in ("yakuman_kokushi","yakuman_nine_gates") for t in project_attack(board,hand,all_targets=True)):return None
     baseline=best["shanten"] if best else shanten(counts34(hand),fixed)
+    if committed_ready(board,best.get("wait_value") if best else tenpai_value(board,hand) if baseline==0 else None):return None
     candidates=[]
     for action in request["actions"]:
         if action["kind"] not in ("closed_kan","added_kan","open_kan"):continue
@@ -307,13 +314,19 @@ def _kan_option(request,book,best=None):
             for tile in contribution:remaining.remove(tile)
             melds.append({"type":3 if action["kind"]=="closed_kan" else 2,
                           "tiles":contribution+([action["called_tile"]] if action["kind"]=="open_kan" else [])})
+        if action["kind"]=="open_kan" and baseline>1:
+            if diagnostics is not None:diagnostics.append({"action":deepcopy(action),"accepted":False,"reason":"open_kan_too_far_from_win","shanten":baseline})
+            continue
         if shanten(counts34(remaining),len(melds))>baseline:continue
         before_ukeire=best["ukeire"] if best else draw_ukeire(board,hand,fixed)
-        if draw_ukeire(board,remaining,len(melds))<before_ukeire-settings["kan_ukeire_loss"]:continue
+        if draw_ukeire(new,remaining,len(melds))<before_ukeire-settings["kan_ukeire_loss"]:continue
         before_score=best["wait_value"] if best else tenpai_value(board,hand) if baseline==0 else None
         after_score=tenpai_value(new,remaining) if shanten(counts34(remaining),len(melds))==0 else None
         if before_score and after_score and max(after_score["dama_points"],after_score["riichi_points"])<max(before_score["dama_points"],before_score["riichi_points"]):continue
         route=yaku_routes(new,remaining)
+        if action["kind"]=="open_kan" and not route["open_yaku"] and not (after_score and after_score["dama_ukeire"]>0):
+            if diagnostics is not None:diagnostics.append({"action":deepcopy(action),"accepted":False,"reason":"open_kan_has_no_secured_yaku"})
+            continue
         # Avoid increasing dora exposure for a cheap open hand, or breaking a
         # closed special-hand route. Unknown replacement tiles add no value.
         retained=sum(t.startswith("0") for t in remaining)+sum(t.startswith("0") for m in melds for t in m["tiles"])
@@ -329,13 +342,13 @@ def _kan_option(request,book,best=None):
 
 
 def choose_attack(owner,request,book,ranker=rank_discards):
-    board=request["observation"]["board"];actions=request["actions"];call_notes=[]
+    board=request["observation"]["board"];actions=request["actions"];call_notes=[];kan_notes=[]
     from agents.mahjong_soul.hand_plan import begin,remember
     previous_plan=begin(owner,request)
     discard_notes=[]
     value=book.thresholds_for("D1");value["preferred_plan"]=previous_plan
     def finish(action,mode,option=None,**detail):
-        owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"speed" if value.get("speed_first") else "atk","mode":mode,"call_evaluations":deepcopy(call_notes),"discard_evaluations":deepcopy(discard_notes),**detail}
+        owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"speed" if value.get("speed_first") else "atk","mode":mode,"call_evaluations":deepcopy(call_notes),"kan_evaluations":deepcopy(kan_notes),"discard_evaluations":deepcopy(discard_notes),**detail}
         owner.last_analysis["hand_plan"]=remember(owner,option)
         from agents.mahjong_soul.scoring import nagashi_eligible
         owner.last_analysis["nagashi_candidate"]=nagashi_eligible(board)
@@ -365,9 +378,17 @@ def choose_attack(owner,request,book,ranker=rank_discards):
     if not any(a["kind"]=="discard" for a in actions):
         call=_call_options(request,book,ranker,call_notes,value)
         if call:return finish(call[0],"call",call[1],post_call_discard=call[1]["action"])
-        kan=_kan_option(request,book)
+        kan=_kan_option(request,book,diagnostics=kan_notes)
         if kan:return finish(kan,"kan")
         return finish(next(a for a in actions if a["kind"]=="skip"),"skip")
+    draw=board["self"].get("drawn_tile")
+    discard_draw=next((a for a in actions if a.get("kind")=="discard" and a.get("tile")==draw),None)
+    if discard_draw and draw in board["self"]["hand"] and any(m["type"]!=3 for m in own_player(board)["melds"]):
+        retained=list(board["self"]["hand"]);retained.remove(draw)
+        ready=tenpai_value(board,retained,discard=draw)
+        if committed_ready(board,ready):
+            return finish(discard_draw,"committed_open_tenpai",shanten=0,wait_value=ready,
+                          effective_ukeire=ready["dama_ukeire"],projected_han=ready["known_han"])
     options=enrich(board,ranker(request),value);best=offensive(board,options,value)
     # Detailed recordings explain alternatives; terminal rendering stays action-only.
     discard_notes=[{k:deepcopy(o.get(k)) for k in ("action","target_route","projected_han","shanten","effective_ukeire","route_cost","wait_value")} |
@@ -415,6 +436,6 @@ def choose_attack(owner,request,book,ranker=rank_discards):
         if candidates:
             best=offensive(board,candidates,value);chosen=offered[best["action"]["tile"]]
     if chosen["kind"]=="discard":
-        kan=_kan_option(request,book,best)
+        kan=_kan_option(request,book,best,diagnostics=kan_notes)
         if kan:return finish(kan,"kan",best)
     return finish(chosen,"attack_push" if opponents and push else "value_attack",best)

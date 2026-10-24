@@ -296,6 +296,17 @@ class AutoFollower(ShadowFollower):
         self._record("input_recovered",reason=previous,confirmation="newer_board_visually_verified")
         return True
 
+    def _assist_target_allowed(self,report,key,target):
+        from agents.mahjong_soul.assist_preferences import assist_preferences
+        from games.mahjong_soul.live.runtime.observation import observation_from_snapshot
+        state=report.get("state") or {};seat=state.get("seat");riichi=state.get("riichi",[])
+        accepted=isinstance(seat,int) and seat<len(riichi) and riichi[seat]=="accepted"
+        prefs=assist_preferences({"observation":observation_from_snapshot(report)},{"kind":"discard"},{})
+        if key=="auto_discard" and not accepted and (self.assist_buttons.observed.get("auto_win") is not True
+                or prefs["auto_kita"] and self.assist_buttons.observed.get("auto_kita") is not True):
+            prefs[key]=False
+        return prefs[key] is target
+
     def _between_turn_assists(self):
         if self.reader is None:return None
         report=self.reader.snapshot();state=report.get("state") or {}
@@ -514,7 +525,7 @@ def main():
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
         paths=["games/mahjong_soul/live/runtime/room_restart.py","games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
                "games/mahjong_soul/live/runtime/windows_ocr.ps1","games/mahjong_soul/live/runtime/result_samples.json",
-               "agents/mahjong_soul/assist_preferences.py","agents/mahjong_soul/assist_lock.py","games/mahjong_soul/live/runtime/assist_buttons.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
+               "agents/mahjong_soul/assist_preferences.py","agents/mahjong_soul/assist_lock.py","agents/mahjong_soul/ready_commit.py","games/mahjong_soul/live/runtime/assist_buttons.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
                "games/mahjong_soul/playbook/sanma/south_attack.py",
                "agents/mahjong_soul/auto_policy.py","agents/mahjong_soul/attack_policy.py",
                "agents/mahjong_soul/discard_completion.py","agents/mahjong_soul/completion_speed.py","agents/mahjong_soul/speed_lookahead.py",

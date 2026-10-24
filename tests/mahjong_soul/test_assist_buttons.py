@@ -39,7 +39,7 @@ def test_toggle_rechecks_board_and_never_retries_unknown_delivery(monkeypatch):
     now=[1];o.clock=lambda:now[0];rgb=panel()
     monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
     handler=AssistButtons();desired={"auto_win":True,"skip_calls":False,"auto_discard":False,"auto_kita":False}
-    o.sleep=lambda _:r["state"].update(step=r["state"]["step"]+1)
+    o.sleep=lambda _:r["state"]["hand"].append("1z")
     assert handler.poll(o,desired) is None and not m.clicks
     o.sleep=lambda _:None;now[0]=2
     assert handler.poll(o,desired)["reason"]=="assist_submitted"
@@ -182,3 +182,23 @@ def test_new_call_and_discard_assists_are_prepared_between_turns(monkeypatch):
     desired={"auto_win":True,"skip_calls":True,"auto_discard":True,"auto_kita":False}
     handler=AssistButtons()
     assert handler.poll(o,desired,prepare_optional=False) is None and not m.clicks
+
+
+def test_opponent_step_does_not_starve_optional_ron_setup(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    o.clock=lambda:1;rgb=panel()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    o.sleep=lambda _:r["state"].update(step=r["state"]["step"]+1)
+    desired={"auto_win":True,"skip_calls":False,"auto_discard":False,"auto_kita":False}
+    assert AssistButtons().poll(o,desired)["reason"]=="assist_submitted" and len(m.clicks)==1
+
+
+def test_unconfirmed_old_hand_toggle_does_not_poison_next_hand(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    now=[1];o.clock=lambda:now[0];rgb=panel()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    handler=AssistButtons();desired={"auto_win":True,"skip_calls":False,"auto_discard":False,"auto_kita":False}
+    assert handler.poll(o,desired)["reason"]=="assist_submitted"
+    r["state"]["round"]["ben"]+=1;now[0]=6
+    assert handler.poll(o,desired)["reason"]=="assist_submitted" and not o.halted
+    assert any(kind=="assist_retired" for kind,data in logs) and len(m.clicks)==2

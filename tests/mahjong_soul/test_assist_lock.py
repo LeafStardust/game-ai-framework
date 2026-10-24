@@ -24,7 +24,7 @@ def test_closed_ready_special_hand_skips_calls_without_forcing_draw_discards():
 
 
 def test_threats_unready_hand_and_chosen_call_keep_options_open():
-    b=open_ready();next(p for p in b["players"] if not p["is_self"])["riichi"]="accepted"
+    b=open_ready();b["lobby"]["match_length"]="east";next(p for p in b["players"] if not p["is_self"])["riichi"]="accepted"
     assert not ready_lock(b,{"kind":"discard"})
     assert not ready_lock(board("123m456p789s125z9p"),{"kind":"discard"})
     assert not ready_lock(open_ready(),{"kind":"pon"})
@@ -57,6 +57,7 @@ def test_incomplete_lock_check_does_not_enable_assists(monkeypatch):
     from types import SimpleNamespace
     from agents.mahjong_soul import assist_lock
     _check.cache_clear();ticks=iter([0,1])
+    monkeypatch.setattr(assist_lock,"committed_ready",lambda *a:False)
     monkeypatch.setattr(assist_lock,"time",SimpleNamespace(perf_counter=lambda:next(ticks)))
     assert not ready_lock(open_ready(),{"kind":"discard"})
     _check.cache_clear()
@@ -70,10 +71,11 @@ def test_all_triplets_is_selected_when_it_is_closer_and_more_valuable():
     assert routes["toitoi"]["shanten"]==0 and routes["chiitoitsu"]["shanten"]==3
 
 
-def test_possible_red_five_value_upgrade_prevents_auto_discard_lock():
+def test_reached_value_goal_commits_instead_of_waiting_for_optional_upgrades():
     b=board("8p",melds=[{"type":0,"tiles":tiles(s)} for s in ("123p","123p","456p","456p")])
     result=ready_lock(b,{"kind":"discard"})
-    assert result["skip_calls"] and not result["auto_discard"]
+    assert result["skip_calls"] and result["auto_discard"]
+    assert result["reason"]=="committed_open_tenpai"
 
 
 def test_existing_closed_kan_option_is_not_suppressed():
