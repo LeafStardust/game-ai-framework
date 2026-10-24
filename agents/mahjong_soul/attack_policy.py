@@ -346,9 +346,10 @@ def choose_attack(owner,request,book,ranker=rank_discards):
     from agents.mahjong_soul.hand_plan import begin,remember
     previous_plan=begin(owner,request)
     discard_notes=[]
+    north_notes={}
     value=book.thresholds_for("D1");value["preferred_plan"]=previous_plan
     def finish(action,mode,option=None,**detail):
-        owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"speed" if value.get("speed_first") else "atk","mode":mode,"call_evaluations":deepcopy(call_notes),"kan_evaluations":deepcopy(kan_notes),"discard_evaluations":deepcopy(discard_notes),**detail}
+        owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"speed" if value.get("speed_first") else "atk","mode":mode,"call_evaluations":deepcopy(call_notes),"kan_evaluations":deepcopy(kan_notes),"discard_evaluations":deepcopy(discard_notes),"north_evaluation":deepcopy(north_notes),**detail}
         owner.last_analysis["hand_plan"]=remember(owner,option)
         from agents.mahjong_soul.scoring import nagashi_eligible
         owner.last_analysis["nagashi_candidate"]=nagashi_eligible(board)
@@ -367,13 +368,10 @@ def choose_attack(owner,request,book,ranker=rank_discards):
         return finish(wins[0],"win",win_value=score_offered_win(board,wins[0]))
     north=next((a for a in actions if a["kind"]=="extract_north"),None)
     if north:
-        hand=list(board["self"]["hand"]);hand.remove("4z")
-        fixed=len(own_player(board)["melds"])
-        discards=[a for a in actions if a["kind"]=="discard"]
-        # Keep North if it is essential to a faster hand. Otherwise take the
-        # immediate replacement draw and banked bonus, never pass a win for it.
-        baseline=min((o["shanten"] for o in ranker(request)),default=8) if discards else 8
-        if shanten(counts34(hand),fixed)<=baseline:return finish(north,"north_extraction")
+        from agents.mahjong_soul.north_choice import north_choice
+        choice=north_choice(request)
+        north_notes.update(choice)
+        if choice["extract"]:return finish(north,"north_extraction")
     opponents=threats(board);wall=board.get("wall_remaining")
     if not any(a["kind"]=="discard" for a in actions):
         call=_call_options(request,book,ranker,call_notes,value)
