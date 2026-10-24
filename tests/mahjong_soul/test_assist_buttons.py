@@ -44,7 +44,10 @@ def test_toggle_rechecks_board_and_never_retries_unknown_delivery(monkeypatch):
     o.sleep=lambda _:None;now[0]=2
     assert handler.poll(o,desired)["reason"]=="assist_submitted"
     now[0]=6
-    assert handler.poll(o,desired)["kind"]=="blocked" and len(m.clicks)==1 and o.halted
+    assert handler.poll(o,desired) is None and len(m.clicks)==1 and not o.halted
+    assert "auto_win" in handler.unavailable and handler.pending is None
+    now[0]=7
+    assert handler.poll(o,desired) is None and len(m.clicks)==1
 
 
 def test_collapsed_letters_click_directly_and_confirm_colour(monkeypatch):
@@ -122,3 +125,25 @@ def test_switch_confirms_immediately_without_half_second_poll_delay(monkeypatch)
     assert handler.poll(o,desired) is None
     assert handler.pending is None and len(m.clicks)==1
     assert logs[-1][0]=="assist_confirmed"
+
+
+def test_uncertain_auto_discard_still_blocks_instead_of_guessing(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    now=[1];o.clock=lambda:now[0];rgb=panel()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    handler=AssistButtons();desired={"auto_win":False,"skip_calls":False,"auto_discard":True,"auto_kita":False}
+    assert handler.poll(o,desired)["reason"]=="assist_submitted"
+    now[0]=6
+    assert handler.poll(o,desired)["kind"]=="blocked" and o.halted
+    assert len(m.clicks)==1
+
+
+def test_optional_assist_can_be_prepared_again_next_hand(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    now=[1];o.clock=lambda:now[0];rgb=panel()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    handler=AssistButtons();desired={"auto_win":True,"skip_calls":False,"auto_discard":False,"auto_kita":False}
+    handler.poll(o,desired);now[0]=6;handler.poll(o,desired)
+    assert "auto_win" in handler.unavailable
+    r["state"]["round"]["ben"]+=1;now[0]=7
+    assert handler.poll(o,desired)["reason"]=="assist_submitted" and len(m.clicks)==2

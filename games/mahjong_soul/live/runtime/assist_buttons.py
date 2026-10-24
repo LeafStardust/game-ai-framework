@@ -9,6 +9,7 @@ from games.mahjong_soul.live.runtime.input import board_token
 class AssistButtons:
     def __init__(self):
         self.profile=json.loads(Path(__file__).with_name("assist_samples.json").read_text())
+        self.unavailable=set();self.context=None
         self.layout=None;self.pending=None;self.observed={};self.last_scan=float("-inf");self.failed=False
 
     def collapsed(self,rgb):
@@ -51,12 +52,16 @@ class AssistButtons:
 
     def poll(self,owner,desired):
         if self.failed:return None
-        mismatch=bool(self.observed) and any(self.observed.get(k)!=desired[k] for k in desired)
+        mismatch=bool(self.observed) and any(self.observed.get(k)!=desired[k] for k in desired if k not in self.unavailable)
         if owner.clock()-self.last_scan<(.1 if self.pending or mismatch else .5):
             return {"kind":"status","reason":"awaiting_assist_setup"} if mismatch else None
         self.last_scan=owner.clock()
         report=owner._current();state=report.get("state") or {}
         if state.get("status")!="tracking" or state.get("player_count")!=3:return None
+        meta=state.get("round") or {}
+        context=(report.get("game_connection"),report.get("game_generation",0),meta.get("chang"),meta.get("ju"),meta.get("ben"))
+        if context!=self.context:
+            self.context=context;self.unavailable.clear()
         if owner.require_ai and (report.get("game_connection"),report.get("game_generation",0)) not in owner.ai_games:return None
         if owner.controller.snapshot()["status"]!="idle":return None
         geometry=owner.recorder.geometry()
@@ -78,6 +83,13 @@ class AssistButtons:
                 self.pending=None
             elif owner.clock()>deadline:
                 owner._record("assist_unconfirmed",control=key,enabled=target)
+                if key in ("auto_win","auto_kita") and target is True and states is not None and states.get(key) is False:
+                    # A fresh observation proves the optional automatic switch
+                    # stayed OFF. Native win/Kita actions remain available.
+                    # Do not replay the uncertain click within this hand.
+                    self.unavailable.add(key);self.pending=None;self.observed=states
+                    owner._record("assist_native_fallback",control=key,reason="verified_off_after_timeout")
+                    return None
                 self.failed=True;self.pending=None
                 owner.halted="Assist switch outcome unconfirmed; inspect switches before restarting"
                 return {"kind":"blocked","reason":owner.halted}
@@ -89,7 +101,7 @@ class AssistButtons:
         layout=self.layout
         # Disable irreversible automatic discards first when unlocking.
         keys=("auto_discard","skip_calls","auto_win","auto_kita")
-        key=next((k for k in keys if states[k]!=desired[k]),None)
+        key=next((k for k in keys if k not in self.unavailable and states[k]!=desired[k]),None)
         if key is None:
             owner.assist_frame=(first,geometry,board_token(report),captured)
             return None
