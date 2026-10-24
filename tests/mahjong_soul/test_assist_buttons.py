@@ -147,3 +147,28 @@ def test_optional_assist_can_be_prepared_again_next_hand(monkeypatch):
     assert "auto_win" in handler.unavailable
     r["state"]["round"]["ben"]+=1;now[0]=7
     assert handler.poll(o,desired)["reason"]=="assist_submitted" and len(m.clicks)==2
+
+
+def test_own_turn_defers_optional_enabling_and_does_not_block_on_verified_off_pending(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    now=[1];o.clock=lambda:now[0];rgb=panel()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    handler=AssistButtons();desired={"auto_win":True,"skip_calls":False,"auto_discard":False,"auto_kita":True}
+    assert handler.poll(o,desired,prepare_optional=False) is None and not m.clicks
+    now[0]=2
+    assert handler.poll(o,desired)["reason"]=="assist_submitted" and len(m.clicks)==1
+    now[0]=2.5
+    assert handler.poll(o,desired,prepare_optional=False) is None
+    assert handler.pending and handler.observed["auto_win"] is False and len(m.clicks)==1
+
+
+def test_own_turn_still_disables_auto_kita_when_north_is_required(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    o.clock=lambda:1;rgb=panel();handler=AssistButtons()
+    y=handler.profile["rows"]["auto_kita"]["y"]
+    for yy in range(y-3,y+4):
+        for x in range(57,64):rgb[(yy*1920+x)*3:(yy*1920+x)*3+3]=bytes(handler.profile["on"])
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    desired={"auto_win":True,"skip_calls":False,"auto_discard":False,"auto_kita":False}
+    assert handler.poll(o,desired,prepare_optional=False)["reason"]=="assist_submitted"
+    assert handler.pending[:2]==("auto_kita",False) and len(m.clicks)==1

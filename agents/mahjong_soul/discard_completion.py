@@ -56,16 +56,16 @@ def choose_completion_discard(board, options, key, *, estimator=estimate_tsumo_d
 
 
 def choose_attack_completion_discard(board, options, key, *, estimator=estimate_tsumo_draws):
-    """Compare completion only within the baseline's protected attack route.
+    """Compare completion across value-qualified attack routes.
 
     The caller already enforces nearest scoring distance and its copy floor.
-    Preserve target Han, route, Dora and pair structure before forecasting.
+    Preserve the Han floor, Dora and pair structure before forecasting.
     Qualified Yakuman plans retain their specialized feasibility model.
     """
     baseline=max(options,key=key)
     if str(baseline.get("target_route","")).startswith("yakuman_"):return baseline
-    protected=("projected_han","target_route","target_suit","yakuman_suit")
-    eligible=[o for o in options if all(o.get(k)==baseline.get(k) for k in protected)
+    eligible=[o for o in options if o.get("projected_han",0)>=baseline["projected_han"]
+              and not str(o.get("target_route","")).startswith("yakuman_")
               and o.get("route_cost",0)<=baseline.get("route_cost",0)
               and o.get("dora_loss",0)<=baseline.get("dora_loss",0)
               and o.get("pair_break_loss",0)<=baseline.get("pair_break_loss",0)]

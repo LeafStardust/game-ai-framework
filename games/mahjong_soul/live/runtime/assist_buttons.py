@@ -50,9 +50,10 @@ class AssistButtons:
             states[key]=choice=="on"
         return states
 
-    def poll(self,owner,desired):
+    def poll(self,owner,desired,*,prepare_optional=True):
         if self.failed:return None
-        mismatch=bool(self.observed) and any(self.observed.get(k)!=desired[k] for k in desired if k not in self.unavailable)
+        mismatch=bool(self.observed) and any(self.observed.get(k)!=desired[k] for k in desired if k not in self.unavailable
+                                            and (prepare_optional or k not in ("auto_win","auto_kita") or desired[k] is False))
         if owner.clock()-self.last_scan<(.1 if self.pending or mismatch else .5):
             return {"kind":"status","reason":"awaiting_assist_setup"} if mismatch else None
         self.last_scan=owner.clock()
@@ -93,7 +94,12 @@ class AssistButtons:
                 self.failed=True;self.pending=None
                 owner.halted="Assist switch outcome unconfirmed; inspect switches before restarting"
                 return {"kind":"blocked","reason":owner.halted}
-            else:return {"kind":"status","reason":"awaiting_assist_confirmation"}
+            else:
+                if (not prepare_optional and key in ("auto_win","auto_kita") and target is True
+                        and states is not None and states.get(key) is False):
+                    self.observed=states
+                    return None
+                return {"kind":"status","reason":"awaiting_assist_confirmation"}
         if states is None:
             self.observed={}
             return None
@@ -101,7 +107,8 @@ class AssistButtons:
         layout=self.layout
         # Disable irreversible automatic discards first when unlocking.
         keys=("auto_discard","skip_calls","auto_win","auto_kita")
-        key=next((k for k in keys if k not in self.unavailable and states[k]!=desired[k]),None)
+        key=next((k for k in keys if k not in self.unavailable and states[k]!=desired[k]
+                  and (prepare_optional or k not in ("auto_win","auto_kita") or desired[k] is False)),None)
         if key is None:
             owner.assist_frame=(first,geometry,board_token(report),captured)
             return None

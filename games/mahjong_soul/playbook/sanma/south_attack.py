@@ -9,4 +9,4 @@ def three_player_south_attack_playbook():
     settings=base.strategy
     settings["riichi"]["max_threats"]=2
     return replace(base,player_count=3,name="Three-Player South Attack",
-                   version="0.3",strategy=settings)
+                   version="0.4",strategy=settings)

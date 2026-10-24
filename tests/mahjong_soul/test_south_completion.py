@@ -28,7 +28,7 @@ def test_value_qualified_alternative_can_win_by_completion_without_mutating_boar
     assert board==before
 
 
-@pytest.mark.parametrize("field,bad",[("projected_han",2),("target_route","tanyao"),("route_cost",1),("dora_loss",1),("pair_break_loss",1)])
+@pytest.mark.parametrize("field,bad",[("projected_han",2),("route_cost",1),("dora_loss",1),("pair_break_loss",1)])
 def test_faster_cheap_or_damaged_route_cannot_enter_forecast(field,bad):
     board,base,other,key=pair();other[field]=bad
     def fail(*a,**kw):raise AssertionError("Unqualified route forecast")
@@ -67,7 +67,7 @@ def test_live_policy_runs_south_objective_on_recorded_sanma_board():
     before=deepcopy(request);policy=make_policy("playbook","atk")
     action=policy.choose(request)
     assert action in request["actions"]
-    assert policy.last_analysis["playbook_version"]=="0.3"
+    assert policy.last_analysis["playbook_version"]=="0.4"
     assert policy.last_analysis["completion_objective"]=="attack_value_preserving"
     assert request==before
 
@@ -78,3 +78,11 @@ def test_south_enables_and_east_explicitly_disables_attack_completion():
     for count in (3,4):
         assert registry.get(count,"atk","south").thresholds_for("D1")["attack_completion"]
         assert registry.get(count,"atk","east").thresholds_for("D1")["attack_completion"] is False
+
+
+def test_equal_value_alternative_route_can_compete_on_scored_completion():
+    board,base,other,key=pair();other["target_route"]="tanyao"
+    def estimate(after,**kwargs):
+        assert kwargs["minimum_han"]==3
+        return {"available":True,"capped_draw_cost":9 if after["self"]["hand"].count(other["action"]["tile"])<board["self"]["hand"].count(other["action"]["tile"]) else 11}
+    assert choose_attack_completion_discard(board,[base,other],key,estimator=estimate) is other

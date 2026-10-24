@@ -434,10 +434,13 @@ class AutoFollower(ShadowFollower):
             if locked:self.assist_desired["skip_calls"]=True
             elif not state.get("hand"):self.assist_desired["skip_calls"]=False
             try:
-                assist=self.assist_buttons.poll(self,self.assist_desired)
+                assist=self.assist_buttons.poll(self,self.assist_desired,prepare_optional=False)
                 if assist is not None:return assist
             except (ValueError,OSError) as error:self._record("assist_unavailable",reason=str(error))
-            if self.assist_buttons.pending:return {"kind":"status","reason":"awaiting_assist_confirmation"}
+            pending=self.assist_buttons.pending
+            optional_off=(pending and pending[0] in ("auto_win","auto_kita") and pending[1] is True
+                          and self.assist_buttons.observed.get(pending[0]) is False)
+            if pending and not optional_off:return {"kind":"status","reason":"awaiting_assist_confirmation"}
             if self.assist_buttons.observed.get("auto_win") and event.get("action",{}).get("kind") in ("ron","tsumo"):
                 return {"kind":"status","reason":"client_auto_win"}
             if self.assist_buttons.observed.get("auto_discard") and locked and event.get("action",{}).get("kind")=="discard":
