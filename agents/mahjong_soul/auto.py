@@ -30,6 +30,7 @@ class AutoFollower(ShadowFollower):
         super().__init__(schema, **kwargs)
         self.controller, self.recorder, self.vision = controller, recorder, vision
         self.enabled, self.sleep = enabled, sleep
+        self.retry_expired=True;self.decision_retries=set()
         self.game_budget=GameBudget(games)
         self.require_ai=require_ai
         self.ai_games=set()

@@ -177,3 +177,22 @@ def test_resume_current_requires_live_health_not_recent_historical_rows(tmp_path
     f=ShadowFollower(None,file=path,bootstrap_current=True,wall_clock=lambda:100,clock=lambda:1)
     assert f.poll()['reason']=='current_board_armed'
     assert f.poll()['kind']=='suggestion'
+
+
+def test_auto_mode_retries_expired_decision_once_with_a_new_request(tmp_path,monkeypatch):
+    path,report,follower=setup(tmp_path,monkeypatch)
+    follower.retry_expired=True;follower.decision_retries=set()
+    append(path,row(advance(report)))
+    clock=iter([1,4,4,4]);follower.clock=lambda:next(clock)
+    assert follower.poll()["reason"]=="decision_retry_pending"
+    assert follower.poll()["kind"]=="suggestion"
+
+
+def test_auto_expiry_retry_is_bounded(tmp_path,monkeypatch):
+    path,report,follower=setup(tmp_path,monkeypatch)
+    follower.retry_expired=True;follower.decision_retries=set()
+    append(path,row(advance(report)))
+    clock=iter([1,4,4,7]);follower.clock=lambda:next(clock)
+    assert follower.poll()["reason"]=="decision_retry_pending"
+    assert follower.poll()["reason"]=="decision_rejected"
+    assert follower.poll()["reason"]=="board_already_considered"

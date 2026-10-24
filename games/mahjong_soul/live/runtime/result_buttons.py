@@ -42,10 +42,29 @@ def room_header_frame(png):
     return png_from_bgra(bytes(canvas),1920,1080)
 
 
+def room_labels_frame(png):
+    """Isolate white AI labels and dark Start lettering from animated art."""
+    from games.mahjong_soul.live.runtime.windows_recording import png_from_bgra
+    rgb=decode_frame(png);canvas=bytearray(b"\xff"*(1920*1080*4))
+    for left,top,width,height,light in [(400,840,1100,45,True),(1050,970,190,60,False)]:
+        for y in range(top,top+height):
+            for x in range(left,left+width):
+                r,g,b=rgb[(y*1920+x)*3:(y*1920+x)*3+3]
+                ink=(min(r,g,b)>160 and max(r,g,b)-min(r,g,b)<65) if light else max(r,g,b)<110
+                if ink:canvas[(y*1920+x)*4:(y*1920+x)*4+4]=b"\0\0\0\xff"
+    return png_from_bgra(bytes(canvas),1920,1080)
+
+
 def windows_words(png):
     words=_windows_words(png)
     # Result views keep the ordinary single pass. Room headings use a second
     # read of the same source pixels, never a guessed/captured room number.
+    room_view=any(w["text"].lower()=="room" and w["y"]<150 for w in words)
+    if room_view:
+        labels=_windows_words(room_labels_frame(png))
+        if any(w["text"].lower()=="start" and w["y"]>900 for w in labels):
+            words=[w for w in words if not (400<w["x"]<1500 and 840<w["y"]<885)
+                   and not (w["text"].lower()=="start" and w["y"]>900)]+labels
     if not any(w["text"].lower()=="start" and w["y"]>900 for w in words):return words
     header=_windows_words(room_header_frame(png))
     matches=[w for w in header if re.fullmatch(r"room#[0-9]+",w["text"].lower())]

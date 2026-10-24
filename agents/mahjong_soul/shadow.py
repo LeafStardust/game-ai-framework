@@ -122,7 +122,13 @@ class ShadowFollower:
         except Exception as error:
             from games.mahjong_soul.playbook.model import UnsupportedLobby
             if isinstance(error,UnsupportedLobby):return {**status("unsupported_lobby"),"message":str(error),"board_token":token}
-            return {**status("decision_rejected"),"error_type":type(error).__name__,"board_token":token}
+            retry=(getattr(self,"retry_expired",False) and isinstance(error,ValueError)
+                   and str(error)=="Decision request expired or clock is invalid"
+                   and token not in self.decision_retries)
+            if retry:
+                self.decision_retries.add(token);self.seen.discard(token)
+            return {**status("decision_retry_pending" if retry else "decision_rejected"),
+                    "error_type":type(error).__name__,"detail":str(error),"board_token":token}
         analysis = getattr(self.policy, "last_analysis", None)
         detail = {"analysis":analysis} if analysis and analysis.get("board_token") == token else {}
         return {**detail,"version":1,"kind":"suggestion","mode":"shadow","executable":False,

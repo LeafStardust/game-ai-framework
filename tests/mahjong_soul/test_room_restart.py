@@ -94,11 +94,11 @@ def test_failed_recorded_header_uses_focused_ocr_and_exact_room_id(monkeypatch):
     reads=[]
     def ocr(png):
         reads.append(png)
-        return words if len(reads)==1 else [focused]
+        return words if len(reads)==1 else [] if len(reads)==2 else [focused]
     monkeypatch.setattr(rb,"_windows_words",ocr)
     monkeypatch.setattr(rb,"decode_frame",lambda _:rgb)
     recognized=rb.windows_words(b"source")
-    assert len(reads)==2 and reads[1].startswith(b"\x89PNG")
+    assert len(reads)==3 and reads[1].startswith(b"\x89PNG")
     assert room_start(recognized,lobby)==(1142,999)
     assert room_start(recognized,{**lobby,"room_id":96218}) is None
 
@@ -110,3 +110,17 @@ def test_result_ocr_does_not_add_header_pass_without_start(monkeypatch):
     monkeypatch.setattr(rb,"_windows_words",ocr)
     assert rb.windows_words(b"result")==[{"text":"Confirm","y":950}]
     assert calls==[b"result"]
+
+
+def test_focused_roster_recovers_ai_missing_from_full_frame_ocr(monkeypatch):
+    from games.mahjong_soul.live.runtime import result_buttons as rb
+    words,rgb=fixture()
+    focused=[w for w in words if 840<w["y"]<885 or w["text"]=="Start"]
+    initial=[w for w in words if not (500<w["x"]<800 and 840<w["y"]<885)]
+    assert room_start(initial,{"ai":True,"room_id":72808,"player_count":3,"match_length":"south"}) is None
+    header={"text":"Room#72808","x":484,"y":260,"width":792,"height":117}
+    results=iter([initial,focused,[header]])
+    monkeypatch.setattr(rb,"_windows_words",lambda _:next(results))
+    monkeypatch.setattr(rb,"decode_frame",lambda _:rgb)
+    recognized=rb.windows_words(b"room")
+    assert room_start(recognized,{"ai":True,"room_id":72808,"player_count":3,"match_length":"south"})==(1142,999)
