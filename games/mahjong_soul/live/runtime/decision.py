@@ -11,7 +11,7 @@ from games.mahjong_soul.live.runtime.kan import tile_kind
 from games.mahjong_soul.live.runtime.observation import observation_from_snapshot
 
 NAMES = {1:"discard", 2:"chi", 3:"pon", 4:"closed_kan", 5:"open_kan",
-         6:"added_kan", 7:"riichi", 8:"tsumo", 9:"ron", 11:"extract_north"}
+         6:"added_kan", 7:"riichi", 8:"tsumo", 9:"ron", 10:"abort_draw", 11:"extract_north"}
 
 
 def _source(report):
@@ -66,6 +66,12 @@ def offered_actions(report):
         combinations = offer.get("combination", [])
         if not isinstance(combinations, list) or any(not isinstance(c, str) for c in combinations):
             raise ValueError("Malformed combinations")
+        if code == 10:
+            # Nine Terminals is optional. Keep playing the normal winning
+            # hand rather than treating this known offer as an unknown opcode.
+            if combinations or 1 not in types:
+                raise ValueError("Nine Terminals requires a normal discard offer")
+            continue
         if code == 1:
             forbidden = {tile_kind(t) for t in combinations}
             own_riichi=state.get("riichi",[])

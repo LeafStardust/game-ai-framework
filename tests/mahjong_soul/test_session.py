@@ -64,3 +64,21 @@ def test_restart_preserves_attempted_game_step_without_rebuilding_pending(tmp_pa
     assert controller.snapshot()['pending'] is None
     with pytest.raises(ValueError,match='already attempted'):
         controller.submit(plan_discard(report,profile,0,'0p',now=1),report,enabled=True,now=1)
+
+
+def test_recording_rotates_old_images_but_keeps_journal_and_current_evidence(tmp_path):
+    journal=SessionJournal(tmp_path,max_bytes=35000)
+    first=journal.frame(b"a"*10000)
+    second=journal.frame(b"b"*10000)
+    journal.frame(b"c"*10000)
+    assert not (journal.directory/first).exists()
+    assert (journal.directory/second).exists()
+    assert (journal.directory/journal.last_frame).read_bytes()==b"c"*10000
+    mouse=Mouse();RecordingMouse(mouse,journal).click(.5,.9,1920,1080)
+    journal.close()
+    rows=[json.loads(s) for s in (journal.directory/"events.jsonl").read_text().splitlines()]
+    assert [r["sequence"] for r in rows]==list(range(1,len(rows)+1))
+    assert [r["monotonic"] for r in rows]==sorted(r["monotonic"] for r in rows)
+    pruned=next(r for r in rows if r["kind"]=="frames_pruned")
+    assert first in pruned["images"] and len(mouse.clicks)==1
+    assert journal.used<=journal.max_bytes

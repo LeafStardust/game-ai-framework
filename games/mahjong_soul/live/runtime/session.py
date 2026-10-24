@@ -1,4 +1,5 @@
 """Durable, bounded local evidence for automatic play. Never injects input."""
+from collections import deque
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -14,17 +15,43 @@ class SessionJournal:
         self.directory.mkdir(parents=True,exist_ok=False)
         (self.directory/"frames").mkdir()
         self.stream=(self.directory/"events.jsonl").open("x",encoding="utf-8")
+        self.frames=deque()
         self.current_key=None
         self.max_bytes=max_bytes;self.used=0;self.sequence=0;self.last_frame=None;self.last_digest=None
         self.summary={"version":1,"started":time.time(),"decisions":0,"inputs":0,"confirmations":0,"errors":0,"status":"running"}
         self.write("started")
 
+    def _reserve(self,cost):
+        """Retain the journal and newest screenshot; rotate older images only."""
+        if self.used+cost<=self.max_bytes:return
+        # Reserve room for the pruning record as well as the caller's write.
+        target=cost+4096
+        available=sum(size for name,size in self.frames if name!=self.last_frame)
+        if self.used-available+target>self.max_bytes:
+            raise OSError("Session recording limit reached; stopping input")
+        removed=[]
+        while self.used+target>self.max_bytes:
+            name,size=self.frames[0]
+            if name==self.last_frame:raise OSError("Current screenshot cannot be pruned")
+            path=self.directory/name
+            if path.resolve().parent!=(self.directory/"frames").resolve():
+                raise OSError("Invalid recording retention path")
+            path.unlink()
+            self.frames.popleft();self.used-=size;removed.append(name)
+        self.summary["pruned_frames"]=self.summary.get("pruned_frames",0)+len(removed)
+        self.write("frames_pruned",images=removed,reason="bounded_recording_retention")
+        self._reserve(cost)
+
     def write(self, kind, **data):
-        self.sequence+=1
-        row={"version":1,"sequence":self.sequence,"timestamp":time.time(),"monotonic":time.monotonic(),"kind":kind,**data}
+        row={"version":1,"sequence":self.sequence+1,"timestamp":time.time(),"monotonic":time.monotonic(),"kind":kind,**data}
         encoded=json.dumps(row,ensure_ascii=False,default=lambda x:asdict(x) if is_dataclass(x) else str(x))+"\n"
         cost=len(encoded.encode("utf-8"))
-        if self.used+cost>self.max_bytes: raise OSError("Session recording limit reached; stopping input")
+        self._reserve(cost+32)
+        self.sequence+=1
+        if row["sequence"]!=self.sequence:
+            row.update(sequence=self.sequence,timestamp=time.time(),monotonic=time.monotonic())
+            encoded=json.dumps(row,ensure_ascii=False,default=lambda x:asdict(x) if is_dataclass(x) else str(x))+"\n"
+            cost=len(encoded.encode("utf-8"))
         self.stream.write(encoded);self.stream.flush();self.used+=cost
         if kind=="plan":self.current_key=data.get("attempt_key")
         if kind=="input_attempt":os.fsync(self.stream.fileno())
@@ -42,9 +69,10 @@ class SessionJournal:
         if png is None:return None
         digest=hashlib.sha256(png).hexdigest()
         if digest==self.last_digest:return self.last_frame
-        if self.used+len(png)+8192>self.max_bytes:raise OSError("Session recording limit reached; stopping input")
+        self._reserve(len(png)+8192)
         name=f"frames/{self.sequence+1:07d}.png"
         (self.directory/name).write_bytes(png);self.used+=len(png)
+        self.frames.append((name,len(png)))
         self.last_digest=digest;self.last_frame=name
         self.write("frame",image=name,sha256=digest,phase=phase,geometry=geometry,report=report)
         return name
