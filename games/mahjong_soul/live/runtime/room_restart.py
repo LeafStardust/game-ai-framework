@@ -1,5 +1,6 @@
 """Restart the same completed custom AI room from a fresh verified Start view."""
 import re
+import math
 from games.mahjong_soul.live.runtime.visual import decode_frame
 from games.mahjong_soul.live.runtime.input import board_token
 
@@ -32,7 +33,11 @@ def room_start(words,lobby):
 def unchanged_room(a,b,x,y,words):
     """Compare every pixel in text/control regions, including the full roster."""
     a=decode_frame(a);b=decode_frame(b)
-    regions=[(750,45,330,85),(1600,175,280,120),(x-100,y-35,200,70)]
+    headers=[w for w in words if w["text"].lower().startswith("room#") and 500<w["x"]<1300 and w["y"]<150]
+    regions=[(1600,175,280,120),(x-100,y-35,200,70)]
+    regions.extend((math.floor(w["x"]),math.floor(w["y"]),
+                    math.ceil(w["x"]+w["width"])-math.floor(w["x"]),
+                    math.ceil(w["y"]+w["height"])-math.floor(w["y"])) for w in headers)
     regions.extend((w["x"],w["y"],w["width"],w["height"]) for w in words
                    if 0<w["x"]<1550 and 780<w["y"]<930)
     for left,top,width,height in regions:

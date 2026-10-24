@@ -124,3 +124,40 @@ def test_focused_roster_recovers_ai_missing_from_full_frame_ocr(monkeypatch):
     monkeypatch.setattr(rb,"decode_frame",lambda _:rgb)
     recognized=rb.windows_words(b"room")
     assert room_start(recognized,{"ai":True,"room_id":72808,"player_count":3,"match_length":"south"})==(1142,999)
+
+
+def test_focused_numeric_room_header_without_prefix_is_verified(monkeypatch):
+    from games.mahjong_soul.live.runtime import result_buttons as rb
+    words,rgb=fixture()
+    initial=[w for w in words if not w["text"].lower().startswith("room#")]
+    labels=[w for w in words if 840<w["y"]<885 or w["text"]=="Start"]
+    reads=iter([initial,labels,[{"text":"12345","x":945,"y":262,"width":337,"height":109}]])
+    monkeypatch.setattr(rb,"_windows_words",lambda _:next(reads))
+    monkeypatch.setattr(rb,"decode_frame",lambda _:rgb)
+    result=rb.windows_words(b"room")
+    lobby={"ai":True,"room_id":12345,"player_count":3,"match_length":"south"}
+    assert room_start(result,lobby)==(1142,999)
+    assert room_start(result,{**lobby,"room_id":12346}) is None
+
+
+def test_numeric_header_without_independent_room_heading_is_not_promoted(monkeypatch):
+    from games.mahjong_soul.live.runtime import result_buttons as rb
+    words,rgb=fixture()
+    initial=[w for w in words if not w["text"].lower().startswith("room")]
+    reads=iter([initial,[{"text":"12345","x":945,"y":262,"width":337,"height":109}]])
+    monkeypatch.setattr(rb,"_windows_words",lambda _:next(reads))
+    monkeypatch.setattr(rb,"decode_frame",lambda _:rgb)
+    result=rb.windows_words(b"unknown")
+    assert room_start(result,{"ai":True,"room_id":12345,"player_count":3,"match_length":"south"}) is None
+
+
+def test_header_decoration_changes_do_not_mask_stable_text_but_digits_changes_reject(monkeypatch):
+    words,rgb=fixture();other=bytearray(rgb)
+    # A petal above the recognized header bounds is decoration, not identity.
+    for y in range(45,55):other[(y*1920+760)*3:(y*1920+780)*3]=bytes([255])*60
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.room_restart.decode_frame",lambda p:rgb if p==b"a" else other)
+    assert unchanged_room(b"a",b"b",1142,999,words)
+    header=next(w for w in words if w["text"].startswith("Room#"))
+    for y in range(header["y"],header["y"]+header["height"]):
+        other[(y*1920+header["x"])*3:(y*1920+header["x"]+header["width"])*3]=bytes(header["width"]*3)
+    assert not unchanged_room(b"a",b"b",1142,999,words)

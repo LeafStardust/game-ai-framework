@@ -68,6 +68,12 @@ def windows_words(png):
     if not any(w["text"].lower()=="start" and w["y"]>900 for w in words):return words
     header=_windows_words(room_header_frame(png))
     matches=[w for w in header if re.fullmatch(r"room#[0-9]+",w["text"].lower())]
+    if not matches and room_view:
+        # Stylized Room# can vanish while its number reads perfectly. Require
+        # the independent room heading and the digits' focused numeric region.
+        digits=[w for w in header if re.fullmatch(r"[0-9]{4,6}",w["text"])
+                and 800<=w["x"]<=1400 and 200<=w["y"]<=400]
+        matches=[{**w,"text":"Room#"+w["text"]} for w in digits]
     if len(matches)!=1:return words
     word=dict(matches[0]);word.update(x=750+(word["x"]-400)/3,
         y=50+(word["y"]-200)/3,width=word["width"]/3,height=word["height"]/3)
