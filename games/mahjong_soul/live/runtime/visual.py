@@ -103,6 +103,9 @@ class TileVision:
         self._shape_tiles=tuple(("5"+tile[1:] if tile.startswith("0") else tile,
                                  bytes(min(value[i:i+3]) for i in range(0,len(value),3)))
                                 for tile,value in self.tiles)
+        self._packed_shapes=tuple((tile,_pack_sample(bytes(v for v in shape for _ in range(3))))
+                                  for tile,shape in self._shape_tiles)
+        self._shape_scores=lru_cache(maxsize=2048)(self._compute_shape_scores)
         self.calls = {kind:base64.b64decode(entry["sample"],validate=True)
                       for kind,entry in calls["buttons"].items()}
         if not {"chi","pon"} <= set(self.calls) <= {"chi","pon","kan","extract_north"} or any(len(v)!=648 for v in self.calls.values()):
@@ -130,6 +133,14 @@ class TileVision:
             scores[tile]=min(scores.get(tile,float("inf")),_packed_distance(query,reference))
         return tuple(scores.items())
 
+    def _compute_shape_scores(self,value):
+        shape=bytes(min(value[i:i+3]) for i in range(0,len(value),3))
+        query=_pack_sample(bytes(v for v in shape for _ in range(3)))
+        scores={}
+        for tile,reference in self._packed_shapes:
+            scores[tile]=min(scores.get(tile,float("inf")),_packed_distance(query,reference))
+        return tuple(scores.items())
+
     def scores(self, value):
         return sorted(({"tile":tile,"distance":score} for tile,score in self._tile_scores(value)),key=lambda x:x["distance"])
 
@@ -138,11 +149,7 @@ class TileVision:
         ranked = sorted(scores, key=scores.get)
         if len(ranked)<2 or scores[ranked[0]] > self.MAX_DISTANCE or scores[ranked[1]]-scores[ranked[0]] < self.MIN_MARGIN:
             # Red 5 Sou shares the five-bamboo glyph; require its shape and red ink.
-            shape=lambda data:bytes(min(data[i:i+3]) for i in range(0,len(data),3))
-            query=shape(value);shape_scores={}
-            for tile,reference_shape in self._shape_tiles:
-                error=sum(abs(a-b) for a,b in zip(query,reference_shape))/len(query)
-                shape_scores[tile]=min(shape_scores.get(tile,999),error)
+            shape_scores=dict(self._shape_scores(value))
             order=sorted(shape_scores,key=shape_scores.get)
             ink=[value[i:i+3] for i in range(0,len(value),3) if max(value[i:i+3])-min(value[i:i+3])>40 and min(value[i:i+3])<170]
             red=sum(r>1.35*g and r>1.25*b for r,g,b in ink)
@@ -194,9 +201,19 @@ class TileVision:
         rgb = decode_frame(png)
         self.require_gameplay(png,rgb=rgb)
         self.require_settled_call(rgb,profile)
-        samples = [sample(rgb, round(x*1919), round(y*1079)) for x,y in profile["slots"]]
-        tiles=[];self.last_diagnostics={"slots":[]}
-        for index,value in enumerate(samples):
+        slots=profile["slots"]
+        samples=[None]*len(slots);tiles=[None]*len(slots)
+        self.last_diagnostics={"slots":[]}
+        # The draw/replacement slot appears after the standing hand. Reject an
+        # unfinished draw before sampling every stationary tile, but still
+        # verify every slot and return the original slot order on success.
+        order=list(range(len(slots)))
+        if profile.get("trigger")=="ActionDealTile" and order:
+            order=[order[-1]]+order[:-1]
+        for index in order:
+            x,y=slots[index]
+            value=sample(rgb,round(x*1919),round(y*1079))
+            samples[index]=value
             alignment=(0,0)
             try:tile=self.classify(value)
             except ValueError as original:
@@ -220,7 +237,8 @@ class TileVision:
                     except ValueError as dim_error:
                         self.last_diagnostics["slots"].append({"slot":index,"nearest":self.scores(value)[:3],"error":str(dim_error)})
                         raise ValueError(f"Slot {index}: {dim_error}") from dim_error
-            tiles.append(tile);self.last_diagnostics["slots"].append({"slot":index,"tile":tile,"sampling_offset":list(alignment)})
+            tiles[index]=tile;self.last_diagnostics["slots"].append({"slot":index,"tile":tile,"sampling_offset":list(alignment)})
+        self.last_diagnostics["slots"].sort(key=lambda entry:entry["slot"])
         if Counter(tiles) != Counter(expected): raise ValueError("Visible hand differs from reader")
         return tiles, samples
 
