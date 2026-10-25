@@ -153,6 +153,8 @@ def test_visual_stabilization_reuses_one_decision_without_reclicking(monkeypatch
     class Reader:
         def snapshot(self): return r
     f.reader=Reader()
+    assist_calls=[]
+    f.assist_buttons.poll=lambda *args,**kwargs:assist_calls.append(kwargs)
     original=f._plan;attempts=[]
     def plan(event):
         attempts.append(event)
@@ -160,7 +162,10 @@ def test_visual_stabilization_reuses_one_decision_without_reclicking(monkeypatch
         return original(event)
     f._plan=plan
     assert f.poll()['reason']=='waiting_for_stable_visuals' and not m.clicks
+    # Exactly the mandatory pre-action check; no optional R/K setup on failure.
+    assert assist_calls==[{"prepare_optional":False}]
     assert f.poll()['kind']=='submitted' and len(m.clicks)==1
+    assert assist_calls==[{"prepare_optional":False}]*2
 
 
 def test_timeout_blocks_next_action(monkeypatch):

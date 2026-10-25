@@ -91,10 +91,10 @@ class AssistButtons:
         owner._record("assist_recovered",observed=current,confirmation="two_fresh_matching_frames")
         return True
 
-    def poll(self,owner,desired,*,prepare_optional=True,prepare_automation=False):
+    def poll(self,owner,desired,*,prepare_optional=True):
         if self.failed:return None
         def permitted(key):
-            return prepare_optional or desired[key] is False or (prepare_automation and key in ("auto_win","auto_kita"))
+            return prepare_optional or desired[key] is False
         mismatch=bool(self.observed) and any(self.observed.get(k)!=desired[k] for k in desired if k not in self.unavailable
                                             and permitted(k))
         if owner.clock()-self.last_scan<(.1 if self.pending or mismatch else .5):
