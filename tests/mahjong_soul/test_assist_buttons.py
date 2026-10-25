@@ -202,3 +202,25 @@ def test_unconfirmed_old_hand_toggle_does_not_poison_next_hand(monkeypatch):
     r["state"]["round"]["ben"]+=1;now[0]=6
     assert handler.poll(o,desired)["reason"]=="assist_submitted" and not o.halted
     assert any(kind=="assist_retired" for kind,data in logs) and len(m.clicks)==2
+
+
+def test_animation_wait_can_prepare_rk_but_never_enable_c_or_d(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    o.clock=lambda:1;rgb=panel()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    handler=AssistButtons()
+    desired={"auto_win":True,"auto_kita":True,"skip_calls":True,"auto_discard":True}
+    handler.poll(o,desired,prepare_optional=False,prepare_automation=True)
+    assert len(m.clicks)==1
+    assert next(data["control"] for kind,data in logs if kind=="assist_attempt")=="auto_win"
+
+
+def test_animation_wait_does_not_enable_c_or_d_when_rk_already_on(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    o.clock=lambda:1;handler=AssistButtons()
+    states={"arrange":True,"auto_win":True,"auto_kita":True,"skip_calls":False,"auto_discard":False}
+    def read(_):handler.layout="collapsed";return dict(states)
+    monkeypatch.setattr(handler,"read",read)
+    desired={"auto_win":True,"auto_kita":True,"skip_calls":True,"auto_discard":True}
+    assert handler.poll(o,desired,prepare_optional=False,prepare_automation=True) is None
+    assert not m.clicks

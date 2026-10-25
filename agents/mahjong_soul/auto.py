@@ -489,6 +489,15 @@ class AutoFollower(ShadowFollower):
             if self.controller.snapshot()["status"] != "idle": self.halted = str(error)
             self._record("preflight_failed",reason=str(error),board_token=event["board_token"],image=self.journal.last_frame if self.journal else None,visual=getattr(self.vision,"last_diagnostics",None))
             if not self.halted:
+                # Use animation wait time to prepare R/K, never C/D. A client
+                # Kita that advances the hand invalidates the candidate token
+                # on the next poll before any native action can be submitted.
+                try:
+                    assist=self.assist_buttons.poll(self,self.assist_desired,
+                                                   prepare_optional=False,prepare_automation=True)
+                    if assist is not None:return assist
+                except (ValueError,OSError) as setup_error:
+                    self._record("assist_unavailable",reason=str(setup_error))
                 if self.clock()<self.candidate_until:return {"kind":"status","reason":"waiting_for_stable_visuals"}
                 return {**event,"kind":"waiting_visual","reason":str(error)}
             self.candidate = None

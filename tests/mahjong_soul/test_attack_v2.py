@@ -272,3 +272,19 @@ def test_kan_is_declined_when_it_reduces_known_tenpai_value(monkeypatch):
     r=report('1111m234p567p789s2z')
     r['state']['operations']['operation_list'].append({'type':4,'combination':['1m|1m|1m|1m']})
     assert choose(r)[0]['kind']=='discard'
+
+
+@pytest.mark.parametrize("wall,threat_count,doras,expected",[
+    (13,2,["3s"],"discard"),(30,2,["3s"],"riichi"),
+    (13,0,["3s"],"riichi"),(13,2,[],"riichi"),
+])
+def test_late_two_threat_valuable_dama_keeps_attacking_without_small_gain_riichi(wall,threat_count,doras,expected):
+    r=report("113355p224466s7z9p",doras=doras)
+    s=r["state"];s.update(left_tile_count=wall,scoring_context={})
+    for index in range(threat_count):s["riichi"][index+1]="accepted"
+    s["operations"]["operation_list"].append({"type":7,"combination":["9p"]})
+    action,analysis=choose(r)
+    assert action=={"kind":expected,"tile":"9p"}
+    assert analysis["shanten"]==0
+    if expected=="discard":
+        assert any(n.get("reason")=="late_valuable_dama_small_riichi_gain" for n in analysis["discard_evaluations"])

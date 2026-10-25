@@ -405,6 +405,15 @@ def choose_attack(owner,request,book,ranker=rank_discards):
         return finish(best["action"],"fold",best)
     # Kokushi already scores Yakuman without a declaration. Keep the chosen
     # ready hand flexible and avoid paying a deposit or advertising its wait.
+    def late_dama(profile):
+        # Continue attacking; only decline the irreversible declaration when
+        # the already valuable legal wait gains little from it this late.
+        return (not value.get("speed_first") and len(opponents)>=2
+                and type(wall) is int and wall<=18 and profile
+                and not profile["ron_blocked"] and profile["dama_ukeire"]>=1
+                and profile["dama_points"]>=8000
+                and profile["riichi_points"]<profile["dama_points"]*1.5)
+
     def kokushi_ready(option):
         profile=option.get("wait_value") or {}
         return any(v.get("legal") and any(y.get("key") in ("kokushi","daburu_kokushi")
@@ -426,6 +435,10 @@ def choose_attack(owner,request,book,ranker=rank_discards):
             if opponents and not may_push(option,opponents,wall,settings):continue
             if value.get("riichi_speed_first") and option["effective_ukeire"]<best["effective_ukeire"]:continue
             existing=best["wait_value"]
+            if late_dama(profile):
+                discard_notes.append({"action":offered[option["action"]["tile"]],
+                                      "reason":"late_valuable_dama_small_riichi_gain"})
+                continue
             if (profile and existing and existing["dama_ukeire"]>=riichi["dama_min_waits"]
                     and existing["dama_points"]>=riichi["dama_min_points"]
                     and profile["riichi_points"]<existing["dama_points"]*riichi["dama_gain_ratio"]):continue

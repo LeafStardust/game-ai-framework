@@ -59,10 +59,12 @@ class AssistButtons:
                 tuple(sorted((state.get("round") or {}).items())),
                 tuple(sorted(state.get("hand",[]))),tuple(state.get("riichi",[])),tuple(state.get("doras",[])))
 
-    def poll(self,owner,desired,*,prepare_optional=True):
+    def poll(self,owner,desired,*,prepare_optional=True,prepare_automation=False):
         if self.failed:return None
+        def permitted(key):
+            return prepare_optional or desired[key] is False or (prepare_automation and key in ("auto_win","auto_kita"))
         mismatch=bool(self.observed) and any(self.observed.get(k)!=desired[k] for k in desired if k not in self.unavailable
-                                            and (prepare_optional or desired[k] is False))
+                                            and permitted(k))
         if owner.clock()-self.last_scan<(.1 if self.pending or mismatch else .5):
             return {"kind":"status","reason":"awaiting_assist_setup"} if mismatch else None
         self.last_scan=owner.clock()
@@ -122,7 +124,7 @@ class AssistButtons:
         keys=tuple(k for k in order if states[k] and not desired[k])+tuple(
             k for k in ("auto_win","auto_kita","skip_calls","auto_discard") if not states[k] or desired[k])
         key=next((k for k in keys if k not in self.unavailable and states[k]!=desired[k]
-                  and (prepare_optional or desired[k] is False)),None)
+                  and permitted(k)),None)
         if key is None:
             owner.assist_frame=(first,geometry,board_token(report),captured)
             return None
