@@ -411,7 +411,7 @@ def test_timeout_recovery_preserves_already_considered_new_turn(monkeypatch):
     assert f.poll()["kind"]=="submitted" and len(m.clicks)==2
 
 
-@pytest.mark.parametrize("age,token,expected_frames",[(.1,True,1),(.3,True,2),(.1,False,2)])
+@pytest.mark.parametrize("age,token,expected_frames",[(.1,True,1),(.3,True,1),(.5,True,1),(.51,True,2),(-.1,True,2),(.1,False,2)])
 def test_fresh_assist_frame_reuse_still_captures_distinct_second_frame(monkeypatch,age,token,expected_frames):
     f,r,p,e,m=setup(monkeypatch);captured=[]
     f.assist_frame=(b"assist",f.recorder.geometry(),e["board_token"] if token else "old",1-age)
@@ -431,3 +431,21 @@ def test_assists_are_prepared_between_turns_before_next_recommendation(monkeypat
     assert f.poll()["kind"]=="status"
     assert calls and calls[0]["auto_win"] and calls[0]["auto_kita"]
     assert not m.clicks
+
+
+def test_reused_first_frame_still_rejects_changed_fresh_hand(monkeypatch):
+    f,r,p,e,m=setup(monkeypatch)
+    f.assist_frame=(b"assist",f.recorder.geometry(),e["board_token"],.6)
+    captured=[];f.recorder.frame=lambda geometry:captured.append(geometry) or b"fresh"
+    f.vision.hand=lambda png,profile,expected:(list(expected),[bytes([0 if png==b"assist" else 9])*648]*len(expected))
+    with pytest.raises(ValueError,match="still moving"):f._plan(e)
+    assert len(captured)==1 and not m.clicks
+
+
+def test_reused_first_frame_rejects_changed_window_geometry(monkeypatch):
+    f,r,p,e,m=setup(monkeypatch)
+    geometry=f.recorder.geometry();geometry["left"]=100
+    f.assist_frame=(b"assist",geometry,e["board_token"],.6)
+    captured=[];f.recorder.frame=lambda geometry:captured.append(geometry) or b"fresh"
+    f._plan(e)
+    assert len(captured)==2 and not m.clicks

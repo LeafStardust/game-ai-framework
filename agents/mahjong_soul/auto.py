@@ -146,9 +146,11 @@ class AutoFollower(ShadowFollower):
         if profile is not None and report.get("last_event",{}).get("name")=="ActionChiPengGang":
             profile["forbidden_tiles"]=[tile for op in report["state"]["operations"]["operation_list"]
                                         if op["type"]==1 for tile in op.get("combination",[])]
+        # This cache supplies only the first observation. A distinct fresh
+        # second frame and final board/window checks are mandatory below.
         cached=self.assist_frame;self.assist_frame=None
         if (cached is not None and cached[1]==geometry and cached[2]==event["board_token"]
-                and 0<=self.clock()-cached[3]<=.25):
+                and 0<=self.clock()-cached[3]<=.5):
             first=cached[0]
             self._record("preflight_frame_reused",age_seconds=self.clock()-cached[3])
         else:first = self._frame(geometry,report,"preflight")
@@ -503,7 +505,10 @@ class AutoFollower(ShadowFollower):
                              action=event["action"],board_token=event["board_token"])
         except (ValueError,OSError) as error:
             if self.controller.snapshot()["status"] != "idle": self.halted = str(error)
-            self._record("preflight_failed",reason=str(error),board_token=event["board_token"],image=self.journal.last_frame if self.journal else None,visual=getattr(self.vision,"last_diagnostics",None))
+            self._record("preflight_failed",reason=str(error),board_token=event["board_token"],
+                         action=event["action"],client_assists=dict(self.assist_buttons.observed),
+                         image=self.journal.last_frame if self.journal else None,
+                         visual=getattr(self.vision,"last_diagnostics",None))
             if not self.halted:
                 # Keep retrying gameplay preflight. Optional switches wait
                 # for opponent turns; their setup must not consume this turn.
