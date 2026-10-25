@@ -270,6 +270,20 @@ class AutoFollower(ShadowFollower):
         self.call_pending=None
         self._park()
 
+    def _recover_assist_input(self):
+        if not self.assist_buttons.failed:return False
+        try:
+            if not self.assist_buttons.recover(self):return False
+            report=self.reader.snapshot()
+        except (ValueError,OSError):return False
+        self.halted=None;self.candidate=None
+        # Only re-evaluate a board with no prior gameplay input. Normal attempt
+        # tracking and fresh preflight still prevent duplicate submissions.
+        step=(report.get("state") or {}).get("step")
+        if not self.controller.was_attempted(report,step):self.seen.discard(board_token(report))
+        self._record("input_recovered",confirmation="assist_states_resynchronized")
+        return True
+
     def _recover_advanced_input(self):
         snapshot=self.controller.snapshot()
         if snapshot["status"]!="blocked" or not snapshot.get("pending"):return False
@@ -348,8 +362,10 @@ class AutoFollower(ShadowFollower):
                 self._drain()
                 finished=self._game_limit()
                 if finished is not None:return finished
-                if not self._recover_advanced_input():
+                if not self._recover_assist_input() and not self._recover_advanced_input():
                     self._passive_frame("halted")
+                    if self.assist_buttons.failed:
+                        return {"kind":"status","reason":"waiting_for_assist_recovery"}
                     snapshot=self.controller.snapshot()
                     if snapshot["status"]=="blocked" and snapshot.get("pending"):
                         return {"kind":"status","reason":"waiting_for_input_recovery","detail":self.halted}

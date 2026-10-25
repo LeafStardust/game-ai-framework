@@ -101,13 +101,13 @@ def test_expired_riichi_assist_resolves_when_next_hand_observably_unlocked(monke
     assert logs[-1][0]=="assist_superseded"
 
 
-def test_obsolete_assist_with_unreadable_state_still_blocks(monkeypatch):
+def test_obsolete_assist_with_unreadable_state_waits_for_recovery(monkeypatch):
     o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
     o.clock=lambda:10
     handler=AssistButtons();handler.pending=("auto_discard",True,3)
     monkeypatch.setattr(handler,"read",lambda _:None)
     desired={"auto_win":False,"skip_calls":False,"auto_discard":False,"auto_kita":False}
-    assert handler.poll(o,desired)["kind"]=="blocked"
+    assert handler.poll(o,desired)["reason"]=="waiting_for_assist_recovery"
     assert not m.clicks and o.halted
 
 
@@ -127,7 +127,7 @@ def test_switch_confirms_immediately_without_half_second_poll_delay(monkeypatch)
     assert logs[-1][0]=="assist_confirmed"
 
 
-def test_unknown_auto_discard_still_blocks_instead_of_guessing(monkeypatch):
+def test_unknown_auto_discard_waits_for_recovery_instead_of_guessing(monkeypatch):
     o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
     now=[1];o.clock=lambda:now[0];rgb=panel()
     monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
@@ -135,7 +135,7 @@ def test_unknown_auto_discard_still_blocks_instead_of_guessing(monkeypatch):
     assert handler.poll(o,desired)["reason"]=="assist_submitted"
     handler.read=lambda _:None
     now[0]=6
-    assert handler.poll(o,desired)["kind"]=="blocked" and o.halted
+    assert handler.poll(o,desired)["reason"]=="waiting_for_assist_recovery" and o.halted
     assert len(m.clicks)==1
 
 
@@ -224,3 +224,58 @@ def test_animation_wait_does_not_enable_c_or_d_when_rk_already_on(monkeypatch):
     desired={"auto_win":True,"auto_kita":True,"skip_calls":True,"auto_discard":True}
     assert handler.poll(o,desired,prepare_optional=False,prepare_automation=True) is None
     assert not m.clicks
+
+
+def test_unconfirmed_switch_recovers_without_click_when_states_become_known(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    o.clock=lambda:10;rgb=panel();handler=AssistButtons();handler.failed=True
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    assert handler.recover(o)
+    assert not handler.failed and handler.pending is None
+    assert handler.observed["skip_calls"] is False and not m.clicks
+    assert logs[-1][0]=="assist_recovered"
+
+
+def test_unknown_switch_recovery_keeps_polling_without_click(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    now=[10];o.clock=lambda:now[0];handler=AssistButtons();handler.failed=True
+    monkeypatch.setattr(handler,"read",lambda _:None)
+    assert not handler.recover(o) and handler.failed and not m.clicks
+    assert not handler.recover(o)
+    now[0]+=1
+    rgb=panel();monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    monkeypatch.setattr(handler,"read",AssistButtons.read.__get__(handler))
+    assert handler.recover(o) and not m.clicks
+
+
+def test_recovery_rejects_changed_switches_or_hand(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="tracking",player_count=3)
+    o.clock=lambda:10;handler=AssistButtons();handler.failed=True;rgb=panel()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    o.sleep=lambda _:r["state"]["hand"].append("1z")
+    assert not handler.recover(o) and handler.failed and not m.clicks
+
+
+def test_recovery_can_resume_post_round_navigation_on_idle_wire(monkeypatch):
+    o,r,m,logs=owner(monkeypatch);r["state"].update(status="match_ended",player_count=3)
+    o.clock=lambda:10;handler=AssistButtons();handler.failed=True;rgb=panel()
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.assist_buttons.decode_frame",lambda _:rgb)
+    o._current=lambda:(_ for _ in ()).throw(ValueError("Capture stale"))
+    o._result_snapshot=lambda:r
+    assert handler.recover(o) and not handler.failed and not m.clicks
+
+
+def test_follower_clears_only_assist_halt_and_reconsiders_unattempted_board():
+    from types import SimpleNamespace
+    from agents.mahjong_soul.auto import AutoFollower
+    from games.mahjong_soul.live.runtime.input import board_token
+    report={"state":{"step":7},"game_connection":"synthetic","game_generation":1}
+    token=board_token(report);seen={token};logs=[]
+    follower=SimpleNamespace(assist_buttons=SimpleNamespace(failed=True,recover=lambda _:True),
+        reader=SimpleNamespace(snapshot=lambda:report),
+        controller=SimpleNamespace(was_attempted=lambda *a:False),
+        halted="Assist switch outcome unconfirmed",candidate={"old":True},seen=seen,
+        _record=lambda *a,**k:logs.append((a,k)))
+    assert AutoFollower._recover_assist_input(follower)
+    assert follower.halted is None and follower.candidate is None and token not in seen
+    assert logs[-1][1]["confirmation"]=="assist_states_resynchronized"

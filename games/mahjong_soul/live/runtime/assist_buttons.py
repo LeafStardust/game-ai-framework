@@ -11,6 +11,7 @@ class AssistButtons:
         self.profile=json.loads(Path(__file__).with_name("assist_samples.json").read_text())
         self.unavailable=set();self.context=None
         self.layout=None;self.pending=None;self.observed={};self.last_scan=float("-inf");self.failed=False
+        self.last_recovery_scan=float("-inf")
 
     def collapsed(self,rgb):
         states={}
@@ -59,6 +60,37 @@ class AssistButtons:
                 tuple(sorted((state.get("round") or {}).items())),
                 tuple(sorted(state.get("hand",[]))),tuple(state.get("riichi",[])),tuple(state.get("doras",[])))
 
+    def recover(self,owner):
+        """Re-observe an uncertain toggle; never click or assume its outcome."""
+        if not self.failed or owner.clock()-self.last_recovery_scan<.5:return False
+        self.last_recovery_scan=owner.clock()
+        def current_report():
+            try:return owner._current()
+            except ValueError:
+                if not hasattr(owner,"_result_snapshot"):raise
+                report=owner._result_snapshot()
+                if (report.get("state") or {}).get("status") not in ("round_ended","match_ended"):raise
+                return report
+        report=current_report();state=report.get("state") or {}
+        if state.get("status") not in ("tracking","round_ended","match_ended") or state.get("player_count")!=3:return False
+        if owner.controller.snapshot()["status"]!="idle":return False
+        if owner.require_ai and (report.get("game_connection"),report.get("game_generation",0)) not in owner.ai_games:return False
+        geometry=owner.recorder.geometry()
+        if not geometry or (geometry["width"],geometry["height"])!=(1920,1080):return False
+        token=self.guard(report,None)
+        first=owner._frame(geometry,report,"assist_recovery")
+        states=self.read(first) if first is not None else None
+        if states is None:return False
+        layout=self.layout;owner.sleep(.1)
+        if owner.recorder.geometry()!=geometry or self.guard(current_report(),None)!=token:return False
+        second=owner._frame(geometry,report,"assist_recovery_confirmation")
+        current=self.read(second) if second is not None else None
+        if current!=states or self.layout!=layout:return False
+        if owner.recorder.geometry()!=geometry or self.guard(current_report(),None)!=token:return False
+        self.pending=None;self.observed=current;self.failed=False;self.last_scan=float("-inf")
+        owner._record("assist_recovered",observed=current,confirmation="two_fresh_matching_frames")
+        return True
+
     def poll(self,owner,desired,*,prepare_optional=True,prepare_automation=False):
         if self.failed:return None
         def permitted(key):
@@ -106,8 +138,8 @@ class AssistButtons:
                     owner._record("assist_native_fallback",control=key,reason="verified_off_after_timeout")
                     return None
                 self.failed=True;self.pending=None
-                owner.halted="Assist switch outcome unconfirmed; inspect switches before restarting"
-                return {"kind":"blocked","reason":owner.halted}
+                owner.halted="Assist switch outcome unconfirmed; automatically rechecking switch states"
+                return {"kind":"status","reason":"waiting_for_assist_recovery"}
             else:
                 if (not prepare_optional and key in ("auto_win","auto_kita") and target is True
                         and states is not None and states.get(key) is False):
