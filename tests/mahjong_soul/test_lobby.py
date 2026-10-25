@@ -60,3 +60,36 @@ def test_reader_preserves_connection_scoped_lobby_and_copies_snapshots():
     assert reader.snapshot()["state"]["lobby"]["rule_details"]
     reader.connections["two"]=(None,GameState(0));reader.latest_game_connection="two"
     assert not reader.snapshot()["state"]["lobby"]["identified"]
+
+
+@pytest.mark.parametrize("count,mode",[(3,11),(3,12),(4,1),(4,2)])
+def test_show_hands_is_supported_for_ai_practice(count,mode):
+    data=auth(count,mode,{"open_hand":True})
+    lobby=detect_lobby(data)
+    assert lobby["unsupported_rules"]==[]
+    o=observation(lobby);o["board"]["player_count"]=count
+    assert default_mahjong_playbooks().for_observation(o,"atk").player_count==count
+
+
+@pytest.mark.parametrize("ai",[False,None])
+def test_show_hands_requires_authenticated_ai_room(ai):
+    data=auth(detail={"open_hand":True});data["game_config"]["mode"]["ai"]=ai
+    assert detect_lobby(data)["unsupported_rules"]==["open_hand"]
+
+
+def test_show_hands_does_not_allow_other_special_rules():
+    assert detect_lobby(auth(detail={"open_hand":True,"guyi_mode":1}))["unsupported_rules"]==["guyi_mode"]
+
+
+def test_opponent_revealed_hands_and_draws_do_not_change_policy_information():
+    from games.mahjong_soul.live.runtime.state import GameState
+    from tests.mahjong_soul.test_efficiency import tiles
+    hidden=GameState(0,3);shown=GameState(0,3)
+    opening={"tiles":tiles("123p456p789s1123z"),"scores":[35000]*3,"ju":1,"doras":["9s"]}
+    for state,reveal in [(hidden,False),(shown,True)]:
+        data=deepcopy(opening)
+        data["opens"]=[{"seat":1,"tiles":tiles("111p222p333s4455z"),"count":[]} ] if reveal else []
+        state.apply({"name":"ActionNewRound","step":1,"data":data})
+        state.apply({"name":"ActionDealTile","step":2,"data":{"seat":1,"tile":"6z" if reveal else "","left_tile_count":53}})
+    assert shown.snapshot()==hidden.snapshot()
+    assert "6z" not in shown.visible_tiles()[0]
