@@ -74,6 +74,20 @@ def windows_words(png):
         digits=[w for w in header if re.fullmatch(r"[0-9]{4,6}",w["text"])
                 and 800<=w["x"]<=1400 and 200<=w["y"]<=400]
         matches=[{**w,"text":"Room#"+w["text"]} for w in digits]
+    if not matches and room_view:
+        # The reviewed numeric heading font's 1 is sometimes read as J.
+        # Require agreement across independent full-screen and enlarged OCR;
+        # never infer digits from the authenticated/expected room number.
+        def numeric_heading(word):
+            text=word["text"]
+            if not re.fullmatch(r"room#[0-9j]{4,6}",text.lower()):return None
+            return "Room#"+text[5:].lower().replace("j","1")
+        original={numeric_heading(w) for w in words
+                  if 500<w["x"]<1300 and w["y"]<150 and numeric_heading(w)}
+        focused=[w for w in header if 400<=w["x"]<=1400 and 200<=w["y"]<=400
+                 and numeric_heading(w) in original]
+        if len(original)==1 and len(focused)==1:
+            matches=[{**focused[0],"text":numeric_heading(focused[0])}]
     if len(matches)!=1:return words
     word=dict(matches[0]);word.update(x=750+(word["x"]-400)/3,
         y=50+(word["y"]-200)/3,width=word["width"]/3,height=word["height"]/3)

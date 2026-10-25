@@ -161,3 +161,28 @@ def test_header_decoration_changes_do_not_mask_stable_text_but_digits_changes_re
     for y in range(header["y"],header["y"]+header["height"]):
         other[(y*1920+header["x"])*3:(y*1920+header["x"]+header["width"])*3]=bytes(header["width"]*3)
     assert not unchanged_room(b"a",b"b",1142,999,words)
+
+
+@pytest.mark.parametrize("full,focused,accepted",[
+    ("Room#23J45","Room#2J145",False),
+    ("Room#23J45","Room#23145",True),
+    ("Room#23145","Room#23J45",True),
+    ("Room#23J45","Room#23J45",True),
+    ("Room#23L45","Room#23L45",False),
+])
+def test_j_one_header_correction_requires_independent_numeric_agreement(monkeypatch,full,focused,accepted):
+    from games.mahjong_soul.live.runtime import result_buttons as rb
+    words,_=fixture()
+    initial=[{**w,"text":full} if w["text"].startswith("Room#") else w for w in words]
+    initial.append({"text":"Room","x":210,"y":60,"width":100,"height":40})
+    reads=iter([initial,[],[{"text":focused,"x":487,"y":260,"width":765,"height":117}]])
+    monkeypatch.setattr(rb,"_windows_words",lambda _:next(reads))
+    monkeypatch.setattr(rb,"room_labels_frame",lambda _:b"labels")
+    monkeypatch.setattr(rb,"room_header_frame",lambda _:b"header")
+    result=rb.windows_words(b"room")
+    assert any(w["text"]=="Room#23145" for w in result)==accepted
+    lobby={"player_count":3,"ai":True,"room_id":23145,"match_length":"south"}
+    if accepted:
+        assert room_start(result,lobby)==(1142,999)
+        lobby["room_id"]=23146
+        assert room_start(result,lobby) is None
