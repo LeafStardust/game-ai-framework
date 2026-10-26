@@ -449,3 +449,10 @@ def test_reused_first_frame_rejects_changed_window_geometry(monkeypatch):
     captured=[];f.recorder.frame=lambda geometry:captured.append(geometry) or b"fresh"
     f._plan(e)
     assert len(captured)==2 and not m.clicks
+
+
+def test_fast_recorder_png_preserves_every_channel_and_scanline():
+    pattern=bytes(v for n in range(256) for v in (n,255-n,(n*13)%256,73))
+    pixels=pattern*8100  # Exactly 1920 x 1080 BGRA pixels.
+    expected=bytes(v for n in range(256) for v in ((n*13)%256,255-n,n))*8100
+    assert decode_frame(png_from_bgra(pixels,1920,1080))==expected
