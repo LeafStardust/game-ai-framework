@@ -149,6 +149,13 @@ class AutoFollower(ShadowFollower):
                                         if op["type"]==1 for tile in op.get("combination",[])]
         # This cache supplies only the first observation. A distinct fresh
         # second frame and final board/window checks are mandatory below.
+        if profile is not None and action["kind"]=="discard":
+            retry=self.controller.snapshot();pending=retry.get("pending") or {}
+            if (retry.get("retry_eligible") and pending.get("token")==event["board_token"]
+                    and pending.get("tile")==action["tile"]):
+                matches=[i for i,point in enumerate(profile["slots"])
+                         if tuple(point)==(pending.get("x"),pending.get("y"))]
+                if len(matches)==1:profile["retry_selected_slot"]=matches[0]
         cached=self.assist_frame;self.assist_frame=None
         if (cached is not None and cached[1]==geometry and cached[2]==event["board_token"]
                 and 0<=self.clock()-cached[3]<=.5):

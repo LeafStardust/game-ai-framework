@@ -1,7 +1,8 @@
 """Conservative 1080p recognition using reviewed tile-face samples.
 
 Only decodes the RGB, filter-zero PNGs produced by WindowsRecorder. Unknown
-skins, selected/animated tiles and ambiguous matches remain unsupported.
+skins, animated tiles and ambiguous matches remain unsupported. A reviewed
+selected-tile lift is allowed only for an eligible existing discard retry.
 """
 import base64
 from collections import Counter
@@ -159,14 +160,17 @@ class TileVision:
             raise ValueError("Unknown or ambiguous visible tile ("+detail+")")
         return ranked[0]
 
-    def align_tile(self,rgb,x,y,original):
-        """Try only a two-pixel sampling correction, with unchanged confidence.
+    def align_tile(self,rgb,x,y,original,*,selected_retry=False):
+        """Use small alignment corrections, plus a scoped selected-tile retry.
 
-        Every successful correction must agree on the exact tile label. The
-        reader's expected tiles are never used to choose an identity.
+        A retry may inspect the reviewed 48-pixel lift only at its original
+        pending slot. Every match must agree, with unchanged confidence; the
+        reader's expected tile labels never choose an identity.
         """
         matches=[]
-        for dx,dy in ((0,-2),(0,2),(-2,0),(2,0),(-2,-2),(2,-2),(-2,2),(2,2)):
+        offsets=((0,-2),(0,2),(-2,0),(2,0),(-2,-2),(2,-2),(-2,2),(2,2))
+        if selected_retry:offsets+=((0,-48),)
+        for dx,dy in offsets:
             value=sample(rgb,x+dx,y+dy)
             try:tile=self.classify(value)
             except ValueError:continue
@@ -219,7 +223,10 @@ class TileVision:
             except ValueError as original:
                 x,y=profile["slots"][index]
                 try:
-                    tile,value,alignment=self.align_tile(rgb,round(x*1919),round(y*1079),str(original))
+                    if profile.get("retry_selected_slot")==index:
+                        tile,value,alignment=self.align_tile(rgb,round(x*1919),round(y*1079),str(original),selected_retry=True)
+                    else:
+                        tile,value,alignment=self.align_tile(rgb,round(x*1919),round(y*1079),str(original))
                     samples[index]=value
                 except ValueError as error:
                     # Kuikae restrictions dim forbidden tiles after Chi/Pon.

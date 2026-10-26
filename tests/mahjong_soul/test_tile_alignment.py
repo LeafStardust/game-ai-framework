@@ -66,3 +66,29 @@ def test_alignment_disagreement_is_rejected_instead_of_guessing_from_reader(monk
     monkeypatch.setattr("games.mahjong_soul.live.runtime.visual.sample",sampled)
     monkeypatch.setattr(vision,"classify",classify)
     with pytest.raises(ValueError,match="disagree"):vision.align_tile(b"rgb",100,100,"Unknown")
+
+
+def test_selected_lift_is_only_available_for_explicit_retry(monkeypatch):
+    vision=TileVision()
+    def sampled(rgb,x,y):return bytes([1 if (x,y)==(100,52) else 0])*648
+    def classify(value):
+        if value[0]==1:return "2z"
+        raise ValueError("Unknown")
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.visual.sample",sampled)
+    monkeypatch.setattr(vision,"classify",classify)
+    with pytest.raises(ValueError):vision.align_tile(b"rgb",100,100,"Unknown")
+    tile,value,offset=vision.align_tile(b"rgb",100,100,"Unknown",selected_retry=True)
+    assert tile=="2z" and offset==(0,-48)
+
+
+def test_selected_retry_does_not_override_disagreeing_tile_identity(monkeypatch):
+    vision=TileVision()
+    def sampled(rgb,x,y):return bytes([1 if (x,y)==(100,52) else 2 if (x,y)==(100,98) else 0])*648
+    def classify(value):
+        if value[0]==1:return "2z"
+        if value[0]==2:return "3z"
+        raise ValueError("Unknown")
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.visual.sample",sampled)
+    monkeypatch.setattr(vision,"classify",classify)
+    with pytest.raises(ValueError,match="disagree"):
+        vision.align_tile(b"rgb",100,100,"Unknown",selected_retry=True)

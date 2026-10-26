@@ -468,3 +468,16 @@ def test_kan_only_offer_uses_verified_label_and_correlated_confirmation(monkeypa
     assert len(m.clicks)==1
     assert f.controller.observe(r["game_connection"],{"name":"ActionAnGangAddGang","source":"live","step":plan.step+1,
                                  "data":{"seat":0,"type":3,"tiles":"1p"}},now=2)
+
+
+def test_selected_retry_hint_binds_to_pending_discard_slot_only(monkeypatch):
+    f,r,p,e,m=setup(monkeypatch)
+    hints=[]
+    f.vision.hand=lambda png,profile,expected:(hints.append(profile.get("retry_selected_slot")) or list(expected),[bytes(648)]*len(expected))
+    plan,current=f._plan(e);f.controller.submit(plan,current,enabled=True,now=1)
+    f.controller.update(r,now=10);f.clock=lambda:10
+    retry,current=f._plan(e)
+    assert hints[:2]==[None,None] and hints[2:]==[0,0]
+    f.controller.retry_discard(retry,current,visually_verified=True,enabled=True,now=10)
+    assert len(m.clicks)==2
+    assert f.controller.snapshot()["retry_count"]==1
