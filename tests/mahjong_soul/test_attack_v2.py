@@ -288,3 +288,13 @@ def test_late_two_threat_valuable_dama_keeps_attacking_without_small_gain_riichi
     assert analysis["shanten"]==0
     if expected=="discard":
         assert any(n.get("reason")=="late_valuable_dama_small_riichi_gain" for n in analysis["discard_evaluations"])
+
+
+def test_riichi_kan_only_offer_does_not_enter_thirteen_tile_call_evaluation():
+    r=report("1111p234p567s789s2z")
+    r["state"]["riichi"][0]="accepted"
+    r["state"]["drawn_tile"]="1p"
+    r["state"]["operations"]={"seat":0,"operation_list":[{"type":4,"combination":["1p|1p|1p|1p"]}]}
+    action,analysis=choose(r)
+    assert action=={"kind":"closed_kan","combination":"1p|1p|1p|1p"}
+    assert analysis["mode"]=="sole_server_closed_kan"

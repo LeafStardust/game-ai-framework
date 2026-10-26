@@ -101,12 +101,13 @@ class AutoFollower(ShadowFollower):
     def _button_profile(self,report,kind,png,base=None):
         if kind=="kan":
             operations=[o["type"] for o in report["state"]["operations"]["operation_list"]]
-            names={(1,4):"closed-kan-offer-fullscreen.json",(3,5):"open-kan-offer.json",(1,6):"added-kan-offer-fullscreen.json"}
+            names={(4,):"closed-kan-offer-fullscreen.json",(1,4):"closed-kan-offer-fullscreen.json",(3,5):"open-kan-offer.json",(1,6):"added-kan-offer-fullscreen.json"}
             name=names.get(tuple(operations))
             if name is None:raise ValueError("Kan offer has no reviewed button layout")
             path=Path(__file__).resolve().parents[2]/"games/mahjong_soul/live/layouts"/name
             reviewed=profile_for_size(json.loads(path.read_text(encoding="utf-8")),(1920,1080))
-            if reviewed["operation_types"]!=operations:raise ValueError("Kan layout offer changed")
+            if reviewed["operation_types"]!=operations and not (operations==[4] and reviewed["operation_types"]==[1,4]):
+                raise ValueError("Kan layout offer changed")
             point=tuple(round(v*scale) for v,scale in zip(reviewed["kan"],(1919,1079)))
             x,y,value=self.vision.button(png,kind,point=point)
         else:

@@ -456,3 +456,15 @@ def test_fast_recorder_png_preserves_every_channel_and_scanline():
     pixels=pattern*8100  # Exactly 1920 x 1080 BGRA pixels.
     expected=bytes(v for n in range(256) for v in ((n*13)%256,255-n,n))*8100
     assert decode_frame(png_from_bgra(pixels,1920,1080))==expected
+
+
+def test_kan_only_offer_uses_verified_label_and_correlated_confirmation(monkeypatch):
+    f,r,p,e,m=setup(monkeypatch)
+    r["state"]["hand"]=["1p"]*4
+    r["state"]["operations"]={"seat":0,"operation_list":[{"type":4,"combination":["1p|1p|1p|1p"]}]}
+    event={"board_token":board_token(r),"action":{"kind":"closed_kan","combination":"1p|1p|1p|1p"}}
+    plan,current=f._plan(event)
+    f.controller.submit(plan,current,enabled=True,now=1)
+    assert len(m.clicks)==1
+    assert f.controller.observe(r["game_connection"],{"name":"ActionAnGangAddGang","source":"live","step":plan.step+1,
+                                 "data":{"seat":0,"type":3,"tiles":"1p"}},now=2)

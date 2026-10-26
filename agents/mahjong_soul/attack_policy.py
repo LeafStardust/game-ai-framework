@@ -187,6 +187,7 @@ def may_push(option,opponents,wall,settings):
 
 
 def _call_options(request,book,ranker,diagnostics=None,value=None):
+    if not any(a["kind"] in ("chi","pon") for a in request["actions"]):return None
     value=value or book.thresholds_for("D1")
     board=request["observation"]["board"];own=own_player(board);hand=board["self"]["hand"]
     fixed=len(own["melds"]);baseline=shanten(counts34(hand),fixed)
@@ -373,6 +374,10 @@ def choose_attack(owner,request,book,ranker=rank_discards):
         north_notes.update(choice)
         if choice["extract"]:return finish(north,"north_extraction")
     opponents=threats(board);wall=board.get("wall_remaining")
+    if len(actions)==1 and actions[0]["kind"]=="closed_kan":
+        # Riichi/auto-discard can leave only the server-authorized Kan offer.
+        # There is no offered discard or call to rank as a 13-tile hand.
+        return finish(actions[0],"sole_server_closed_kan")
     if not any(a["kind"]=="discard" for a in actions):
         call=_call_options(request,book,ranker,call_notes,value)
         if call:return finish(call[0],"call",call[1],post_call_discard=call[1]["action"])
