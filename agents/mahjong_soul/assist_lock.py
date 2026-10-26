@@ -4,7 +4,7 @@ from copy import deepcopy
 from functools import lru_cache
 import json
 import time
-from agents.mahjong_soul.ready_commit import committed_ready
+from agents.mahjong_soul.ready_commit import committed_ready,kan_possible
 from agents.mahjong_soul.attack_value import own_player,tenpai_value
 from agents.mahjong_soul.efficiency import counts34,shanten,KINDS,tile_supply
 from games.mahjong_soul.live.runtime.kan import tile_kind
@@ -46,6 +46,8 @@ def _check(encoded):
     base=tenpai_value(board,hand)
     if not base or base["ron_blocked"] or not base["dama_ukeire"]:return {}
     speed_first=board.get("lobby",{}).get("match_length")=="east"
+    if kan_possible(board):
+        return {"skip_calls":False,"auto_discard":False,"reason":"keep_kan_available"}
     if committed_ready(board,base):
         return {"skip_calls":True,"auto_discard":True,"reason":"committed_open_tenpai",
                 "ron_points":base["dama_points"],"live_waits":base["dama_ukeire"]}

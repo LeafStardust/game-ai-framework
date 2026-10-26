@@ -465,10 +465,13 @@ class AutoFollower(ShadowFollower):
             state=self.reader.snapshot().get("state") or {}
             seat=state.get("seat");riichi=state.get("riichi",[])
             locked=isinstance(seat,int) and seat<len(riichi) and riichi[seat]=="accepted"
-            if locked:self.assist_desired["auto_discard"]=True
+            from agents.mahjong_soul.ready_commit import kan_possible
+            from games.mahjong_soul.live.runtime.observation import observation_from_snapshot
+            keep_kan=kan_possible(observation_from_snapshot(self.reader.snapshot())["board"])
+            if locked:self.assist_desired["auto_discard"]=not keep_kan
             elif (self.assist_buttons.observed.get("auto_win") is not True
                   or self.assist_desired["auto_kita"] and self.assist_buttons.observed.get("auto_kita") is not True):self.assist_desired["auto_discard"]=False
-            if locked:self.assist_desired["skip_calls"]=True
+            if locked:self.assist_desired["skip_calls"]=not keep_kan
             elif not state.get("hand"):self.assist_desired["skip_calls"]=False
             try:
                 assist=self.assist_buttons.poll(self,self.assist_desired,prepare_optional=False)

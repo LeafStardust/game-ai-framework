@@ -13,10 +13,12 @@ def assist_preferences(request, action, analysis):
     # Accepted Riichi is the only current irreversible closed commitment.
     from agents.mahjong_soul.assist_lock import ready_lock
     lock={} if accepted else ready_lock(board,action)
-    skip_calls=accepted or lock.get("skip_calls",False)
+    from agents.mahjong_soul.ready_commit import kan_possible
+    keep_kan=kan_possible(board)
+    skip_calls=(accepted or lock.get("skip_calls",False)) and not keep_kan
     drawn=board.get("self",{}).get("drawn_tile")
     may_discard=(action.get("tile")==drawn or len(board.get("self",{}).get("hand",[]))%3==1)
-    auto_discard=accepted or bool(lock.get("auto_discard") and may_discard)
+    auto_discard=(accepted or bool(lock.get("auto_discard") and may_discard)) and not keep_kan
     hand=board.get("self",{}).get("hand",[])
     # Also protect natural Yakuman qualification before the next policy turn,
     # so between-turn setup cannot extract a newly needed North prematurely.

@@ -80,4 +80,5 @@ def test_reached_value_goal_commits_instead_of_waiting_for_optional_upgrades():
 
 def test_existing_closed_kan_option_is_not_suppressed():
     b=board("2222p345p678s55p3p")
-    assert not ready_lock(b,{"kind":"discard"})
+    result=ready_lock(b,{"kind":"discard"})
+    assert not result.get("skip_calls") and not result.get("auto_discard")

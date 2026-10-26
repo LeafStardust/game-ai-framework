@@ -294,16 +294,16 @@ def draw_ukeire(board,hand,fixed):
 
 def _kan_option(request,book,best=None,diagnostics=None):
     board=request["observation"]["board"];own=own_player(board);settings=book.strategy["calls"]
-    if (threats(board) and settings.get("avoid_kan_under_threat",True)) or own["riichi"] in ("declared","accepted"):return None
+    if threats(board) and settings.get("avoid_kan_under_threat",True):return None
     wall=board.get("wall_remaining")
     if type(wall) is not int or wall<settings["kan_min_wall"]:return None
     hand=board["self"]["hand"];fixed=len(own["melds"])
     if any(t["target_route"] in ("yakuman_kokushi","yakuman_nine_gates") for t in project_attack(board,hand,all_targets=True)):return None
     baseline=best["shanten"] if best else shanten(counts34(hand),fixed)
-    if committed_ready(board,best.get("wait_value") if best else tenpai_value(board,hand) if baseline==0 else None):return None
     candidates=[]
     for action in request["actions"]:
         if action["kind"] not in ("closed_kan","added_kan","open_kan"):continue
+        if own["riichi"] in ("declared","accepted") and action["kind"]!="closed_kan":continue
         new=deepcopy(board);remaining=new["self"]["hand"];melds=own_player(new)["melds"]
         contribution=action["combination"].split("|")
         if action["kind"]=="added_kan":
@@ -323,7 +323,12 @@ def _kan_option(request,book,best=None,diagnostics=None):
         if draw_ukeire(new,remaining,len(melds))<before_ukeire-settings["kan_ukeire_loss"]:continue
         before_score=best["wait_value"] if best else tenpai_value(board,hand) if baseline==0 else None
         after_score=tenpai_value(new,remaining) if shanten(counts34(remaining),len(melds))==0 else None
-        if before_score and after_score and max(after_score["dama_points"],after_score["riichi_points"])<max(before_score["dama_points"],before_score["riichi_points"]):continue
+        if before_score:
+            legal=lambda profile:{w["tile"] for w in profile.get("waits",[]) if any(v.get("legal") for v in w.get("values",{}).values())} if profile else set()
+            if not after_score or legal(after_score)!=legal(before_score):
+                if diagnostics is not None:diagnostics.append({"action":deepcopy(action),"accepted":False,"reason":"ready_kan_changes_legal_waits"})
+                continue
+            if max(after_score["dama_points"],after_score["riichi_points"])<max(before_score["dama_points"],before_score["riichi_points"]):continue
         route=yaku_routes(new,remaining)
         if action["kind"]=="open_kan" and not route["open_yaku"] and not (after_score and after_score["dama_ukeire"]>0):
             if diagnostics is not None:diagnostics.append({"action":deepcopy(action),"accepted":False,"reason":"open_kan_has_no_secured_yaku"})
@@ -338,6 +343,9 @@ def _kan_option(request,book,best=None,diagnostics=None):
         if route["opened"] and (not target["open_route"] or target["route_cost"]>settings["max_route_cost"]
                                 or target["projected_han"]<settings["kan_min_han"]):continue
         if not route["opened"] and sum(n>=2 for n in Counter(tile_kind(t) for t in hand).values())>=5:continue
+        if diagnostics is not None:
+            diagnostics.append({"action":deepcopy(action),"eligible":True,
+                                "reason":"ready_waits_and_value_preserved" if before_score else "kan_progress_and_value_preserved"})
         candidates.append((action,target["projected_han"],-target["route_cost"],draw_ukeire(new,remaining,len(melds))))
     return max(candidates,key=lambda c:(c[1],c[2],c[3],str(c[0])))[0] if candidates else None
 
@@ -390,6 +398,8 @@ def choose_attack(owner,request,book,ranker=rank_discards):
         retained=list(board["self"]["hand"]);retained.remove(draw)
         ready=tenpai_value(board,retained,discard=draw)
         if committed_ready(board,ready):
+            kan=_kan_option(request,book,{"shanten":0,"ukeire":ready["dama_ukeire"],"wait_value":ready},kan_notes)
+            if kan:return finish(kan,"ready_hand_kan")
             return finish(discard_draw,"committed_open_tenpai",shanten=0,wait_value=ready,
                           effective_ukeire=ready["dama_ukeire"],projected_han=ready["known_han"])
     options=enrich(board,ranker(request),value);best=offensive(board,options,value)
