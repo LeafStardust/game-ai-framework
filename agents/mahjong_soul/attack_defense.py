@@ -41,3 +41,12 @@ def danger(board,tile,opponents):
             if tile in dora:risk+=12
         scores.append({"seat":player["seat"],"risk":round(risk,2),"threat_kind":player["threat_kind"]})
     return {"danger":max((x["risk"] for x in scores),default=0),"total_danger":sum(x["risk"] for x in scores),"danger_by_seat":scores}
+
+
+def riichi_genbutsu(board,tile):
+    """True only when every current Riichi declarer discarded this kind."""
+    opponents=[p for p in board.get("players",[]) if not p.get("is_self")
+               and p.get("riichi") in ("declared","accepted")]
+    kind=tile_kind(tile)
+    return bool(opponents) and all(kind in {tile_kind(d["tile"]) for d in p.get("discards",[])}
+                                   for p in opponents)

@@ -45,8 +45,16 @@ def test_recorded_opponent_riichi_does_not_change_attack_into_fold(monkeypatch):
     for r in f["reports"]:
         original,analysis=choose(r)
         no_threat=deepcopy(r);no_threat["state"]["riichi"]=["none"]*4
-        assert choose(no_threat)[0]==original
-        assert analysis["mode"]!="fold"
+        baseline,base_analysis=choose(no_threat)
+        if baseline!=original:
+            assert original["kind"]==baseline["kind"]=="discard"
+            assert analysis["discard_genbutsu_to_all_riichi"]
+            for key in ("shanten","projected_han","ukeire","route_cost","target_route"):
+                assert analysis[key]==base_analysis[key]
+            chosen=next(o for o in analysis["discard_evaluations"] if o.get("action")==original)
+            other=next(o for o in analysis["discard_evaluations"] if o.get("action")==baseline)
+            assert chosen["utility"]==other["utility"]
+        assert analysis["mode"]!="fold" and base_analysis["mode"]!="fold"
 
 
 def test_explicit_regular_distance_agrees_with_standard_shapes():
@@ -69,5 +77,6 @@ def test_open_hand_discards_advance_the_selected_yaku_instead_of_yakuless_speed(
     assert analysis["projected_han"]==2  # The isolated Dora cannot fit the reserved groups and pair.
     assert {t["tile"] for t in analysis["improving_tiles"]}=={"9m","6p"}
     action,analysis=choose(f["reports"][4])
-    assert action["tile"]=="9p" and analysis["target_route"]=="tanyao"
+    assert action["tile"]=="1m" and analysis["target_route"]=="tanyao"
+    assert analysis["discard_genbutsu_to_all_riichi"]
     assert all(t["tile"][1]!="z" and 2<=int(t["tile"][0])<=8 for t in analysis["improving_tiles"])

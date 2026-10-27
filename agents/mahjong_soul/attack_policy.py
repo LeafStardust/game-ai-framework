@@ -5,7 +5,7 @@ import math
 from copy import deepcopy
 from agents.mahjong_soul.efficiency import counts34,shanten,rank_discards,KINDS
 from agents.mahjong_soul.attack_value import yaku_routes,tenpai_value,own_player,yaku_potential
-from agents.mahjong_soul.attack_defense import threats,danger
+from agents.mahjong_soul.attack_defense import threats,danger,riichi_genbutsu
 from agents.mahjong_soul.ready_commit import committed_ready
 from agents.mahjong_soul.attack_routes import project_attack,known_bonus,route_progress
 from games.mahjong_soul.playbook.features import discard_features
@@ -149,6 +149,7 @@ def offensive(board,options,value):
     key=lambda o:(attack_utility(o,value),-o["shanten"],o["effective_ukeire"],
                   -o["dora_loss"],-o["pair_break_loss"],
                   not o["action"]["tile"].startswith("0"),
+                  riichi_genbutsu(board,o["action"]["tile"]),
                   o["action"]["tile"]==board["self"].get("drawn_tile"),o["action"]["tile"])
     if value.get("attack_completion"):
         from agents.mahjong_soul.discard_completion import choose_attack_completion_discard
@@ -359,6 +360,8 @@ def choose_attack(owner,request,book,ranker=rank_discards):
     value=book.thresholds_for("D1");value["preferred_plan"]=previous_plan
     def finish(action,mode,option=None,**detail):
         owner.last_analysis={"board_token":request["board_token"],"playbook":book.name,"playbook_version":book.version,"style":"speed" if value.get("speed_first") else "atk","mode":mode,"call_evaluations":deepcopy(call_notes),"kan_evaluations":deepcopy(kan_notes),"discard_evaluations":deepcopy(discard_notes),"north_evaluation":deepcopy(north_notes),**detail}
+        if action["kind"] in ("discard","riichi"):
+            owner.last_analysis["discard_genbutsu_to_all_riichi"]=riichi_genbutsu(board,action["tile"])
         owner.last_analysis["hand_plan"]=remember(owner,option)
         from agents.mahjong_soul.scoring import nagashi_eligible
         owner.last_analysis["nagashi_candidate"]=nagashi_eligible(board)
