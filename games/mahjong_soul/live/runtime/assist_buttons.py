@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from games.mahjong_soul.live.runtime.visual import decode_frame,sample,distance
 from games.mahjong_soul.live.runtime.input import board_token
+from games.mahjong_soul.live.runtime.game_access import input_game_verified
 
 
 class AssistButtons:
@@ -74,7 +75,7 @@ class AssistButtons:
         report=current_report();state=report.get("state") or {}
         if state.get("status") not in ("tracking","round_ended","match_ended") or state.get("player_count")!=3:return False
         if owner.controller.snapshot()["status"]!="idle":return False
-        if owner.require_ai and (report.get("game_connection"),report.get("game_generation",0)) not in owner.ai_games:return False
+        if not input_game_verified(owner,report):return False
         geometry=owner.recorder.geometry()
         if not geometry or (geometry["width"],geometry["height"])!=(1920,1080):return False
         token=self.guard(report,None)
@@ -109,7 +110,7 @@ class AssistButtons:
                 owner._record("assist_retired",control=self.pending[0],enabled=self.pending[1],reason="new_hand")
                 self.pending=None
             self.context=context;self.unavailable.clear();self.observed={}
-        if owner.require_ai and (report.get("game_connection"),report.get("game_generation",0)) not in owner.ai_games:return None
+        if not input_game_verified(owner,report):return None
         if owner.controller.snapshot()["status"]!="idle":return None
         geometry=owner.recorder.geometry()
         if not geometry or (geometry["width"],geometry["height"])!=(1920,1080):return None

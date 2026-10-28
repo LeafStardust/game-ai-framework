@@ -19,13 +19,17 @@ def detect_lobby(data):
                  and not (key=="open_hand" and mode.get("ai") is True)]
     if detail.get("fanfu",1) not in (0,1):unsupported.append("fanfu")
     known=count is not None and length is not None
+    meta=config.get("meta") or {}
+    ranked=(known and type(config.get("category")) is int and config["category"]==2 and mode.get("ai") is not True
+            and type(meta.get("mode_id")) is int and meta["mode_id"]>0
+            and not meta.get("room_id") and not meta.get("contest_uid") and not unsupported)
     return {"source":"authGame","identified":known,"player_count":count,"match_length":length,
             "mode_code":code,"category":config.get("category"),"ai":mode.get("ai"),
-            "room_id":(config.get("meta") or {}).get("room_id"),
+            "room_id":meta.get("room_id"),"mode_id":meta.get("mode_id"),"ranked":ranked,
             "rule_details":detail,"unsupported_rules":unsupported,
             "label":f"{count} Player {length.title()} Wind" if known else "Unknown lobby"}
 
 
 def unknown_lobby():
     return {"source":None,"identified":False,"player_count":None,"match_length":None,
-            "unsupported_rules":[],"label":"Unknown lobby"}
+            "unsupported_rules":[],"ranked":False,"mode_id":None,"label":"Unknown lobby"}

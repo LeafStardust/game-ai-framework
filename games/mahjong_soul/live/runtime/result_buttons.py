@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 import re
 from games.mahjong_soul.live.runtime.input import board_token
+from games.mahjong_soul.live.runtime.game_access import input_game_verified
 from games.mahjong_soul.live.runtime.visual import decode_frame,distance,sample
 
 
@@ -216,7 +217,7 @@ class ResultButtons:
                 owner._record("result_button_confirmed",button=self.pending,confirmation="game_state_advanced")
                 self.pending=None
             return None
-        if owner.require_ai and (report.get("game_connection"),report.get("game_generation",0)) not in owner.ai_games:return None
+        if not input_game_verified(owner,report):return None
         if owner.controller.snapshot()["status"]!="idle":return None
         geometry=owner.recorder.geometry()
         if not geometry or (geometry["width"],geometry["height"])!=(1920,1080):return None

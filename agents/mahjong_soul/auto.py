@@ -9,6 +9,7 @@ from pathlib import Path
 import time
 
 from agents.mahjong_soul.game_budget import GameBudget,positive_games
+from games.mahjong_soul.live.runtime.game_access import input_game_verified
 from agents.mahjong_soul.policy import make_policy
 from agents.mahjong_soul.auto_policy import AutomaticPolicy
 from agents.mahjong_soul.shadow import ShadowFollower, format_suggestion
@@ -26,7 +27,7 @@ from games.mahjong_soul.live.runtime.visual import TileVision, distance
 
 class AutoFollower(ShadowFollower):
     def __init__(self, schema, *, controller, recorder, vision, enabled=False,
-                 sleep=time.sleep, journal=None, require_ai=False, games=None, **kwargs):
+                 sleep=time.sleep, journal=None, require_ai=False, allow_ranked=False, games=None, **kwargs):
         super().__init__(schema, **kwargs)
         self.controller, self.recorder, self.vision = controller, recorder, vision
         self.enabled, self.sleep = enabled, sleep
@@ -34,6 +35,7 @@ class AutoFollower(ShadowFollower):
         self.game_budget=GameBudget(games)
         self.require_ai=require_ai
         self.ai_games=set()
+        self.allow_ranked=allow_ranked;self.ranked_games=set()
         self.journal=journal
         self.last_recorded_frame=float("-inf")
         self.last_status=None
@@ -69,6 +71,12 @@ class AutoFollower(ShadowFollower):
                 if verified:self.ai_games.add(key)
                 else:self.ai_games.discard(key)
                 self._record("ai_room_verified",verified=verified,connection=connection,generation=key[1])
+                from games.mahjong_soul.live.runtime.lobby import detect_lobby
+                ranked=(self.allow_ranked and detect_lobby(data).get("ranked") is True
+                        and not data.get("error",{}).get("code",0))
+                if ranked:self.ranked_games.add(key)
+                else:self.ranked_games.discard(key)
+                self._record("ranked_game_verified",verified=ranked,connection=connection,generation=key[1])
             for event in decoded.get("events", []):
                 confirmed=self.controller.observe(connection,event,now=self.clock())
                 self._record("game_event",connection=connection,event=event)
@@ -135,8 +143,8 @@ class AutoFollower(ShadowFollower):
     def _build_plan(self, event):
         report = self._current()
         if board_token(report) != event["board_token"]: raise ValueError("Board changed before visual check")
-        if self.require_ai and (report.get("game_connection"),report.get("game_generation",0)) not in self.ai_games:
-            raise ValueError("A three- or four-player room with only AI opponents has not been verified from capture")
+        if not input_game_verified(self,report):
+            raise ValueError("No authenticated supported lobby: AI opponents or ranked match required")
         geometry = self.recorder.geometry()
         if not geometry or (geometry["width"],geometry["height"]) != (1920,1080):
             raise ValueError("Foreground Mahjong client must be 1920x1080")
@@ -535,7 +543,7 @@ def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--games",type=positive_games,help="Stop after X completed matches; omit for unlimited play")
-    parser.add_argument("--execute",action="store_true",help="Enable mouse input; AI room testing")
+    parser.add_argument("--execute",action="store_true",help="Enable native mouse input in authenticated AI rooms and ranked matches")
     parser.add_argument("--playstyle",choices=["balanced","atk"],default="atk")
     parser.add_argument("--file",type=Path)
     parser.add_argument("--duration",type=float)
@@ -557,7 +565,7 @@ def main():
         attempted_keys=prior_attempts(args.recordings)
         journal=SessionJournal(args.recordings,max_bytes=args.recording_mb*1024**2)
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
-        paths=["games/mahjong_soul/live/runtime/room_restart.py","games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
+        paths=["games/mahjong_soul/live/runtime/room_restart.py","games/mahjong_soul/live/runtime/game_access.py","games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
                "games/mahjong_soul/live/runtime/windows_ocr.ps1","games/mahjong_soul/live/runtime/result_samples.json",
                "agents/mahjong_soul/assist_preferences.py","agents/mahjong_soul/assist_lock.py","agents/mahjong_soul/ready_commit.py", "agents/mahjong_soul/north_choice.py","games/mahjong_soul/live/runtime/assist_buttons.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
                "games/mahjong_soul/playbook/sanma/south_attack.py",
@@ -576,14 +584,14 @@ def main():
                "games/mahjong_soul/live/runtime/decision.py","games/mahjong_soul/live/runtime/session.py"]
         try:revision=subprocess.check_output(["git","rev-parse","HEAD"],cwd=root,text=True,stderr=subprocess.DEVNULL).strip()
         except (OSError,subprocess.SubprocessError):revision=None
-        journal.write("configuration",games=args.games,playstyle=args.playstyle,revision=revision,
+        journal.write("configuration",games=args.games,playstyle=args.playstyle,revision=revision,ranked_input=True,
                       source_hashes={name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in paths})
         print("Recording: "+str(journal.directory),flush=True)
     else: backend = None
     follower = AutoFollower(LiqiSchema.load(root/"liqi-reference.json"),
         file=args.file,directory=root/"logs/mahjong_soul",policy=AutomaticPolicy(make_policy("playbook",args.playstyle)) if args.execute else make_policy("playbook",args.playstyle),
         controller=InputController(backend,attempted_keys=attempted_keys),recorder=recorder,vision=vision,enabled=args.execute,
-        journal=journal,bootstrap_current=args.resume_current,require_ai=True,games=args.games)
+        journal=journal,bootstrap_current=args.resume_current,require_ai=True,allow_ranked=True,games=args.games)
     print("Automatic play enabled: discard, Skip, Riichi, Ron, Tsumo, Chi, Pon and kan, including visually verified call choices. Ctrl+C stops." if args.execute else "Suggestions only; mouse input disabled.",flush=True)
     start=time.monotonic(); previous=None; recorded_status=None; heartbeat=start
     try:
