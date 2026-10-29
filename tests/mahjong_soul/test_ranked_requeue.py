@@ -35,7 +35,8 @@ def test_three_game_command_requeues_after_first_and_second(monkeypatch,complete
 @pytest.mark.parametrize("limit,completed",[(1,1),(3,3)])
 def test_never_requeues_after_command_limit(monkeypatch,limit,completed):
     o,r,m,logs,h,now=setup(monkeypatch,limit,completed)
-    assert h.poll(o) is None and not m.clicks
+    event=h.poll(o)
+    assert event["kind"]=="finished" and event["completed"]==limit and not m.clicks
 
 
 def test_unlimited_command_can_requeue(monkeypatch):
@@ -73,7 +74,9 @@ def test_rechecks_board_budget_and_pixels_before_queue_input(monkeypatch,change)
     if change=="pixels":
         images=iter([b"first",b"moved"]);o._frame=lambda *a:next(images)
         monkeypatch.setattr("games.mahjong_soul.live.runtime.ranked_requeue.decode_frame",lambda p:bytes([0 if p==b"first" else 255])*(1920*1080*3))
-    assert h.poll(o)["reason"]=="waiting_for_stable_ranked_results" and not m.clicks
+    event=h.poll(o)
+    assert event["reason"]==("game_limit_reached" if change=="budget" else "waiting_for_stable_ranked_results")
+    assert not m.clicks
 
 
 def test_requeue_retry_requires_same_label_and_is_delayed_and_bounded(monkeypatch):
@@ -105,8 +108,6 @@ def test_queue_wait_never_clicks_other_confirm_or_cancel_controls(monkeypatch):
 
 def test_command_three_runs_exactly_two_requeues_then_finishes(monkeypatch):
     o,r,m,logs,h,now=setup(monkeypatch,3)
-    o._game_limit=lambda:({"kind":"finished","reason":"game_limit_reached","completed":len(o.game_budget.completed),"limit":3}
-                           if o.game_budget.done else None)
     assert h.poll(o)["reason"]=="ranked_requeue_submitted"
     for generation in (2,3):
         r["game_generation"]=generation;r["state"]["status"]="tracking"

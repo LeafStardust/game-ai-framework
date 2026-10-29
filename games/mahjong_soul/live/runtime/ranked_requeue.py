@@ -32,8 +32,9 @@ def one_more_game(words,scores=()):
 def requeue_ranked(buttons,owner,report,geometry,first,words,source):
     state=report.get("state") or {};budget=getattr(owner,"game_budget",None)
     if (state.get("status")!="match_ended" or not (state.get("lobby") or {}).get("ranked")
-            or not input_game_verified(owner,report) or budget is None or not budget.can_continue(report)):return None
+            or not input_game_verified(owner,report) or budget is None):return None
     key=(report.get("game_connection"),report.get("game_generation",0))
+    if key not in budget.completed:return None
     point=one_more_game(words,state.get("scores",[]))
     if point is None:
         if key in buttons.ranked_deliveries and buttons.pending=="one_more_game":
@@ -41,7 +42,7 @@ def requeue_ranked(buttons,owner,report,geometry,first,words,source):
         return None
     count,last=buttons.ranked_deliveries.get(key,(0,float("-inf")))
     now=getattr(owner,"clock",time.monotonic)()
-    if count>=2 or count and now-last<3:
+    if not budget.done and (count>=2 or count and now-last<3):
         return {"kind":"status","reason":"waiting_for_ranked_match"}
     x,y=point;token=board_token(report)
     def withheld(reason):
@@ -54,15 +55,18 @@ def requeue_ranked(buttons,owner,report,geometry,first,words,source):
     if source!=first and not stable(decode_frame(source),rgb):return withheld("ocr_source_changed")
     owner.sleep(.15)
     current=buttons.snapshot(owner)
-    if owner.recorder.geometry()!=geometry or board_token(current)!=token or not budget.can_continue(current):return withheld("state_window_or_budget_changed")
-    second=owner._frame(geometry,current,"before_ranked_requeue")
+    if owner.recorder.geometry()!=geometry or board_token(current)!=token or key not in budget.completed:return withheld("state_window_or_budget_changed")
+    second=owner._frame(geometry,current,"ranked_end_screen" if budget.done else "before_ranked_requeue")
     if second is None or not stable(rgb,decode_frame(second)):return withheld("result_pixels_changed")
     current=buttons.snapshot(owner)
     if hasattr(owner,"_game_limit"):
         finished=owner._game_limit()
         if finished is not None:return finished
     if (owner.recorder.geometry()!=geometry or board_token(current)!=token
-            or not input_game_verified(owner,current) or not budget.can_continue(current)):return withheld("final_verification_changed")
+            or not input_game_verified(owner,current) or key not in budget.completed):return withheld("final_verification_changed")
+    if budget.done:
+        if hasattr(owner,"_finish_at_end_screen"):return owner._finish_at_end_screen(current)
+        return {"kind":"finished","reason":"game_limit_reached","completed":len(budget.completed),"limit":budget.limit}
     buttons.ranked_deliveries[key]=(count+1,getattr(owner,"clock",time.monotonic)())
     owner._record("ranked_requeue_attempt",pixel=[x,y],completed=len(budget.completed),limit=budget.limit,attempt=count+1)
     owner.controller.backend.click(x/1919,y/1079,1920,1080)

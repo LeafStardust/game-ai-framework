@@ -33,6 +33,7 @@ class AutoFollower(ShadowFollower):
         self.enabled, self.sleep = enabled, sleep
         self.retry_expired=True;self.decision_retries=set()
         self.game_budget=GameBudget(games)
+        self.final_result_verified=False
         self.require_ai=require_ai
         self.ai_games=set()
         self.allow_ranked=allow_ranked;self.ranked_games=set()
@@ -93,7 +94,7 @@ class AutoFollower(ShadowFollower):
         png=self.recorder.frame(geometry)
         captured=self.clock()
         first_choice=phase=="call_choices" and board_token(report)!=self.last_choice_token
-        if png is not None and self.journal is not None and (phase in ("before_input","before_result_input","before_assist_input","before_room_start","before_ranked_requeue") or first_choice or self.clock()-self.last_recorded_frame>=2):
+        if png is not None and self.journal is not None and (phase in ("before_input","before_result_input","before_assist_input","before_room_start","before_ranked_requeue","ranked_end_screen") or first_choice or self.clock()-self.last_recorded_frame>=2):
             self.journal.frame(png,geometry=geometry,report=report,phase=phase)
             self.last_recorded_frame=self.clock()
             if phase=="call_choices":self.last_choice_token=board_token(report)
@@ -367,14 +368,27 @@ class AutoFollower(ShadowFollower):
         if completed!=before:
             self._record("game_completed",completed=completed,limit=self.game_budget.limit)
         if self.game_budget.done:
+            state=self.reader.snapshot().get("state") or {}
+            if (state.get("lobby") or {}).get("ranked") and not self.final_result_verified:
+                self.candidate=None
+                return None
             self.enabled=False;self.candidate=None;self.halted=None
             return {"kind":"finished","reason":"game_limit_reached",
                     "completed":completed,"limit":self.game_budget.limit}
         return None
 
+    def _finish_at_end_screen(self,report):
+        key=(report.get("game_connection"),report.get("game_generation",0))
+        if not self.game_budget.done or key not in self.game_budget.completed:return None
+        self.final_result_verified=True
+        self._record("final_result_screen_verified",completed=len(self.game_budget.completed),limit=self.game_budget.limit)
+        return self._game_limit()
+
     def poll(self):
         self.assist_frame=None
-        if self.game_budget.done:return self._game_limit()
+        if self.game_budget.done:
+            finished=self._game_limit()
+            if finished is not None:return finished
         if self.halted:
             if self.path is not None:
                 self._drain()
@@ -457,6 +471,8 @@ class AutoFollower(ShadowFollower):
             self.candidate=None
             return event
         if not self.enabled: return event
+        if self.game_budget.done:
+            return {"kind":"status","reason":"waiting_for_final_result_screen"}
         if event.get("kind")=="suggestion":
             prefs=event.get("analysis",{}).get("client_assists",{})
             for key in self.assist_desired:

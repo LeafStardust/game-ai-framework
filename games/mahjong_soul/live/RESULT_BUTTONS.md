@@ -49,8 +49,10 @@ an active AI match or the same previously verified custom room available.
 
 ## Ranked One More Game
 
-The existing command count applies to ranked continuation: `.\MahjongSoulAgent.bat 3` can click One More Game after games 1 and 2, then stops after game 3 before any additional queue click. With no count, continuation is unlimited until stopped. The first ranked match is joined manually.
+The existing command count applies to ranked continuation: `.\MahjongSoulAgent.bat 3` can click One More Game after games 1 and 2, then navigates the required final result/Confirm screens after game 3 and stops when the One More Game end screen is verified, without another queue click. With no count, continuation is unlimited until stopped. The first ranked match is joined manually.
 
 Require an authenticated supported ranked match that completed during this run, idle gameplay input, visible result context and a unique lower-screen One More Game label. Split OCR words are grouped only on the same line. Fresh observations must preserve the label and result panel, with unchanged board/window and remaining budget rechecked before delivery. A single delayed retry is allowed only after recognizing and verifying the same end-screen control again; queueing/Cancel overlays are excluded. New match state confirms progression without counting an additional completed match.
 
 The one-game ranked recording stopped before the final end-screen button, and the app was closed during implementation. Therefore the budget/OCR/input path is covered by synthetic and fake-mouse tests; actual One More Game layout/delivery remains unvalidated live. No real queue click was sent during development.
+
+At the ranked match limit, game input is disabled by the run budget while result navigation remains available. A server match-end event alone does not end the process. Two matching end-screen observations produce `final_result_screen_verified`, then the worker exits and keeps One More Game untouched. Unknown or moving final screens continue to be observed instead of being assumed complete.
