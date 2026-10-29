@@ -138,7 +138,7 @@ class ResultButtons:
         self.ocr=ocr;self.attempted=set();self.pending=None;self.deliveries={};self.restart_attempted=set()
         self.worker=ThreadPoolExecutor(max_workers=1,thread_name_prefix="mahjong-result-ocr") if ocr is windows_words else None
         self.ocr_job=None;self.ocr_source=None
-        self.ranked_deliveries={}
+        self.ranked_deliveries={};self.ranked_end_wait={}
         data=json.loads(Path(__file__).with_name("result_samples.json").read_text())
         self.templates=data["templates"]
 

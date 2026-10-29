@@ -81,7 +81,8 @@ def test_result_snapshot_that_drains_match_end_also_enforces_limit(monkeypatch):
     assert handler.poll(o)["kind"]=="finished" and not m.clicks
 
 
-def test_ranked_limit_navigates_results_then_stops_on_end_screen_without_requeue(monkeypatch):
+@pytest.mark.parametrize("has_more",[True,False])
+def test_ranked_limit_navigates_results_then_stops_on_end_screen_without_requeue(monkeypatch,has_more):
     from tests.mahjong_soul.test_auto import setup
     from tests.mahjong_soul.test_result_buttons import word,labels
     from tests.mahjong_soul.test_ranked_requeue import words
@@ -101,7 +102,7 @@ def test_ranked_limit_navigates_results_then_stops_on_end_screen_without_requeue
     handler=ResultButtons(lambda _:labels(word("Confirm")));f.result_buttons=handler
     assert f.poll()["reason"]=="result_button_submitted" and len(mouse.clicks)==1
     assert f.enabled and not f.final_result_verified
-    handler.ocr=lambda _:words();now[0]=2
+    handler.ocr=lambda _:(words() if has_more else [word("Match Results",x=700,y=200),word("Back",x=800,y=950)]);now[0]=2
     event=f.poll()
     assert event=={"kind":"finished","reason":"game_limit_reached","completed":1,"limit":1}
     assert not f.enabled and f.final_result_verified and len(mouse.clicks)==1

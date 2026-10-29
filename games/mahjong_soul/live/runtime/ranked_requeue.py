@@ -4,6 +4,7 @@ import time
 from games.mahjong_soul.live.runtime.game_access import input_game_verified
 from games.mahjong_soul.live.runtime.input import board_token
 from games.mahjong_soul.live.runtime.visual import decode_frame,sample,distance
+from games.mahjong_soul.live.runtime.ranked_end import final_ranked_screen,insufficient_copper,queue_active
 
 
 def one_more_game(words,scores=()):
@@ -35,17 +36,25 @@ def requeue_ranked(buttons,owner,report,geometry,first,words,source):
             or not input_game_verified(owner,report) or budget is None):return None
     key=(report.get("game_connection"),report.get("game_generation",0))
     if key not in budget.completed:return None
-    point=one_more_game(words,state.get("scores",[]))
+    more=one_more_game(words,state.get("scores",[]))
+    copper=insufficient_copper(words)
+    end=final_ranked_screen(words,state.get("scores",[]))
+    if not copper and key in buttons.ranked_deliveries and buttons.pending=="one_more_game" and queue_active(words):
+        return {"kind":"status","reason":"waiting_for_ranked_match"}
+    point=copper or more or end
     if point is None:
+        buttons.ranked_end_wait.pop(key,None)
         if key in buttons.ranked_deliveries and buttons.pending=="one_more_game":
             return {"kind":"status","reason":"waiting_for_ranked_match"}
         return None
     count,last=buttons.ranked_deliveries.get(key,(0,float("-inf")))
     now=getattr(owner,"clock",time.monotonic)()
-    if not budget.done and (count>=2 or count and now-last<3):
+    exhausted=count>=2 and now-last>=8
+    if more and not copper and not budget.done and (count and now-last<3 or count>=2 and not exhausted):
         return {"kind":"status","reason":"waiting_for_ranked_match"}
     x,y=point;token=board_token(report)
     def withheld(reason):
+        buttons.ranked_end_wait.pop(key,None)
         owner._record("ranked_requeue_withheld",reason=reason)
         return {"kind":"status","reason":"waiting_for_stable_ranked_results"}
     def stable(a,b):
@@ -67,6 +76,16 @@ def requeue_ranked(buttons,owner,report,geometry,first,words,source):
     if budget.done:
         if hasattr(owner,"_finish_at_end_screen"):return owner._finish_at_end_screen(current)
         return {"kind":"finished","reason":"game_limit_reached","completed":len(budget.completed),"limit":budget.limit}
+    reason="insufficient_copper" if copper else "ranked_requeue_unconfirmed" if exhausted else None
+    if more is None and not copper:
+        since=buttons.ranked_end_wait.setdefault(key,now)
+        if now-since<8:return {"kind":"status","reason":"waiting_for_ranked_continuation_button"}
+        reason="ranked_continuation_unavailable"
+    if reason:
+        owner._record("ranked_continuation_stopped",reason=reason,completed=len(budget.completed),limit=budget.limit)
+        if hasattr(owner,"_stop_ranked_continuation"):return owner._stop_ranked_continuation(current,reason)
+        return {"kind":"finished","reason":reason,"completed":len(budget.completed),"limit":budget.limit}
+    buttons.ranked_end_wait.pop(key,None)
     buttons.ranked_deliveries[key]=(count+1,getattr(owner,"clock",time.monotonic)())
     owner._record("ranked_requeue_attempt",pixel=[x,y],completed=len(budget.completed),limit=budget.limit,attempt=count+1)
     owner.controller.backend.click(x/1919,y/1079,1920,1080)

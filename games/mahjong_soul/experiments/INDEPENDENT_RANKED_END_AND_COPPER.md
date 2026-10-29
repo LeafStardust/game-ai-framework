@@ -1,0 +1,11 @@
+# Independent ranked final screen and Copper stop
+
+Fix the dependency on the One More Game caption. At the command's X-game limit, a verified final ranked screen can finish the worker without that button. Independent evidence requires a lower Back/Return/Lobby control and a final-match heading, multiple final placements with captured scores, or a ranked-points/reward summary. Intermediate Han/Fu and Confirm screens alone do not qualify.
+
+Before the limit, known explicit insufficient-Copper/coins wording stops the run with reason insufficient_copper and its actual completed count. Recognized wording includes insufficient, not enough, insufficient amount of, and don't/do not have enough. A bare Copper label or positive balance statement is not an error. No purchase, claim or dismissal input is sent.
+
+A verified final screen without a continuation control waits eight seconds for controls to appear, then stops as ranked_continuation_unavailable. It does not infer a Copper shortage from absence. If a still-visible requeue control does not progress after its single delayed retry and another eight seconds, it stops as ranked_requeue_unconfirmed. An actual Matching/Cancel queue overlay remains waiting, not falsely reported as a missing control.
+
+All terminal decisions retain authenticated ranked/run identity, completed-match, idle-controller, foreground, matching source/current pixels, fresh second capture and unchanged state checks. Clean early stops remain terminal on subsequent polls even though the requested game count was not reached. The terminal output and journal report the reason instead of claiming the target count was achieved.
+
+Validation: full suite passed 1,085 tests, one skipped; final focused end-screen/budget tests were rerun after allowing headings in the top client area. Synthetic tests cover absent One More Game at the limit, explicit insufficient currency before X and in unlimited mode, split captions, negative/positive wording, bounded missing-control waiting, late-arriving controls, failed requeue progression and true matchmaking. No agent, game or UI input was started. Screenshots were not required for these logic changes; actual unseen wording/layout still needs live validation.

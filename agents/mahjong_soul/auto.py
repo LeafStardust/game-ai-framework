@@ -33,7 +33,7 @@ class AutoFollower(ShadowFollower):
         self.enabled, self.sleep = enabled, sleep
         self.retry_expired=True;self.decision_retries=set()
         self.game_budget=GameBudget(games)
-        self.final_result_verified=False
+        self.final_result_verified=False;self.finished_event=None
         self.require_ai=require_ai
         self.ai_games=set()
         self.allow_ranked=allow_ranked;self.ranked_games=set()
@@ -361,6 +361,7 @@ class AutoFollower(ShadowFollower):
             return None
 
     def _game_limit(self):
+        if self.finished_event is not None:return dict(self.finished_event)
         if self.reader is None:return None
         before=len(self.game_budget.completed)
         self.game_budget.observe(self.reader.snapshot())
@@ -384,7 +385,15 @@ class AutoFollower(ShadowFollower):
         self._record("final_result_screen_verified",completed=len(self.game_budget.completed),limit=self.game_budget.limit)
         return self._game_limit()
 
+    def _stop_ranked_continuation(self,report,reason):
+        key=(report.get("game_connection"),report.get("game_generation",0))
+        if key not in self.game_budget.completed or reason not in ("insufficient_copper","ranked_continuation_unavailable","ranked_requeue_unconfirmed"):return None
+        self.final_result_verified=True;self.enabled=False;self.candidate=None;self.halted=None
+        self.finished_event={"kind":"finished","reason":reason,"completed":len(self.game_budget.completed),"limit":self.game_budget.limit}
+        return dict(self.finished_event)
+
     def poll(self):
+        if self.finished_event is not None:return dict(self.finished_event)
         self.assist_frame=None
         if self.game_budget.done:
             finished=self._game_limit()
@@ -581,7 +590,7 @@ def main():
         attempted_keys=prior_attempts(args.recordings)
         journal=SessionJournal(args.recordings,max_bytes=args.recording_mb*1024**2)
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
-        paths=["games/mahjong_soul/live/runtime/room_restart.py","games/mahjong_soul/live/runtime/ranked_requeue.py","games/mahjong_soul/live/runtime/game_access.py","games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
+        paths=["games/mahjong_soul/live/runtime/room_restart.py","games/mahjong_soul/live/runtime/ranked_requeue.py","games/mahjong_soul/live/runtime/ranked_end.py","games/mahjong_soul/live/runtime/game_access.py","games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
                "games/mahjong_soul/live/runtime/windows_ocr.ps1","games/mahjong_soul/live/runtime/result_samples.json",
                "agents/mahjong_soul/assist_preferences.py","agents/mahjong_soul/assist_lock.py","agents/mahjong_soul/ready_commit.py", "agents/mahjong_soul/north_choice.py","games/mahjong_soul/live/runtime/assist_buttons.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
                "games/mahjong_soul/playbook/sanma/south_attack.py",
@@ -630,7 +639,10 @@ def main():
                 journal.write("heartbeat",capture=str(follower.path),controller=follower.controller.snapshot(),halted=follower.halted)
                 heartbeat=time.monotonic()
             if kind=="finished":
-                print(f"Completed {event['completed']} games; automatic play stopped.",flush=True)
+                reason=event.get("reason")
+                detail={"insufficient_copper":"insufficient Copper","ranked_continuation_unavailable":"no verified continuation control","ranked_requeue_unconfirmed":"ranked requeue did not progress"}.get(reason)
+                print((f"Stopped after {event['completed']} completed games: {detail}." if detail else
+                       f"Completed {event['completed']} games; automatic play stopped."),flush=True)
                 break
             if args.once: break
             time.sleep(.05)
