@@ -22,5 +22,9 @@ class GameBudget:
             self.completed.add(key)
         return self.done
 
+    def can_continue(self,report):
+        key=(report.get("game_connection"),report.get("game_generation",0))
+        return key in self.completed and not self.done
+
     @property
     def done(self):return self.limit is not None and len(self.completed)>=self.limit

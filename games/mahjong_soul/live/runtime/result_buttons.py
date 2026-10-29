@@ -96,15 +96,18 @@ def windows_words(png):
     return [w for w in words if not (500<w["x"]<1300 and w["y"]<150 and w["text"].lower().startswith("room"))]+[word]
 
 
-def result_button(words,scores=()):
-    """Require a unique complete label in the lower portion of a result view."""
+def result_context(words,scores=()):
     context={re.sub(r"[^a-z0-9]","",w["text"].lower()) for w in words}
     score_values={str(n) for n in scores if type(n) is int}
     verified_scores=sum(re.sub(r"[^a-z0-9]","",w["text"].lower()) in score_values for w in words)>=2
     score_context=verified_scores or ("counter" in context and any(t.endswith("repeat") for t in context)) or (len(context & {"st","nd","rd","th","1st","2nd","3rd","4th"})>=2 and sum(t.isdigit() and len(t)>=4 for t in context)>=2)
-    if not score_context and not any(t in {"han","fu","yakuman","points","score","scores","result","results","ranking","rank","1st","2nd","3rd","4th","exhaustive"}
-               or re.fullmatch(r"[0-9]+(?:han|fu)",t) for t in context):
-        raise ValueError("Result-screen context is not visible")
+    return score_context or any(t in {"han","fu","yakuman","points","score","scores","result","results","ranking","rank","1st","2nd","3rd","4th","exhaustive"}
+               or re.fullmatch(r"[0-9]+(?:han|fu)",t) for t in context)
+
+
+def result_button(words,scores=()):
+    """Require a unique complete label in the lower portion of a result view."""
+    if not result_context(words,scores):raise ValueError("Result-screen context is not visible")
     matches=[]
     for word in words:
         label=re.sub(r"[^a-z]","",word["text"].lower())
@@ -135,6 +138,7 @@ class ResultButtons:
         self.ocr=ocr;self.attempted=set();self.pending=None;self.deliveries={};self.restart_attempted=set()
         self.worker=ThreadPoolExecutor(max_workers=1,thread_name_prefix="mahjong-result-ocr") if ocr is windows_words else None
         self.ocr_job=None;self.ocr_source=None
+        self.ranked_deliveries={}
         data=json.loads(Path(__file__).with_name("result_samples.json").read_text())
         self.templates=data["templates"]
 
@@ -225,9 +229,15 @@ class ResultButtons:
         first=owner._frame(geometry,report,"result_preflight")
         if first is None:return None
         recognized=self.visual_button(first)
-        method="template"
-        if recognized is None:
+        method="template";words=None
+        if state.get("status")=="match_ended" and (state.get("lobby") or {}).get("ranked"):
             words=self.words(first,token,geometry)
+            if words is None:return None
+            from games.mahjong_soul.live.runtime.ranked_requeue import requeue_ranked
+            queued=requeue_ranked(self,owner,report,geometry,first,words,self.ocr_source)
+            if queued is not None:return queued
+        if recognized is None:
+            if words is None:words=self.words(first,token,geometry)
             if words is None:return None
             try:button=result_button(words,state.get("scores",[]))
             except ValueError:

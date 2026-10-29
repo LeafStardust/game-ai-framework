@@ -4,7 +4,7 @@
 
 The handler is active only after a captured round or match ends and while the gameplay input controller is idle. It requires the foreground 1920x1080 game viewport, an authenticated AI room or ranked match when the lobby guard is enabled, visible result-screen context, and a unique lower-screen Continue or Confirm label. Windows English OCR reads the actual text bounds; there are no guessed result-button coordinates. OCR identifies the label and position once; a fresh second screenshot must preserve the same static label pixels. This avoids a second OCR subprocess delaying the click. The board token and window geometry are rechecked before the native click.
 
-Each result button is attempted once per round/label/position. Advancing game state confirms progression. After a completed match, it can click Start in the same custom AI room, as described below. It does not create rooms or select ranked queues. OCR absence, unknown text, animations, multiple matching labels or lost foreground focus produce no click. Delivery failures halt input rather than retry uncertain clicks.
+Each result button is attempted once per round/label/position. Advancing game state confirms progression. After a completed match, it can click Start in the same custom AI room, as described below. It does not create rooms or choose a new ranked mode. A verified ranked end screen can use its One More Game button within the configured match budget. OCR absence, unknown text, animations, multiple matching labels or lost foreground focus produce no click. Delivery failures halt input rather than retry uncertain clicks.
 
 The result recorder now continues capturing after network-state changes stop, so later Continue/Confirm screens are available for diagnosis. The initial implementation is covered by synthetic recognition/guard tests and a real Windows OCR smoke test. The round-score Confirm and final-results Confirm screens from session `20261020T104017-336368Z` now have actual OCR/pixel regression coverage. Live click validation remains pending after the fix. Result scans run at most every half second, and detected buttons withheld by later frame, state or window checks are recorded as `result_button_withheld` with the reason. These diagnostics do not appear in the recommendation terminal.
 
@@ -46,3 +46,11 @@ not click final result controls or start game X+1. The existing package supervis
 then performs its normal capture cleanup. There is no extra BAT file.
 The agent still needs the game open in the supported foreground viewport, with
 an active AI match or the same previously verified custom room available.
+
+## Ranked One More Game
+
+The existing command count applies to ranked continuation: `.\MahjongSoulAgent.bat 3` can click One More Game after games 1 and 2, then stops after game 3 before any additional queue click. With no count, continuation is unlimited until stopped. The first ranked match is joined manually.
+
+Require an authenticated supported ranked match that completed during this run, idle gameplay input, visible result context and a unique lower-screen One More Game label. Split OCR words are grouped only on the same line. Fresh observations must preserve the label and result panel, with unchanged board/window and remaining budget rechecked before delivery. A single delayed retry is allowed only after recognizing and verifying the same end-screen control again; queueing/Cancel overlays are excluded. New match state confirms progression without counting an additional completed match.
+
+The one-game ranked recording stopped before the final end-screen button, and the app was closed during implementation. Therefore the budget/OCR/input path is covered by synthetic and fake-mouse tests; actual One More Game layout/delivery remains unvalidated live. No real queue click was sent during development.

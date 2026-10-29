@@ -93,7 +93,7 @@ class AutoFollower(ShadowFollower):
         png=self.recorder.frame(geometry)
         captured=self.clock()
         first_choice=phase=="call_choices" and board_token(report)!=self.last_choice_token
-        if png is not None and self.journal is not None and (phase in ("before_input","before_result_input","before_assist_input","before_room_start") or first_choice or self.clock()-self.last_recorded_frame>=2):
+        if png is not None and self.journal is not None and (phase in ("before_input","before_result_input","before_assist_input","before_room_start","before_ranked_requeue") or first_choice or self.clock()-self.last_recorded_frame>=2):
             self.journal.frame(png,geometry=geometry,report=report,phase=phase)
             self.last_recorded_frame=self.clock()
             if phase=="call_choices":self.last_choice_token=board_token(report)
@@ -565,7 +565,7 @@ def main():
         attempted_keys=prior_attempts(args.recordings)
         journal=SessionJournal(args.recordings,max_bytes=args.recording_mb*1024**2)
         recorder = WindowsRecorder(); vision = TileVision(); backend = RecordingMouse(WindowsMouse(),journal)
-        paths=["games/mahjong_soul/live/runtime/room_restart.py","games/mahjong_soul/live/runtime/game_access.py","games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
+        paths=["games/mahjong_soul/live/runtime/room_restart.py","games/mahjong_soul/live/runtime/ranked_requeue.py","games/mahjong_soul/live/runtime/game_access.py","games/mahjong_soul/live/runtime/lobby.py","games/mahjong_soul/live/runtime/north.py","games/mahjong_soul/live/runtime/result_buttons.py",
                "games/mahjong_soul/live/runtime/windows_ocr.ps1","games/mahjong_soul/live/runtime/result_samples.json",
                "agents/mahjong_soul/assist_preferences.py","agents/mahjong_soul/assist_lock.py","agents/mahjong_soul/ready_commit.py", "agents/mahjong_soul/north_choice.py","games/mahjong_soul/live/runtime/assist_buttons.py","games/mahjong_soul/playbook/model.py","games/mahjong_soul/playbook/yonma/east_speed.py","games/mahjong_soul/playbook/sanma/east_speed.py",
                "games/mahjong_soul/playbook/sanma/south_attack.py",
