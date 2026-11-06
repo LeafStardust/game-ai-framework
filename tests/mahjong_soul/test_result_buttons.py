@@ -232,3 +232,33 @@ def test_async_ocr_old_board_result_is_discarded(monkeypatch):
     assert handler.poll(o) is None
     r["state"]["step"]+=1;tasks[0].set_result(labels(word()))
     assert handler.poll(o) is None and len(tasks)==2 and not m.clicks
+
+
+def test_rewards_confirm_has_separate_budget_from_placement_confirm(monkeypatch):
+    import base64
+    o,r,mouse,_=owner(monkeypatch);now=[1];o.clock=lambda:now[0]
+    handler=ResultButtons(lambda _:pytest.fail("Reviewed reward layout must use template"))
+    reward=next(row for row in handler.templates if row["stage"]=="match_rewards")
+    # Replay only the anonymous heading/button patches from the saved screen.
+    # Reproduce the generic Match End heading behind the reward overlay.
+    target=base64.b64decode(reward["context_sample"])
+    def sampled(frame,x,y,w,h):
+        if (x,y,w,h)==tuple(reward["context_bounds"]):return target
+        return bytes([20,40,60])*216
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.result_buttons.sample",sampled)
+    monkeypatch.setattr("games.mahjong_soul.live.runtime.result_buttons.heading_matches",lambda a,b:a==b)
+    generic=dict(reward,stage="match_results",context_bounds=[960,80,250,40],
+                 context_sample=base64.b64encode(bytes([20,40,60])*216).decode())
+    shared=base64.b64encode(bytes([20,40,60])*216).decode()
+    reward=dict(reward,sample=shared);generic["sample"]=shared
+    handler.templates=[generic]
+    assert handler.poll(o)["button"]=="confirm"
+    now[0]=3;assert handler.poll(o)["button"]=="confirm"
+    now[0]=6;assert handler.poll(o) is None
+    handler.templates.append(reward)
+    assert handler.visual_button(b"frame")[3]=="match_rewards"
+    assert handler.poll(o)["button"]=="confirm"
+    now[0]=8;assert handler.poll(o)["button"]=="confirm"
+    now[0]=11;assert handler.poll(o) is None
+    assert len(mouse.clicks)==4
+    assert ResultButtons.ocr_stage([word("Silver Chest"),word("Bond"),word("Match End")])=="match_rewards"

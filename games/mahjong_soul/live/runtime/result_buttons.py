@@ -168,6 +168,10 @@ class ResultButtons:
                     and heading_matches(sample(rgb,cx,cy,w,h),base64.b64decode(row["context_sample"]))):
                 matches.append((row["label"],x,y,row["stage"]))
         if not matches:return None
+        # The Match End heading persists behind the later chest/Bond page.
+        # Its specific reward heading takes precedence over the generic heading.
+        if any(m[3]=="match_rewards" for m in matches):
+            matches=[m for m in matches if m[3]=="match_rewards"]
         # OCR centers can differ by a pixel from the reviewed center. Multiple
         # references to that same button are agreement, not two visible buttons.
         if (len({(m[0],m[3]) for m in matches})==1
@@ -194,6 +198,7 @@ class ResultButtons:
     @staticmethod
     def ocr_stage(words):
         text=" ".join(w["text"].lower() for w in words)
+        if "bond" in text and "chest" in text:return "match_rewards"
         if "exhaustive" in text and "draw" in text:return "exhaustive_draw"
         if "counter" in text:return "round_scores"
         tokens=[re.sub(r"[^a-z0-9]","",w["text"].lower()) for w in words]

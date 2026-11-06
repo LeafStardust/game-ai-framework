@@ -128,6 +128,22 @@
       "context_sample": "BBcgBBcgBBcgBBcfBBYgBhghCRsiBhghBBYfBBYgBBYfFyowBBcgBBcgBBcgBBcgBBcgBBcgBhghCRsiBhggBBcgBBcfFiowAxggBBggBBggBBggBBcgBBcgBBcgDR4kCRsjBRggBBcgCBsjMTg0BBggAxggBBggBBcgBBcgBBcfUU1BBhghCBsiBBggBBcfsJFrAxggAxggAxghAxcgBBcgAxcgZVtKBBcgBhkhCBsjBBcg37J/AxggBBghAxghBBgiBBghAxcgTEtACx0kAxcgBxoiBxoigG9WBBghOz85HystNjw3Iy4vRUY9VFBDUk5CFiUpChwjKzQyDR8lKjMxwJxyn4Vkpopnln9gvptxsJFrfG1UjXhcRkY9cmVQAxkhln9gv5tx2q99rpBqyqN2qYxoqIxoLzc0k31ef25WuphvCx8mwJxyc2ZRy6R3nYRju5lwkXxeQ0U8BBghQkQ8RUY9gG9Wa2FOmYFheGpTxaB0mIBhvJpwknxeREY9DB8ll4BgDR8lPkI6l4Bhm4NirI9qw59zr5FryKJ1l4BhRkg+TEtAPkM7QUQ7Mzo2MDk1x6J1xaB0sZJr2a590Kd4qo1oR0k/UVBDZl5MRUc9KzUyBBsjp4xnXllJYFpJrZBqtJRtp4tnOUA5EiQozKV3CB0kIS8uBBsiLjg0CR4lDiInMzs2SUpAPkM7FCYpAxoiVFJEAxohDyImBBsjBR0kBBsjAxsjBBsjBRwjBBsjAxoiBBsjAxoiAxoiAxoiBBwjBRwkAxsjAxsjBBsjAxsjAxsjAxsjAxsjAxsiAxoiAxoiBBwkAxwjBBsjAxsjAxsjAxsjAxsjAxsjAxojAxsiAxoiAxoi",
       "source": "logs\\mahjong_soul\\sessions\\20261022T064356-902665Z\\frames\\0000802.png",
       "sha256": "d91e81a0f8133c22b640b54685f298232e93ab0065b6a1421e5de07f64025170"
+    },
+    {
+      "stage": "match_rewards",
+      "label": "confirm",
+      "pixel": [
+        1744,
+        986
+      ],
+      "sample": "++R7++R7++R7++R7++R7++R7++R7++R7++R7++R7++R7++R7++N6++N6+uN6++N6++N6++N67tN09t148NZ1++N6++N6++N6+uJ5+uJ5+uJ5+uJ5+uJ5+uJ5vJNe07FowZlf+uJ5+uJ5+uJ5+uF5+uF4+uF5+uF4+uF4+uF4jlhIo3NSnWtP+uF4+uF4+uF4+eB3+d93+eB3+eB4+eB3+d93mmdNrH1VwJde+d93+d93+eB3+d528dRz9dp189h0685x+N52qHhT27lp2bdp2bdp89d09tt1+N11wJde1LBm0q1ltopZ79FxlWBL89dzvZNcrH1Vzqlk6Mlu9dhzjVdIonFQoG5PnmtO17Nnf0VB8dRyklxJj1hImmdN27lo5MNsmWVMfUJBgUdCwZddx55fgUdC8tRxhUxEl2NMklxJ4sBrvZFb5cNrfEBAhk1E8NFw0KljmWRM9thyjFRGnWpO2bRm9dZyqnlS9ddxgUdCi1NG8NBv1a9kmWRM9thyjFRGnmpO9NVx9dZxoW5O9dZwgEVBi1NG789u1a9jl2JL9ddxiVFFnGhM9dZw9NRwoW5O9NVvhEpDh05E7s1t1q9jlmBK9dVwhUtDl2JK9dVv8dFusYFUvpFZrXxThEpD5cFo2bJkk11J9NNuej4/iVBE9NNu5L9oy6FekVpH1a1hkFlH475n27VklmBJ89JtgEVBi1NF9NJt5L9n5b9npnNP7cpqtoZV6cRo4r1ms4NU89FsqXdQr35S89Fs7clq8c5r27Rj8tBr3bZj8s5r68do2rJi8tBr2bFi27Rj89Br8s9r8s9r8s5q8s5q8c1q8s9q8c5q8c1q8s9q8c1q8c1q8s9q8s5r",
+      "context_bounds": [
+        1320,
+        286,
+        210,
+        40
+      ],
+      "context_sample": "HSUrHSUrHCUrHCUqGyQqGyQqEB4nEyAoEh8oDBojChMdChMcHSUrHSUrHCUrHCUqGyQqGiQqEh8oER8nEh8oDBojCxYfChUfHSUrHSUrHSUrHCUqGyQqGyQqFSEpEB4nEh8oDBokDBghCxghHSUrHycrHyYrHCUrGyQqGyQqGSMqHCYpEh8oDBokDBkiDBkjHiUrQ0A0NjcwHCQrGyQqHCQqGyQqmX5HEyAoDhslDBojDBkjJCotU0w3PDsyHCQrGyQqHCQqHCQq4LBYEyAoDx0mDBojDxwkOzsyQ0A0MTMvOzoyOTkxOzoxHCQqrIxMOjsxKS8tJCopNzguTkg3IiksKy8ufmpBjHREiHJDHCQqUEs2kHhGe2lAdmU+Ylc4QD4zHiUrJy0tw5tRzaJUlHpGHCQqEiAouZVPzKJTp4hKUUs0HyYsNTYxIyos06ZV1KdVLDAuHCUqFiIpbF491KhVQkAxEBwkICcsYlY7KS4tu5ZQs5BOHSUqHCQqRUM0Y1g6mX5HRkMyDhskNTYxkHdGS0Y2kXhGbF09HSUqHCQqiXJDaFw7WlI4l31GKzArPTwznH9IiXJEY1Y7cWE+HSUqHSUqkHdFdWU/a1492KpWSUUyJywuWU85hnBDLC8uf2tCHSUqHSUqNDUvbmA9aFw8qYlKLjIsHyYsKy8uSEM1HiYrPDsyHSUqHSUqHSUqQEAyJi0tUUs1EB0lICcsHyYsIigsHiUrHiUrHSUqHSUrHSQqFSIoEh8oER4mDRojICcsHyYsHiYsHiUrHiUrHSUrHSUrHSQqEB4nEh8oEB4mDRojICcsHyYsHiYrHiYrHiUrHSUrHSUrHSQqER8nEh8oEB4mDRoj"
     }
   ]
 }
