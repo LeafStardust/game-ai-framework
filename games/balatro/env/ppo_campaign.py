@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ProcessPoolExecutor
+from dataclasses import dataclass
 from hashlib import sha256
 import json
 import multiprocessing
@@ -61,6 +62,18 @@ _PROGRESS_FIELDS = frozenset(
         "complete",
     }
 )
+
+
+@dataclass(frozen=True)
+class CompletedPPOCampaign:
+    """Verified immutable identity and restored owner for one finished campaign."""
+
+    training_run: PPOTrainingRun
+    session: PPOTrainingSession
+    checkpoint_sha256: str
+    progress_sha256: str
+    final_sha256: str
+    policy_parameter_sha256: str
 
 
 def make_ppo_training_environment(stream_index: int) -> BalatroHeadlessEnvironment:
@@ -197,6 +210,76 @@ def _restore_session(
     if payload["training_run"] != run.as_dict():
         raise PPOContractError("PPO campaign training-run provenance mismatch")
     return PPOTrainingSession.restore(run, environment_factory, payload["session"])
+
+
+def _read_canonical_artifact(path: Path, label: str) -> tuple[object, bytes]:
+    try:
+        content = path.read_bytes()
+        payload = json.loads(content.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise PPOContractError(f"completed PPO {label} artifact is unreadable") from error
+    if _canonical_bytes(payload) != content:
+        raise PPOContractError(f"completed PPO {label} artifact is not canonical JSON")
+    return payload, content
+
+
+def load_completed_ppo_campaign(
+    artifact_directory: str | Path,
+    *,
+    environment_factory=make_ppo_training_environment,
+) -> CompletedPPOCampaign:
+    """Restore only a complete, canonically linked three-artifact campaign."""
+
+    directory = Path(artifact_directory)
+    checkpoint_path = directory / CHECKPOINT_NAME
+    progress_path = directory / PROGRESS_NAME
+    final_path = directory / FINAL_NAME
+    if not all(path.is_file() for path in (checkpoint_path, progress_path, final_path)):
+        raise PPOContractError(
+            "completed PPO campaign requires checkpoint, progress, and final artifacts"
+        )
+
+    checkpoint, checkpoint_bytes = _read_canonical_artifact(
+        checkpoint_path, "checkpoint"
+    )
+    if not isinstance(checkpoint, dict) or not isinstance(
+        checkpoint.get("training_run"), dict
+    ):
+        raise PPOContractError("completed PPO checkpoint training run is missing")
+    try:
+        run = PPOTrainingRun(**checkpoint["training_run"])
+    except (TypeError, PPOContractError) as error:
+        raise PPOContractError(
+            "completed PPO checkpoint training run is invalid"
+        ) from error
+    session = _restore_session(run, checkpoint, environment_factory)
+    if not session.complete:
+        raise PPOContractError("completed PPO checkpoint is not at the frozen schedule end")
+
+    checkpoint_digest = sha256(checkpoint_bytes).hexdigest()
+    expected_progress = _state_manifest(run, session, checkpoint_digest)
+    progress, progress_bytes = _read_canonical_artifact(progress_path, "progress")
+    if progress != expected_progress or progress.get("complete") is not True:
+        raise PPOContractError("completed PPO progress does not match checkpoint")
+
+    policy_digest = session.learner.model.parameter_sha256
+    expected_final = {
+        **expected_progress,
+        "version": PPO_CAMPAIGN_FINAL_VERSION,
+        "parameter_sha256": policy_digest,
+    }
+    final, final_bytes = _read_canonical_artifact(final_path, "final")
+    if final != expected_final:
+        raise PPOContractError("completed PPO final artifact does not match checkpoint")
+
+    return CompletedPPOCampaign(
+        training_run=run,
+        session=session,
+        checkpoint_sha256=checkpoint_digest,
+        progress_sha256=sha256(progress_bytes).hexdigest(),
+        final_sha256=sha256(final_bytes).hexdigest(),
+        policy_parameter_sha256=policy_digest,
+    )
 
 
 def _state_manifest(

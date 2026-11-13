@@ -1753,28 +1753,47 @@ Frozen PPO training completion:
   an unpromoted candidate until the frozen evaluation contract is executed by a
   canonical checkpoint-bound candidate owner.
 
+PPO candidate provenance and scheduling checkpoint:
+
+- `ppo_campaign.load_completed_ppo_campaign` now restores only a complete,
+  canonical `checkpoint.json` / `progress.json` / `final.json` set. It verifies
+  all three artifacts byte-canonically, restores the canonical learner, requires
+  the frozen schedule end, and binds checkpoint, progress, final, training-run,
+  and policy-parameter SHA-256 identities without a caller-supplied rescue path.
+- `ppo_candidate_evaluation` adds a separate versioned candidate arm without
+  weakening or rewriting either frozen baseline schema. Candidate identity binds
+  the completed campaign, promotion contract, observation/action schemas, and
+  exact Red/White/normal scope.
+- Fixed and fresh-unseeded candidate schedulers each require all 64 paired game
+  seeds in canonical order. Candidate policy sampling uses a separately derived,
+  replayable evaluation stream bound to the corpus/manifest; it does not reuse
+  training rollout randomness or either baseline's policy seed.
+- Missing/reordered evidence, stale artifact linkage, noncanonical JSON,
+  incomplete training, policy/schema drift, empty legal masks, malformed seeds,
+  nonterminal results, and executor type drift all fail closed.
+- Focused local validation: **88 passed in 1.52s**. No real candidate or
+  baseline promotion episode has been executed or inspected.
+
 ## Exact active task
 
-Implement the canonical trained-PPO candidate evaluation and promotion owner,
-then execute the frozen Red Deck / White Stake promotion contract without
-changing its pre-registered thresholds or inspecting partial results.
+Complete the canonical trained-PPO evaluation executor and promotion decision
+report, then execute the frozen Red Deck / White Stake promotion contract
+without changing its pre-registered thresholds or inspecting partial results.
 
 Requirements:
 
-- Extend the canonical fixed-seeded and unseeded evaluation boundaries to own a
-  PPO candidate arm without weakening the existing two frozen baseline arms.
-  Candidate evidence must bind training-run, checkpoint, policy-parameter,
-  observation, action, corpus/manifest, deck, stake, and mode provenance.
 - Restore the candidate only through the canonical checkpoint/learner owners and
-  execute the existing exact headless episode backend. Unsupported mechanics,
-  illegal actions, nonterminal/incomplete episodes, missing arms, or provenance
-  drift must fail closed rather than be approximated or rescued.
+  add the production executor over the existing exact headless episode backend.
+  It must return complete candidate results and authoritative diagnostic traces;
+  unsupported mechanics, illegal actions, nonterminal/incomplete episodes,
+  missing arms, or provenance drift must fail closed rather than be approximated
+  or rescued.
 - Add the canonical promotion report that applies the already-frozen fixed
   holdout, four-manifest unseeded, Wilson-confidence, minimum-clear-rate,
   clear-rate-delta, secondary-regression, and zero-tolerance gates. Do not alter
   `B0_PROMOTION_CONTRACT` after seeing candidate outcomes.
-- Add focused deterministic regressions for candidate scheduling, checkpoint
-  identity, report ordering/serialization, every promotion gate, and all
+- Add focused deterministic regressions for the executor, diagnostic binding,
+  report ordering/serialization, every promotion gate, and all remaining
   fail-closed paths before running the real evaluation corpus.
 - Use GitHub Actions as the test gate, inspect its actual logs, and update this
   roadmap at the next green checkpoint before executing or interpreting real

@@ -8,6 +8,7 @@ import pytest
 from games.balatro.env.environment import BalatroHeadlessEnvironment
 from games.balatro.env.ppo_campaign import (
     CHECKPOINT_NAME,
+    CompletedPPOCampaign,
     FINAL_NAME,
     PPO_CAMPAIGN_FINAL_VERSION,
     PPO_CAMPAIGN_VERSION,
@@ -15,11 +16,14 @@ from games.balatro.env.ppo_campaign import (
     PPO_TACTICAL_FACTORY_VERSION,
     PROGRESS_NAME,
     _atomic_write,
+    _canonical_bytes,
+    _checkpoint_payload,
     _is_exact_immediately_stale_progress,
     _reconcile_progress_artifact,
     _restore_session,
     _state_manifest,
     make_ppo_training_environment,
+    load_completed_ppo_campaign,
     run_ppo_campaign,
 )
 from games.balatro.env.ppo_contract import PPOContractError, PPOTrainingRun
@@ -98,6 +102,109 @@ def _fake_opener(opened):
         return _FakeSession(run, payload["session"]["fake_episode_count"])
 
     return open_session
+
+
+def _write_completed_campaign(directory, run, session):
+    checkpoint_bytes = _canonical_bytes(_checkpoint_payload(run, session))
+    (directory / CHECKPOINT_NAME).write_bytes(checkpoint_bytes)
+    progress = _state_manifest(run, session, sha256(checkpoint_bytes).hexdigest())
+    progress_bytes = _canonical_bytes(progress)
+    (directory / PROGRESS_NAME).write_bytes(progress_bytes)
+    final = {
+        **progress,
+        "version": PPO_CAMPAIGN_FINAL_VERSION,
+        "parameter_sha256": session.learner.model.parameter_sha256,
+    }
+    final_bytes = _canonical_bytes(final)
+    (directory / FINAL_NAME).write_bytes(final_bytes)
+    return checkpoint_bytes, progress_bytes, final_bytes
+
+
+def test_env_ppo_completed_campaign_loader_restores_exact_linked_owner(
+    tmp_path, monkeypatch
+):
+    run = PPOTrainingRun.from_seed("COMPLETED")
+    session = _FakeSession(run, episode_count=3)
+    checkpoint_bytes, progress_bytes, final_bytes = _write_completed_campaign(
+        tmp_path, run, session
+    )
+    restored = []
+
+    def restore(actual_run, payload, environment_factory):
+        restored.append((actual_run, payload, environment_factory))
+        return session
+
+    monkeypatch.setattr("games.balatro.env.ppo_campaign._restore_session", restore)
+    environment_factory = object()
+    result = load_completed_ppo_campaign(
+        tmp_path, environment_factory=environment_factory
+    )
+
+    assert isinstance(result, CompletedPPOCampaign)
+    assert result.training_run == run
+    assert result.session is session
+    assert result.checkpoint_sha256 == sha256(checkpoint_bytes).hexdigest()
+    assert result.progress_sha256 == sha256(progress_bytes).hexdigest()
+    assert result.final_sha256 == sha256(final_bytes).hexdigest()
+    assert result.policy_parameter_sha256 == "f" * 64
+    assert restored == [(run, json.loads(checkpoint_bytes), environment_factory)]
+
+
+@pytest.mark.parametrize("missing", (CHECKPOINT_NAME, PROGRESS_NAME, FINAL_NAME))
+def test_env_ppo_completed_campaign_loader_requires_all_artifacts(
+    tmp_path, monkeypatch, missing
+):
+    run = PPOTrainingRun.from_seed("MISSING")
+    session = _FakeSession(run, episode_count=3)
+    _write_completed_campaign(tmp_path, run, session)
+    (tmp_path / missing).unlink()
+
+    with pytest.raises(PPOContractError, match="requires checkpoint, progress, and final"):
+        load_completed_ppo_campaign(tmp_path)
+
+
+def test_env_ppo_completed_campaign_loader_rejects_drift_and_noncanonical_json(
+    tmp_path, monkeypatch
+):
+    run = PPOTrainingRun.from_seed("DRIFT")
+    session = _FakeSession(run, episode_count=3)
+    _write_completed_campaign(tmp_path, run, session)
+    monkeypatch.setattr(
+        "games.balatro.env.ppo_campaign._restore_session",
+        lambda actual_run, payload, environment_factory: session,
+    )
+
+    progress_path = tmp_path / PROGRESS_NAME
+    progress = json.loads(progress_path.read_text(encoding="utf-8"))
+    progress["checkpoint_sha256"] = "0" * 64
+    progress_path.write_bytes(_canonical_bytes(progress))
+    with pytest.raises(PPOContractError, match="progress does not match checkpoint"):
+        load_completed_ppo_campaign(tmp_path)
+
+    _write_completed_campaign(tmp_path, run, session)
+    final_path = tmp_path / FINAL_NAME
+    final_path.write_text(
+        json.dumps(json.loads(final_path.read_text(encoding="utf-8")), indent=2),
+        encoding="utf-8",
+    )
+    with pytest.raises(PPOContractError, match="final artifact is not canonical JSON"):
+        load_completed_ppo_campaign(tmp_path)
+
+
+def test_env_ppo_completed_campaign_loader_rejects_incomplete_checkpoint(
+    tmp_path, monkeypatch
+):
+    run = PPOTrainingRun.from_seed("INCOMPLETE")
+    complete = _FakeSession(run, episode_count=3)
+    _write_completed_campaign(tmp_path, run, complete)
+    incomplete = _FakeSession(run, episode_count=2)
+    monkeypatch.setattr(
+        "games.balatro.env.ppo_campaign._restore_session",
+        lambda actual_run, payload, environment_factory: incomplete,
+    )
+
+    with pytest.raises(PPOContractError, match="not at the frozen schedule end"):
+        load_completed_ppo_campaign(tmp_path)
 
 
 def test_env_ppo_campaign_starts_resumes_and_emits_final_manifest(tmp_path):
