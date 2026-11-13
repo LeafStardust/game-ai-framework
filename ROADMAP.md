@@ -75,7 +75,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | Development green through optimizer batch 211; long training pending |
+| PPO learner and training path | Frozen 1,024-batch schedule complete; promotion integration active |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -1727,42 +1727,66 @@ Continuous-training batch-211 short-redraw gate:
 - GitHub Actions run `38431523581`, job `115414640257`. Actual job log:
   **3251 passed, 1618 deselected in 210.14s**.
 
+Frozen PPO training completion:
+
+- The operator-managed `RED-WHITE-PPO-V1` campaign completed the frozen
+  1,024-batch schedule with `complete=true`. The final checkpoint restores
+  through the canonical learner owner with 2,104,439 collected environment
+  transitions, exactly 2,097,152 optimizer-consumed transitions, and Adam step
+  81,920.
+- Final next episode indices are
+  `(267304,267305,267306,267307,267308,267301,267302,267303)`. Per-stream
+  carryovers are `(763,1372,705,1520,1,589,1228,1109)` (7,287 total).
+- Final policy parameter SHA-256 is
+  `c544a516bc3263f482c676f913fe678dc948f5943b08c44eb32cdc41a859d5bb`.
+  The 119,632,012-byte checkpoint SHA-256 is
+  `1b0cc0d872b0a7f2625f746dcab97b90026b69093863f3d8e9f5f7a88c7b654d`.
+  The 702-byte progress manifest SHA-256 is
+  `411dc42cad6e76fb4a02ef6ab85b995b5c1160414deffe8a033b1a98bf89b580`
+  and links that exact checkpoint digest.
+- The first final invocation correctly failed closed because a four-batch
+  request exceeded the two batches remaining in the frozen schedule. A bounded
+  two-batch invocation then completed batches 1,023 and 1,024 with exit code
+  zero. This was a schedule-boundary command correction, not a mechanic or
+  checkpoint failure.
+- Training results have not been inspected or tuned. The learned policy remains
+  an unpromoted candidate until the frozen evaluation contract is executed by a
+  canonical checkpoint-bound candidate owner.
+
 ## Exact active task
 
-Run the operator-managed headless PPO campaign continuously from completed batch
-211 until either the frozen 1,024-batch schedule completes or the first command
-failure stops the loop. This is a training continuation, not a live Balatro run
-or a new development phase.
+Implement the canonical trained-PPO candidate evaluation and promotion owner,
+then execute the frozen Red Deck / White Stake promotion contract without
+changing its pre-registered thresholds or inspecting partial results.
 
 Requirements:
 
-- Use root seed `RED-WHITE-PPO-V1`, the existing canonical artifact directory,
-  `--maximum-batches 4`, `--maximum-workers 8`, and the existing episode cap.
-  Each invocation remains bounded to four incremental batches. The operator's
-  PowerShell loop may start the next invocation automatically only after the
-  preceding invocation exits successfully and `progress.json` remains
-  incomplete. Do not replace the campaign or alter the frozen contract.
-- Preserve every atomic boundary and stop on any new fail-closed mechanic.
-  Diagnose from the latest linked checkpoint/progress pair rather than stale
-  pending indices.
-- On completion or failure, inspect the latest checkpoint/progress canonical
-  linkage, completed batch count, Adam step, optimizer-consumed transitions,
-  policy digest, next episode indices, carryovers, and artifact hashes before
-  choosing the next task.
-- Successful intermediate four-batch exits are ordinary atomic training
-  progress, not separate development checkpoints. Update this roadmap at the
-  first failure, deliberate operator stop, or full completion rather than
-  requiring a manual handoff after every green invocation.
-- Do not inspect promotion results or change policy, hyperparameters, or search
-  schedule before the frozen training schedule completes validly.
+- Extend the canonical fixed-seeded and unseeded evaluation boundaries to own a
+  PPO candidate arm without weakening the existing two frozen baseline arms.
+  Candidate evidence must bind training-run, checkpoint, policy-parameter,
+  observation, action, corpus/manifest, deck, stake, and mode provenance.
+- Restore the candidate only through the canonical checkpoint/learner owners and
+  execute the existing exact headless episode backend. Unsupported mechanics,
+  illegal actions, nonterminal/incomplete episodes, missing arms, or provenance
+  drift must fail closed rather than be approximated or rescued.
+- Add the canonical promotion report that applies the already-frozen fixed
+  holdout, four-manifest unseeded, Wilson-confidence, minimum-clear-rate,
+  clear-rate-delta, secondary-regression, and zero-tolerance gates. Do not alter
+  `B0_PROMOTION_CONTRACT` after seeing candidate outcomes.
+- Add focused deterministic regressions for candidate scheduling, checkpoint
+  identity, report ordering/serialization, every promotion gate, and all
+  fail-closed paths before running the real evaluation corpus.
+- Use GitHub Actions as the test gate, inspect its actual logs, and update this
+  roadmap at the next green checkpoint before executing or interpreting real
+  promotion results.
 
 ## Held and deferred work
 
 - Natural Money Tree live parity evidence is explicitly on hold by user
   direction. It is not passed and must not be inferred.
 - No live Balatro run is currently required.
-- Remaining slow-tail episodes are admitted only through the bounded-invocation
-  campaign loop above.
+- The frozen training schedule is complete; do not resume or extend it unless a
+  later roadmap task explicitly freezes a new experiment.
 - Higher stakes and other decks begin only after controlled Red/White promotion.
 
 ## Resume evidence index
