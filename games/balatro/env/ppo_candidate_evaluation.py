@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from copy import deepcopy
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
@@ -24,6 +25,7 @@ from games.balatro.env.observation_encoding import (
 from games.balatro.env.ppo_campaign import (
     CompletedPPOCampaign,
     PPO_CAMPAIGN_VERSION,
+    make_ppo_training_environment,
 )
 from games.balatro.env.ppo_contract import (
     PPO_POLICY_OUTPUT_SCHEMA,
@@ -39,7 +41,9 @@ from games.balatro.env.seeded_evaluation import (
     FIXED_SEEDED_EPISODES,
     FixedSeededEpisodeSpec,
 )
-from games.balatro.env.state import RunStatus
+from games.balatro.env.environment import BalatroHeadlessEnvironment
+from games.balatro.env.episode_backend import PPO_HEADLESS_BACKEND_SCHEMA
+from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.env.unseeded_evaluation import (
     UnseededEpisodeSpec,
     UnseededEvaluationManifest,
@@ -351,6 +355,133 @@ class PPOCandidateEpisodeResult:
         value = asdict(self)
         value["status"] = self.status.value
         return value
+
+
+@dataclass(frozen=True)
+class PPOCandidateEpisodeEvidence:
+    """One exact candidate result plus its reset-to-terminal public trace."""
+
+    result: PPOCandidateEpisodeResult
+    frames: tuple[EnvStateFrame, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.result, PPOCandidateEpisodeResult):
+            raise PPOCandidateEvaluationError("candidate evidence result is invalid")
+        if (
+            not isinstance(self.frames, tuple)
+            or len(self.frames) != self.result.action_count + 1
+            or len(self.frames) < 2
+            or any(not isinstance(frame, EnvStateFrame) for frame in self.frames)
+        ):
+            raise PPOCandidateEvaluationError("candidate evidence frame trace is incomplete")
+        first, terminal = self.frames[0], self.frames[-1]
+        if (
+            first.status is not RunStatus.RUNNING
+            or first.owner is not TurnOwner.AGENT
+            or first.state.phase != "BLIND_SELECT"
+        ):
+            raise PPOCandidateEvaluationError(
+                "candidate evidence does not begin at the reset boundary"
+            )
+        if any(frame.status.terminal for frame in self.frames[:-1]):
+            raise PPOCandidateEvaluationError("candidate evidence terminates before its last frame")
+        if terminal.status is not self.result.status or not terminal.status.terminal:
+            raise PPOCandidateEvaluationError("candidate evidence terminal status drifted")
+        for frame in self.frames:
+            if (frame.state.deck_name, frame.state.stake_name) != (
+                EVALUATION_DECK,
+                EVALUATION_STAKE,
+            ):
+                raise PPOCandidateEvaluationError(
+                    "candidate evidence is not Red Deck / White Stake"
+                )
+            if str(frame.info.get("game_seed")) != self.result.game_seed:
+                raise PPOCandidateEvaluationError("candidate evidence game seed drifted")
+
+
+def execute_ppo_candidate_episode(
+    campaign: CompletedPPOCampaign,
+    identity: PPOCandidateIdentity,
+    *,
+    evidence_kind: str,
+    evidence_sha256: str,
+    episode_index: int,
+    game_seed: str,
+    policy_seed: str,
+    environment_factory=make_ppo_training_environment,
+) -> PPOCandidateEpisodeEvidence:
+    """Run one complete evaluation episode without truncation or fallback."""
+
+    if not isinstance(campaign, CompletedPPOCampaign):
+        raise TypeError("campaign must be CompletedPPOCampaign")
+    if not isinstance(identity, PPOCandidateIdentity):
+        raise TypeError("identity must be PPOCandidateIdentity")
+    if identity != PPOCandidateIdentity.from_completed_campaign(campaign):
+        raise PPOCandidateEvaluationError("candidate identity does not match campaign")
+    if not callable(environment_factory):
+        raise TypeError("environment_factory must be callable")
+    environment = environment_factory(0)
+    if not isinstance(environment, BalatroHeadlessEnvironment):
+        raise TypeError("environment_factory must return BalatroHeadlessEnvironment")
+
+    index = _exact_nonnegative_int(episode_index, "candidate episode index")
+    if not isinstance(game_seed, str) or not game_seed:
+        raise PPOCandidateEvaluationError("candidate game seed is invalid")
+    seed = _require_policy_seed(policy_seed)
+    _lower_digest(evidence_sha256, "candidate evidence digest")
+    if evidence_kind not in (FIXED_EVIDENCE_KIND, UNSEEDED_EVIDENCE_KIND):
+        raise PPOCandidateEvaluationError("candidate evidence kind is invalid")
+
+    model = campaign.session.learner.model
+    if getattr(model, "parameter_sha256", None) != identity.policy_parameter_sha256:
+        raise PPOCandidateEvaluationError("candidate model parameter identity drifted")
+    environment.reset(seed=game_seed)
+    if environment.frame.info.get("backend_schema") != PPO_HEADLESS_BACKEND_SCHEMA:
+        raise PPOCandidateEvaluationError("candidate evaluation backend schema drifted")
+    frames = [deepcopy(environment.frame)]
+    actions = 0
+    for decision_index in range(PPO_TRAINING_CONTRACT.maximum_episode_actions):
+        frame = environment.frame
+        if frame.status.terminal:
+            break
+        observation = frame.encoded_observation()
+        legal_actions = environment.legal_actions()
+        output = model.infer(observation, legal_action_mask(legal_actions))
+        decision = select_ppo_candidate_action(
+            identity,
+            policy_seed=seed,
+            decision_index=decision_index,
+            observation=observation,
+            legal_actions=legal_actions,
+            policy_output=output,
+        )
+        _, _, terminated, truncated, _ = environment.step(decision.action)
+        if truncated:
+            raise PPOCandidateEvaluationError("candidate evaluation episode truncated")
+        if environment.frame.info.get("backend_schema") != PPO_HEADLESS_BACKEND_SCHEMA:
+            raise PPOCandidateEvaluationError("candidate evaluation backend schema drifted")
+        actions += 1
+        frames.append(deepcopy(environment.frame))
+        if terminated:
+            break
+    else:
+        raise PPOCandidateEvaluationError("candidate episode exceeded the action cap")
+    if not environment.frame.status.terminal:
+        raise PPOCandidateEvaluationError("candidate episode is incomplete")
+    if getattr(model, "parameter_sha256", None) != identity.policy_parameter_sha256:
+        raise PPOCandidateEvaluationError("candidate model changed during evaluation")
+
+    result = PPOCandidateEpisodeResult.completed(
+        identity,
+        evidence_kind=evidence_kind,
+        evidence_sha256=evidence_sha256,
+        episode_index=index,
+        game_seed=game_seed,
+        policy_seed=seed,
+        status=environment.frame.status,
+        action_count=actions,
+    )
+    return PPOCandidateEpisodeEvidence(result=result, frames=tuple(frames))
 
 
 @dataclass(frozen=True)

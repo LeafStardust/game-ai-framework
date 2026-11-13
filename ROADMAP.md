@@ -1774,30 +1774,50 @@ PPO candidate provenance and scheduling checkpoint:
 - Focused local validation: **88 passed in 1.52s**. No real candidate or
   baseline promotion episode has been executed or inspected.
 
+PPO evaluation executor and promotion-report checkpoint:
+
+- `ppo_candidate_evaluation` now executes a restored candidate through the exact
+  `PPOHeadlessBackend` from reset to a terminal boundary. The executor binds the
+  completed campaign identity, isolated evaluation policy stream, exact backend
+  schema, game seed, action count, and immutable reset-to-terminal frame trace;
+  truncation, action-cap exhaustion, nonterminal completion, model/backend drift,
+  malformed provenance, and unsupported/illegal mechanics fail closed.
+- `evaluation_diagnostics` now owns policy-neutral terminal trace metrics. Both
+  the frozen baseline diagnostics and the candidate diagnostics derive Ante-8
+  clear, Ante reached, blind-requirement progress, and cash metrics from that
+  single canonical owner.
+- `ppo_promotion` adds complete fixed/fresh candidate execution bundles and the
+  versioned promotion decision report. The report requires one fixed arm plus
+  four unique paired unseeded manifests, applies every unchanged
+  `B0_PROMOTION_CONTRACT` clear-count, minimum-rate, absolute-delta, one-sided
+  Wilson, per-evidence-set secondary-regression, and zero-tolerance pathology
+  gate, and rejects ordering, provenance, source-digest, gate, or decision
+  tampering.
+- Focused local validation: **139 passed in 7.53s** across the frozen B0
+  schedulers/baselines, diagnostics, campaign loader, candidate executor, and
+  promotion report. No real candidate or baseline promotion episode has been
+  executed or inspected.
+
 ## Exact active task
 
-Complete the canonical trained-PPO evaluation executor and promotion decision
-report, then execute the frozen Red Deck / White Stake promotion contract
-without changing its pre-registered thresholds or inspecting partial results.
+Use GitHub Actions as the gate for the executor/report checkpoint, then add the
+canonical atomic promotion-evaluation owner needed to execute the frozen Red
+Deck / White Stake contract without exposing or interpreting partial outcomes.
 
 Requirements:
 
-- Restore the candidate only through the canonical checkpoint/learner owners and
-  add the production executor over the existing exact headless episode backend.
-  It must return complete candidate results and authoritative diagnostic traces;
-  unsupported mechanics, illegal actions, nonterminal/incomplete episodes,
-  missing arms, or provenance drift must fail closed rather than be approximated
-  or rescued.
-- Add the canonical promotion report that applies the already-frozen fixed
-  holdout, four-manifest unseeded, Wilson-confidence, minimum-clear-rate,
-  clear-rate-delta, secondary-regression, and zero-tolerance gates. Do not alter
-  `B0_PROMOTION_CONTRACT` after seeing candidate outcomes.
-- Add focused deterministic regressions for the executor, diagnostic binding,
-  report ordering/serialization, every promotion gate, and all remaining
-  fail-closed paths before running the real evaluation corpus.
-- Use GitHub Actions as the test gate, inspect its actual logs, and update this
-  roadmap at the next green checkpoint before executing or interpreting real
-  promotion results.
+- Inspect the actual CI job log and record its exact passed/deselected counts
+  before any real promotion episode is run.
+- Execute both frozen baselines and the restored candidate through the exact
+  headless backend for the complete fixed corpus and four fresh manifests. Bind
+  every source report and diagnostics report to one versioned run identity.
+- Persist manifests, source reports, diagnostics, pathology audit, and final
+  promotion report canonically and atomically. A failed/incomplete arm must not
+  produce a promotable report or a rescue/approximate outcome.
+- Add focused deterministic regressions for baseline execution, full-run
+  ordering/provenance, atomic publication/resume behavior, and failure paths.
+- Only after that owner is green in CI, execute the real frozen evaluation as a
+  single controlled run and interpret the final promotion report.
 
 ## Held and deferred work
 

@@ -6,6 +6,8 @@ import pytest
 
 from games.balatro.env.action_encoding import legal_action_mask
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.environment import BalatroHeadlessEnvironment
+from games.balatro.env.episode_backend import PPOHeadlessBackend
 from games.balatro.env.observation_encoding import EncodedPublicObservation
 from games.balatro.env.ppo_campaign import CompletedPPOCampaign
 from games.balatro.env.ppo_candidate_evaluation import (
@@ -15,10 +17,12 @@ from games.balatro.env.ppo_candidate_evaluation import (
     PPO_CANDIDATE_UNSEEDED_REPORT_SCHEMA,
     UNSEEDED_EVIDENCE_KIND,
     PPOCandidateEpisodeResult,
+    PPOCandidateEpisodeEvidence,
     PPOCandidateEvaluationError,
     PPOCandidateFixedReport,
     PPOCandidateIdentity,
     fixed_candidate_policy_seed,
+    execute_ppo_candidate_episode,
     run_fixed_ppo_candidate_evaluation,
     run_unseeded_ppo_candidate_evaluation,
     select_ppo_candidate_action,
@@ -36,6 +40,8 @@ from games.balatro.env.seeded_evaluation import (
 )
 from games.balatro.env.state import RunStatus
 from games.balatro.env.unseeded_evaluation import create_unseeded_evaluation_manifest
+from games.balatro.env.ppo_promotion import execute_fixed_ppo_candidate_evaluation
+from games.balatro.actions import PLAY_CARDS, BalatroAction
 
 
 def _identity():
@@ -53,6 +59,48 @@ def _identity():
         policy_parameter_sha256="4" * 64,
     )
     return PPOCandidateIdentity.from_completed_campaign(campaign)
+
+
+class _OneCardTacticalPolicy:
+    def decide(self, state):
+        return SimpleNamespace(action=BalatroAction(PLAY_CARDS, cards=[state.hand[0]]))
+
+
+class _SelectBlindModel:
+    def __init__(self, identity):
+        self.parameter_sha256 = identity.policy_parameter_sha256
+
+    def infer(self, observation, action_mask):
+        probabilities = [0.0] * PPO_TRAINING_CONTRACT.action_size
+        select_index = next(
+            index
+            for index, action in enumerate(action_mask.values)
+            if action
+        )
+        probabilities[select_index] = 1.0
+        return PPOPolicyOutput(
+            schema_version=PPO_POLICY_OUTPUT_SCHEMA,
+            observation_version=PPO_TRAINING_CONTRACT.observation_version,
+            action_version=PPO_TRAINING_CONTRACT.action_version,
+            probabilities=tuple(probabilities),
+            value_estimate=0.0,
+        )
+
+
+def _campaign_with_model(identity, model):
+    run = PPOTrainingRun.from_seed("CANDIDATE")
+    session = SimpleNamespace(
+        learner=SimpleNamespace(completed_batch_count=1024, model=model),
+        optimizer_consumed_transitions=2_097_152,
+    )
+    return CompletedPPOCampaign(
+        training_run=run,
+        session=session,
+        checkpoint_sha256=identity.checkpoint_sha256,
+        progress_sha256=identity.progress_sha256,
+        final_sha256=identity.final_sha256,
+        policy_parameter_sha256=identity.policy_parameter_sha256,
+    )
 
 
 def _manifest(byte=7):
@@ -240,3 +288,136 @@ def test_env_ppo_candidate_executor_and_terminal_contract_fail_closed():
         replace(result, policy_seed="BAD")
     with pytest.raises(PPOCandidateEvaluationError, match="fixed episode spec"):
         fixed_candidate_policy_seed(replace(spec, game_seed="DRIFT"))
+
+
+def test_env_ppo_candidate_executor_runs_exact_reset_to_terminal_trace():
+    identity = _identity()
+    model = _SelectBlindModel(identity)
+    campaign = _campaign_with_model(identity, model)
+    spec = FIXED_SEEDED_EPISODES[0]
+    policy_seed = fixed_candidate_policy_seed(spec)
+
+    evidence = execute_ppo_candidate_episode(
+        campaign,
+        identity,
+        evidence_kind=FIXED_EVIDENCE_KIND,
+        evidence_sha256=FIXED_SEEDED_CORPUS_SHA256,
+        episode_index=spec.episode_index,
+        game_seed=spec.game_seed,
+        policy_seed=policy_seed,
+        environment_factory=lambda stream: BalatroHeadlessEnvironment(
+            PPOHeadlessBackend(_OneCardTacticalPolicy())
+        ),
+    )
+
+    assert isinstance(evidence, PPOCandidateEpisodeEvidence)
+    assert evidence.result.status is RunStatus.LOSS
+    assert evidence.result.action_count == 1
+    assert len(evidence.frames) == 2
+    assert evidence.frames[0].state.phase == "BLIND_SELECT"
+    assert evidence.frames[-1].state.phase == "GAME_OVER"
+    assert all(frame.info["game_seed"] == spec.game_seed for frame in evidence.frames)
+
+
+def test_env_ppo_candidate_executor_rejects_identity_model_and_backend_drift():
+    identity = _identity()
+    model = _SelectBlindModel(identity)
+    campaign = _campaign_with_model(identity, model)
+    spec = FIXED_SEEDED_EPISODES[0]
+    kwargs = dict(
+        evidence_kind=FIXED_EVIDENCE_KIND,
+        evidence_sha256=FIXED_SEEDED_CORPUS_SHA256,
+        episode_index=spec.episode_index,
+        game_seed=spec.game_seed,
+        policy_seed=fixed_candidate_policy_seed(spec),
+    )
+
+    with pytest.raises(PPOCandidateEvaluationError, match="identity does not match"):
+        execute_ppo_candidate_episode(
+            campaign,
+            replace(identity, checkpoint_sha256="5" * 64),
+            environment_factory=lambda stream: BalatroHeadlessEnvironment(
+                PPOHeadlessBackend(_OneCardTacticalPolicy())
+            ),
+            **kwargs,
+        )
+
+    model.parameter_sha256 = "6" * 64
+    with pytest.raises(PPOCandidateEvaluationError, match="model parameter identity"):
+        execute_ppo_candidate_episode(
+            campaign,
+            identity,
+            environment_factory=lambda stream: BalatroHeadlessEnvironment(
+                PPOHeadlessBackend(_OneCardTacticalPolicy())
+            ),
+            **kwargs,
+        )
+
+    model.parameter_sha256 = identity.policy_parameter_sha256
+    with pytest.raises(TypeError, match="must return BalatroHeadlessEnvironment"):
+        execute_ppo_candidate_episode(
+            campaign,
+            identity,
+            environment_factory=lambda stream: object(),
+            **kwargs,
+        )
+
+    class _DriftedEnvironment(BalatroHeadlessEnvironment):
+        def reset(self, *, seed):
+            value = super().reset(seed=seed)
+            self._frame.info["backend_schema"] = "DRIFT"
+            return value
+
+    with pytest.raises(PPOCandidateEvaluationError, match="backend schema"):
+        execute_ppo_candidate_episode(
+            campaign,
+            identity,
+            environment_factory=lambda stream: _DriftedEnvironment(
+                PPOHeadlessBackend(_OneCardTacticalPolicy())
+            ),
+            **kwargs,
+        )
+
+
+def test_env_ppo_candidate_executor_rejects_truncation(monkeypatch):
+    identity = _identity()
+    model = _SelectBlindModel(identity)
+    campaign = _campaign_with_model(identity, model)
+    spec = FIXED_SEEDED_EPISODES[0]
+    real_step = BalatroHeadlessEnvironment.step
+
+    def truncated_step(environment, action):
+        observation, reward, terminated, _, info = real_step(environment, action)
+        return observation, reward, terminated, True, info
+
+    monkeypatch.setattr(BalatroHeadlessEnvironment, "step", truncated_step)
+    with pytest.raises(PPOCandidateEvaluationError, match="truncated"):
+        execute_ppo_candidate_episode(
+            campaign,
+            identity,
+            evidence_kind=FIXED_EVIDENCE_KIND,
+            evidence_sha256=FIXED_SEEDED_CORPUS_SHA256,
+            episode_index=spec.episode_index,
+            game_seed=spec.game_seed,
+            policy_seed=fixed_candidate_policy_seed(spec),
+            environment_factory=lambda stream: BalatroHeadlessEnvironment(
+                PPOHeadlessBackend(_OneCardTacticalPolicy())
+            ),
+        )
+
+
+def test_env_ppo_candidate_fixed_executor_binds_all_results_and_diagnostics():
+    identity = _identity()
+    campaign = _campaign_with_model(identity, _SelectBlindModel(identity))
+
+    bundle = execute_fixed_ppo_candidate_evaluation(
+        campaign,
+        environment_factory=lambda stream: BalatroHeadlessEnvironment(
+            PPOHeadlessBackend(_OneCardTacticalPolicy())
+        ),
+    )
+
+    assert bundle.source.episode_count == 64
+    assert bundle.diagnostics.episode_count == 64
+    assert bundle.diagnostics.summary.ante_8_clears == 0
+    assert bundle.diagnostics.source_schema_version == bundle.source.schema_version

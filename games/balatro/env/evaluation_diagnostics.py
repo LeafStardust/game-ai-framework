@@ -36,6 +36,45 @@ class EvaluationDiagnosticsError(ValueError):
     """Raised when an exact diagnostic cannot be derived from episode state."""
 
 
+@dataclass(frozen=True)
+class TerminalEpisodeMetrics:
+    """Policy-neutral metrics derived from one authoritative terminal trace."""
+
+    frame_count: int
+    ante_reached: int
+    ante_8_cleared: bool
+    terminal_blind_score: float
+    terminal_blind_requirement: float
+    terminal_chip_margin: float
+    terminal_requirement_progress: float
+    starting_money: int
+    minimum_money: int
+    peak_money: int
+    terminal_money: int
+
+    def __post_init__(self) -> None:
+        _exact_int(self.frame_count, "frame count", minimum=2)
+        _exact_int(self.ante_reached, "ante reached", minimum=1)
+        for name in ("starting_money", "minimum_money", "peak_money", "terminal_money"):
+            _exact_int(getattr(self, name), name.replace("_", " "))
+        if self.minimum_money > min(self.starting_money, self.terminal_money):
+            raise EvaluationDiagnosticsError("minimum money is inconsistent")
+        if self.peak_money < max(self.starting_money, self.terminal_money):
+            raise EvaluationDiagnosticsError("peak money is inconsistent")
+        score = _finite_number(self.terminal_blind_score, "terminal blind score")
+        requirement = _finite_number(
+            self.terminal_blind_requirement, "terminal blind requirement"
+        )
+        margin = _finite_number(self.terminal_chip_margin, "terminal chip margin")
+        progress = _finite_number(
+            self.terminal_requirement_progress, "terminal requirement progress"
+        )
+        if requirement <= 0.0:
+            raise EvaluationDiagnosticsError("terminal blind requirement must be positive")
+        if margin != score - requirement or progress != score / requirement:
+            raise EvaluationDiagnosticsError("terminal survival diagnostics are inconsistent")
+
+
 def _exact_int(value: object, name: str, *, minimum: int | None = None) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise EvaluationDiagnosticsError(f"{name} must be an exact integer")
@@ -141,13 +180,40 @@ def derive_episode_diagnostics(
 ) -> EpisodeDiagnostics:
     """Derive exact diagnostics from a complete reset-to-terminal frame trace."""
     evidence_kind, evidence_sha256 = _result_provenance(result)
+    metrics = derive_terminal_episode_metrics(
+        status=result.status,
+        action_count=result.action_count,
+        frames=frames,
+    )
+    return EpisodeDiagnostics(
+        schema_version=EVALUATION_DIAGNOSTICS_SCHEMA,
+        evidence_kind=evidence_kind,
+        evidence_sha256=evidence_sha256,
+        baseline_version=result.baseline_version,
+        episode_index=result.episode_index,
+        game_seed=result.game_seed,
+        status=result.status,
+        **asdict(metrics),
+    )
+
+
+def derive_terminal_episode_metrics(
+    *,
+    status: RunStatus,
+    action_count: int,
+    frames: Iterable[EnvStateFrame],
+) -> TerminalEpisodeMetrics:
+    """Derive policy-neutral metrics from a complete reset-to-terminal trace."""
+    if not isinstance(status, RunStatus) or not status.terminal:
+        raise EvaluationDiagnosticsError("episode metrics require terminal status")
+    actions = _exact_int(action_count, "episode action count", minimum=0)
     trace = tuple(frames)
     if len(trace) < 2 or any(not isinstance(frame, EnvStateFrame) for frame in trace):
         raise EvaluationDiagnosticsError(
             "episode diagnostics require at least two authoritative frames"
         )
     first, terminal = trace[0], trace[-1]
-    if result.action_count > len(trace) - 1:
+    if actions > len(trace) - 1:
         raise EvaluationDiagnosticsError("episode action count exceeds recorded transitions")
     if first.status is not RunStatus.RUNNING or first.state.phase != "BLIND_SELECT":
         raise EvaluationDiagnosticsError("episode trace must begin at the blind-select reset boundary")
@@ -155,7 +221,7 @@ def derive_episode_diagnostics(
         raise EvaluationDiagnosticsError("episode trace must begin at Ante 1")
     if any(frame.status.terminal for frame in trace[:-1]) or not terminal.status.terminal:
         raise EvaluationDiagnosticsError("episode trace must terminate exactly once at its final frame")
-    if terminal.status is not result.status:
+    if terminal.status is not status:
         raise EvaluationDiagnosticsError("episode trace terminal status mismatches result")
 
     antes: list[int] = []
@@ -177,24 +243,17 @@ def derive_episode_diagnostics(
     if requirement <= 0.0:
         raise EvaluationDiagnosticsError("terminal blind requirement must be positive")
     ante_reached = max(antes)
-    if result.status is RunStatus.ANTE_8_WIN and ante_reached < 8:
+    if status is RunStatus.ANTE_8_WIN and ante_reached < 8:
         raise EvaluationDiagnosticsError("Ante 8 win trace never reached Ante 8")
-    if result.status is RunStatus.LOSS and score >= requirement:
+    if status is RunStatus.LOSS and score >= requirement:
         raise EvaluationDiagnosticsError("terminal loss already satisfies its blind requirement")
-    if result.status is RunStatus.ANTE_8_WIN and score < requirement:
+    if status is RunStatus.ANTE_8_WIN and score < requirement:
         raise EvaluationDiagnosticsError("Ante 8 win does not satisfy its blind requirement")
 
-    return EpisodeDiagnostics(
-        schema_version=EVALUATION_DIAGNOSTICS_SCHEMA,
-        evidence_kind=evidence_kind,
-        evidence_sha256=evidence_sha256,
-        baseline_version=result.baseline_version,
-        episode_index=result.episode_index,
-        game_seed=result.game_seed,
-        status=result.status,
+    return TerminalEpisodeMetrics(
         frame_count=len(trace),
         ante_reached=ante_reached,
-        ante_8_cleared=result.status is RunStatus.ANTE_8_WIN,
+        ante_8_cleared=status is RunStatus.ANTE_8_WIN,
         terminal_blind_score=score,
         terminal_blind_requirement=requirement,
         terminal_chip_margin=score - requirement,
