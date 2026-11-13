@@ -1800,24 +1800,49 @@ PPO evaluation executor and promotion-report checkpoint:
 - GitHub Actions run `43461291480`, job `132008579076`, passed the pushed
   checkpoint at commit `ab066686`: **3285 passed, 1618 deselected in 173.00s**.
 
+## Atomic promotion-evaluation owner checkpoint
+
+- `ppo_promotion_evaluation` now owns exact random-legal and conservative
+  symbolic baseline execution over `PPOHeadlessBackend`, including complete
+  reset-to-terminal traces and canonical baseline diagnostics. The frozen
+  symbolic authority selects the ordinary Blind, delegates non-pack shop
+  choices to `BalatroShopPolicy`, never opens a Booster, and otherwise fails
+  closed rather than using hidden pack choices or a fallback action.
+- One versioned evaluation identity binds the trained candidate, promotion
+  contract, fixed corpus, both baseline versions, symbolic authority, and four
+  fresh unique manifests. The owner schedules all **960** episodes: 64 fixed
+  candidate, 128 fixed baseline, 256 fresh candidate, and 512 fresh baseline.
+- No source or outcome artifact is published until every arm and every frozen
+  gate completes. The owner then writes 27 canonical indexed artifacts into a
+  private staging directory and atomically publishes the directory plus its
+  final digest index. Existing complete publications resume by verification
+  without rerunning; incomplete or tampered publications fail closed.
+- The production CLI emits outcome-free arm progress (`completed_arms / 10`)
+  and reveals the decision only after atomic final publication.
+- Focused local validation: **50 passed in 86.90s** across atomic execution,
+  promotion, candidate, and diagnostic owners; the final progress-reporting
+  regression rerun passed **6 tests in 78.67s**. No production promotion episode
+  has been executed or inspected.
+
 ## Exact active task
 
-Add the canonical atomic promotion-evaluation owner needed to execute the
-frozen Red Deck / White Stake contract without exposing or interpreting partial
-outcomes.
+Use GitHub Actions as the gate for the atomic owner, record its exact test
+counts, then execute the real frozen promotion evaluation once through the
+production CLI and interpret only its atomically published final report.
 
 Requirements:
 
-- Execute both frozen baselines and the restored candidate through the exact
-  headless backend for the complete fixed corpus and four fresh manifests. Bind
-  every source report and diagnostics report to one versioned run identity.
-- Persist manifests, source reports, diagnostics, pathology audit, and final
-  promotion report canonically and atomically. A failed/incomplete arm must not
-  produce a promotable report or a rescue/approximate outcome.
-- Add focused deterministic regressions for baseline execution, full-run
-  ordering/provenance, atomic publication/resume behavior, and failure paths.
-- Only after that owner is green in CI, execute the real frozen evaluation as a
-  single controlled run and interpret the final promotion report.
+- Push the atomic owner and inspect the actual GitHub Actions job log; do not
+  begin production evaluation until that run is green.
+- Run the CLI against the already-verified completed campaign artifact and a
+  new dedicated output directory. Do not inspect arm artifacts or tune anything
+  while the command is incomplete.
+- If execution fails, preserve the exact exception and leave the contract and
+  model unchanged. Fix only a demonstrated canonical-owner defect, add its
+  deterministic regression, and repeat the CI gate before retrying.
+- On complete publication, verify every indexed digest, read `promotion.json`,
+  record all gate results and the final promoted/not-promoted decision, and
+  update this roadmap before any later phase begins.
 
 ## Held and deferred work
 
