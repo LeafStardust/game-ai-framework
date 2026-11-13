@@ -1823,17 +1823,16 @@ PPO evaluation executor and promotion-report checkpoint:
   promotion, candidate, and diagnostic owners; the final progress-reporting
   regression rerun passed **6 tests in 78.67s**. No production promotion episode
   has been executed or inspected.
+- GitHub Actions run `43463744422`, job `132017216593`, passed the pushed atomic
+  owner at commit `b09d2dbe`: **3291 passed, 1618 deselected in 264.87s**.
 
 ## Exact active task
 
-Use GitHub Actions as the gate for the atomic owner, record its exact test
-counts, then execute the real frozen promotion evaluation once through the
-production CLI and interpret only its atomically published final report.
+Execute the real frozen promotion evaluation once through the production CLI
+and interpret only its atomically published final report.
 
 Requirements:
 
-- Push the atomic owner and inspect the actual GitHub Actions job log; do not
-  begin production evaluation until that run is green.
 - Run the CLI against the already-verified completed campaign artifact and a
   new dedicated output directory. Do not inspect arm artifacts or tune anything
   while the command is incomplete.
