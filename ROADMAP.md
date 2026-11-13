@@ -1797,17 +1797,17 @@ PPO evaluation executor and promotion-report checkpoint:
   schedulers/baselines, diagnostics, campaign loader, candidate executor, and
   promotion report. No real candidate or baseline promotion episode has been
   executed or inspected.
+- GitHub Actions run `43461291480`, job `132008579076`, passed the pushed
+  checkpoint at commit `ab066686`: **3285 passed, 1618 deselected in 173.00s**.
 
 ## Exact active task
 
-Use GitHub Actions as the gate for the executor/report checkpoint, then add the
-canonical atomic promotion-evaluation owner needed to execute the frozen Red
-Deck / White Stake contract without exposing or interpreting partial outcomes.
+Add the canonical atomic promotion-evaluation owner needed to execute the
+frozen Red Deck / White Stake contract without exposing or interpreting partial
+outcomes.
 
 Requirements:
 
-- Inspect the actual CI job log and record its exact passed/deselected counts
-  before any real promotion episode is run.
 - Execute both frozen baselines and the restored candidate through the exact
   headless backend for the complete fixed corpus and four fresh manifests. Bind
   every source report and diagnostics report to one versioned run identity.
