@@ -2050,23 +2050,41 @@ Completed `tactical-arbitration-shadow-v1` evaluation:
   games. The dominant competence loss is therefore after the first blind;
   repairing two first-blind tails cannot establish Red/White competence.
 
+Later-blind attribution tooling checkpoint:
+
+- The digest-bound fixed diagnostics contain exactly 2 losses at requirement
+  300 and 62 post-first-blind losses. Terminal groups are: 10 at 450, 20 at
+  600, 14 at 800, 13 at 1200, 4 at 1600, and 1 at 3200. This confirms that the
+  full-game failure is dominated by later blinds rather than the two first-blind
+  tails.
+- Canonical selection (maximum post-first terminal chip margin, then earliest
+  episode) chooses episode 1 / seed `F222A3BD`: Ante 1, requirement 600, score
+  588, margin `-12`, and seven strategic actions. The new later-tactical trace
+  owner verifies the publication index and diagnostics digests, replays those
+  exact strategic actions to the terminal blind, and captures every public-safe
+  tactical decision and plan value.
+- Its counterfactual rule is deliberately narrow and diagnostic: at the first
+  production divergence, substitute only a different already-computed plan
+  that is exact with clear probability 1, then resume production decisions. It
+  does not inspect the seed, RNG, private zones, or tune a threshold.
+- Focused selection/distribution/counterfactual and existing trace validation:
+  **16 passed in 4.56s**. Broader candidate, campaign, backend,
+  tactical-evidence, decision-engine, and later-trace validation: **83 passed
+  in 14.95s**. GitHub Actions and production trace publication remain pending.
+
 ## Exact active task
 
-Attribute the post-first-blind failure distribution in the published fixed
-candidate evidence and select one digest-bound representative later-blind
-tactical failure for exact decision/counterfactual tracing before changing
-production policy or starting another strategic training run.
+CI-gate the digest-bound later-blind trace owner, then publish the representative
+production/counterfactual trace before changing production policy or starting
+another strategic training run.
 
 Requirements:
 
-- Derive the terminal Ante/round/requirement distribution directly from the
-  digest-bound fixed candidate report; do not infer it from aggregate means.
-- Select a representative post-first-blind loss canonically, replay the exact
-  candidate strategic actions to its terminal blind, and capture the shared
-  tactical decisions at that boundary with deterministic provenance tests.
-- Determine whether an exact clearing counterfactual exists without hidden
-  policy input. Do not tune the rejected shadow rule, change production policy,
-  start another 1,024-batch run, or relax the promotion contract.
+- Use CI as the tooling gate and record exact passed/deselected counts.
+- Execute the production trace only after CI; verify the canonical digest,
+  published 588 loss, exact-plan override count, and counterfactual clear.
+- Do not tune the rejected shadow rule, change production policy, start another
+  1,024-batch run, or relax the promotion contract during this task.
 
 ## Held and deferred work
 
