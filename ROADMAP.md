@@ -2073,18 +2073,57 @@ Later-blind attribution tooling checkpoint:
   in 14.95s**.
 - GitHub Actions run `43590589957`, job `132434252970`, passed commit
   `0661cf05`: **3308 passed, 1618 deselected in 181.30s**. Production trace
-  publication remains pending.
+  publication was gated on this result.
+
+Completed later-blind tactical trace:
+
+- The production CLI completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_LATER_TACTICAL_TRACE.json`, report SHA-256
+  `d2995f1854af16b18ae23bebe710098f3c4c456d01d32b7bbe16ec85f4b75878`.
+  It binds fixed-candidate SHA-256
+  `0e6868c9d783910318187ab7391925d005d6baac10ac90c853b99d7327eb49cb`
+  and diagnostics SHA-256
+  `a59f2ba33fe3a516ec4ea789a16252072785f982046b99d1c5f9b5aa192d7fad`.
+- The report reproduces episode 1 / `F222A3BD` at The Club exactly: production
+  loses 588/600. At tactical decision 3, production chooses inexact Play
+  `(0,1,2,5,6)` with projected clear probability 1 and expected score 700,
+  while the completed search already contains a different exact horizon-2 Play
+  `(0,1,2,3,4)` with clear probability 1 and expected score 744.
+- Substituting only that exact public plan and then resuming production decisions
+  clears the same authoritative blind at 610. The override count is exactly one;
+  no seed, RNG, private zone, reward, strategic action, or environment mechanic
+  changes. This demonstrates a tactical arbitration defect: the strategy-aware
+  Boss exactness downgrade discards an exact clear path, after which safe-pace
+  arbitration selects an inexact alternative that loses.
+
+Frozen bounded experiment (`boss-exact-path-preservation-shadow-v1`):
+
+- Shadow only: at a Boss decision, when production differs from an
+  already-computed exact plan with clear probability 1, choose the highest
+  expected-score exact clear plan; otherwise preserve production verbatim. The
+  rule consumes only the public state and retained production search evidence.
+- Evaluate the trained candidate on all 64 fixed seeds with the frozen policy
+  seeds and compare to the published fixed candidate. Acceptance requires zero
+  illegal, unsupported, incomplete, or provenance-drift episodes; episode 1
+  must clear its 600-chip Club boundary; fixed full-game clear count may not
+  regress; mean Ante, terminal requirement progress, minimum cash, and terminal
+  cash may not regress; and at least one of full-game clears, mean Ante, or mean
+  terminal requirement progress must strictly improve.
+- Reject rather than tune after the 64-seed result. Do not modify production
+  arbitration until this separately versioned shadow passes.
 
 ## Exact active task
 
-Publish the CI-gated representative later-blind production/counterfactual trace
-before changing production policy or starting another strategic training run.
+Implement and CI-gate `boss-exact-path-preservation-shadow-v1`, then execute its
+frozen 64-seed candidate evaluation before changing production policy or
+starting another strategic training run.
 
 Requirements:
 
-- Use CI as the tooling gate and record exact passed/deselected counts.
-- Execute the production trace only after CI; verify the canonical digest,
-  published 588 loss, exact-plan override count, and counterfactual clear.
+- Add deterministic regressions proving the shadow acts only on a different
+  exact Boss clear and otherwise returns the production decision unchanged.
+- Publish digest-bound paired per-seed outcomes and the predeclared aggregate
+  gates; use CI before executing the 64-seed report.
 - Do not tune the rejected shadow rule, change production policy, start another
   1,024-batch run, or relax the promotion contract during this task.
 
