@@ -3,6 +3,7 @@ import pytest
 from games.balatro.env.ppo_boss_inexact_trace import (
     PPOBossInexactTraceError,
     _first_exact_to_inexact,
+    _matches_census_decision,
     _terminal_events,
 )
 
@@ -38,3 +39,21 @@ def test_boss_inexact_trace_fails_closed_without_the_boundary():
     }
     with pytest.raises(PPOBossInexactTraceError, match="exact-to-inexact"):
         _first_exact_to_inexact((event,))
+
+
+def test_boss_inexact_trace_matches_all_compact_census_fields():
+    action = {"name": "PLAY_CARDS", "indices": [0]}
+    census = {
+        "action": action,
+        "selected_plan": {"action": action, "exact": False, "expected_score": 10.0},
+    }
+    event = {"output": {
+        "action": action,
+        "selected_plan": {
+            **census["selected_plan"],
+            "expected_progress": 0.5,
+        },
+    }}
+    assert _matches_census_decision(event, census) is True
+    event["output"]["selected_plan"]["expected_score"] = 11.0
+    assert _matches_census_decision(event, census) is False

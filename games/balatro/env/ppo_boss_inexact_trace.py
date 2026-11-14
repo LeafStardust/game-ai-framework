@@ -149,6 +149,14 @@ def _first_exact_to_inexact(events) -> int:
     raise PPOBossInexactTraceError("no exact-to-inexact Boss boundary was observed")
 
 
+def _matches_census_decision(event, census) -> bool:
+    selected = event["output"]["selected_plan"]
+    expected = census["selected_plan"]
+    return event["output"]["action"] == census["action"] and all(
+        selected.get(name) == value for name, value in expected.items()
+    )
+
+
 def build_boss_inexact_trace(
     campaign_directory: str | Path,
     promotion_directory: str | Path,
@@ -183,8 +191,7 @@ def build_boss_inexact_trace(
     terminal_events = _terminal_events(events)
     census_decisions = census_episode["terminal_decisions"]
     if len(terminal_events) != len(census_decisions) or any(
-        event["output"]["action"] != census["action"]
-        or event["output"]["selected_plan"] != census["selected_plan"]
+        not _matches_census_decision(event, census)
         for event, census in zip(terminal_events, census_decisions, strict=True)
     ):
         raise PPOBossInexactTraceError("Boss trace decisions drifted from census")
