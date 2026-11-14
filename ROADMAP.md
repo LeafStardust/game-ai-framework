@@ -1917,24 +1917,61 @@ Checkpoint-backed failure-trace tooling checkpoint:
   6.87s**.
 - GitHub Actions run `43572237626`, job `132378903831`, passed commit
   `3e526d09`: **3296 passed, 1618 deselected in 215.13s**. No production
-  diagnostic replay has been executed yet.
+  diagnostic replay had been executed at that gate.
+
+Completed checkpoint-backed failure trace:
+
+- The CI-gated production replay completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_PROMOTION_FAILURE_TRACE.json`, report SHA-256
+  `587171df91cc54f9a8ce72f2bb2817334ea6e95af402e2c472df792200881fed`.
+  All three candidate episodes and both baseline replays reproduced their
+  digest-bound published status and action count exactly.
+- Episodes 5 (`5C7469F4`) and 15 (`FE32359A`) expose only `SELECT_BLIND` at
+  their sole strategic decision. Candidate, random, and symbolic therefore
+  take the identical forced action and produce the identical respective
+  terminal frames: Ante 1 / round 1 / `$4` / scores 204 and 212. These losses
+  occur entirely inside the shared tactical blind-play authority; no strategic
+  observation, action mask, sampling, or baseline choice can alter them.
+- Episode 12 (`D9605DEC`) demonstrates a functioning, state-sensitive policy
+  interface rather than probability collapse or illegal masking. Its learned
+  shop distributions include `BUY_VOUCHER` at `0.8271` and `0.5474`, and
+  `BUY_CONSUMABLE` at `0.7459` and `0.6159`; every forced blind-select and
+  singleton shop state correctly has probability 1. The candidate buys two
+  vouchers and two consumables, reaches Ante 2 / round 7, and loses with `$10`.
+  Random reaches the same terminal blind with `$28`; symbolic loses earlier at
+  round 4 with `$12`. All three still lose under the shared tactical authority.
+- The candidate critic is already loss-saturated across the representative
+  trajectories: every estimate lies from `-0.9197` through `-0.9868` under the
+  frozen `0/-1/+1` sparse terminal reward. This is consistent with the
+  promotion result's **0/960 aggregate clears across candidate and both
+  baselines**, not with an unseen successful strategic mode.
+- Attribution: the demonstrated primary blocker is the deterministic tactical
+  blind-play competence ceiling, including two failures before PPO receives
+  any strategic choice. Candidate shop overspending is a real secondary policy
+  weakness, but strategic retraining, reward tuning, or promotion-threshold
+  changes cannot repair the forced first-blind losses. The environment and PPO
+  observation/action contracts reproduced without drift; no contract defect
+  is demonstrated.
 
 ## Exact active task
 
-Execute the three CI-gated pinned production replays and attribute the observed
-action distributions and trajectories before changing training, reward,
-architecture, hyperparameters, baselines, or promotion thresholds.
+Trace the shared tactical authority inside the two forced first-blind losses
+(`5C7469F4` and `FE32359A`) and identify the first demonstrably suboptimal
+canonical hand decision before changing tactical policy or starting another
+strategic training run.
 
 Requirements:
 
-- Compare trained action distributions and strategic trajectories against the
-  two baseline arms to distinguish policy-learning failure from observation,
-  action-mask, reward-credit, or environment/reward-contract defects.
-- Add deterministic regressions for diagnostic provenance and replay before
-  executing it. Use CI as the gate and record exact counts.
-- Do not start another 1,024-batch training run, tune against these outcomes, or
-  relax the frozen promotion contract until the failure has a demonstrated
-  canonical cause and a separately frozen next experiment.
+- Capture the exact ordered tactical play/discard decisions, candidate scores,
+  resource state, and terminal transition beneath the forced `SELECT_BLIND`;
+  keep the diagnostic replay digest-bound and fail closed.
+- Determine whether an exact clearing line exists from the authoritative
+  initial state. If it does, fix only the canonical tactical decision owner and
+  pin the first corrected decision with a deterministic regression. If it does
+  not, record that result rather than approximating a rescue path.
+- Gate any change in GitHub Actions and rerun these two tactical replays before
+  freezing a bounded retraining experiment. Do not start another 1,024-batch
+  run or relax the promotion contract.
 
 ## Held and deferred work
 
