@@ -1953,25 +1953,45 @@ Completed checkpoint-backed failure trace:
   observation/action contracts reproduced without drift; no contract defect
   is demonstrated.
 
+Tactical first-blind trace tooling checkpoint:
+
+- The production tactical factory is now a named canonical owner shared by the
+  training environment and diagnostics; the environment configuration itself
+  is unchanged. The digest-bound tactical trace invokes each production hand
+  decision once through the existing public-safe evidence transition and
+  records ordered actions, resource frames, fallback candidates, projected
+  scores/probabilities, search attempts, and the exact terminal transition.
+- Exact authoritative counterfactual replay proves that both representative
+  blinds are clearable without hidden-state policy input. `5C7469F4` diverges
+  at decision 0 from production discard `(0,2,3,4,5)` to play
+  `(2,4,5,6,7)` and clears in two plays at score 396 rather than losing at
+  204. `FE32359A` preserves production decision 0, then diverges at decision 1
+  from play `(1,2,5,6)` to discard `(0,3,4,5,6)` and clears at 348 rather
+  than losing at 212.
+- These are diagnostic counterfactuals, not a seed-specific rescue policy. They
+  pin the first demonstrated decision divergence while leaving tactical policy
+  unchanged. Focused factory/trace validation: **31 passed in 2.28s**. Broader
+  backend, tactical-evidence, decision-engine, campaign, and trace validation:
+  **60 passed in 8.81s**. GitHub Actions and production report publication are
+  still pending.
+
 ## Exact active task
 
-Trace the shared tactical authority inside the two forced first-blind losses
-(`5C7469F4` and `FE32359A`) and identify the first demonstrably suboptimal
-canonical hand decision before changing tactical policy or starting another
-strategic training run.
+Gate the digest-bound tactical failure trace in GitHub Actions, publish the two
+production/counterfactual replays, and freeze a bounded policy-level experiment
+from the demonstrated decision divergences before changing tactical policy or
+starting another strategic training run.
 
 Requirements:
 
-- Capture the exact ordered tactical play/discard decisions, candidate scores,
-  resource state, and terminal transition beneath the forced `SELECT_BLIND`;
-  keep the diagnostic replay digest-bound and fail closed.
-- Determine whether an exact clearing line exists from the authoritative
-  initial state. If it does, fix only the canonical tactical decision owner and
-  pin the first corrected decision with a deterministic regression. If it does
-  not, record that result rather than approximating a rescue path.
-- Gate any change in GitHub Actions and rerun these two tactical replays before
-  freezing a bounded retraining experiment. Do not start another 1,024-batch
-  run or relax the promotion contract.
+- Use CI as the trace-tooling gate and record exact passed/deselected counts.
+- Execute the report CLI only after CI passes; verify its canonical digest and
+  exact loss/clear terminal scores before committing the report.
+- The next experiment must test a general policy-level cause (pace/fallback
+  arbitration or search-evidence retention), not memorize these two seeds.
+  Keep the current production decisions frozen until that experiment and its
+  acceptance criteria are recorded. Do not start another 1,024-batch run or
+  relax the promotion contract.
 
 ## Held and deferred work
 

@@ -76,14 +76,8 @@ class CompletedPPOCampaign:
     policy_parameter_sha256: str
 
 
-def make_ppo_training_environment(stream_index: int) -> BalatroHeadlessEnvironment:
-    """Construct one stream with the frozen production tactical authority."""
-    if (
-        isinstance(stream_index, bool)
-        or not isinstance(stream_index, int)
-        or not 0 <= stream_index < 8
-    ):
-        raise PPOContractError("PPO environment stream index is invalid")
+def make_ppo_tactical_decision_engine() -> LiveHandActionDecisionEngine:
+    """Construct the frozen production tactical authority."""
     planner = D1LiveBlindClearPlanner(
         play_width=6,
         discard_width=4,
@@ -93,7 +87,7 @@ def make_ppo_training_environment(stream_index: int) -> BalatroHeadlessEnvironme
         max_nodes=3000,
     )
     policy = StrategyAwareLiveHandActionPolicy(evaluator=planner.evaluator)
-    engine = LiveHandActionDecisionEngine(
+    return LiveHandActionDecisionEngine(
         planner=planner,
         policy=policy,
         max_horizon=8,
@@ -103,7 +97,19 @@ def make_ppo_training_environment(stream_index: int) -> BalatroHeadlessEnvironme
         search_schedule_mode=SEARCH_SCHEDULE_SELECTIVE,
         max_search_seconds=None,
     )
-    return BalatroHeadlessEnvironment(PPOHeadlessBackend(engine))
+
+
+def make_ppo_training_environment(stream_index: int) -> BalatroHeadlessEnvironment:
+    """Construct one stream with the frozen production tactical authority."""
+    if (
+        isinstance(stream_index, bool)
+        or not isinstance(stream_index, int)
+        or not 0 <= stream_index < 8
+    ):
+        raise PPOContractError("PPO environment stream index is invalid")
+    return BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(make_ppo_tactical_decision_engine())
+    )
 
 
 def _collect_production_episode(
