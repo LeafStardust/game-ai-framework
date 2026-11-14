@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`0c4ff150901ea79fbc5998ee23fd2b7f7d195b50`.
+`5e3df790f9b557702aed2702a79d508d85ca2b4b`.
 
 ## Objective
 
@@ -2420,6 +2420,24 @@ Progress-reward backend implementation checkpoint:
   Balatro deterministic gate with **3331 passed, 1618 deselected in 289.97s**.
   The optional backend is therefore green. No pilot has run yet.
 
+Progress-reward rollout/training provenance checkpoint:
+
+- Implementation commit `5e3df790f9b557702aed2702a79d508d85ca2b4b`
+  registers a distinct immutable v2 training-contract digest and rollout
+  schema. Training runs resolve only registered contracts; rollout collection
+  derives its schema and action cap from that run and rejects reset or step
+  frames advertising a different reward contract. Sparse v1 remains the
+  default, and explicit-v1 and default-v1 training-run JSON bytes are identical.
+- V2 episode serialization binds the registered training-contract digest, and
+  the existing batch owner consumes shaped rewards through the frozen
+  `gamma=0.99`, `lambda=0.95` GAE path. Fixed v2 advantages and returns have a
+  deterministic regression.
+- Focused rollout/GAE gate: **61 passed in 45.24s**. Broader backend, contract,
+  batch, model, learner, session, campaign, candidate-evaluation, and
+  promotion-evaluation gate: **144 passed in 96.97s**. Syntax compilation and
+  `git diff --check` are clean. This checkpoint still requires CI before any
+  pilot execution path is authorized.
+
 ## Exact active task
 
 Implement and CI-gate the optional
@@ -2428,8 +2446,9 @@ preserving sparse v1 as the production/default contract. Then run only a bounded
 one-batch learning-signal pilot before authorizing any new campaign.
 
 The backend owner is implemented and CI-green at the checkpoint above.
-Continue only the separately versioned rollout and training-contract
-provenance path; CI-gate that path before running the bounded pilot.
+The separately versioned rollout and training-contract provenance path is
+implemented locally. Push and CI-gate it next, then implement only the isolated
+bounded one-batch pilot path and its required evidence report.
 
 Requirements:
 
