@@ -2022,11 +2022,14 @@ Shadow tooling checkpoint:
   gates, and rejects source drift. Focused rule/replay/report validation:
   **5 passed in 2.35s**. Broader shadow, tactical trace, campaign, backend,
   decision-engine, timeout, and strategy-authority validation: **69 passed in
-  10.89s**. GitHub Actions and the 64-seed execution remain pending.
+  10.89s**.
+- GitHub Actions run `43574063741`, job `132384357558`, passed commit
+  `26226a9f`: **3305 passed, 1618 deselected in 163.82s**. The frozen 64-seed
+  execution remains pending.
 
 ## Exact active task
 
-CI-gate `tactical-arbitration-shadow-v1`, then execute its frozen 64-seed
+Execute the CI-gated `tactical-arbitration-shadow-v1` frozen 64-seed
 production-versus-shadow first-blind evaluation before changing the production
 tactical policy or starting another strategic training run.
 
