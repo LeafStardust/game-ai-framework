@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`5e3df790f9b557702aed2702a79d508d85ca2b4b`.
+`316150817fa7c097a99dcaf2d60a9b4037167e3f`.
 
 ## Objective
 
@@ -2441,6 +2441,25 @@ Progress-reward rollout/training provenance checkpoint:
   The v2 backend and rollout/training provenance path are now CI-green. No
   pilot has run yet.
 
+Progress-reward one-batch pilot implementation checkpoint:
+
+- Implementation commit `316150817fa7c097a99dcaf2d60a9b4037167e3f`
+  routes v2 workers through the same production mechanics and tactical factory
+  with only the registered reward contract changed. Campaign orchestration
+  preserves v1 defaults and artifacts, while v2 is executable only as one
+  fresh non-resumable optimizer batch; multi-batch and resume requests fail
+  closed.
+- The dedicated pilot requires a fresh empty artifact directory and publishes
+  a canonically serialized report linked to checkpoint/progress hashes. It
+  records reward and advantage count/range/mean/variance, episode-depth
+  statistics, terminal statuses, elapsed runtime, policy hashes before/after,
+  exact batch/transition counters, and explicit fail-closed counters.
+- Pilot/campaign safety gate: **31 passed in 0.97s**. Broader backend, contract,
+  rollout, batch, model, learner, session, campaign, candidate-evaluation, and
+  promotion-evaluation gate: **148 passed in 96.50s**. Syntax compilation and
+  `git diff --check` are clean. The runner is not authorized for execution
+  until this checkpoint passes CI.
+
 ## Exact active task
 
 Implement and CI-gate the optional
@@ -2450,9 +2469,10 @@ one-batch learning-signal pilot before authorizing any new campaign.
 
 The backend owner is implemented and CI-green at the checkpoint above.
 The separately versioned rollout and training-contract provenance path is
-CI-green. Implement only the isolated bounded one-batch pilot path and its
-required evidence report, CI-gate that path, and then run exactly one pilot
-batch without reading or writing any v1 campaign artifact.
+CI-green, and the isolated bounded pilot path is implemented locally. Push and
+CI-gate the pilot path next, then run exactly one fresh pilot batch without
+reading or writing any v1 campaign artifact. Publish and evaluate its report
+before authorizing any further training.
 
 Requirements:
 
