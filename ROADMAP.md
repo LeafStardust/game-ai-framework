@@ -2164,21 +2164,41 @@ Terminal-loss tactical census implementation checkpoint:
   `70066288`: **3314 passed, 1618 deselected in 183.56s**. The frozen 64-seed
   census is now authorized.
 
+Completed terminal-loss tactical census:
+
+- The fixed 64-seed production replay completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_TERMINAL_LOSS_CENSUS.json`, report SHA-256
+  `ee4c04bef116d2885890c00ebe86b0bf0496222473d37ff9cc00cac951f859e6`.
+  All 64 result/action counts and diagnostic metric payloads reproduce their
+  digest-bound published sources exactly; the census contains 454 terminal-
+  blind tactical decisions.
+- All 64 episodes lose and **none** exhausts a tactical search budget. The 39
+  non-Boss losses (16 Small, 23 Big) select exact plans without a different
+  exact clear. The 25 Boss losses split into 23 with an inexact selection and
+  no different exact clear, plus the two known different-exact-clear cases
+  (The Club episode 1 and The Pillar episode 37).
+- The canonical closest inexact-selection representative is episode 0 / seed
+  `9CA6BDC0`: The Psychic, requirement 600, score 579, margin `-21`. Its
+  completed searches are not budget exhausted and report exact best results,
+  while production repeatedly retains inexact horizon-1 decisions. This pins
+  the next diagnostic to Boss-specific post-search arbitration rather than
+  search capacity, PPO strategic sampling, or a non-Boss policy path.
+
 ## Exact active task
 
-Execute and publish the digest-bound fixed-corpus terminal-loss tactical census,
-then use its demonstrated classes to select the next canonical tactical owner
-before defining any new shadow or changing production arbitration.
+Implement and CI-gate a digest-bound production trace for episode 0 / seed
+`9CA6BDC0` at The Psychic, then identify the first Boss post-search arbitration
+boundary that replaces or downgrades an exact completed plan before defining a
+new bounded experiment or changing production arbitration.
 
 Requirements:
 
-- Replay all 64 fixed candidate seeds with their frozen game/policy seeds and
-  require published status/action-count parity. Retain only public-safe evidence
-  for each terminal blind's tactical decisions.
-- Classify terminal losses by blind identity/type/requirement, selected-plan
-  exactness, completed-search exact-clear alternatives, search completeness,
-  budget exhaustion, and final chip deficit. Publish deterministic aggregate
-  counts plus the canonical closest representative for each demonstrated class.
+- Replay the exact published strategic prefix and terminal loss, retaining each
+  completed search plan, final selected plan, search attempt, rationale, and
+  public resource frame at The Psychic only.
+- Attribute the first exact-to-inexact change to the earliest canonical policy
+  owner and add focused deterministic regressions for the trace selection and
+  fail-closed source/replay linkage. Do not define a counterfactual rule yet.
 - Do not tune either rejected shadow, change production policy, start another
   1,024-batch run, or relax the promotion contract during this task.
 
@@ -2215,5 +2235,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH5_EPISODE_1223_MARK_FACING_FIXED.json`
 - `docs/balatro/BALATRO_PPO_BATCH7_EPISODE_1911_WALL_FIXED.json`
 - `docs/balatro/BALATRO_PPO_BOSS_EXACT_SHADOW_REPORT.json`
+- `docs/balatro/BALATRO_PPO_TERMINAL_LOSS_CENSUS.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
