@@ -1975,24 +1975,52 @@ Tactical first-blind trace tooling checkpoint:
   **60 passed in 8.81s**.
 - GitHub Actions run `43573336508`, job `132382183164`, passed commit
   `ba8a5a49`: **3300 passed, 1618 deselected in 162.62s**. Production report
-  publication remains pending.
+  publication was gated on this result.
+- The production CLI completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_TACTICAL_FAILURE_TRACE.json`, report SHA-256
+  `ea47e4281504c769e7c693ee93da1eae5e5cd80e2cbe78992a0f281ff32da01f`.
+  Its source link is the verified candidate trace SHA-256
+  `587171df91cc54f9a8ce72f2bb2817334ea6e95af402e2c472df792200881fed`.
+  Independent inspection confirmed both production `GAME_OVER` scores
+  (204/212), both exact `ROUND_EVAL` clear scores (396/348), the 300-chip
+  requirement, and divergence indices 0/1.
+
+Frozen bounded tactical experiment (`tactical-arbitration-shadow-v1`):
+
+- Hypothesis: the current hard arbitration discards useful graded evidence in
+  two distinct ways: a best immediate play at pace ratio `0.96` falls just
+  below the `1.0` pace cliff and enters recovery on `5C7469F4`; a completed
+  deeper discard with clear probability `0.375` is below the `0.75` clear-path
+  floor and is discarded in favour of an immediate pace play on `FE32359A`.
+- First retain each completed adaptive attempt's exact public action signature
+  and plan values in diagnostic decision evidence. Production selection must
+  remain byte-for-byte behaviorally unchanged.
+- Add a shadow-only selector frozen before evaluation: prefer an immediate Play
+  at pace ratio at least `0.95` over recovery; otherwise prefer the best
+  completed adaptive plan when its clear probability is at least `0.25`;
+  otherwise retain the production decision. It may consume only the same
+  public observation and already-computed plans.
+- Evaluate production and shadow policies on the promotion contract's 64 fixed
+  seeds through the first blind only. Acceptance requires zero illegal,
+  unsupported, incomplete, or replay-drift episodes; exact clears for both
+  pinned failures; a strict first-blind clear-count improvement; and no lower
+  mean terminal score or mean remaining hands/discards. Reject the hypothesis
+  rather than tune thresholds after seeing the 64-seed result.
 
 ## Exact active task
 
-Publish the two CI-gated production/counterfactual tactical replays and freeze a
-bounded policy-level experiment from the demonstrated decision divergences
-before changing tactical policy or starting another strategic training run.
+Implement and CI-gate `tactical-arbitration-shadow-v1`, then execute its frozen
+64-seed production-versus-shadow first-blind evaluation before changing the
+production tactical policy or starting another strategic training run.
 
 Requirements:
 
-- Use CI as the trace-tooling gate and record exact passed/deselected counts.
-- Execute the report CLI only after CI passes; verify its canonical digest and
-  exact loss/clear terminal scores before committing the report.
-- The next experiment must test a general policy-level cause (pace/fallback
-  arbitration or search-evidence retention), not memorize these two seeds.
-  Keep the current production decisions frozen until that experiment and its
-  acceptance criteria are recorded. Do not start another 1,024-batch run or
-  relax the promotion contract.
+- Add deterministic regressions proving diagnostic retention cannot alter the
+  production action and proving the shadow rule uses no hidden state.
+- Publish a digest-bound comparison with per-seed paired outcomes and aggregate
+  acceptance gates; use CI before executing the 64-seed report.
+- Do not tune the frozen shadow thresholds, change production policy, start
+  another 1,024-batch run, or relax the promotion contract during this task.
 
 ## Held and deferred work
 
