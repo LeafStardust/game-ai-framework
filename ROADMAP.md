@@ -2260,10 +2260,13 @@ Boss projection exactness-shadow implementation checkpoint:
   now reads an absent attribute as `False`, preserving exact production
   behavior. The two failures plus shadow/strategy regressions are locally green:
   **11 passed in 1.37s**. A fresh CI gate is required.
+- GitHub Actions run `43595636057`, job `132449397140`, passed roadmap HEAD
+  `43b4c0ce`: **3320 passed, 1618 deselected in 218.91s**. The frozen shadow
+  evaluation is now authorized.
 
 ## Exact active task
 
-Push and CI-gate fix `2a2f3b58`, then execute the frozen 64-seed
+Execute the frozen 64-seed
 `boss-projection-exactness-preservation-shadow-v1` evaluation before changing
 production arbitration or starting another strategic training run.
 
