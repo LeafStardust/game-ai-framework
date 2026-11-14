@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`d8bab4a648c2221e18f65314a0462a96d9ac928a`.
+`cc9788b0ffb8feaf071a53cf41c55c248d02a210`.
 
 ## Objective
 
@@ -2200,12 +2200,19 @@ Boss exactness-boundary trace implementation checkpoint:
 - GitHub Actions run `43593741682`, job `132443751954`, passed roadmap HEAD
   `afa28e55`: **3317 passed, 1618 deselected in 219.96s**. The pinned
   production trace is now authorized.
+- The first authorized execution failed closed before publication because its
+  linkage check compared the trace's richer selected-plan payload to the
+  census's compact payload as whole dictionaries. Commit
+  `cc9788b0ffb8feaf071a53cf41c55c248d02a210` now requires exact equality for
+  every census-owned field while permitting only the trace's additional
+  diagnostic fields. Focused local validation: **17 passed in 1.54s**. A new
+  CI gate is required before retrying execution.
 
 ## Exact active task
 
-Execute and publish the digest-bound production trace for episode 0 / seed
-`9CA6BDC0` at The Psychic, then freeze the next bounded experiment from its
-first demonstrated owner boundary before changing production arbitration.
+Push and CI-gate linkage fix `cc9788b0`, then retry and publish the digest-bound
+production trace for episode 0 / seed `9CA6BDC0` at The Psychic. Freeze the
+next bounded experiment only from its first demonstrated owner boundary.
 
 Requirements:
 
