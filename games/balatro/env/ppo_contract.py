@@ -41,6 +41,7 @@ PPO_ROLLOUT_EPISODE_SCHEMA = "balatro-red-white-ppo-rollout-episode-v4"
 PPO_ACTION_SAMPLE_DOMAIN = "balatro-red-white-ppo-rollout-episode-v3"
 PPO_ALGORITHM = "clipped_ppo"
 PPO_REWARD_CONTRACT = "balatro-red-white-sparse-terminal-reward-v1"
+PPO_PROGRESS_REWARD_CONTRACT = "balatro-red-white-progress-potential-reward-v2"
 PPO_TRAINING_SEED_POLICY = "derived_non_holdout_game_seeds"
 
 

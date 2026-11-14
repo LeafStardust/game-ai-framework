@@ -16,7 +16,10 @@ from games.balatro.env.blind_progression import (
 from games.balatro.env.ordinary_round_resolution import (
     resolve_supported_ordinary_round,
 )
-from games.balatro.env.ppo_contract import PPO_REWARD_CONTRACT
+from games.balatro.env.ppo_contract import (
+    PPO_PROGRESS_REWARD_CONTRACT,
+    PPO_REWARD_CONTRACT,
+)
 from games.balatro.env.ppo_training_profile import (
     PPO_TRAINING_PROFILE,
     initialize_pristine_ppo_boss_authority,
@@ -44,6 +47,12 @@ from games.balatro.state import BalatroState
 
 PPO_HEADLESS_BACKEND_SCHEMA = "balatro-red-white-ppo-headless-backend-v3"
 _MAX_TACTICAL_ACTIONS = 4096
+_PROGRESS_POTENTIAL_ROUNDS = 24.0
+_PROGRESS_REWARD_GAMMA = 0.99
+_SUPPORTED_REWARD_CONTRACTS = frozenset({
+    PPO_REWARD_CONTRACT,
+    PPO_PROGRESS_REWARD_CONTRACT,
+})
 
 
 def sparse_terminal_reward(status: RunStatus) -> float:
@@ -57,6 +66,41 @@ def sparse_terminal_reward(status: RunStatus) -> float:
     if status is RunStatus.ANTE_8_WIN:
         return 1.0
     raise HeadlessTransitionError("unsupported terminal reward status")
+
+
+def progress_potential(frame: EnvStateFrame) -> float:
+    """Exact public round-progress potential; terminal potential is zero."""
+    if not isinstance(frame, EnvStateFrame):
+        raise TypeError("progress potential requires EnvStateFrame")
+    if frame.status.terminal:
+        return 0.0
+    round_index = frame.state.round
+    if (
+        isinstance(round_index, bool)
+        or not isinstance(round_index, int)
+        or round_index < 0
+    ):
+        raise HeadlessTransitionError("progress potential round is invalid")
+    return round_index / _PROGRESS_POTENTIAL_ROUNDS
+
+
+def transition_reward(
+    before: EnvStateFrame,
+    after: EnvStateFrame,
+    reward_contract: str,
+) -> float:
+    """Versioned PPO reward over one exact public strategic transition."""
+    if not isinstance(before, EnvStateFrame) or not isinstance(after, EnvStateFrame):
+        raise TypeError("transition reward requires EnvStateFrame boundaries")
+    if reward_contract == PPO_REWARD_CONTRACT:
+        return sparse_terminal_reward(after.status)
+    if reward_contract == PPO_PROGRESS_REWARD_CONTRACT:
+        return (
+            sparse_terminal_reward(after.status)
+            + _PROGRESS_REWARD_GAMMA * progress_potential(after)
+            - progress_potential(before)
+        )
+    raise HeadlessTransitionError("unsupported PPO reward contract")
 
 
 def pristine_red_white_reset(seed: str | int) -> HeadlessRunState:
@@ -106,10 +150,18 @@ class PPOHeadlessBackend:
     later shop generation and the supported Small-shop to Big-Blind exit.
     """
 
-    def __init__(self, tactical_decision_engine: object):
+    def __init__(
+        self,
+        tactical_decision_engine: object,
+        *,
+        reward_contract: str = PPO_REWARD_CONTRACT,
+    ):
         if not callable(getattr(tactical_decision_engine, "decide", None)):
             raise TypeError("tactical_decision_engine must provide decide(state)")
+        if reward_contract not in _SUPPORTED_REWARD_CONTRACTS:
+            raise ValueError("unsupported PPO reward contract")
         self._tactical_decision_engine = tactical_decision_engine
+        self._reward_contract = reward_contract
         self._run: HeadlessRunState | None = None
         self._frame: EnvStateFrame | None = None
         self._tactical_actions = 0
@@ -128,7 +180,7 @@ class PPOHeadlessBackend:
         state = run.public
         info = {
             "backend_schema": PPO_HEADLESS_BACKEND_SCHEMA,
-            "reward_contract": PPO_REWARD_CONTRACT,
+            "reward_contract": self._reward_contract,
             "game_seed": str(run.seed),
             "tactical_actions": tactical_actions,
         }
@@ -250,6 +302,9 @@ class PPOHeadlessBackend:
         if action not in self.legal_actions():
             raise HeadlessTransitionError(f"illegal backend action: {action.alias}")
         run = self.run
+        before = self._frame
+        if before is None:
+            raise RuntimeError("backend has not been reset")
         tactical_actions = self._tactical_actions
         if run.public.phase == "SHOP":
             next_run = ShopTransitionEngine().step(run, action)
@@ -268,7 +323,7 @@ class PPOHeadlessBackend:
         self._tactical_actions = tactical_actions
         return BackendStep(
             frame=frame,
-            reward=sparse_terminal_reward(frame.status),
+            reward=transition_reward(before, frame, self._reward_contract),
             truncated=False,
         )
 
@@ -276,21 +331,32 @@ class PPOHeadlessBackend:
         run = self.run
         if self._frame is None:
             raise RuntimeError("backend has not been reset")
-        return {
+        payload = {
             "schema": PPO_HEADLESS_BACKEND_SCHEMA,
             "tactical_actions": self._tactical_actions,
             "run": serialize_headless_run_state(run),
         }
+        if self._reward_contract != PPO_REWARD_CONTRACT:
+            payload["reward_contract"] = self._reward_contract
+        return payload
 
     def restore(self, payload: dict[str, Any]) -> EnvStateFrame:
-        if not isinstance(payload, dict) or set(payload) != {
+        fields = {
             "schema",
             "tactical_actions",
             "run",
-        }:
+        }
+        if self._reward_contract != PPO_REWARD_CONTRACT:
+            fields.add("reward_contract")
+        if not isinstance(payload, dict) or set(payload) != fields:
             raise HeadlessTransitionError("backend snapshot fields are incomplete")
         if payload["schema"] != PPO_HEADLESS_BACKEND_SCHEMA:
             raise HeadlessTransitionError("backend snapshot schema mismatch")
+        if (
+            self._reward_contract != PPO_REWARD_CONTRACT
+            and payload["reward_contract"] != self._reward_contract
+        ):
+            raise HeadlessTransitionError("backend snapshot reward contract mismatch")
         actions = payload["tactical_actions"]
         if isinstance(actions, bool) or not isinstance(actions, int) or actions < 0:
             raise HeadlessTransitionError("backend tactical action count is invalid")
