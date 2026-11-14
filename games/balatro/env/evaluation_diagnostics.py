@@ -230,10 +230,11 @@ def derive_terminal_episode_metrics(
         state = frame.state
         if (state.deck_name, state.stake_name) != (EVALUATION_DECK, EVALUATION_STAKE):
             raise EvaluationDiagnosticsError("episode trace is not Red Deck / White Stake")
-        antes.append(_exact_int(state.ante, "frame ante", minimum=1))
+        # Hieroglyph and Petroglyph authoritatively decrement Ante and can take
+        # an early run through Ante 0 (or below). ``ante_reached`` is therefore
+        # the maximum exact value observed, not a monotonic-progress assertion.
+        antes.append(_exact_int(state.ante, "frame ante"))
         monies.append(_exact_int(state.money, "frame money"))
-    if any(after < before for before, after in zip(antes, antes[1:])):
-        raise EvaluationDiagnosticsError("episode trace ante progression cannot decrease")
 
     blind = terminal.state.blind
     if blind is None:

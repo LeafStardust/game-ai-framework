@@ -138,20 +138,28 @@ def test_env_b0_diagnostics_require_complete_reset_to_terminal_trace(frames, mes
         derive_episode_diagnostics(_fixed_result(action_count=0), frames)
 
 
-def test_env_b0_diagnostics_fail_closed_on_status_identity_and_progress_drift():
+def test_env_b0_diagnostics_fail_closed_on_status_and_identity_drift():
     result = _fixed_result(action_count=0)
     wrong_status = (*_loss_trace()[:-1], _win_trace()[-1])
     wrong_deck = _frame(ante=2, money=4, score=100)
     wrong_deck.state.deck_name = "BLUE"
-    decreasing = (_loss_trace()[0], _frame(ante=2, money=4, score=100), _loss_trace()[-1])
-    decreasing[-1].state.ante = 1
-
     with pytest.raises(EvaluationDiagnosticsError, match="status mismatches"):
         derive_episode_diagnostics(result, wrong_status)
     with pytest.raises(EvaluationDiagnosticsError, match="not Red Deck"):
         derive_episode_diagnostics(result, (_loss_trace()[0], wrong_deck, _loss_trace()[-1]))
-    with pytest.raises(EvaluationDiagnosticsError, match="cannot decrease"):
-        derive_episode_diagnostics(result, decreasing)
+
+
+def test_env_b0_diagnostics_accept_exact_ante_voucher_regression():
+    trace = (
+        _frame(ante=1, money=4, score=0, phase="BLIND_SELECT"),
+        _frame(ante=0, money=1, score=100),
+        _frame(ante=1, money=2, score=240, status=RunStatus.LOSS, phase="GAME_OVER"),
+    )
+
+    diagnostics = derive_episode_diagnostics(_fixed_result(), trace)
+
+    assert diagnostics.ante_reached == 1
+    assert diagnostics.minimum_money == 1
 
 
 def test_env_b0_diagnostics_reject_missing_or_contradictory_survival_evidence():

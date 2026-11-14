@@ -1842,11 +1842,26 @@ First production-evaluation attempt gate:
 - GitHub Actions run `43560464305`, job `132342758142`, passed the fix at commit
   `27e2f65a`: **3292 passed, 1618 deselected in 192.79s**.
 
+Second production-evaluation attempt gate:
+
+- The retry completed fixed baseline episode execution, then failed closed
+  during diagnostics aggregation with exit code 1. The output directory again
+  remained absent and no partial outcome was inspected.
+- Exact exception: `EvaluationDiagnosticsError: frame ante must be at least 1`.
+  Exact Hieroglyph/Petroglyph mechanics can authoritatively decrement an early
+  run through Ante 0 (and the mechanics owner supports lower values), so the
+  diagnostics owner had incorrectly imposed monotonic positive Ante progression.
+- Terminal diagnostics now accept every exact integer Ante in authoritative
+  frames and continue to define `ante_reached` as the maximum observed value;
+  reset still must begin at Ante 1 and all other terminal/provenance checks stay
+  unchanged. Focused diagnostics/aggregation/promotion validation: **30 passed
+  in 5.23s**.
+
 ## Exact active task
 
-Gate the immutable symbolic-masker fix in GitHub Actions, then retry the real
-frozen promotion evaluation through the same production CLI and interpret only
-its atomically published final report.
+Gate the exact Ante-regression diagnostics fix in GitHub Actions, then retry the
+real frozen promotion evaluation through the same production CLI and interpret
+only its atomically published final report.
 
 Requirements:
 
