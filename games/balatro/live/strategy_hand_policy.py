@@ -52,6 +52,16 @@ def _boss_projection_unconfirmed(state, confirmed_clear_path) -> bool:
     return (bool(boss_name) or blind_type == "BOSS") and confirmed_clear_path is None
 
 
+def _boss_projection_plans(plans, *, unconfirmed: bool, preserve_exactness: bool):
+    plans = tuple(plans)
+    if not unconfirmed or preserve_exactness:
+        return plans
+    return tuple(
+        replace(plan, exact=False) if bool(getattr(plan, "exact", False)) else plan
+        for plan in plans
+    )
+
+
 def _with_bond_intent_cache(method):
     """Cache immutable Bond hand intents for exactly one D1 policy decision."""
     def cached_decide(self, state, plans, **kwargs):
@@ -79,9 +89,18 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
     VAGABOND_PLAY_OPPORTUNITY_VALUE = 35.0
     PACE_STRATEGY_EQUIVALENCE_RATIO = 0.98
 
-    def __init__(self, *args, strategy_tracker=None, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        strategy_tracker=None,
+        preserve_unconfirmed_boss_exactness: bool = False,
+        **kwargs,
+    ) -> None:
         del strategy_tracker
+        if not isinstance(preserve_unconfirmed_boss_exactness, bool):
+            raise TypeError("preserve_unconfirmed_boss_exactness must be bool")
         super().__init__(*args, **kwargs)
+        self.preserve_unconfirmed_boss_exactness = preserve_unconfirmed_boss_exactness
         self._hand_evaluator = HandEvaluator()
 
     @_with_bond_intent_cache
@@ -91,11 +110,11 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             state,
             kwargs.get("confirmed_clear_path"),
         )
-        if boss_unconfirmed:
-            plans = tuple(
-                replace(plan, exact=False) if bool(getattr(plan, "exact", False)) else plan
-                for plan in plans
-            )
+        plans = _boss_projection_plans(
+            plans,
+            unconfirmed=boss_unconfirmed,
+            preserve_exactness=self.preserve_unconfirmed_boss_exactness,
+        )
 
         plans = constrain_boss_hand_plans(self, state, plans)
         if (
