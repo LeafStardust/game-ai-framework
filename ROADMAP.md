@@ -2196,14 +2196,16 @@ Boss exactness-boundary trace implementation checkpoint:
   admitting the first exact-input to inexact-output boundary.
 - Focused local validation: **16 passed in 1.55s**. Broader candidate,
   backend, tactical, promotion, decision-engine, and strategy validation:
-  **95 passed in 50.83s**. GitHub Actions remains required before executing the
-  production trace.
+  **95 passed in 50.83s**.
+- GitHub Actions run `43593741682`, job `132443751954`, passed roadmap HEAD
+  `afa28e55`: **3317 passed, 1618 deselected in 219.96s**. The pinned
+  production trace is now authorized.
 
 ## Exact active task
 
-Push and CI-gate commit `d8bab4a6`, then execute and publish the digest-bound
-production trace for episode 0 / seed `9CA6BDC0` at The Psychic before defining
-a new bounded experiment or changing production arbitration.
+Execute and publish the digest-bound production trace for episode 0 / seed
+`9CA6BDC0` at The Psychic, then freeze the next bounded experiment from its
+first demonstrated owner boundary before changing production arbitration.
 
 Requirements:
 
