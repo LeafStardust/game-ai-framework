@@ -1895,17 +1895,36 @@ Completed frozen promotion evaluation:
   (`-$3.078125`, `-$4.46875`); and manifest 3 versus random/symbolic
   (`-$2.984375`, `-$4.25`).
 
+Checkpoint-backed failure-trace tooling checkpoint:
+
+- Published fixed evidence canonically selects episode 5 / seed `5C7469F4`
+  and episode 15 / seed `FE32359A` as the two one-action losses, plus episode 12
+  / seed `D9605DEC` as the unique longest candidate trajectory at 17 strategic
+  actions.
+- `ppo_candidate_evaluation` now retains the exact ordered candidate decisions
+  alongside its reset-to-terminal frames. `ppo_promotion_evaluation` likewise
+  retains each baseline's ordered strategic actions; neither change alters
+  environment mechanics, policy sampling, or published promotion evidence.
+- `ppo_candidate_trace` loads only digest-bound canonical fixed source reports,
+  restores the completed checkpoint, and requires candidate and both baseline
+  replays to match the published status/action count. Every candidate decision
+  binds the complete observation vector and SHA-256, legal mask, masked
+  probabilities, value estimate, selected action/index, and public strategic
+  frame. Source, candidate, evaluation, promotion-report, ordering, probability,
+  and replay drift fail closed.
+- Focused local validation: **20 passed in 4.25s**. Broader fixed-evaluation,
+  both-baseline, candidate, promotion, and trace validation: **69 passed in
+  6.87s**. No production diagnostic replay has been executed yet.
+
 ## Exact active task
 
-Attribute the failed trained policy exactly before changing training, reward,
-architecture, hyperparameters, baselines, or promotion thresholds.
+Gate the checkpoint-backed trace owner in GitHub Actions, execute the three
+pinned production replays, and attribute the observed action distributions and
+trajectories before changing training, reward, architecture, hyperparameters,
+baselines, or promotion thresholds.
 
 Requirements:
 
-- Add a canonical checkpoint-backed decision-trace diagnostic for the completed
-  fixed candidate arm. Pin representative early-loss and longest-action seeds,
-  bind every sampled action/probability/value to the published candidate and
-  fixed corpus, and replay to the same terminal result without altering RNG.
 - Compare trained action distributions and strategic trajectories against the
   two baseline arms to distinguish policy-learning failure from observation,
   action-mask, reward-credit, or environment/reward-contract defects.

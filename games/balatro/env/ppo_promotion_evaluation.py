@@ -16,6 +16,7 @@ from uuid import uuid4
 
 from games.balatro.actions import BalatroAction
 from games.balatro.env.environment import BalatroHeadlessEnvironment
+from games.balatro.env.actions import EnvAction
 from games.balatro.env.episode_backend import PPO_HEADLESS_BACKEND_SCHEMA
 from games.balatro.env.evaluation_diagnostics import (
     EvaluationDiagnosticsReport,
@@ -123,6 +124,7 @@ class BaselineEpisodeEvidence:
     status: RunStatus
     action_count: int
     frames: tuple[EnvStateFrame, ...]
+    actions: tuple[EnvAction, ...] = ()
 
     def __post_init__(self) -> None:
         if self.baseline_version not in EVALUATED_BASELINE_VERSIONS:
@@ -151,6 +153,13 @@ class BaselineEpisodeEvidence:
             raise PPOPromotionEvaluationError("baseline evidence terminal status drifted")
         if any(str(frame.info.get("game_seed")) != self.game_seed for frame in self.frames):
             raise PPOPromotionEvaluationError("baseline evidence seed provenance drifted")
+        if not isinstance(self.actions, tuple):
+            raise PPOPromotionEvaluationError("baseline evidence actions must be a tuple")
+        if self.actions and (
+            len(self.actions) != self.action_count
+            or any(not isinstance(action, EnvAction) for action in self.actions)
+        ):
+            raise PPOPromotionEvaluationError("baseline evidence action trace is incomplete")
 
 
 def execute_baseline_episode(
@@ -179,12 +188,14 @@ def execute_baseline_episode(
         raise PPOPromotionEvaluationError("baseline backend schema drifted")
     frames = [deepcopy(environment.frame)]
     actions = 0
+    selected_actions: list[EnvAction] = []
     for _ in range(PPO_TRAINING_CONTRACT.maximum_episode_actions):
         if environment.frame.status.terminal:
             break
         decision = policy.select(environment.frame, environment.legal_actions())
         if decision is None:
             raise PPOPromotionEvaluationError("baseline returned no nonterminal decision")
+        selected_actions.append(decision.action)
         _, _, terminated, truncated, _ = environment.step(decision.action)
         if truncated:
             raise PPOPromotionEvaluationError("baseline evaluation episode truncated")
@@ -205,6 +216,7 @@ def execute_baseline_episode(
         environment.frame.status,
         actions,
         tuple(frames),
+        tuple(selected_actions),
     )
 
 

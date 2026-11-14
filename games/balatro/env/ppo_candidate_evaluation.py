@@ -363,6 +363,7 @@ class PPOCandidateEpisodeEvidence:
 
     result: PPOCandidateEpisodeResult
     frames: tuple[EnvStateFrame, ...]
+    decisions: tuple[PPOCandidateDecision, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.result, PPOCandidateEpisodeResult):
@@ -387,6 +388,22 @@ class PPOCandidateEpisodeEvidence:
             raise PPOCandidateEvaluationError("candidate evidence terminates before its last frame")
         if terminal.status is not self.result.status or not terminal.status.terminal:
             raise PPOCandidateEvaluationError("candidate evidence terminal status drifted")
+        if not isinstance(self.decisions, tuple):
+            raise PPOCandidateEvaluationError("candidate evidence decisions must be a tuple")
+        if self.decisions:
+            if (
+                len(self.decisions) != self.result.action_count
+                or any(
+                    not isinstance(decision, PPOCandidateDecision)
+                    or decision.candidate_sha256 != self.result.candidate_sha256
+                    or decision.policy_seed != self.result.policy_seed
+                    or decision.decision_index != index
+                    for index, decision in enumerate(self.decisions)
+                )
+            ):
+                raise PPOCandidateEvaluationError(
+                    "candidate evidence decision trace is incomplete"
+                )
         for frame in self.frames:
             if (frame.state.deck_name, frame.state.stake_name) != (
                 EVALUATION_DECK,
@@ -439,6 +456,7 @@ def execute_ppo_candidate_episode(
     if environment.frame.info.get("backend_schema") != PPO_HEADLESS_BACKEND_SCHEMA:
         raise PPOCandidateEvaluationError("candidate evaluation backend schema drifted")
     frames = [deepcopy(environment.frame)]
+    decisions: list[PPOCandidateDecision] = []
     actions = 0
     for decision_index in range(PPO_TRAINING_CONTRACT.maximum_episode_actions):
         frame = environment.frame
@@ -455,6 +473,7 @@ def execute_ppo_candidate_episode(
             legal_actions=legal_actions,
             policy_output=output,
         )
+        decisions.append(decision)
         _, _, terminated, truncated, _ = environment.step(decision.action)
         if truncated:
             raise PPOCandidateEvaluationError("candidate evaluation episode truncated")
@@ -481,7 +500,11 @@ def execute_ppo_candidate_episode(
         status=environment.frame.status,
         action_count=actions,
     )
-    return PPOCandidateEpisodeEvidence(result=result, frames=tuple(frames))
+    return PPOCandidateEpisodeEvidence(
+        result=result,
+        frames=tuple(frames),
+        decisions=tuple(decisions),
+    )
 
 
 @dataclass(frozen=True)
