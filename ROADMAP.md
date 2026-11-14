@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`5494cb37778015619a240b0aa983ad1ee3f0439f`.
+`72be6e279d07e79dbb737d02d62291231d7ca660`.
 
 ## Objective
 
@@ -2311,11 +2311,23 @@ Completed decision-0 safe-pace counterfactual:
   cause of the near miss. Do not broaden it into a 64-seed rule. The remaining
   causal search stays pinned to later decisions in this same terminal blind.
 
+Later-decision safe-pace sweep implementation checkpoint:
+
+- Commit `72be6e279d07e79dbb737d02d62291231d7ca660` freezes the three eligible
+  later substitutions demonstrated by the boundary trace: tactical decisions
+  2, 3, and 6. Decisions 1, 4, and 5 already match their completed exact plan.
+- Each arm reconstructs the same authoritative Psychic start, preserves the
+  production prefix, substitutes only the highest expected-score different
+  completed exact plan at its target, and resumes production afterward. Exact
+  source digests and exactly one override per arm are mandatory.
+- Focused local validation: **18 passed in 1.12s**. Broader candidate, backend,
+  tactical, promotion, decision-engine, and strategy validation: **102 passed
+  in 50.95s**. GitHub Actions remains required before executing the sweep.
+
 ## Exact active task
 
-Implement and CI-gate an episode-0 one-decision counterfactual sweep across the
-remaining Psychic decisions, then publish each exact terminal score delta before
-defining another 64-seed shadow.
+Push and CI-gate commit `72be6e27`, then execute and publish the fixed
+three-arm Psychic decision sweep before defining another 64-seed shadow.
 
 Requirements:
 
