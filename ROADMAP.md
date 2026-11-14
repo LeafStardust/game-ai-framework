@@ -2367,11 +2367,14 @@ Boss progress exact-Play shadow implementation checkpoint:
   and frozen policy seeds, and publishes all gates declared above.
 - Focused local validation: **16 passed in 3.43s**. Broader candidate, backend,
   tactical, promotion, decision-engine, and strategy validation: **104 passed
-  in 107.94s**. GitHub Actions remains required before executing the report.
+  in 107.94s**.
+- GitHub Actions run `43633127462`, job `132563939788`, passed roadmap HEAD
+  `11e1f162`: **3326 passed, 1618 deselected in 206.43s**. The frozen 64-seed
+  report is now authorized.
 
 ## Exact active task
 
-Push and CI-gate commit `c9e8784d`, then execute the frozen 64-seed
+Execute the frozen 64-seed
 `boss-progress-exact-play-shadow-v1` evaluation before changing production
 arbitration.
 
