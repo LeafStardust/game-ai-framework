@@ -2435,8 +2435,11 @@ Progress-reward rollout/training provenance checkpoint:
 - Focused rollout/GAE gate: **61 passed in 45.24s**. Broader backend, contract,
   batch, model, learner, session, campaign, candidate-evaluation, and
   promotion-evaluation gate: **144 passed in 96.97s**. Syntax compilation and
-  `git diff --check` are clean. This checkpoint still requires CI before any
-  pilot execution path is authorized.
+  `git diff --check` are clean.
+- GitHub Actions run `43636137696`, job `132573237203`, passed the authoritative
+  Balatro deterministic gate with **3337 passed, 1618 deselected in 221.16s**.
+  The v2 backend and rollout/training provenance path are now CI-green. No
+  pilot has run yet.
 
 ## Exact active task
 
@@ -2447,8 +2450,9 @@ one-batch learning-signal pilot before authorizing any new campaign.
 
 The backend owner is implemented and CI-green at the checkpoint above.
 The separately versioned rollout and training-contract provenance path is
-implemented locally. Push and CI-gate it next, then implement only the isolated
-bounded one-batch pilot path and its required evidence report.
+CI-green. Implement only the isolated bounded one-batch pilot path and its
+required evidence report, CI-gate that path, and then run exactly one pilot
+batch without reading or writing any v1 campaign artifact.
 
 Requirements:
 
