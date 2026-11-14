@@ -2457,8 +2457,10 @@ Progress-reward one-batch pilot implementation checkpoint:
 - Pilot/campaign safety gate: **31 passed in 0.97s**. Broader backend, contract,
   rollout, batch, model, learner, session, campaign, candidate-evaluation, and
   promotion-evaluation gate: **148 passed in 96.50s**. Syntax compilation and
-  `git diff --check` are clean. The runner is not authorized for execution
-  until this checkpoint passes CI.
+  `git diff --check` are clean.
+- GitHub Actions run `43637218779`, job `132576551806`, passed the authoritative
+  Balatro deterministic gate with **3341 passed, 1618 deselected in 155.16s**.
+  The fresh one-batch pilot runner is now authorized; no pilot has run yet.
 
 ## Exact active task
 
@@ -2469,10 +2471,9 @@ one-batch learning-signal pilot before authorizing any new campaign.
 
 The backend owner is implemented and CI-green at the checkpoint above.
 The separately versioned rollout and training-contract provenance path is
-CI-green, and the isolated bounded pilot path is implemented locally. Push and
-CI-gate the pilot path next, then run exactly one fresh pilot batch without
-reading or writing any v1 campaign artifact. Publish and evaluate its report
-before authorizing any further training.
+CI-green, and the isolated bounded pilot path is also CI-green. Run exactly one
+fresh pilot batch without reading or writing any v1 campaign artifact. Publish
+and evaluate its report before authorizing any further training.
 
 Requirements:
 
