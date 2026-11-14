@@ -1,4 +1,5 @@
 from copy import deepcopy
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -18,13 +19,14 @@ from games.balatro.env.ppo_batch import (
     PPOBatchAssembler,
 )
 from games.balatro.env.ppo_contract import (
-    PPO_ROLLOUT_EPISODE_SCHEMA,
+    PPO_PROGRESS_TRAINING_CONTRACT,
     PPO_TRAINING_CONTRACT,
     PPOContractError,
     PPORolloutBoundary,
     PPORolloutDecision,
     PPORolloutEpisode,
     PPOTrainingRun,
+    ppo_training_contract_for_run,
 )
 from games.balatro.env.seeded_evaluation import EVALUATION_MODE
 from games.balatro.env.state import RunStatus, TurnOwner
@@ -84,7 +86,7 @@ def _episode(run, episode_index, *, length=257):
     )
     rewards = (0.0,) * (length - 1) + (-1.0,)
     return PPORolloutEpisode(
-        schema_version=PPO_ROLLOUT_EPISODE_SCHEMA,
+        schema_version=ppo_training_contract_for_run(run).rollout_episode_schema,
         training_run=run,
         episode_index=episode_index,
         game_seed=run.game_seed(episode_index),
@@ -152,6 +154,27 @@ def test_env_ppo_batch_computes_gae_separately_at_each_episode_terminal():
     assert [item["decision_index"] for item in queued] == [0, 0]
     assert [item["advantage"] for item in queued] == pytest.approx([-1.0, -1.0])
     assert [item["return_value"] for item in queued] == pytest.approx([-1.0, -1.0])
+
+
+def test_env_ppo_batch_computes_progress_reward_gae_and_returns_exactly():
+    run = PPOTrainingRun.from_seed(
+        "PROGRESS-GAE", contract=PPO_PROGRESS_TRAINING_CONTRACT
+    )
+    episode = replace(
+        _episode(run, 0, length=3),
+        rewards=(0.04125, 0.04083333333333334, -1.0833333333333333),
+    )
+    assembler = PPOBatchAssembler(run)
+
+    assembler.add_episode(episode)
+
+    queued = assembler.serialize()["streams"][0]
+    assert [item["advantage"] for item in queued] == pytest.approx(
+        [-0.8784555780000001, -0.9789426666666666, -1.0853333333333333]
+    )
+    assert [item["return_value"] for item in queued] == pytest.approx(
+        [-0.8784555780000001, -0.9779426666666666, -1.0833333333333333]
+    )
 
 
 def test_env_ppo_batch_rejects_cross_run_episode_and_tampered_carryover():

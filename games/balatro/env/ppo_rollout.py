@@ -9,11 +9,11 @@ from games.balatro.env.action_encoding import ActionMask, legal_action_mask
 from games.balatro.env.environment import BalatroHeadlessEnvironment
 from games.balatro.env.observation_encoding import EncodedPublicObservation
 from games.balatro.env.ppo_contract import (
-    PPO_TRAINING_CONTRACT,
     PPOContractError,
     PPOPolicyOutput,
     PPORolloutEpisode,
     PPOTrainingRun,
+    ppo_training_contract_for_run,
     select_ppo_action,
 )
 
@@ -36,13 +36,16 @@ def collect_complete_ppo_episode(
     if not callable(policy):
         raise TypeError("policy must be callable")
 
+    contract = ppo_training_contract_for_run(training_run)
     game_seed = training_run.game_seed(episode_index)
-    environment.reset(seed=game_seed)
+    _, reset_info = environment.reset(seed=game_seed)
+    if reset_info.get("reward_contract") != contract.reward_contract:
+        raise PPOContractError("PPO rollout reset reward contract mismatch")
     frames = [deepcopy(environment.frame)]
     decisions = []
     rewards = []
 
-    for decision_index in range(PPO_TRAINING_CONTRACT.maximum_episode_actions):
+    for decision_index in range(contract.maximum_episode_actions):
         frame = environment.frame
         if frame.status.terminal:
             break
@@ -60,7 +63,9 @@ def collect_complete_ppo_episode(
             legal_actions=legal_actions,
             policy_output=output,
         )
-        _, reward, terminated, truncated, _ = environment.step(decision.action)
+        _, reward, terminated, truncated, info = environment.step(decision.action)
+        if info.get("reward_contract") != contract.reward_contract:
+            raise PPOContractError("PPO rollout step reward contract mismatch")
         decisions.append(decision)
         rewards.append(reward)
         frames.append(deepcopy(environment.frame))

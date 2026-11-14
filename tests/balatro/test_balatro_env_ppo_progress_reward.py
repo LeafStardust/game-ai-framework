@@ -10,7 +10,11 @@ from games.balatro.env.episode_backend import (
 )
 from games.balatro.env.ppo_contract import (
     PPO_PROGRESS_REWARD_CONTRACT,
+    PPO_PROGRESS_TRAINING_CONTRACT,
     PPO_REWARD_CONTRACT,
+    PPO_TRAINING_CONTRACT,
+    PPOContractError,
+    PPOTrainingRun,
 )
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.env.transition import HeadlessTransitionError
@@ -114,3 +118,25 @@ def test_progress_backend_tags_contract_without_changing_v1_snapshot_shape():
 def test_progress_backend_rejects_unknown_reward_contract():
     with pytest.raises(ValueError, match="unsupported"):
         PPOHeadlessBackend(_Policy(), reward_contract="unknown")
+
+
+def test_progress_training_run_is_distinct_without_changing_default_v1_bytes():
+    default_run = PPOTrainingRun.from_seed("CONTRACT-BYTES")
+    explicit_v1_run = PPOTrainingRun.from_seed(
+        "CONTRACT-BYTES", contract=PPO_TRAINING_CONTRACT
+    )
+    progress_run = PPOTrainingRun.from_seed(
+        "CONTRACT-BYTES", contract=PPO_PROGRESS_TRAINING_CONTRACT
+    )
+
+    assert default_run.to_json().encode("utf-8") == explicit_v1_run.to_json().encode(
+        "utf-8"
+    )
+    assert progress_run.contract_sha256 == PPO_PROGRESS_TRAINING_CONTRACT.sha256
+    assert progress_run.contract_sha256 != default_run.contract_sha256
+    assert progress_run.game_seed(0) == default_run.game_seed(0)
+
+
+def test_unregistered_training_contract_fails_closed():
+    with pytest.raises(PPOContractError, match="digest mismatch"):
+        PPOTrainingRun.from_seed("UNREGISTERED", contract=object())

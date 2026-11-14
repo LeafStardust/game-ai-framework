@@ -35,9 +35,15 @@ from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 
 
 PPO_TRAINING_CONTRACT_VERSION = "balatro-red-white-ppo-training-v4"
+PPO_PROGRESS_TRAINING_CONTRACT_VERSION = (
+    "balatro-red-white-ppo-progress-reward-training-v5"
+)
 PPO_TRAINING_RUN_SCHEMA = "balatro-red-white-ppo-run-v3"
 PPO_POLICY_OUTPUT_SCHEMA = "balatro-red-white-ppo-policy-output-v3"
 PPO_ROLLOUT_EPISODE_SCHEMA = "balatro-red-white-ppo-rollout-episode-v4"
+PPO_PROGRESS_ROLLOUT_EPISODE_SCHEMA = (
+    "balatro-red-white-ppo-progress-reward-rollout-episode-v5"
+)
 PPO_ACTION_SAMPLE_DOMAIN = "balatro-red-white-ppo-rollout-episode-v3"
 PPO_ALGORITHM = "clipped_ppo"
 PPO_REWARD_CONTRACT = "balatro-red-white-sparse-terminal-reward-v1"
@@ -106,18 +112,15 @@ class PPOTrainingContract:
     maximum_episode_actions: int = 4096
 
     def __post_init__(self) -> None:
-        # Keep v4 pre-registration immutable. A changed design requires a new version.
-        frozen = {
-            "version": PPO_TRAINING_CONTRACT_VERSION,
+        # Keep both registered contracts immutable. Further changes require a new version.
+        shared = {
             "algorithm": PPO_ALGORITHM,
             "observation_version": PUBLIC_OBSERVATION_VERSION,
             "observation_size": len(PUBLIC_OBSERVATION_SCHEMA.feature_names),
             "action_version": PUBLIC_ACTION_VERSION,
             "action_size": len(PUBLIC_ACTION_SCHEMA.slots),
-            "rollout_episode_schema": PPO_ROLLOUT_EPISODE_SCHEMA,
             "action_sample_domain": PPO_ACTION_SAMPLE_DOMAIN,
             "promotion_contract_version": B0_PROMOTION_CONTRACT_VERSION,
-            "reward_contract": PPO_REWARD_CONTRACT,
             "training_seed_policy": PPO_TRAINING_SEED_POLICY,
             "policy_hidden_sizes": (512, 256),
             "activation": "tanh",
@@ -136,8 +139,22 @@ class PPOTrainingContract:
             "maximum_gradient_norm": 0.50,
             "maximum_episode_actions": 4096,
         }
-        if asdict(self) != frozen:
-            raise PPOContractError("PPO training contract v4 has drifted")
+        registered = (
+            {
+                **shared,
+                "version": PPO_TRAINING_CONTRACT_VERSION,
+                "rollout_episode_schema": PPO_ROLLOUT_EPISODE_SCHEMA,
+                "reward_contract": PPO_REWARD_CONTRACT,
+            },
+            {
+                **shared,
+                "version": PPO_PROGRESS_TRAINING_CONTRACT_VERSION,
+                "rollout_episode_schema": PPO_PROGRESS_ROLLOUT_EPISODE_SCHEMA,
+                "reward_contract": PPO_PROGRESS_REWARD_CONTRACT,
+            },
+        )
+        if asdict(self) not in registered:
+            raise PPOContractError("PPO training contract has drifted")
         batch_size = self.parallel_environments * self.rollout_steps_per_environment
         if batch_size % self.minibatch_size or self.total_environment_steps % batch_size:
             raise PPOContractError("PPO batch schedule must divide exactly")
@@ -161,6 +178,20 @@ class PPOTrainingContract:
 
 
 PPO_TRAINING_CONTRACT = PPOTrainingContract()
+PPO_PROGRESS_TRAINING_CONTRACT = PPOTrainingContract(
+    version=PPO_PROGRESS_TRAINING_CONTRACT_VERSION,
+    rollout_episode_schema=PPO_PROGRESS_ROLLOUT_EPISODE_SCHEMA,
+    reward_contract=PPO_PROGRESS_REWARD_CONTRACT,
+)
+
+
+def ppo_training_contract_for_digest(contract_sha256: str) -> PPOTrainingContract:
+    """Resolve one registered immutable contract by its exact digest."""
+    contracts = (PPO_TRAINING_CONTRACT, PPO_PROGRESS_TRAINING_CONTRACT)
+    for contract in contracts:
+        if contract_sha256 == contract.sha256:
+            return contract
+    raise PPOContractError("PPO training contract digest mismatch")
 
 
 def _derived_seed(root_seed_hex: str, kind: str) -> str:
@@ -180,8 +211,7 @@ class PPOTrainingRun:
     def __post_init__(self) -> None:
         if self.schema_version != PPO_TRAINING_RUN_SCHEMA:
             raise PPOContractError("PPO training run schema version mismatch")
-        if self.contract_sha256 != PPO_TRAINING_CONTRACT.sha256:
-            raise PPOContractError("PPO training contract digest mismatch")
+        ppo_training_contract_for_digest(self.contract_sha256)
         root = _lower_hex(self.root_seed_hex, "root seed")
         _lower_hex(self.learner_seed_hex, "learner seed")
         _lower_hex(self.rollout_seed_hex, "rollout seed")
@@ -193,15 +223,25 @@ class PPOTrainingRun:
             raise PPOContractError("learner and rollout seed streams must be separate")
 
     @classmethod
-    def from_seed(cls, seed: str | int) -> "PPOTrainingRun":
+    def from_seed(
+        cls,
+        seed: str | int,
+        *,
+        contract: PPOTrainingContract = PPO_TRAINING_CONTRACT,
+    ) -> "PPOTrainingRun":
         if isinstance(seed, bool) or not isinstance(seed, (str, int)):
             raise TypeError("PPO root seed must be a string or exact integer")
+        registered = ppo_training_contract_for_digest(
+            getattr(contract, "sha256", "")
+        )
+        if contract != registered:
+            raise PPOContractError("PPO training contract is not registered")
         root = sha256(
             f"{PPO_TRAINING_RUN_SCHEMA}\0root\0{seed}".encode("utf-8")
         ).hexdigest()
         return cls(
             schema_version=PPO_TRAINING_RUN_SCHEMA,
-            contract_sha256=PPO_TRAINING_CONTRACT.sha256,
+            contract_sha256=contract.sha256,
             root_seed_hex=root,
             learner_seed_hex=_derived_seed(root, "learner"),
             rollout_seed_hex=_derived_seed(root, "rollout"),
@@ -227,6 +267,13 @@ class PPOTrainingRun:
     @property
     def sha256(self) -> str:
         return sha256(self.to_json().encode("utf-8")).hexdigest()
+
+
+def ppo_training_contract_for_run(training_run: PPOTrainingRun) -> PPOTrainingContract:
+    """Resolve the registered contract bound into one validated training run."""
+    if not isinstance(training_run, PPOTrainingRun):
+        raise TypeError("training_run must be PPOTrainingRun")
+    return ppo_training_contract_for_digest(training_run.contract_sha256)
 
 
 @dataclass(frozen=True)
@@ -538,10 +585,11 @@ class PPORolloutEpisode:
     truncated: bool = False
 
     def __post_init__(self) -> None:
-        if self.schema_version != PPO_ROLLOUT_EPISODE_SCHEMA:
-            raise PPOContractError("PPO rollout episode schema version mismatch")
         if not isinstance(self.training_run, PPOTrainingRun):
             raise PPOContractError("PPO rollout training run is invalid")
+        contract = ppo_training_contract_for_run(self.training_run)
+        if self.schema_version != contract.rollout_episode_schema:
+            raise PPOContractError("PPO rollout episode schema version mismatch")
         index = _exact_int(self.episode_index, "rollout episode index")
         if self.game_seed != self.training_run.game_seed(index):
             raise PPOContractError("PPO rollout game seed provenance mismatch")
@@ -556,7 +604,7 @@ class PPORolloutEpisode:
             or not self.decisions
         ):
             raise PPOContractError("PPO rollout must contain one complete transition sequence")
-        if len(self.decisions) > PPO_TRAINING_CONTRACT.maximum_episode_actions:
+        if len(self.decisions) > contract.maximum_episode_actions:
             raise PPOContractError("PPO rollout exceeds the frozen episode action cap")
         if any(not isinstance(item, PPORolloutBoundary) for item in self.boundaries):
             raise PPOContractError("PPO rollout contains an invalid boundary")
@@ -620,8 +668,9 @@ class PPORolloutEpisode:
         truncated: bool = False,
     ) -> "PPORolloutEpisode":
         index = _exact_int(episode_index, "rollout episode index")
+        contract = ppo_training_contract_for_run(training_run)
         return cls(
-            schema_version=PPO_ROLLOUT_EPISODE_SCHEMA,
+            schema_version=contract.rollout_episode_schema,
             training_run=training_run,
             episode_index=index,
             game_seed=training_run.game_seed(index),

@@ -16,6 +16,9 @@ from games.balatro.env.episode_backend import (
 )
 from games.balatro.env.ppo_contract import (
     PPO_POLICY_OUTPUT_SCHEMA,
+    PPO_PROGRESS_REWARD_CONTRACT,
+    PPO_PROGRESS_ROLLOUT_EPISODE_SCHEMA,
+    PPO_PROGRESS_TRAINING_CONTRACT,
     PPO_REWARD_CONTRACT,
     PPO_TRAINING_CONTRACT,
     PPOContractError,
@@ -966,4 +969,62 @@ def test_env_ppo_collector_rejects_noncontract_policy_output():
             PPOTrainingRun.from_seed("BAD-POLICY"),
             episode_index=0,
             policy=lambda observation, mask: (1.0,) * len(mask.values),
+        )
+
+
+def test_env_ppo_collector_binds_progress_reward_contract_and_rollout_schema():
+    training_run = PPOTrainingRun.from_seed(
+        "PROGRESS-COLLECT", contract=PPO_PROGRESS_TRAINING_CONTRACT
+    )
+    environment = BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(
+            _OneCardTacticalPolicy(),
+            reward_contract=PPO_PROGRESS_REWARD_CONTRACT,
+        )
+    )
+
+    episode = collect_complete_ppo_episode(
+        environment,
+        training_run,
+        episode_index=0,
+        policy=lambda observation, mask: _ppo_output(),
+    )
+
+    assert episode.schema_version == PPO_PROGRESS_ROLLOUT_EPISODE_SCHEMA
+    assert episode.training_run.contract_sha256 == PPO_PROGRESS_TRAINING_CONTRACT.sha256
+    assert episode.rewards == (-1.0,)
+    assert episode.status is RunStatus.LOSS
+    payload = episode.as_dict()
+    assert payload["schema_version"] == PPO_PROGRESS_ROLLOUT_EPISODE_SCHEMA
+    assert (
+        payload["training_run"]["contract_sha256"]
+        == PPO_PROGRESS_TRAINING_CONTRACT.sha256
+    )
+
+
+@pytest.mark.parametrize(
+    ("training_contract", "backend_reward_contract"),
+    [
+        (PPO_TRAINING_CONTRACT, PPO_PROGRESS_REWARD_CONTRACT),
+        (PPO_PROGRESS_TRAINING_CONTRACT, PPO_REWARD_CONTRACT),
+    ],
+)
+def test_env_ppo_collector_fails_closed_on_reward_contract_mismatch(
+    training_contract, backend_reward_contract
+):
+    training_run = PPOTrainingRun.from_seed(
+        "REWARD-MISMATCH", contract=training_contract
+    )
+    environment = BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(
+            _OneCardTacticalPolicy(), reward_contract=backend_reward_contract
+        )
+    )
+
+    with pytest.raises(PPOContractError, match="reset reward contract mismatch"):
+        collect_complete_ppo_episode(
+            environment,
+            training_run,
+            episode_index=0,
+            policy=lambda observation, mask: _ppo_output(),
         )
