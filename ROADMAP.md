@@ -2416,9 +2416,9 @@ Progress-reward backend implementation checkpoint:
   promotion-evaluation gate completed before the final test-only telescoping
   addition with **101 passed in 119.98s**. Syntax compilation and
   `git diff --check` are clean.
-- This is a local implementation checkpoint only. Push and CI evidence are
-  still required before extending the separately versioned rollout/training
-  provenance path or running the bounded pilot.
+- GitHub Actions run `43634906518`, job `132569469289`, passed the authoritative
+  Balatro deterministic gate with **3331 passed, 1618 deselected in 289.97s**.
+  The optional backend is therefore green. No pilot has run yet.
 
 ## Exact active task
 
@@ -2427,9 +2427,9 @@ Implement and CI-gate the optional
 preserving sparse v1 as the production/default contract. Then run only a bounded
 one-batch learning-signal pilot before authorizing any new campaign.
 
-The backend owner is implemented locally at the checkpoint above. Push and
-CI-gate it next; after that, continue only the separately versioned rollout and
-training-contract provenance path.
+The backend owner is implemented and CI-green at the checkpoint above.
+Continue only the separately versioned rollout and training-contract
+provenance path; CI-gate that path before running the bounded pilot.
 
 Requirements:
 
