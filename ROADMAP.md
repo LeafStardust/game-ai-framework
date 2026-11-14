@@ -2292,12 +2292,15 @@ Boss safe-pace counterfactual tooling checkpoint:
   Missing source, plan, outcome, or exactly-one-override evidence fails closed.
 - Focused local validation: **19 passed in 1.07s**. Broader candidate, backend,
   tactical, promotion, decision-engine, and strategy validation: **100 passed
-  in 50.86s**. GitHub Actions remains required before executing the trace.
+  in 50.86s**.
+- GitHub Actions run `43596752979`, job `132452787025`, passed roadmap HEAD
+  `7e36f72d`: **3322 passed, 1618 deselected in 218.11s**. The pinned
+  counterfactual trace is now authorized.
 
 ## Exact active task
 
-Push and CI-gate commit `5494cb37`, then execute and publish the single-boundary
-episode-0 safe-pace counterfactual before defining another 64-seed shadow.
+Execute and publish the single-boundary episode-0 safe-pace counterfactual,
+then define the next task from its exact causal outcome.
 
 Requirements:
 
