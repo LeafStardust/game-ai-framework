@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`ee46f9601d681d65335a80c11f8f78b5d5f35357`.
+`713820131257bf614e5322518b3b1baae2511fad`.
 
 ## Objective
 
@@ -2147,11 +2147,26 @@ Completed `boss-exact-path-preservation-shadow-v1` evaluation:
   episodes 3 and 9 fall from Ante 2 to Ante 1. Production arbitration remains
   unchanged and this rejected rule will not be tuned.
 
+Terminal-loss tactical census implementation checkpoint:
+
+- Commit `713820131257bf614e5322518b3b1baae2511fad` adds a read-only fixed-corpus
+  census around the unchanged production tactical engine. Every episode must
+  reproduce the digest-bound published candidate result and diagnostic metrics
+  before its terminal-blind evidence is admitted.
+- The census records public action/plan/search evidence only, classifies losses
+  by different completed exact-clear availability, budget exhaustion, and
+  selected-plan exactness, and deterministically selects the closest terminal
+  loss in each demonstrated class.
+- Focused local validation: **23 passed in 1.65s**. Broader candidate,
+  campaign, backend, tactical, promotion, decision-engine, and strategy
+  validation: **92 passed in 51.37s**. GitHub Actions remains required before
+  executing the 64-seed census.
+
 ## Exact active task
 
-Implement and CI-gate a digest-bound fixed-corpus terminal-loss tactical census
-for the unchanged production candidate, then publish it before defining any new
-shadow or changing production arbitration.
+Push and CI-gate commit `71382013`, then execute and publish the digest-bound
+fixed-corpus terminal-loss tactical census before defining any new shadow or
+changing production arbitration.
 
 Requirements:
 
