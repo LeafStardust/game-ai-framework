@@ -2025,22 +2025,48 @@ Shadow tooling checkpoint:
   10.89s**.
 - GitHub Actions run `43574063741`, job `132384357558`, passed commit
   `26226a9f`: **3305 passed, 1618 deselected in 163.82s**. The frozen 64-seed
-  execution remains pending.
+  execution was gated on this result.
+
+Completed `tactical-arbitration-shadow-v1` evaluation:
+
+- The 128 first-blind replays completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_TACTICAL_SHADOW_REPORT.json`, report SHA-256
+  `86509cbde581a94ee0a302adc6f13b049e9034f485713bab3e8752e3267326c2`.
+  The report is bound to tactical trace SHA-256
+  `ea47e4281504c769e7c693ee93da1eae5e5cd80e2cbe78992a0f281ff32da01f`
+  and the frozen 64-seed corpus.
+- Final decision: **REJECTED** with three of five gates passing. The shadow
+  fixes both pinned failures and strictly improves first-blind clears from
+  **62/64 to 63/64**. Mean remaining hands improves from `1.390625` to
+  `1.71875`.
+- It fails the two predeclared nonregression gates: mean terminal score falls
+  from `390.75` to `360.78125`, and mean remaining discards falls from
+  `1.890625` to `1.6875`. Episode 25 / seed `3D74174A` regresses from a 476
+  clear to a 256 loss after the graded-search override at decision 1; 38 of 64
+  trajectories change. The frozen thresholds will not be tuned against this
+  result, and production tactical arbitration remains unchanged.
+- The paired evidence also corrects the scope of the blocker: production clears
+  62 of 64 first blinds, while the full promotion candidate clears 0 of 64
+  games. The dominant competence loss is therefore after the first blind;
+  repairing two first-blind tails cannot establish Red/White competence.
 
 ## Exact active task
 
-Execute the CI-gated `tactical-arbitration-shadow-v1` frozen 64-seed
-production-versus-shadow first-blind evaluation before changing the production
-tactical policy or starting another strategic training run.
+Attribute the post-first-blind failure distribution in the published fixed
+candidate evidence and select one digest-bound representative later-blind
+tactical failure for exact decision/counterfactual tracing before changing
+production policy or starting another strategic training run.
 
 Requirements:
 
-- Add deterministic regressions proving diagnostic retention cannot alter the
-  production action and proving the shadow rule uses no hidden state.
-- Publish a digest-bound comparison with per-seed paired outcomes and aggregate
-  acceptance gates; use CI before executing the 64-seed report.
-- Do not tune the frozen shadow thresholds, change production policy, start
-  another 1,024-batch run, or relax the promotion contract during this task.
+- Derive the terminal Ante/round/requirement distribution directly from the
+  digest-bound fixed candidate report; do not infer it from aggregate means.
+- Select a representative post-first-blind loss canonically, replay the exact
+  candidate strategic actions to its terminal blind, and capture the shared
+  tactical decisions at that boundary with deterministic provenance tests.
+- Determine whether an exact clearing counterfactual exists without hidden
+  policy input. Do not tune the rejected shadow rule, change production policy,
+  start another 1,024-batch run, or relax the promotion contract.
 
 ## Held and deferred work
 
