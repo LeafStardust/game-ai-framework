@@ -2129,20 +2129,40 @@ Boss exact-path shadow implementation checkpoint:
   `057d5727`: **3311 passed, 1618 deselected in 218.93s**. The frozen 64-seed
   report is now authorized.
 
+Completed `boss-exact-path-preservation-shadow-v1` evaluation:
+
+- The 64 paired full-game episodes completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_BOSS_EXACT_SHADOW_REPORT.json`, report SHA-256
+  `242b057a63294087d9ba025cef5b88b8c3c680594f459d02564d9d2a96abeac0`.
+  All canonical episode/game/policy seeds and both digest-bound published
+  source reports verified; 11 episodes contain 12 exact-path overrides.
+- Final decision: **REJECTED** with four of eight gates passing. Episode 1 /
+  `F222A3BD` clears The Club's 600-chip boundary and advances from Ante 1 to
+  Ante 2, but then loses the 800-chip blind at 696. Full-game clears remain
+  **0/64**, so there is no strict competence improvement.
+- The shadow preserves mean minimum cash at `3.171875` but regresses mean Ante
+  `1.5 -> 1.484375`, mean terminal requirement progress
+  `0.6189615885416667 -> 0.6184537760416666`, and mean terminal cash
+  `11.09375 -> 11.046875`. Seven trajectories change terminal metrics; notably
+  episodes 3 and 9 fall from Ante 2 to Ante 1. Production arbitration remains
+  unchanged and this rejected rule will not be tuned.
+
 ## Exact active task
 
-Execute and publish the frozen 64-seed
-`boss-exact-path-preservation-shadow-v1` candidate evaluation, then accept or
-reject it exactly against the predeclared gates before changing production
-policy or starting another strategic training run.
+Implement and CI-gate a digest-bound fixed-corpus terminal-loss tactical census
+for the unchanged production candidate, then publish it before defining any new
+shadow or changing production arbitration.
 
 Requirements:
 
-- Add deterministic regressions proving the shadow acts only on a different
-  exact Boss clear and otherwise returns the production decision unchanged.
-- Publish digest-bound paired per-seed outcomes and the predeclared aggregate
-  gates; use CI before executing the 64-seed report.
-- Do not tune the rejected shadow rule, change production policy, start another
+- Replay all 64 fixed candidate seeds with their frozen game/policy seeds and
+  require published status/action-count parity. Retain only public-safe evidence
+  for each terminal blind's tactical decisions.
+- Classify terminal losses by blind identity/type/requirement, selected-plan
+  exactness, completed-search exact-clear alternatives, search completeness,
+  budget exhaustion, and final chip deficit. Publish deterministic aggregate
+  counts plus the canonical closest representative for each demonstrated class.
+- Do not tune either rejected shadow, change production policy, start another
   1,024-batch run, or relax the promotion contract during this task.
 
 ## Held and deferred work
@@ -2177,5 +2197,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH4_EPISODE_1169_WATER_FIXED.json`
 - `docs/balatro/BALATRO_PPO_BATCH5_EPISODE_1223_MARK_FACING_FIXED.json`
 - `docs/balatro/BALATRO_PPO_BATCH7_EPISODE_1911_WALL_FIXED.json`
+- `docs/balatro/BALATRO_PPO_BOSS_EXACT_SHADOW_REPORT.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
