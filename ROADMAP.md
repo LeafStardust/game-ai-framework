@@ -1866,23 +1866,54 @@ Second production-evaluation attempt gate:
 - GitHub Actions run `43563203268`, job `132351244839`, passed the final retry
   gate at commit `157b9b5d`: **3292 passed, 1618 deselected in 165.10s**.
 
+Completed frozen promotion evaluation:
+
+- The production CLI completed all 10 arms / **960 episodes** with exit code 0
+  and atomically published 28 files at
+  `C:\Users\user\AppData\Local\Temp\balatro-ppo-promotion-v1-c544a516`.
+  All 27 indexed artifact SHA-256 digests were independently rechecked with
+  zero mismatches.
+- Evaluation identity SHA-256:
+  `f1db56dee4cdb30b024436fe2d4ca6f5aa5698b55e1c03748a8f60454373682e`.
+  Promotion report SHA-256:
+  `7485df29a7ba575cdab28676e0003a776b8dac33ce2f6bd4179f8b1c279928c2`.
+- Final decision: **NOT PROMOTED**. The report passed 41 of 54 gates and failed
+  13. All seven zero-tolerance pathology counts are zero; the result is a
+  competence failure, not incomplete, illegal, unsupported, schema, seed, or
+  diagnostic evidence.
+- Fixed holdout: candidate **0/64**, random baseline **0/64**, symbolic baseline
+  **0/64**. Both frozen fixed-clear nonregression gates pass. Candidate means:
+  Ante `1.5`, terminal requirement progress `0.6189615885416667`, minimum cash
+  `$3.171875`, and terminal cash `$11.09375`.
+- Fresh unseeded evidence: candidate **0/256**, random baseline **0/256**, and
+  symbolic baseline **0/256**. The candidate fails the 0.20 minimum clear rate,
+  both required +0.05 deltas, and both Wilson-superiority gates.
+- All Ante, requirement-progress, and minimum-cash secondary gates pass. Eight
+  terminal-cash comparisons fail the allowed `-$2` bound: fixed versus symbolic
+  (`-$2.890625`); manifest 0 versus random/symbolic (`-$2.234375`, `-$3.90625`);
+  manifest 1 versus symbolic (`-$3.890625`); manifest 2 versus random/symbolic
+  (`-$3.078125`, `-$4.46875`); and manifest 3 versus random/symbolic
+  (`-$2.984375`, `-$4.25`).
+
 ## Exact active task
 
-Gate the exact Ante-regression diagnostics fix in GitHub Actions, then retry the
-real frozen promotion evaluation through the same production CLI and interpret
-only its atomically published final report.
+Attribute the failed trained policy exactly before changing training, reward,
+architecture, hyperparameters, baselines, or promotion thresholds.
 
 Requirements:
 
-- Run the CLI against the already-verified completed campaign artifact and a
-  new dedicated output directory. Do not inspect arm artifacts or tune anything
-  while the command is incomplete.
-- If execution fails, preserve the exact exception and leave the contract and
-  model unchanged. Fix only a demonstrated canonical-owner defect, add its
-  deterministic regression, and repeat the CI gate before retrying.
-- On complete publication, verify every indexed digest, read `promotion.json`,
-  record all gate results and the final promoted/not-promoted decision, and
-  update this roadmap before any later phase begins.
+- Add a canonical checkpoint-backed decision-trace diagnostic for the completed
+  fixed candidate arm. Pin representative early-loss and longest-action seeds,
+  bind every sampled action/probability/value to the published candidate and
+  fixed corpus, and replay to the same terminal result without altering RNG.
+- Compare trained action distributions and strategic trajectories against the
+  two baseline arms to distinguish policy-learning failure from observation,
+  action-mask, reward-credit, or environment/reward-contract defects.
+- Add deterministic regressions for diagnostic provenance and replay before
+  executing it. Use CI as the gate and record exact counts.
+- Do not start another 1,024-batch training run, tune against these outcomes, or
+  relax the frozen promotion contract until the failure has a demonstrated
+  canonical cause and a separately frozen next experiment.
 
 ## Held and deferred work
 
