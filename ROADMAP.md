@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`97594716dd2542553ac32cb6c648229e4da32fac`.
+`ee46f9601d681d65335a80c11f8f78b5d5f35357`.
 
 ## Objective
 
@@ -2112,11 +2112,26 @@ Frozen bounded experiment (`boss-exact-path-preservation-shadow-v1`):
 - Reject rather than tune after the 64-seed result. Do not modify production
   arbitration until this separately versioned shadow passes.
 
+Boss exact-path shadow implementation checkpoint:
+
+- Commit `ee46f9601d681d65335a80c11f8f78b5d5f35357` adds the separately versioned
+  shadow decision engine and report owner. It preserves production verbatim
+  outside Boss decisions or when no different completed exact clear exists;
+  otherwise it selects the highest expected-score completed exact clear.
+- The report reruns the trained candidate on the canonical fixed 64-seed
+  corpus with the frozen policy seeds, pairs every shadow result with the
+  digest-bound published production result, and exposes the complete-evidence,
+  pinned-Club-clear, nonregression, and strict-improvement gates.
+- Focused local validation: **28 passed in 3.69s**. Broader candidate,
+  campaign, backend, tactical, promotion, decision-engine, and strategy
+  validation: **89 passed in 51.93s**. GitHub Actions remains required before
+  executing the report.
+
 ## Exact active task
 
-Implement and CI-gate `boss-exact-path-preservation-shadow-v1`, then execute its
-frozen 64-seed candidate evaluation before changing production policy or
-starting another strategic training run.
+Push and CI-gate commit `ee46f960`, then execute the frozen 64-seed
+`boss-exact-path-preservation-shadow-v1` candidate evaluation before changing
+production policy or starting another strategic training run.
 
 Requirements:
 
