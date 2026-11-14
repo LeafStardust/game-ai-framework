@@ -2207,12 +2207,15 @@ Boss exactness-boundary trace implementation checkpoint:
   every census-owned field while permitting only the trace's additional
   diagnostic fields. Focused local validation: **17 passed in 1.54s**. A new
   CI gate is required before retrying execution.
+- GitHub Actions run `43594278202`, job `132445359828`, passed roadmap HEAD
+  `c93850de`: **3318 passed, 1618 deselected in 224.52s**. The corrected pinned
+  trace is now authorized.
 
 ## Exact active task
 
-Push and CI-gate linkage fix `cc9788b0`, then retry and publish the digest-bound
-production trace for episode 0 / seed `9CA6BDC0` at The Psychic. Freeze the
-next bounded experiment only from its first demonstrated owner boundary.
+Retry and publish the corrected digest-bound production trace for episode 0 /
+seed `9CA6BDC0` at The Psychic. Freeze the next bounded experiment only from its
+first demonstrated owner boundary.
 
 Requirements:
 
