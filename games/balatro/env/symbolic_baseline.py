@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass, replace
 from typing import Callable, Iterable
 
 from games.balatro.actions import BalatroAction
@@ -32,6 +32,18 @@ class SymbolicHeadlessDecision:
 SymbolicDecider = Callable[[object, tuple[BalatroAction, ...]], BalatroAction]
 
 
+def _mask_private_identity(item):
+    names = ("live_id", "area_index")
+    if is_dataclass(item) and not isinstance(item, type):
+        field_names = {field.name for field in fields(item)}
+        updates = {name: None for name in names if name in field_names}
+        return replace(item, **updates) if updates else item
+    for name in names:
+        if hasattr(item, name):
+            setattr(item, name, None)
+    return item
+
+
 def _symbolic_policy_state(frame: EnvStateFrame):
     """Return an object-rich view with the same privacy boundary as v1 encoding."""
     state = deepcopy(frame.observation())
@@ -44,10 +56,8 @@ def _symbolic_policy_state(frame: EnvStateFrame):
         collection = getattr(state, collection_name)
         if collection is None:
             continue
-        for item in collection:
-            for name in ("live_id", "area_index"):
-                if hasattr(item, name):
-                    setattr(item, name, None)
+        for index, item in enumerate(collection):
+            collection[index] = _mask_private_identity(item)
     return state
 
 

@@ -1826,10 +1826,25 @@ PPO evaluation executor and promotion-report checkpoint:
 - GitHub Actions run `43463744422`, job `132017216593`, passed the pushed atomic
   owner at commit `b09d2dbe`: **3291 passed, 1618 deselected in 264.87s**.
 
+First production-evaluation attempt gate:
+
+- The run entered `fixed_baselines` and failed closed with exit code 1 before
+  completing an arm or publishing the output directory. No partial outcome was
+  inspected and no artifact was promoted.
+- Exact exception: `dataclasses.FrozenInstanceError: cannot assign to field
+  'area_index'` in `symbolic_baseline._symbolic_policy_state`. The public-state
+  masker attempted in-place identity stripping on immutable generated Voucher
+  metadata.
+- The canonical symbolic owner now replaces dataclass items with detached
+  identity-masked copies while preserving the authoritative source object.
+  Focused regression validation: **10 passed in 10.87s**, including the exact
+  frozen generated-Voucher case and the complete fixed baseline bundle.
+
 ## Exact active task
 
-Execute the real frozen promotion evaluation once through the production CLI
-and interpret only its atomically published final report.
+Gate the immutable symbolic-masker fix in GitHub Actions, then retry the real
+frozen promotion evaluation through the same production CLI and interpret only
+its atomically published final report.
 
 Requirements:
 

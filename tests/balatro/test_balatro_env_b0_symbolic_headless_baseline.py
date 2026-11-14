@@ -2,6 +2,7 @@ import pytest
 
 from games.balatro.actions import BalatroAction
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.env.symbolic_baseline import (
     SYMBOLIC_HEADLESS_BASELINE_VERSION,
@@ -73,6 +74,31 @@ def test_env_b0_symbolic_policy_receives_isolated_public_state():
     assert decision.action.alias == "BUY_JOKER"
     assert frame.state.money == original_money
     assert frame.state.shop_jokers[0].price == 2
+
+
+def test_env_b0_symbolic_masker_replaces_frozen_public_items_without_mutation():
+    frame = _frame()
+    voucher = GeneratedShopVoucherItem(
+        center_key="v_overstock_norm",
+        base_cost=10,
+        price=10,
+        area_index=0,
+        discovered=True,
+    )
+    frame.state.shop_vouchers = [voucher]
+
+    def assert_masked(state, actions):
+        assert state.shop_vouchers[0].area_index is None
+        assert state.shop_vouchers[0] is not voucher
+        return actions[0]
+
+    decision = DeterministicSymbolicHeadlessBaseline(assert_masked).select(
+        frame, (EnvAction.from_alias("END_SHOP"),)
+    )
+
+    assert decision.action == EnvAction.from_alias("END_SHOP")
+    assert frame.state.shop_vouchers[0] is voucher
+    assert voucher.area_index == 0
 
 
 def test_env_b0_ambiguous_or_non_candidate_symbolic_output_fails_closed():
