@@ -113,7 +113,9 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         plans = _boss_projection_plans(
             plans,
             unconfirmed=boss_unconfirmed,
-            preserve_exactness=self.preserve_unconfirmed_boss_exactness,
+            preserve_exactness=bool(
+                getattr(self, "preserve_unconfirmed_boss_exactness", False)
+            ),
         )
 
         plans = constrain_boss_hand_plans(self, state, plans)
