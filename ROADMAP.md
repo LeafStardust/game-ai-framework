@@ -2322,12 +2322,15 @@ Later-decision safe-pace sweep implementation checkpoint:
   source digests and exactly one override per arm are mandatory.
 - Focused local validation: **18 passed in 1.12s**. Broader candidate, backend,
   tactical, promotion, decision-engine, and strategy validation: **102 passed
-  in 50.95s**. GitHub Actions remains required before executing the sweep.
+  in 50.95s**.
+- GitHub Actions run `43597769335`, job `132455836655`, passed roadmap HEAD
+  `3df77d32`: **3324 passed, 1618 deselected in 289.18s**. The fixed sweep is
+  now authorized.
 
 ## Exact active task
 
-Push and CI-gate commit `72be6e27`, then execute and publish the fixed
-three-arm Psychic decision sweep before defining another 64-seed shadow.
+Execute and publish the fixed three-arm Psychic decision sweep, then define the
+next task from the exact per-decision score deltas.
 
 Requirements:
 
