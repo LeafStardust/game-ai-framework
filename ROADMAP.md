@@ -2124,14 +2124,17 @@ Boss exact-path shadow implementation checkpoint:
   pinned-Club-clear, nonregression, and strict-improvement gates.
 - Focused local validation: **28 passed in 3.69s**. Broader candidate,
   campaign, backend, tactical, promotion, decision-engine, and strategy
-  validation: **89 passed in 51.93s**. GitHub Actions remains required before
-  executing the report.
+  validation: **89 passed in 51.93s**.
+- GitHub Actions run `43591631191`, job `132437402307`, passed roadmap HEAD
+  `057d5727`: **3311 passed, 1618 deselected in 218.93s**. The frozen 64-seed
+  report is now authorized.
 
 ## Exact active task
 
-Push and CI-gate commit `ee46f960`, then execute the frozen 64-seed
-`boss-exact-path-preservation-shadow-v1` candidate evaluation before changing
-production policy or starting another strategic training run.
+Execute and publish the frozen 64-seed
+`boss-exact-path-preservation-shadow-v1` candidate evaluation, then accept or
+reject it exactly against the predeclared gates before changing production
+policy or starting another strategic training run.
 
 Requirements:
 
