@@ -1,3 +1,5 @@
+import json
+import shutil
 from types import SimpleNamespace
 
 import pytest
@@ -18,7 +20,6 @@ from games.balatro.env.ppo_promotion_evaluation import (
     PPOPromotionEvaluationError,
     execute_and_publish_ppo_promotion,
     execute_baseline_episode,
-    execute_fixed_baseline_evaluation,
 )
 from games.balatro.env.random_baseline import RANDOM_LEGAL_BASELINE_VERSION
 from games.balatro.env.state import RunStatus
@@ -78,6 +79,24 @@ class _UniqueEntropy:
         return bytes([self.calls]) * size
 
 
+@pytest.fixture(scope="module")
+def published_evaluation(tmp_path_factory):
+    destination = tmp_path_factory.mktemp("atomic-promotion") / "promotion"
+    entropy = _UniqueEntropy()
+    progress = []
+    published = execute_and_publish_ppo_promotion(
+        _campaign(),
+        destination,
+        entropy_source=entropy,
+        environment_factory=_environment,
+        symbolic_decider=_symbolic_first,
+        progress_callback=lambda stage, completed, total: progress.append(
+            (stage, completed, total)
+        ),
+    )
+    return published, destination, entropy, progress
+
+
 def test_env_ppo_baseline_executor_returns_exact_terminal_trace():
     evidence = execute_baseline_episode(
         RANDOM_LEGAL_BASELINE_VERSION,
@@ -103,32 +122,10 @@ def test_env_ppo_baseline_executor_returns_exact_terminal_trace():
     assert symbolic.action_count == 1
 
 
-def test_env_ppo_fixed_baseline_bundle_binds_all_results_and_diagnostics():
-    bundle = execute_fixed_baseline_evaluation(
-        environment_factory=_environment,
-        symbolic_decider=_symbolic_first,
-    )
-
-    assert bundle.source.episode_count == 128
-    assert bundle.diagnostics.episode_count == 128
-    assert tuple(item.ante_8_clears for item in bundle.diagnostics.baselines) == (0, 0)
-
-
-def test_env_ppo_atomic_promotion_publishes_complete_run_and_resumes(tmp_path):
-    destination = tmp_path / "promotion"
-    entropy = _UniqueEntropy()
-    progress = []
-
-    first = execute_and_publish_ppo_promotion(
-        _campaign(),
-        destination,
-        entropy_source=entropy,
-        environment_factory=_environment,
-        symbolic_decider=_symbolic_first,
-        progress_callback=lambda stage, completed, total: progress.append(
-            (stage, completed, total)
-        ),
-    )
+def test_env_ppo_atomic_promotion_publishes_complete_run_and_resumes(
+    published_evaluation,
+):
+    first, destination, entropy, progress = published_evaluation
 
     assert first.directory == destination.resolve()
     assert first.candidate_sha256 == PPOCandidateIdentity.from_completed_campaign(_campaign()).sha256
@@ -137,6 +134,13 @@ def test_env_ppo_atomic_promotion_publishes_complete_run_and_resumes(tmp_path):
     assert (destination / "final.json").is_file()
     assert len(tuple(destination.iterdir())) == 28
     assert entropy.calls == 4
+    fixed_source = json.loads((destination / "fixed-baselines.json").read_text())
+    fixed_diagnostics = json.loads(
+        (destination / "fixed-baseline-diagnostics.json").read_text()
+    )
+    assert len(fixed_source["episodes"]) == 128
+    assert len(fixed_diagnostics["episodes"]) == 128
+    assert tuple(item["ante_8_clears"] for item in fixed_diagnostics["baselines"]) == (0, 0)
     assert progress[0] == ("creating_manifests", 0, 10)
     assert progress[-1] == ("complete", 10, 10)
     assert [item[1] for item in progress] == sorted(item[1] for item in progress)
@@ -151,15 +155,12 @@ def test_env_ppo_atomic_promotion_publishes_complete_run_and_resumes(tmp_path):
     assert resumed == first
 
 
-def test_env_ppo_atomic_promotion_rejects_tampered_resume(tmp_path):
+def test_env_ppo_atomic_promotion_rejects_tampered_resume(
+    tmp_path, published_evaluation
+):
+    published, source, _, _ = published_evaluation
     destination = tmp_path / "promotion"
-    published = execute_and_publish_ppo_promotion(
-        _campaign(),
-        destination,
-        entropy_source=_UniqueEntropy(),
-        environment_factory=_environment,
-        symbolic_decider=_symbolic_first,
-    )
+    shutil.copytree(source, destination)
     artifact = destination / published.artifact_sha256s[0][0]
     artifact.write_bytes(artifact.read_bytes() + b"\n")
 

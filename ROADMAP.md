@@ -1856,6 +1856,13 @@ Second production-evaluation attempt gate:
   reset still must begin at Ante 1 and all other terminal/provenance checks stay
   unchanged. Focused diagnostics/aggregation/promotion validation: **30 passed
   in 5.23s**.
+- The first CI attempt for this fix, run `43562474557`, was canceled by the
+  workflow's 5-minute job limit rather than a test assertion. The atomic suite
+  now shares its single complete synthetic 960-episode publication across
+  publication/resume/tamper checks instead of executing that schedule twice;
+  the retained suite passed **5 tests in 62.66s**. The deterministic workflow
+  timeout is raised to 10 minutes so the expanded gate can finish without
+  weakening or deselecting coverage.
 
 ## Exact active task
 
