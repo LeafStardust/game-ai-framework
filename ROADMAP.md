@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`91517a83a41c866b8f9fc22aa8de7e11962aa8f2`.
+`2a2f3b58811d9e3fc29d8a85dac0570b1f450ed0`.
 
 ## Objective
 
@@ -2253,10 +2253,17 @@ Boss projection exactness-shadow implementation checkpoint:
 - Focused local validation: **23 passed in 1.54s**. Broader candidate, backend,
   tactical, promotion, decision-engine, and strategy validation: **98 passed
   in 51.43s**. GitHub Actions remains required before executing the report.
+- GitHub Actions run `43595096562`, job `132447806020`, correctly blocked
+  execution: **2 failed, 3318 passed, 1618 deselected in 297.27s**. Both failures
+  were constructor-bypassing isolated policy fixtures that lacked the new
+  defaulted attribute. Commit `2a2f3b58811d9e3fc29d8a85dac0570b1f450ed0`
+  now reads an absent attribute as `False`, preserving exact production
+  behavior. The two failures plus shadow/strategy regressions are locally green:
+  **11 passed in 1.37s**. A fresh CI gate is required.
 
 ## Exact active task
 
-Push and CI-gate commit `91517a83`, then execute the frozen 64-seed
+Push and CI-gate fix `2a2f3b58`, then execute the frozen 64-seed
 `boss-projection-exactness-preservation-shadow-v1` evaluation before changing
 production arbitration or starting another strategic training run.
 
