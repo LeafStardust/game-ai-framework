@@ -2297,19 +2297,35 @@ Boss safe-pace counterfactual tooling checkpoint:
   `7e36f72d`: **3322 passed, 1618 deselected in 218.11s**. The pinned
   counterfactual trace is now authorized.
 
+Completed decision-0 safe-pace counterfactual:
+
+- The pinned replay completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_BOSS_SAFE_PACE_COUNTERFACTUAL.json`, report SHA-256
+  `360b992c29d4a5bf7fccec57807aa915fd8a8564beab4f8615b6b3fb39781985`.
+  Production reproduces the authoritative 579/600 loss and the counterfactual
+  records exactly one public decision override.
+- Replacing production's first `PACE_RECOVERY` discard with the already-computed
+  exact horizon-2 Play (expected score 112) worsens the terminal result to
+  **448/600**, a `-131` chip delta. All subsequent decisions use production.
+- The demonstrated first safe-pace discard is therefore protective, not the
+  cause of the near miss. Do not broaden it into a 64-seed rule. The remaining
+  causal search stays pinned to later decisions in this same terminal blind.
+
 ## Exact active task
 
-Execute and publish the single-boundary episode-0 safe-pace counterfactual,
-then define the next task from its exact causal outcome.
+Implement and CI-gate an episode-0 one-decision counterfactual sweep across the
+remaining Psychic decisions, then publish each exact terminal score delta before
+defining another 64-seed shadow.
 
 Requirements:
 
-- Bind the campaign, published fixed result, census, and Boss boundary trace;
-  replay the exact strategic prefix and public terminal-blind state.
-- At tactical decision 0 only, select the highest expected-score completed
-  exact Play already computed by production; make no seed, RNG, hidden-zone,
-  search, threshold, mechanic, or subsequent-policy change. Record production
-  and counterfactual terminal frames and require exactly one override.
+- Reconstruct each original production decision boundary from the same public
+  blind start. For every later decision whose highest expected-score completed
+  exact plan differs from production, preserve the production prefix, substitute
+  that one plan, and resume production afterward.
+- Bind the campaign, published result, census, boundary trace, and decision-0
+  report. Publish every eligible decision/action/plan and terminal score delta;
+  make no seed, RNG, hidden-zone, search, threshold, or mechanic change.
 - Do not tune either rejected shadow, change production policy, start another
   1,024-batch run, or relax the promotion contract during this task.
 
@@ -2349,5 +2365,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_TERMINAL_LOSS_CENSUS.json`
 - `docs/balatro/BALATRO_PPO_BOSS_INEXACT_TRACE.json`
 - `docs/balatro/BALATRO_PPO_BOSS_EXACTNESS_SHADOW_REPORT.json`
+- `docs/balatro/BALATRO_PPO_BOSS_SAFE_PACE_COUNTERFACTUAL.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
