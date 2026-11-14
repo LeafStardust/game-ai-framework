@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`cc9788b0ffb8feaf071a53cf41c55c248d02a210`.
+`91517a83a41c866b8f9fc22aa8de7e11962aa8f2`.
 
 ## Objective
 
@@ -2241,11 +2241,24 @@ Frozen bounded experiment (`boss-projection-exactness-preservation-shadow-v1`):
   least one of full-game clears, mean Ante, or mean requirement progress must
   strictly improve. Reject rather than tune after the frozen result.
 
+Boss projection exactness-shadow implementation checkpoint:
+
+- Commit `91517a83a41c866b8f9fc22aa8de7e11962aa8f2` adds the option at the canonical
+  `StrategyAwareLiveHandActionPolicy` owner. Its default retains production's
+  exact-to-inexact Boss behavior; the shadow value suppresses only that one
+  demonstrated downgrade before all existing downstream arbitration.
+- The separately versioned report reruns all 64 fixed candidate seeds, pairs
+  each result with the digest-bound production evidence, and publishes the
+  pinned-Psychic, nonregression, and strict-improvement gates frozen above.
+- Focused local validation: **23 passed in 1.54s**. Broader candidate, backend,
+  tactical, promotion, decision-engine, and strategy validation: **98 passed
+  in 51.43s**. GitHub Actions remains required before executing the report.
+
 ## Exact active task
 
-Implement and CI-gate `boss-projection-exactness-preservation-shadow-v1`, then
-execute its frozen 64-seed candidate evaluation before changing production
-arbitration or starting another strategic training run.
+Push and CI-gate commit `91517a83`, then execute the frozen 64-seed
+`boss-projection-exactness-preservation-shadow-v1` evaluation before changing
+production arbitration or starting another strategic training run.
 
 Requirements:
 
