@@ -2264,19 +2264,37 @@ Boss projection exactness-shadow implementation checkpoint:
   `43b4c0ce`: **3320 passed, 1618 deselected in 218.91s**. The frozen shadow
   evaluation is now authorized.
 
+Completed `boss-projection-exactness-preservation-shadow-v1` evaluation:
+
+- The 64 paired episodes completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_BOSS_EXACTNESS_SHADOW_REPORT.json`, report SHA-256
+  `a2eac8d31d1accea4795fbe469498419de82a2534ec72ee2e4ba90e8685290dc`.
+  Complete evidence and every nonregression gate pass.
+- Final decision: **REJECTED**. All 64 shadow outcomes and diagnostic metrics
+  are identical to production: 0/64 clears, mean Ante `1.5`, mean requirement
+  progress `0.6189615885416667`, mean minimum cash `3.171875`, and mean terminal
+  cash `11.09375`. Episode 0 remains 579/600 at The Psychic, so the pinned-clear
+  and strict-improvement gates fail.
+- Preserving the input plans' exact flags therefore has no behavioral effect.
+  The causal question moves one boundary downstream to safe-pace recovery's
+  Play-versus-Discard selection; the rejected exactness shadow will not be
+  tuned and production remains unchanged.
+
 ## Exact active task
 
-Execute the frozen 64-seed
-`boss-projection-exactness-preservation-shadow-v1` evaluation before changing
-production arbitration or starting another strategic training run.
+Implement and CI-gate a single-boundary episode-0 counterfactual trace that
+substitutes the already-computed exact horizon-2 Play for safe-pace's first
+`PACE_RECOVERY` discard at The Psychic, then resumes unchanged production
+decisions. Publish its exact outcome before defining another 64-seed shadow.
 
 Requirements:
 
-- Add a canonical owner option whose default preserves byte-for-byte production
-  behavior and whose shadow value suppresses only the demonstrated Boss
-  exactness downgrade. Prove both modes with focused deterministic regressions.
-- Publish paired digest-bound per-seed outcomes and all predeclared gates; use
-  CI before executing the fixed 64-seed report.
+- Bind the campaign, published fixed result, census, and Boss boundary trace;
+  replay the exact strategic prefix and public terminal-blind state.
+- At tactical decision 0 only, select the highest expected-score completed
+  exact Play already computed by production; make no seed, RNG, hidden-zone,
+  search, threshold, mechanic, or subsequent-policy change. Record production
+  and counterfactual terminal frames and require exactly one override.
 - Do not tune either rejected shadow, change production policy, start another
   1,024-batch run, or relax the promotion contract during this task.
 
@@ -2315,5 +2333,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BOSS_EXACT_SHADOW_REPORT.json`
 - `docs/balatro/BALATRO_PPO_TERMINAL_LOSS_CENSUS.json`
 - `docs/balatro/BALATRO_PPO_BOSS_INEXACT_TRACE.json`
+- `docs/balatro/BALATRO_PPO_BOSS_EXACTNESS_SHADOW_REPORT.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
