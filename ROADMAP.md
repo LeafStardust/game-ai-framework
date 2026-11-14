@@ -1914,14 +1914,16 @@ Checkpoint-backed failure-trace tooling checkpoint:
   and replay drift fail closed.
 - Focused local validation: **20 passed in 4.25s**. Broader fixed-evaluation,
   both-baseline, candidate, promotion, and trace validation: **69 passed in
-  6.87s**. No production diagnostic replay has been executed yet.
+  6.87s**.
+- GitHub Actions run `43572237626`, job `132378903831`, passed commit
+  `3e526d09`: **3296 passed, 1618 deselected in 215.13s**. No production
+  diagnostic replay has been executed yet.
 
 ## Exact active task
 
-Gate the checkpoint-backed trace owner in GitHub Actions, execute the three
-pinned production replays, and attribute the observed action distributions and
-trajectories before changing training, reward, architecture, hyperparameters,
-baselines, or promotion thresholds.
+Execute the three CI-gated pinned production replays and attribute the observed
+action distributions and trajectories before changing training, reward,
+architecture, hyperparameters, baselines, or promotion thresholds.
 
 Requirements:
 
