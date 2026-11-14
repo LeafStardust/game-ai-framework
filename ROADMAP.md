@@ -2327,20 +2327,47 @@ Later-decision safe-pace sweep implementation checkpoint:
   `3df77d32`: **3324 passed, 1618 deselected in 289.18s**. The fixed sweep is
   now authorized.
 
+Completed later-decision safe-pace sweep:
+
+- The three fixed arms completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_BOSS_SAFE_PACE_SWEEP.json`, report SHA-256
+  `0f6a97e134599805b01fa7ebbeca02e7ccc9776afbf843889c3db1e31751339a`.
+  Every arm applies exactly one different completed exact plan and otherwise
+  resumes production from the same authoritative Psychic boundary.
+- Decision 2 substitutes an exact horizon-2 Play at score 264 and clears
+  **664/600** (`+85` versus production). Decision 3 independently substitutes
+  another exact horizon-2 Play at score 264 and clears **648/600** (`+69`).
+  Decision 6's different exact Play worsens the loss to **444/600** (`-135`).
+- Combined with decision 0's 448/600 result, the demonstrated defect is narrow:
+  later `PACE_RECOVERY` discards after positive Boss-blind scoring progress can
+  suppress a winning completed exact Play. Initial setup recovery and arbitrary
+  Play-to-Play substitution are not safe to override.
+
+Frozen bounded experiment (`boss-progress-exact-play-shadow-v1`):
+
+- Shadow only: when the public state is in a Boss blind with positive score,
+  production selects `PACE_RECOVERY` `DISCARD_CARDS`, and a different completed
+  exact `PLAY_CARDS` plan exists, choose the highest expected-score such Play.
+  Otherwise return production verbatim. No score threshold, seed, hidden zone,
+  RNG, search, mechanic, or subsequent-policy change is permitted.
+- Evaluate all 64 fixed candidate seeds against the digest-bound published arm.
+  Acceptance requires complete canonical evidence; episode 0 must clear The
+  Psychic; full-game clears, mean Ante, requirement progress, minimum cash, and
+  terminal cash may not regress; and full-game clears, mean Ante, or mean
+  requirement progress must strictly improve. Reject rather than tune.
+
 ## Exact active task
 
-Execute and publish the fixed three-arm Psychic decision sweep, then define the
-next task from the exact per-decision score deltas.
+Implement and CI-gate `boss-progress-exact-play-shadow-v1`, then execute its
+frozen 64-seed evaluation before changing production arbitration.
 
 Requirements:
 
-- Reconstruct each original production decision boundary from the same public
-  blind start. For every later decision whose highest expected-score completed
-  exact plan differs from production, preserve the production prefix, substitute
-  that one plan, and resume production afterward.
-- Bind the campaign, published result, census, boundary trace, and decision-0
-  report. Publish every eligible decision/action/plan and terminal score delta;
-  make no seed, RNG, hidden-zone, search, threshold, or mechanic change.
+- Add deterministic regressions proving the shadow acts only for the exact
+  positive-score Boss recovery-discard shape and otherwise preserves production
+  object identity. Publish paired per-seed outcomes and all frozen gates.
+- Use CI before executing the 64-seed report. Do not add another condition or
+  tune this rule after observing results.
 - Do not tune either rejected shadow, change production policy, start another
   1,024-batch run, or relax the promotion contract during this task.
 
@@ -2381,5 +2408,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BOSS_INEXACT_TRACE.json`
 - `docs/balatro/BALATRO_PPO_BOSS_EXACTNESS_SHADOW_REPORT.json`
 - `docs/balatro/BALATRO_PPO_BOSS_SAFE_PACE_COUNTERFACTUAL.json`
+- `docs/balatro/BALATRO_PPO_BOSS_SAFE_PACE_SWEEP.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
