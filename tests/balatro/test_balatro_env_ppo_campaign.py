@@ -22,11 +22,16 @@ from games.balatro.env.ppo_campaign import (
     _reconcile_progress_artifact,
     _restore_session,
     _state_manifest,
+    make_ppo_progress_training_environment,
     make_ppo_training_environment,
     load_completed_ppo_campaign,
     run_ppo_campaign,
 )
-from games.balatro.env.ppo_contract import PPOContractError, PPOTrainingRun
+from games.balatro.env.ppo_contract import (
+    PPO_PROGRESS_TRAINING_CONTRACT,
+    PPOContractError,
+    PPOTrainingRun,
+)
 from games.balatro.live.hand_action_policy import (
     SEARCH_SCHEDULE_SELECTIVE,
     LiveHandActionDecisionEngine,
@@ -241,6 +246,65 @@ def test_env_ppo_campaign_starts_resumes_and_emits_final_manifest(tmp_path):
     assert second["completed_batch_count"] == 3
     assert second["parameter_sha256"] == "f" * 64
     assert json.loads((tmp_path / FINAL_NAME).read_text(encoding="utf-8")) == second
+
+
+def test_env_ppo_campaign_selects_isolated_progress_contract_environment_and_observer(
+    tmp_path,
+):
+    opened = []
+    observed = []
+
+    def opener(run, payload, environment_factory):
+        opened.append((run, payload, environment_factory))
+        return _FakeSession(run)
+
+    progress = run_ppo_campaign(
+        "PROGRESS-PILOT",
+        tmp_path,
+        maximum_episodes=1,
+        maximum_batches=1,
+        maximum_workers=1,
+        session_opener=opener,
+        episode_wave_collector=lambda *args: (),
+        training_contract=PPO_PROGRESS_TRAINING_CONTRACT,
+        episode_commit_observer=lambda session, episode: observed.append(
+            (session, episode)
+        ),
+    )
+
+    run, payload, environment_factory = opened[0]
+    assert payload is None
+    assert run.contract_sha256 == PPO_PROGRESS_TRAINING_CONTRACT.sha256
+    assert environment_factory is make_ppo_progress_training_environment
+    assert len(observed) == 1
+    assert progress["training_run_sha256"] == run.sha256
+
+
+def test_env_ppo_campaign_rejects_progress_multi_batch_and_resume(tmp_path):
+    with pytest.raises(PPOContractError, match="one fresh pilot batch"):
+        run_ppo_campaign(
+            "PROGRESS-BOUND",
+            tmp_path,
+            maximum_episodes=1,
+            maximum_batches=2,
+            maximum_workers=1,
+            session_opener=_fake_opener([]),
+            episode_wave_collector=lambda *args: (),
+            training_contract=PPO_PROGRESS_TRAINING_CONTRACT,
+        )
+
+    (tmp_path / CHECKPOINT_NAME).write_text("{}", encoding="utf-8")
+    with pytest.raises(PPOContractError, match="one fresh pilot batch"):
+        run_ppo_campaign(
+            "PROGRESS-BOUND",
+            tmp_path,
+            maximum_episodes=1,
+            maximum_batches=1,
+            maximum_workers=1,
+            session_opener=_fake_opener([]),
+            episode_wave_collector=lambda *args: (),
+            training_contract=PPO_PROGRESS_TRAINING_CONTRACT,
+        )
 
 
 def test_env_ppo_campaign_rebuilds_progress_from_checkpoint_on_resume(tmp_path):

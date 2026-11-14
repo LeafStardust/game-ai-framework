@@ -16,9 +16,12 @@ from typing import Any, Callable
 from games.balatro.env.environment import BalatroHeadlessEnvironment
 from games.balatro.env.episode_backend import PPOHeadlessBackend
 from games.balatro.env.ppo_contract import (
+    PPO_PROGRESS_REWARD_CONTRACT,
     PPO_TRAINING_CONTRACT,
     PPOContractError,
+    PPOTrainingContract,
     PPOTrainingRun,
+    ppo_training_contract_for_run,
 )
 from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.ppo_training_session import (
@@ -112,13 +115,37 @@ def make_ppo_training_environment(stream_index: int) -> BalatroHeadlessEnvironme
     )
 
 
+def make_ppo_progress_training_environment(
+    stream_index: int,
+) -> BalatroHeadlessEnvironment:
+    """Construct one isolated v2-reward stream with production mechanics."""
+    if (
+        isinstance(stream_index, bool)
+        or not isinstance(stream_index, int)
+        or not 0 <= stream_index < 8
+    ):
+        raise PPOContractError("PPO environment stream index is invalid")
+    return BalatroHeadlessEnvironment(
+        PPOHeadlessBackend(
+            make_ppo_tactical_decision_engine(),
+            reward_contract=PPO_PROGRESS_REWARD_CONTRACT,
+        )
+    )
+
+
 def _collect_production_episode(
     request: PPOEpisodeRequest, training_run: PPOTrainingRun, model
 ) -> PPOCollectedEpisode:
     if not isinstance(request, PPOEpisodeRequest):
         raise TypeError("request must be PPOEpisodeRequest")
     policy_sha256 = getattr(model, "parameter_sha256", None)
-    environment = make_ppo_training_environment(request.stream_index)
+    contract = ppo_training_contract_for_run(training_run)
+    environment_factory = (
+        make_ppo_progress_training_environment
+        if contract.reward_contract == PPO_PROGRESS_REWARD_CONTRACT
+        else make_ppo_training_environment
+    )
+    environment = environment_factory(request.stream_index)
     episode = collect_complete_ppo_episode(
         environment,
         training_run,
@@ -430,6 +457,8 @@ def run_ppo_campaign(
     session_opener: Callable[[PPOTrainingRun, object | None, object], PPOTrainingSession]
     | None = None,
     episode_wave_collector=None,
+    training_contract: PPOTrainingContract = PPO_TRAINING_CONTRACT,
+    episode_commit_observer=None,
 ) -> dict[str, Any]:
     if isinstance(maximum_episodes, bool) or not isinstance(maximum_episodes, int):
         raise PPOContractError("PPO campaign maximum episodes must be an exact integer")
@@ -453,24 +482,38 @@ def run_ppo_campaign(
         raise PPOContractError("PPO campaign maximum workers must be from 1 through 8")
     if episode_wave_collector is not None and not callable(episode_wave_collector):
         raise TypeError("episode_wave_collector must be callable")
+    if episode_commit_observer is not None and not callable(episode_commit_observer):
+        raise TypeError("episode_commit_observer must be callable")
     directory = Path(artifact_directory)
     directory.mkdir(parents=True, exist_ok=True)
     checkpoint_path = directory / CHECKPOINT_NAME
     progress_path = directory / PROGRESS_NAME
     final_path = directory / FINAL_NAME
-    run = PPOTrainingRun.from_seed(root_seed)
+    run = PPOTrainingRun.from_seed(root_seed, contract=training_contract)
+    session_environment_factory = environment_factory
+    if (
+        environment_factory is make_ppo_training_environment
+        and training_contract.reward_contract == PPO_PROGRESS_REWARD_CONTRACT
+    ):
+        session_environment_factory = make_ppo_progress_training_environment
     existing = _read_json(checkpoint_path) if checkpoint_path.exists() else None
+    if training_contract.reward_contract == PPO_PROGRESS_REWARD_CONTRACT and (
+        maximum_batches != 1 or existing is not None
+    ):
+        raise PPOContractError(
+            "PPO progress reward is limited to one fresh pilot batch"
+        )
     if existing is None and (progress_path.exists() or final_path.exists()):
         raise PPOContractError("PPO campaign directory has artifacts without a checkpoint")
 
     if session_opener is None:
         session = (
-            PPOTrainingSession(run, environment_factory)
+            PPOTrainingSession(run, session_environment_factory)
             if existing is None
-            else _restore_session(run, existing, environment_factory)
+            else _restore_session(run, existing, session_environment_factory)
         )
     else:
-        session = session_opener(run, existing, environment_factory)
+        session = session_opener(run, existing, session_environment_factory)
     if existing is not None:
         try:
             checkpoint_bytes = checkpoint_path.read_bytes()
@@ -489,13 +532,15 @@ def run_ppo_campaign(
             "PPO campaign final artifact contradicts an incomplete checkpoint"
         )
 
-    def publish_committed(current_session, _episode):
+    def publish_committed(current_session, episode):
         checkpoint_bytes = _canonical_bytes(_checkpoint_payload(run, current_session))
         _atomic_write(checkpoint_path, checkpoint_bytes)
         progress = _state_manifest(
             run, current_session, sha256(checkpoint_bytes).hexdigest()
         )
         _atomic_write(progress_path, _canonical_bytes(progress))
+        if episode_commit_observer is not None:
+            episode_commit_observer(current_session, episode)
 
     if episode_wave_collector is not None:
         session.advance_parallel(
