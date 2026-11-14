@@ -1972,15 +1972,16 @@ Tactical first-blind trace tooling checkpoint:
   pin the first demonstrated decision divergence while leaving tactical policy
   unchanged. Focused factory/trace validation: **31 passed in 2.28s**. Broader
   backend, tactical-evidence, decision-engine, campaign, and trace validation:
-  **60 passed in 8.81s**. GitHub Actions and production report publication are
-  still pending.
+  **60 passed in 8.81s**.
+- GitHub Actions run `43573336508`, job `132382183164`, passed commit
+  `ba8a5a49`: **3300 passed, 1618 deselected in 162.62s**. Production report
+  publication remains pending.
 
 ## Exact active task
 
-Gate the digest-bound tactical failure trace in GitHub Actions, publish the two
-production/counterfactual replays, and freeze a bounded policy-level experiment
-from the demonstrated decision divergences before changing tactical policy or
-starting another strategic training run.
+Publish the two CI-gated production/counterfactual tactical replays and freeze a
+bounded policy-level experiment from the demonstrated decision divergences
+before changing tactical policy or starting another strategic training run.
 
 Requirements:
 
