@@ -129,6 +129,7 @@ class HandActionDecision:
     candidate_count: int
     plans: tuple[LiveBlindPlan, ...]
     search_attempts: tuple[HandActionSearchAttempt, ...] = ()
+    completed_search_plans: tuple[LiveBlindPlan, ...] = ()
 
 
 class LiveHandActionPolicy:
@@ -167,6 +168,7 @@ class LiveHandActionPolicy:
         plans: list[LiveBlindPlan] | tuple[LiveBlindPlan, ...],
         *,
         search_attempts: tuple[HandActionSearchAttempt, ...] = (),
+        completed_search_plans: tuple[LiveBlindPlan, ...] = (),
         confirmed_clear_path: LiveBlindPlan | None = None,
         setup_discard_consensus: bool = False,
     ) -> HandActionDecision:
@@ -259,6 +261,7 @@ class LiveHandActionPolicy:
                 rationale=tuple(rationale),
                 plans=plans,
                 search_attempts=search_attempts,
+                completed_search_plans=completed_search_plans,
             )
 
         pace_plays = [
@@ -299,6 +302,7 @@ class LiveHandActionPolicy:
                 ),
                 plans=plans,
                 search_attempts=search_attempts,
+                completed_search_plans=completed_search_plans,
             )
 
         scored = []
@@ -369,6 +373,7 @@ class LiveHandActionPolicy:
             rationale=tuple(rationale),
             plans=plans,
             search_attempts=search_attempts,
+            completed_search_plans=completed_search_plans,
         )
 
     def best_clear_path(
@@ -543,6 +548,7 @@ class LiveHandActionPolicy:
         rationale: tuple[str, ...],
         plans: tuple[LiveBlindPlan, ...],
         search_attempts: tuple[HandActionSearchAttempt, ...],
+        completed_search_plans: tuple[LiveBlindPlan, ...] = (),
     ) -> HandActionDecision:
         return HandActionDecision(
             mode=mode,
@@ -565,6 +571,7 @@ class LiveHandActionPolicy:
             candidate_count=len(plans),
             plans=plans,
             search_attempts=search_attempts,
+            completed_search_plans=completed_search_plans,
         )
 
 
@@ -895,6 +902,7 @@ class LiveHandActionDecisionEngine:
     ) -> HandActionDecision:
         attempts: list[HandActionSearchAttempt] = []
         summaries: list[AdaptiveRecommendationSummary] = []
+        completed_search_plans: list[LiveBlindPlan] = []
         last_completed_plans: list[LiveBlindPlan] | None = None
 
         for config in schedule:
@@ -909,6 +917,7 @@ class LiveHandActionDecisionEngine:
 
             last_completed_plans = plans
             best = plans[0]
+            completed_search_plans.append(best)
             attempts.append(
                 self._attempt(
                     config,
@@ -939,6 +948,7 @@ class LiveHandActionDecisionEngine:
                     state,
                     plans,
                     search_attempts=tuple(attempts),
+                    completed_search_plans=tuple(completed_search_plans),
                     setup_discard_consensus=False,
                 )
 
@@ -970,6 +980,7 @@ class LiveHandActionDecisionEngine:
                     best=confirmed,
                 )
             )
+            completed_search_plans.append(confirmed)
 
             if self._action_signature(state, confirmed.action) != self._action_signature(
                 state,
@@ -994,12 +1005,14 @@ class LiveHandActionDecisionEngine:
                     state,
                     confirmed_plans,
                     search_attempts=tuple(attempts),
+                    completed_search_plans=tuple(completed_search_plans),
                     setup_discard_consensus=False,
                 )
             return self.policy.decide(
                 state,
                 confirmed_plans,
                 search_attempts=tuple(attempts),
+                completed_search_plans=tuple(completed_search_plans),
                 confirmed_clear_path=confirmed,
                 setup_discard_consensus=False,
             )
@@ -1016,6 +1029,7 @@ class LiveHandActionDecisionEngine:
                     state,
                     last_completed_plans,
                     search_attempts=attempts_tuple,
+                    completed_search_plans=tuple(completed_search_plans),
                     setup_discard_consensus=consensus,
                 )
             return self._structural_timeout_fallback(
@@ -1031,6 +1045,7 @@ class LiveHandActionDecisionEngine:
                     state,
                     last_completed_plans,
                     search_attempts=attempts_tuple,
+                    completed_search_plans=tuple(completed_search_plans),
                     setup_discard_consensus=consensus,
                 )
             return self._structural_timeout_fallback(
@@ -1042,6 +1057,7 @@ class LiveHandActionDecisionEngine:
             state,
             fallback_plans,
             search_attempts=attempts_tuple,
+            completed_search_plans=tuple(completed_search_plans),
             setup_discard_consensus=consensus,
         )
 

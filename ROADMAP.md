@@ -2007,11 +2007,28 @@ Frozen bounded tactical experiment (`tactical-arbitration-shadow-v1`):
   mean terminal score or mean remaining hands/discards. Reject the hypothesis
   rather than tune thresholds after seeing the 64-seed result.
 
+Shadow tooling checkpoint:
+
+- `HandActionDecision` now retains the best plan from every completed adaptive
+  attempt as diagnostic evidence. All production arbitration continues through
+  the same owners and returns the same pinned 204/212 losses; direct timeout and
+  specialized policy owners remain backward compatible.
+- The shadow wrapper consumes only the current public state and the production
+  decision's already-computed immediate/deeper plans. On the two pinned seeds,
+  the frozen rule clears at 548 and 348 and records every selected signature and
+  retained plan value; it has no seed, run, RNG, or private-zone authority.
+- The report owner binds the published tactical trace and fixed 64-seed corpus,
+  publishes paired actions/resources/outcomes and all predeclared acceptance
+  gates, and rejects source drift. Focused rule/replay/report validation:
+  **5 passed in 2.35s**. Broader shadow, tactical trace, campaign, backend,
+  decision-engine, timeout, and strategy-authority validation: **69 passed in
+  10.89s**. GitHub Actions and the 64-seed execution remain pending.
+
 ## Exact active task
 
-Implement and CI-gate `tactical-arbitration-shadow-v1`, then execute its frozen
-64-seed production-versus-shadow first-blind evaluation before changing the
-production tactical policy or starting another strategic training run.
+CI-gate `tactical-arbitration-shadow-v1`, then execute its frozen 64-seed
+production-versus-shadow first-blind evaluation before changing the production
+tactical policy or starting another strategic training run.
 
 Requirements:
 
