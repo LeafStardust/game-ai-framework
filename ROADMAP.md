@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`713820131257bf614e5322518b3b1baae2511fad`.
+`d8bab4a648c2221e18f65314a0462a96d9ac928a`.
 
 ## Objective
 
@@ -2184,12 +2184,26 @@ Completed terminal-loss tactical census:
   the next diagnostic to Boss-specific post-search arbitration rather than
   search capacity, PPO strategic sampling, or a non-Boss policy path.
 
+Boss exactness-boundary trace implementation checkpoint:
+
+- Commit `d8bab4a648c2221e18f65314a0462a96d9ac928a` adds a read-only recorder around
+  the exact production `StrategyAwareLiveHandActionPolicy.decide` boundary for
+  episode 0. It records the public input plans and keyword evidence before the
+  owner runs and the unchanged production decision afterward.
+- The trace binds the completed campaign, published fixed candidate, frozen
+  corpus, and terminal-census SHA-256. It requires exact published result parity
+  and exact terminal action/selected-plan parity with the census before
+  admitting the first exact-input to inexact-output boundary.
+- Focused local validation: **16 passed in 1.55s**. Broader candidate,
+  backend, tactical, promotion, decision-engine, and strategy validation:
+  **95 passed in 50.83s**. GitHub Actions remains required before executing the
+  production trace.
+
 ## Exact active task
 
-Implement and CI-gate a digest-bound production trace for episode 0 / seed
-`9CA6BDC0` at The Psychic, then identify the first Boss post-search arbitration
-boundary that replaces or downgrades an exact completed plan before defining a
-new bounded experiment or changing production arbitration.
+Push and CI-gate commit `d8bab4a6`, then execute and publish the digest-bound
+production trace for episode 0 / seed `9CA6BDC0` at The Psychic before defining
+a new bounded experiment or changing production arbitration.
 
 Requirements:
 
