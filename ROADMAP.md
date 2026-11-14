@@ -2070,13 +2070,15 @@ Later-blind attribution tooling checkpoint:
 - Focused selection/distribution/counterfactual and existing trace validation:
   **16 passed in 4.56s**. Broader candidate, campaign, backend,
   tactical-evidence, decision-engine, and later-trace validation: **83 passed
-  in 14.95s**. GitHub Actions and production trace publication remain pending.
+  in 14.95s**.
+- GitHub Actions run `43590589957`, job `132434252970`, passed commit
+  `0661cf05`: **3308 passed, 1618 deselected in 181.30s**. Production trace
+  publication remains pending.
 
 ## Exact active task
 
-CI-gate the digest-bound later-blind trace owner, then publish the representative
-production/counterfactual trace before changing production policy or starting
-another strategic training run.
+Publish the CI-gated representative later-blind production/counterfactual trace
+before changing production policy or starting another strategic training run.
 
 Requirements:
 
