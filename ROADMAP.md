@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`c9e8784dd97fc096d5cc2344fe865c6b3c336f19`.
+`0c4ff150901ea79fbc5998ee23fd2b7f7d195b50`.
 
 ## Objective
 
@@ -2403,12 +2403,33 @@ Frozen reward experiment (`balatro-red-white-progress-potential-reward-v2`):
   and telescoping-return regressions. Do not start a full training run during
   this task.
 
+Progress-reward backend implementation checkpoint:
+
+- Implementation commit `0c4ff150901ea79fbc5998ee23fd2b7f7d195b50`
+  adds the optional v2 reward at the canonical headless backend owner while
+  retaining sparse v1 as the constructor default. Running potential is exactly
+  `round / 24`, terminal potential is exactly zero, unknown contracts and
+  malformed running rounds fail closed, and v2 snapshots bind their reward
+  contract. Default and explicit sparse-v1 snapshots remain byte-identical.
+- Focused deterministic backend/collector regression gate: **15 passed in
+  7.92s**. The broader contract, batch, campaign, candidate-evaluation, and
+  promotion-evaluation gate completed before the final test-only telescoping
+  addition with **101 passed in 119.98s**. Syntax compilation and
+  `git diff --check` are clean.
+- This is a local implementation checkpoint only. Push and CI evidence are
+  still required before extending the separately versioned rollout/training
+  provenance path or running the bounded pilot.
+
 ## Exact active task
 
 Implement and CI-gate the optional
 `balatro-red-white-progress-potential-reward-v2` backend and rollout path while
 preserving sparse v1 as the production/default contract. Then run only a bounded
 one-batch learning-signal pilot before authorizing any new campaign.
+
+The backend owner is implemented locally at the checkpoint above. Push and
+CI-gate it next; after that, continue only the separately versioned rollout and
+training-contract provenance path.
 
 Requirements:
 
