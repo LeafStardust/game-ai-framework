@@ -2372,19 +2372,52 @@ Boss progress exact-Play shadow implementation checkpoint:
   `11e1f162`: **3326 passed, 1618 deselected in 206.43s**. The frozen 64-seed
   report is now authorized.
 
+Completed `boss-progress-exact-play-shadow-v1` evaluation:
+
+- The 64 paired episodes completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_BOSS_PROGRESS_SHADOW_REPORT.json`, report SHA-256
+  `8bd3b2b3c73ecaecd428f11e799266a84c2c4315988338d57b05f8c0bca5e71d`.
+  Thirteen episodes contain 25 overrides and 11 terminal outcomes change.
+- Final decision: **REJECTED**. Episode 0 clears The Psychic and advances to
+  Ante 2, then loses 736/1200. Full-game clears remain 0/64 and mean Ante stays
+  `1.5`, so strict competence does not improve. Mean requirement progress
+  regresses `0.6189615885416667 -> 0.616259765625` and mean terminal cash
+  regresses `11.09375 -> 11.015625`; two episodes gain an Ante and two lose one.
+- The bounded tactical rule is therefore not promotable and will not be tuned.
+  Together with the two earlier rejected 64-seed tactical shadows, the evidence
+  now supports returning to the demonstrated sparse-learning-signal failure
+  rather than adding another action exception.
+
+Frozen reward experiment (`balatro-red-white-progress-potential-reward-v2`):
+
+- Preserve the current sparse v1 backend as the default. Add a separately
+  versioned training-only backend reward option whose public potential is
+  `round / 24` for running frames and exactly `0` for terminal frames.
+- For discount `gamma=0.99`, emit
+  `sparse_terminal_reward(after.status) + gamma * potential(after) - potential(before)`.
+  This redistributes the same terminal objective across exact public progress;
+  it does not alter mechanics, observations, legal actions, evaluation rewards,
+  promotion gates, or the v1 completed campaign.
+- Require exact reward-contract provenance in frame info and serialization,
+  deterministic nonzero intermediate rewards, fail-closed malformed frames,
+  and telescoping-return regressions. Do not start a full training run during
+  this task.
+
 ## Exact active task
 
-Execute the frozen 64-seed
-`boss-progress-exact-play-shadow-v1` evaluation before changing production
-arbitration.
+Implement and CI-gate the optional
+`balatro-red-white-progress-potential-reward-v2` backend and rollout path while
+preserving sparse v1 as the production/default contract. Then run only a bounded
+one-batch learning-signal pilot before authorizing any new campaign.
 
 Requirements:
 
-- Add deterministic regressions proving the shadow acts only for the exact
-  positive-score Boss recovery-discard shape and otherwise preserves production
-  object identity. Publish paired per-seed outcomes and all frozen gates.
-- Use CI before executing the 64-seed report. Do not add another condition or
-  tune this rule after observing results.
+- Add deterministic owner-level, environment, serialization/restore, rollout,
+  and GAE/return regressions for v2 while proving v1 bytes and rewards remain
+  unchanged by default.
+- CI-gate implementation before a bounded one-batch pilot. The pilot must use
+  isolated seeds/artifacts and report reward/advantage variance, episode depth,
+  runtime, and all fail-closed counters; it cannot resume or overwrite v1.
 - Do not tune either rejected shadow, change production policy, start another
   1,024-batch run, or relax the promotion contract during this task.
 
@@ -2426,5 +2459,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BOSS_EXACTNESS_SHADOW_REPORT.json`
 - `docs/balatro/BALATRO_PPO_BOSS_SAFE_PACE_COUNTERFACTUAL.json`
 - `docs/balatro/BALATRO_PPO_BOSS_SAFE_PACE_SWEEP.json`
+- `docs/balatro/BALATRO_PPO_BOSS_PROGRESS_SHADOW_REPORT.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
