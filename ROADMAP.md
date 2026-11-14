@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`2a2f3b58811d9e3fc29d8a85dac0570b1f450ed0`.
+`5494cb37778015619a240b0aa983ad1ee3f0439f`.
 
 ## Objective
 
@@ -2280,12 +2280,24 @@ Completed `boss-projection-exactness-preservation-shadow-v1` evaluation:
   Play-versus-Discard selection; the rejected exactness shadow will not be
   tuned and production remains unchanged.
 
+Boss safe-pace counterfactual tooling checkpoint:
+
+- Commit `5494cb37778015619a240b0aa983ad1ee3f0439f` adds a digest-bound episode-0
+  replay that reconstructs The Psychic boundary from the exact published PPO
+  strategic prefix. Production and counterfactual settle independently from
+  that same authoritative public state.
+- The counterfactual can act only at tactical decision 0 and can select only
+  the highest expected-score completed exact Play already computed by
+  production; all later decisions return to the unchanged production engine.
+  Missing source, plan, outcome, or exactly-one-override evidence fails closed.
+- Focused local validation: **19 passed in 1.07s**. Broader candidate, backend,
+  tactical, promotion, decision-engine, and strategy validation: **100 passed
+  in 50.86s**. GitHub Actions remains required before executing the trace.
+
 ## Exact active task
 
-Implement and CI-gate a single-boundary episode-0 counterfactual trace that
-substitutes the already-computed exact horizon-2 Play for safe-pace's first
-`PACE_RECOVERY` discard at The Psychic, then resumes unchanged production
-decisions. Publish its exact outcome before defining another 64-seed shadow.
+Push and CI-gate commit `5494cb37`, then execute and publish the single-boundary
+episode-0 safe-pace counterfactual before defining another 64-seed shadow.
 
 Requirements:
 
