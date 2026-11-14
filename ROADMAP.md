@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`72be6e279d07e79dbb737d02d62291231d7ca660`.
+`c9e8784dd97fc096d5cc2344fe865c6b3c336f19`.
 
 ## Objective
 
@@ -2356,10 +2356,24 @@ Frozen bounded experiment (`boss-progress-exact-play-shadow-v1`):
   terminal cash may not regress; and full-game clears, mean Ante, or mean
   requirement progress must strictly improve. Reject rather than tune.
 
+Boss progress exact-Play shadow implementation checkpoint:
+
+- Commit `c9e8784dd97fc096d5cc2344fe865c6b3c336f19` adds the separately versioned
+  shadow selector and paired fixed-corpus report. The selector requires Boss,
+  positive public score, production `PACE_RECOVERY` discard, and a different
+  completed exact Play; all other decisions preserve production object identity.
+- Every override records its public Boss/score/action/plan evidence. The report
+  binds the completed campaign, published candidate/diagnostics, fixed corpus,
+  and frozen policy seeds, and publishes all gates declared above.
+- Focused local validation: **16 passed in 3.43s**. Broader candidate, backend,
+  tactical, promotion, decision-engine, and strategy validation: **104 passed
+  in 107.94s**. GitHub Actions remains required before executing the report.
+
 ## Exact active task
 
-Implement and CI-gate `boss-progress-exact-play-shadow-v1`, then execute its
-frozen 64-seed evaluation before changing production arbitration.
+Push and CI-gate commit `c9e8784d`, then execute the frozen 64-seed
+`boss-progress-exact-play-shadow-v1` evaluation before changing production
+arbitration.
 
 Requirements:
 
