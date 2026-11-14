@@ -2159,14 +2159,16 @@ Terminal-loss tactical census implementation checkpoint:
   loss in each demonstrated class.
 - Focused local validation: **23 passed in 1.65s**. Broader candidate,
   campaign, backend, tactical, promotion, decision-engine, and strategy
-  validation: **92 passed in 51.37s**. GitHub Actions remains required before
-  executing the 64-seed census.
+  validation: **92 passed in 51.37s**.
+- GitHub Actions run `43592696170`, job `132440604603`, passed roadmap HEAD
+  `70066288`: **3314 passed, 1618 deselected in 183.56s**. The frozen 64-seed
+  census is now authorized.
 
 ## Exact active task
 
-Push and CI-gate commit `71382013`, then execute and publish the digest-bound
-fixed-corpus terminal-loss tactical census before defining any new shadow or
-changing production arbitration.
+Execute and publish the digest-bound fixed-corpus terminal-loss tactical census,
+then use its demonstrated classes to select the next canonical tactical owner
+before defining any new shadow or changing production arbitration.
 
 Requirements:
 
