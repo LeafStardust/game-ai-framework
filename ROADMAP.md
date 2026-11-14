@@ -2211,20 +2211,49 @@ Boss exactness-boundary trace implementation checkpoint:
   `c93850de`: **3318 passed, 1618 deselected in 224.52s**. The corrected pinned
   trace is now authorized.
 
+Completed Boss exactness-boundary trace:
+
+- The corrected pinned replay completed with exit code 0 and published
+  `docs/balatro/BALATRO_PPO_BOSS_INEXACT_TRACE.json`, report SHA-256
+  `7ddd94f58990dcd1373860028e5df891a6b2305b6ce1c00b9276ad3ab12e3d05`.
+  It reproduces episode 0 / `9CA6BDC0` / The Psychic at 579/600 and all seven
+  terminal tactical decisions exactly against the census.
+- The first policy decision is already the first exact-input to inexact-output
+  boundary. All 10 input plans are exact; the completed horizon-2 plan is an
+  exact Play with expected score 112. With `boss_projection_unconfirmed=true`,
+  `StrategyAwareLiveHandActionPolicy.decide` returns an inexact horizon-1
+  `PACE_RECOVERY` discard with expected score 0.
+- The output rationale then enters canonical safe pace because no current Play
+  meets remaining-score / hands-left pace. The trace demonstrates the
+  Boss-specific exactness downgrade at the canonical owner, but does not yet
+  establish that preserving exactness changes the selected action or outcome.
+
+Frozen bounded experiment (`boss-projection-exactness-preservation-shadow-v1`):
+
+- Shadow only: at the existing `boss_projection_unconfirmed` branch, retain the
+  planner's exact flags instead of cloning all exact input plans as inexact.
+  Every subsequent constraint, parent-policy, safe-pace, strategy, transition,
+  and PPO decision remains production-identical.
+- Evaluate all 64 fixed candidate seeds against the published production arm.
+  Acceptance requires complete canonical evidence; episode 0 must clear The
+  Psychic's 600-chip boundary; full-game clear count, mean Ante, terminal
+  requirement progress, minimum cash, and terminal cash may not regress; and at
+  least one of full-game clears, mean Ante, or mean requirement progress must
+  strictly improve. Reject rather than tune after the frozen result.
+
 ## Exact active task
 
-Retry and publish the corrected digest-bound production trace for episode 0 /
-seed `9CA6BDC0` at The Psychic. Freeze the next bounded experiment only from its
-first demonstrated owner boundary.
+Implement and CI-gate `boss-projection-exactness-preservation-shadow-v1`, then
+execute its frozen 64-seed candidate evaluation before changing production
+arbitration or starting another strategic training run.
 
 Requirements:
 
-- Replay the exact published strategic prefix and terminal loss, retaining each
-  completed search plan, final selected plan, search attempt, rationale, and
-  public resource frame at The Psychic only.
-- Attribute the first exact-to-inexact change to the earliest canonical policy
-  owner and add focused deterministic regressions for the trace selection and
-  fail-closed source/replay linkage. Do not define a counterfactual rule yet.
+- Add a canonical owner option whose default preserves byte-for-byte production
+  behavior and whose shadow value suppresses only the demonstrated Boss
+  exactness downgrade. Prove both modes with focused deterministic regressions.
+- Publish paired digest-bound per-seed outcomes and all predeclared gates; use
+  CI before executing the fixed 64-seed report.
 - Do not tune either rejected shadow, change production policy, start another
   1,024-batch run, or relax the promotion contract during this task.
 
@@ -2262,5 +2291,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BATCH7_EPISODE_1911_WALL_FIXED.json`
 - `docs/balatro/BALATRO_PPO_BOSS_EXACT_SHADOW_REPORT.json`
 - `docs/balatro/BALATRO_PPO_TERMINAL_LOSS_CENSUS.json`
+- `docs/balatro/BALATRO_PPO_BOSS_INEXACT_TRACE.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
