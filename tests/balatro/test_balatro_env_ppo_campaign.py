@@ -12,6 +12,7 @@ from games.balatro.env.ppo_campaign import (
     FINAL_NAME,
     PPO_CAMPAIGN_FINAL_VERSION,
     PPO_CAMPAIGN_VERSION,
+    PPO_PROGRESS_STUDY_BATCH_LIMIT,
     PPO_PARALLEL_COLLECTION_VERSION,
     PPO_TACTICAL_FACTORY_VERSION,
     PROGRESS_NAME,
@@ -291,6 +292,76 @@ def test_env_ppo_campaign_rejects_progress_multi_batch_and_resume(tmp_path):
             session_opener=_fake_opener([]),
             episode_wave_collector=lambda *args: (),
             training_contract=PPO_PROGRESS_TRAINING_CONTRACT,
+        )
+
+
+def test_env_ppo_campaign_allows_only_exact_capped_progress_study_resume(tmp_path):
+    opened = []
+    first = run_ppo_campaign(
+        "PROGRESS-STUDY",
+        tmp_path,
+        maximum_episodes=1,
+        maximum_batches=1,
+        maximum_workers=1,
+        session_opener=_fake_opener(opened),
+        episode_wave_collector=lambda *args: (),
+        training_contract=PPO_PROGRESS_TRAINING_CONTRACT,
+        progress_study_batch_limit=PPO_PROGRESS_STUDY_BATCH_LIMIT,
+    )
+    second = run_ppo_campaign(
+        "PROGRESS-STUDY",
+        tmp_path,
+        maximum_episodes=1,
+        maximum_batches=1,
+        maximum_workers=1,
+        session_opener=_fake_opener(opened),
+        episode_wave_collector=lambda *args: (),
+        training_contract=PPO_PROGRESS_TRAINING_CONTRACT,
+        progress_study_batch_limit=PPO_PROGRESS_STUDY_BATCH_LIMIT,
+    )
+
+    assert first["completed_batch_count"] == 1
+    assert second["completed_batch_count"] == 2
+    assert opened[1]["session"] == {"fake_episode_count": 1}
+
+    with pytest.raises(PPOContractError, match="must be exactly 8"):
+        run_ppo_campaign(
+            "OTHER-STUDY",
+            tmp_path / "other",
+            maximum_episodes=1,
+            maximum_batches=1,
+            maximum_workers=1,
+            session_opener=_fake_opener([]),
+            episode_wave_collector=lambda *args: (),
+            training_contract=PPO_PROGRESS_TRAINING_CONTRACT,
+            progress_study_batch_limit=4,
+        )
+
+    with pytest.raises(PPOContractError, match="exceeds its 8-batch cap"):
+        run_ppo_campaign(
+            "CAPPED-STUDY",
+            tmp_path / "capped",
+            maximum_episodes=2,
+            maximum_batches=2,
+            maximum_workers=1,
+            session_opener=lambda run, payload, environment_factory: _FakeSession(
+                run, 7
+            ),
+            episode_wave_collector=lambda *args: (),
+            training_contract=PPO_PROGRESS_TRAINING_CONTRACT,
+            progress_study_batch_limit=PPO_PROGRESS_STUDY_BATCH_LIMIT,
+        )
+
+    with pytest.raises(PPOContractError, match="sparse PPO campaign"):
+        run_ppo_campaign(
+            "SPARSE-STUDY",
+            tmp_path / "sparse",
+            maximum_episodes=1,
+            maximum_batches=1,
+            maximum_workers=1,
+            session_opener=_fake_opener([]),
+            episode_wave_collector=lambda *args: (),
+            progress_study_batch_limit=PPO_PROGRESS_STUDY_BATCH_LIMIT,
         )
 
     (tmp_path / CHECKPOINT_NAME).write_text("{}", encoding="utf-8")

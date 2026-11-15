@@ -43,6 +43,7 @@ PPO_TACTICAL_FACTORY_VERSION = "balatro-red-white-ppo-tactical-factory-v2"
 PPO_PARALLEL_COLLECTION_VERSION = "balatro-red-white-ppo-parallel-collection-v11"
 PPO_CAMPAIGN_PROGRESS_VERSION = "balatro-red-white-ppo-progress-v12"
 PPO_CAMPAIGN_FINAL_VERSION = "balatro-red-white-ppo-final-v12"
+PPO_PROGRESS_STUDY_BATCH_LIMIT = 8
 CHECKPOINT_NAME = "checkpoint.json"
 PROGRESS_NAME = "progress.json"
 FINAL_NAME = "final.json"
@@ -459,6 +460,7 @@ def run_ppo_campaign(
     episode_wave_collector=None,
     training_contract: PPOTrainingContract = PPO_TRAINING_CONTRACT,
     episode_commit_observer=None,
+    progress_study_batch_limit: int | None = None,
 ) -> dict[str, Any]:
     if isinstance(maximum_episodes, bool) or not isinstance(maximum_episodes, int):
         raise PPOContractError("PPO campaign maximum episodes must be an exact integer")
@@ -497,12 +499,16 @@ def run_ppo_campaign(
     ):
         session_environment_factory = make_ppo_progress_training_environment
     existing = _read_json(checkpoint_path) if checkpoint_path.exists() else None
-    if training_contract.reward_contract == PPO_PROGRESS_REWARD_CONTRACT and (
-        maximum_batches != 1 or existing is not None
-    ):
-        raise PPOContractError(
-            "PPO progress reward is limited to one fresh pilot batch"
-        )
+    if training_contract.reward_contract == PPO_PROGRESS_REWARD_CONTRACT:
+        if progress_study_batch_limit is None:
+            if maximum_batches != 1 or existing is not None:
+                raise PPOContractError(
+                    "PPO progress reward is limited to one fresh pilot batch"
+                )
+        elif progress_study_batch_limit != PPO_PROGRESS_STUDY_BATCH_LIMIT:
+            raise PPOContractError("PPO progress study batch limit must be exactly 8")
+    elif progress_study_batch_limit is not None:
+        raise PPOContractError("sparse PPO campaign cannot use a progress study limit")
     if existing is None and (progress_path.exists() or final_path.exists()):
         raise PPOContractError("PPO campaign directory has artifacts without a checkpoint")
 
@@ -514,6 +520,12 @@ def run_ppo_campaign(
         )
     else:
         session = session_opener(run, existing, session_environment_factory)
+    if progress_study_batch_limit is not None and (
+        session.learner.completed_batch_count >= progress_study_batch_limit
+        or session.learner.completed_batch_count + maximum_batches
+        > progress_study_batch_limit
+    ):
+        raise PPOContractError("PPO progress study exceeds its 8-batch cap")
     if existing is not None:
         try:
             checkpoint_bytes = checkpoint_path.read_bytes()
