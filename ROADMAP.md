@@ -2538,13 +2538,14 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Implement and CI-gate a read-only fixed-corpus policy-behavior attribution for
-the completed v2 learning-curve study. Compare stored batch-0, 1, 2, 4, and 8
-milestone models without further optimization. Publish exact action-slot
-frequencies, first policy-divergence locations, greedy confidence/entropy, and
-their relationship to the per-seed terminal regressions already recorded.
-Preserve the production mechanics, sparse evaluation environment, public
-information boundary, greedy selection contract, and all promotion gates.
+Run and validate the now-CI-green read-only fixed-corpus policy-behavior
+attribution for the completed v2 learning-curve study. Compare stored batch-0,
+1, 2, 4, and 8 milestone models without further optimization, then publish the
+exact action-slot frequencies, first policy-divergence locations, greedy
+confidence/entropy, and their relationship to the per-seed terminal regressions
+already recorded. Preserve the production mechanics, sparse evaluation
+environment, public-information boundary, greedy selection contract, and all
+promotion gates.
 
 The completed staged runner and report retain the exact per-checkpoint policy,
 reward, advantage, depth, runtime, fail-closed, and paired fixed-seed evidence.
@@ -2720,8 +2721,23 @@ Policy-behavior attribution implementation checkpoint:
   diagnostic, PPO serialization, campaign, session, model, batch, and learner
   gate: **98 passed in 21.04s**. Syntax compilation and `git diff --check` are
   clean.
-- GitHub Actions is pending. Do not run the complete diagnostic until this
-  implementation is CI-green and the exact command is recorded here.
+- GitHub Actions run `43718146335`, job `132824048878`, passed roadmap HEAD
+  `56fa6c74bc23da794a0d9ef9328bf38694742054` with **3369 passed, 1618
+  deselected in 181.23s**. The complete read-only diagnostic is authorized.
+
+Authorized diagnostic command:
+
+- Fresh output verified absent on 2026-11-15:
+  `%LOCALAPPDATA%\Temp\balatro-ppo-progress-study-v1\policy_behavior_attribution.json`.
+- Run from PowerShell in the canonical repository checkout:
+
+```powershell
+Set-Location -LiteralPath 'D:\0.5 - Coding\0. game-ai\game-ai-framework'; py -3.13 -m games.balatro.env.ppo_progress_study_behavior --artifact-directory "$env:LOCALAPPDATA\Temp\balatro-ppo-progress-study-v1" --output-path "$env:LOCALAPPDATA\Temp\balatro-ppo-progress-study-v1\policy_behavior_attribution.json" --maximum-workers 8
+```
+
+- This command performs no optimization and does not alter checkpoints. After
+  exit code 0, verify and publish the canonical report before selecting any new
+  reward, optimizer, architecture, or training experiment.
 
 Requirements:
 
