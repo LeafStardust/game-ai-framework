@@ -2513,18 +2513,40 @@ Progress-reward paired-evaluation implementation checkpoint:
   Balatro deterministic gate with **3346 passed, 1618 deselected in 293.22s**.
   The single 64-pair read-only evaluation is authorized.
 
+Completed progress-reward paired evaluation:
+
+- The read-only run completed all **64 fixed seed pairs** with exit code 0.
+  Its 53,453-byte canonical report has SHA-256
+  `4e5bd721dc9db556b946c8e1f7651923ff947f0beda5eb4f7b9a72b9cbe01fe7`
+  and exactly links the pilot training run, checkpoint, progress, report, and
+  both policy parameter hashes.
+- Initial versus one-batch results are **0 -> 0 Ante-8 clears**, mean Ante
+  `1.515625 -> 1.515625`, mean terminal requirement progress
+  `0.6345062934027778 -> 0.6328917100694444`, mean terminal cash
+  `8.421875 -> 8.3125`, and mean action count `8.09375 -> 8.109375`.
+- Seven episodes changed. Requirement progress improved on 2 seeds, regressed
+  on 1, and tied on 61; terminal cash improved on 3 and regressed on 4. No seed
+  gained or lost Ante. Independent recomputation exactly matched the stored
+  aggregate deltas.
+- Evaluation: one batch is **not an improvement checkpoint** because clears and
+  Ante are unchanged while aggregate requirement progress and cash regress.
+  The v2 learning signal remains real and nonzero, so this rejects immediate
+  promotion/full training but permits one capped staged learning-curve study.
+
 ## Exact active task
 
-Implement and CI-gate an isolated paired evaluation of the frozen initial v2
-policy and the restored one-batch v2 pilot policy. Use the existing fixed
-64-seed deterministic evaluation corpus, identical greedy action selection,
-and production mechanics. Report paired clears, Ante, requirement progress,
-terminal cash, episode depth, and exact per-seed deltas. Do not perform another
-optimizer update or relax the promotion contract.
+Implement and CI-gate an isolated, resumable v2 learning-curve study capped at
+**8 optimizer batches**, with immutable checkpoints and read-only fixed-corpus
+evaluations at batches **0, 1, 2, 4, and 8**. Use a fresh training root seed and
+artifact directory distinct from both v1 and the one-batch pilot. Preserve the
+same v2 reward/training contract, production mechanics, greedy evaluation
+selection contract, and all promotion gates.
 
-The evaluator is implemented and CI-green at the checkpoint above. Run the
-single 64-pair evaluation and publish its report. Do not start another
-optimizer batch.
+The staged runner must publish exact per-checkpoint policy hashes, reward and
+advantage statistics, episode depth/runtime/fail-closed counters, and paired
+fixed-seed metrics versus batch 0. It must fail closed above batch 8 and must
+resume only from its own canonically linked artifacts. Do not authorize a
+1,024-batch run or production-policy change from this study alone.
 
 Requirements:
 
@@ -2577,5 +2599,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BOSS_SAFE_PACE_SWEEP.json`
 - `docs/balatro/BALATRO_PPO_BOSS_PROGRESS_SHADOW_REPORT.json`
 - `docs/balatro/BALATRO_PPO_PROGRESS_REWARD_PILOT_REPORT.json`
+- `docs/balatro/BALATRO_PPO_PROGRESS_REWARD_PAIRED_EVALUATION.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
