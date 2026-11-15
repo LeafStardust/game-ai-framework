@@ -145,7 +145,7 @@ class PPOProgressPairedEpisode:
         }
 
 
-def _policy_summary(
+def summarize_progress_policy_outcomes(
     episodes: tuple[PPOProgressPairedEpisode, ...], attribute: str
 ) -> dict[str, float | int]:
     outcomes = tuple(getattr(episode, attribute) for episode in episodes)
@@ -214,8 +214,8 @@ class PPOProgressPairedEvaluationReport:
             )
 
     def as_dict(self) -> dict[str, Any]:
-        initial = _policy_summary(self.episodes, "initial")
-        one_batch = _policy_summary(self.episodes, "one_batch")
+        initial = summarize_progress_policy_outcomes(self.episodes, "initial")
+        one_batch = summarize_progress_policy_outcomes(self.episodes, "one_batch")
         return {
             "schema": self.schema,
             "fixed_corpus_sha256": self.fixed_corpus_sha256,
