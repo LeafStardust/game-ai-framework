@@ -82,6 +82,27 @@ def test_optimizer_attribution_summarizes_exact_implicated_shop_signal():
     assert [group["selected_action_index"] for group in implicated["selected_action_groups"]] == [0, 4]
 
 
+def test_optimizer_attribution_accepts_exact_mixed_collection_policy_carryover():
+    run = PPOTrainingRun.from_seed(
+        "OPTIMIZER-MIXED-CARRYOVER", contract=PPO_PROGRESS_TRAINING_CONTRACT
+    )
+    collection_model = PPOActorCritic(run)
+    batch = _batch(collection_model)
+    pre_update_model = deepcopy(collection_model)
+    pre_update_model.parameters["policy_b"][4] += 0.5
+    pre_update_model.parameters["value_b"][0] -= 0.75
+
+    summary = summarize_optimizer_batch(batch, pre_update_model, 2)
+
+    assert summary["completed_batch_count"] == 2
+    assert summary["transition_count"] == 2048
+    assert np.isfinite(
+        summary["implicated_shop_legal_set"][
+            "first_step_voucher_minus_end_policy_signal"
+        ]
+    )
+
+
 def test_optimizer_attribution_requires_all_eight_stable_post_batch_hashes():
     records = tuple(_record(batch, f"{batch:064x}") for batch in range(1, 9))
     assert _expected_post_batch_hashes(records) == {

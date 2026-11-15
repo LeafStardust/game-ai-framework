@@ -27,7 +27,7 @@ from games.balatro.env.ppo_campaign import (
     _collect_production_wave,
     make_ppo_training_environment,
 )
-from games.balatro.env.ppo_contract import PPOContractError
+from games.balatro.env.ppo_contract import PPO_TRAINING_CONTRACT, PPOContractError
 from games.balatro.env.ppo_model import PPOActorCritic, PPOBatch
 from games.balatro.env.ppo_progress_study import (
     STUDY_JOURNAL_NAME,
@@ -131,17 +131,21 @@ def summarize_optimizer_batch(
     ):
         raise PPOContractError("optimizer attribution batch count is invalid")
     batch = batch.validated(expected_size=2048)
-    probabilities, values, _ = model.evaluate_batch(
+    probabilities, _, _ = model.evaluate_batch(
         batch.observations, batch.action_masks
     )
-    if not np.allclose(values, batch.old_values, rtol=0.0, atol=1e-12):
-        raise PPOContractError("optimizer attribution pre-update values drifted")
     rows = np.arange(len(batch.action_indices))
     selected = probabilities[rows, batch.action_indices]
-    if not np.allclose(
-        np.log(selected), batch.old_log_probabilities, rtol=0.0, atol=1e-12
-    ):
-        raise PPOContractError("optimizer attribution old probabilities drifted")
+    current_log_probabilities = np.log(selected)
+    ratios = np.exp(current_log_probabilities - batch.old_log_probabilities)
+    clipped_ratios = np.clip(
+        ratios,
+        1.0 - PPO_TRAINING_CONTRACT.policy_clip,
+        1.0 + PPO_TRAINING_CONTRACT.policy_clip,
+    )
+    active_policy = (
+        ratios * batch.advantages <= clipped_ratios * batch.advantages
+    )
 
     slots = []
     for slot in PUBLIC_ACTION_SCHEMA.slots:
@@ -165,11 +169,17 @@ def summarize_optimizer_batch(
         batch.action_masks[:, _END_SHOP_INDEX]
         & batch.action_masks[:, _BUY_VOUCHER_INDEX]
     )
-    margin_terms = batch.advantages * (
-        (batch.action_indices == _BUY_VOUCHER_INDEX).astype(np.float64)
-        - (batch.action_indices == _END_SHOP_INDEX).astype(np.float64)
-        - probabilities[:, _BUY_VOUCHER_INDEX]
-        + probabilities[:, _END_SHOP_INDEX]
+    margin_terms = np.where(
+        active_policy,
+        batch.advantages
+        * ratios
+        * (
+            (batch.action_indices == _BUY_VOUCHER_INDEX).astype(np.float64)
+            - (batch.action_indices == _END_SHOP_INDEX).astype(np.float64)
+            - probabilities[:, _BUY_VOUCHER_INDEX]
+            + probabilities[:, _END_SHOP_INDEX]
+        ),
+        0.0,
     )
     selected_groups = []
     for index in range(len(PUBLIC_ACTION_SCHEMA.slots)):
