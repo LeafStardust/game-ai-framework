@@ -2779,6 +2779,35 @@ Optimizer-attribution requirements:
 - CI-gate the diagnostic before any full replay. Do not alter the v2 reward,
   optimizer, model, production policy, or promotion contract during this task.
 
+Optimizer-attribution implementation checkpoint:
+
+- Implementation commit `dfcce1087a8f4cf46306b681347f4eea45fc4955`
+  adds a detached canonical pre-update batch observer and an eight-batch
+  deterministic replay owner. Every replayed episode must equal its immutable
+  journal record, every 2,048-transition stream slice receives a content hash,
+  and every post-batch policy must reproduce the stored digest before a report
+  can be written.
+- The report attributes action-slot legality/selections, advantages, returns,
+  and the exact initial unclipped voucher-minus-end policy signal for every
+  implicated shop transition. It also performs a three-block Shapley
+  decomposition of the voucher-minus-end logit-margin change at every harmful
+  fixed-corpus divergence, separating the policy head from both shared hidden
+  layers with an exact closure check.
+- Real immutable-state smoke evidence passed. At batch 8 the 12 harmful
+  `END_SHOP -> BUY_VOUCHER` states gain `1.192015217635949` mean logit margin;
+  mean Shapley contributions are `0.5730679789410504` from the first hidden
+  block, `0.5375031284198918` from the second hidden block, and only
+  `0.08144411027500693` from the policy head. Shared representation drift is
+  therefore dominant at those states; the full replay still must determine
+  whether collected advantages directly support the same direction.
+- Focused observer/model/batch/session/attribution validation: **46 passed in
+  5.04s**. CLI import/help, syntax compilation, and `git diff --check` are
+  clean. GitHub Actions run `43729336935`, job `132858100773`, passed with
+  **3374 passed, 1618 deselected in 304.54s**.
+- The full replay is not yet authorized: add crash-consistent staged resume at
+  immutable batch 1/2/4 boundaries first, so interruption cannot discard the
+  entire multi-hour diagnostic.
+
 ## Held and deferred work
 
 - Natural Money Tree live parity evidence is explicitly on hold by user
