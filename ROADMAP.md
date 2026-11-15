@@ -2762,6 +2762,9 @@ Completed policy-behavior attribution:
   purchase shift is harmful on the fixed corpus. No further training or tuning
   is authorized until the exact optimizer inputs causing that shift are
   attributed.
+- Published evidence commit `673edd3574fd5c1443698c479dd70cc4e186c098`
+  passed GitHub Actions run `43727697440`, job `132853120476`, with **3369
+  passed, 1618 deselected in 195.07s**.
 
 Optimizer-attribution requirements:
 
