@@ -2538,18 +2538,18 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Run and validate the now-CI-green isolated, resumable v2 learning-curve study
-capped at **8 optimizer batches**, with immutable checkpoints and read-only
-fixed-corpus evaluations at batches **0, 1, 2, 4, and 8**. The implementation
-is complete; the next action is the exact authorized operator command below.
-Preserve the same v2 reward/training contract, production mechanics, greedy
-evaluation selection contract, and all promotion gates.
+Implement and CI-gate a read-only fixed-corpus policy-behavior attribution for
+the completed v2 learning-curve study. Compare stored batch-0, 1, 2, 4, and 8
+milestone models without further optimization. Publish exact action-slot
+frequencies, first policy-divergence locations, greedy confidence/entropy, and
+their relationship to the per-seed terminal regressions already recorded.
+Preserve the production mechanics, sparse evaluation environment, public
+information boundary, greedy selection contract, and all promotion gates.
 
-The staged runner must publish exact per-checkpoint policy hashes, reward and
-advantage statistics, episode depth/runtime/fail-closed counters, and paired
-fixed-seed metrics versus batch 0. It must fail closed above batch 8 and must
-resume only from its own canonically linked artifacts. Do not authorize a
-1,024-batch run or production-policy change from this study alone.
+The completed staged runner and report retain the exact per-checkpoint policy,
+reward, advantage, depth, runtime, fail-closed, and paired fixed-seed evidence.
+The attribution must link to those immutable artifacts and may not reinterpret
+or overwrite them.
 
 Eight-batch campaign-boundary checkpoint:
 
@@ -2661,16 +2661,51 @@ Set-Location -LiteralPath 'D:\0.5 - Coding\0. game-ai\game-ai-framework'; py -3.
   competence, change production policy, or authorize 1,024 batches from study
   completion alone.
 
+Completed eight-batch progress study:
+
+- The run completed all **8 optimizer batches** with **16,968 collected / 16,384
+  optimized transitions** across **2,183 committed episodes**. All 2,183
+  training episodes ended in `LOSS`; every published fail-closed counter is
+  zero and no interrupted episode time is unmeasured.
+- Measured training time is **12,105.384424200049 seconds (3:21:45.384)**.
+  The final policy SHA-256 is
+  `25be7197a79aa8e914b589fbf7a1267a64a6d6f323197713bec5d5fc366683b2`.
+- Fixed 64-seed evaluation clears remain **0 at every checkpoint**. Batch 0 to
+  batch 8 changes are: mean Ante `1.515625 -> 1.5` (`-0.015625`), mean terminal
+  requirement progress `0.6561360677083333 -> 0.6186881510416666`
+  (`-0.03744791666666669`), mean terminal cash `9.5 -> 7.1875` (`-2.3125`),
+  and mean action count `7.890625 -> 8.28125` (`+0.390625`).
+- Decision: **REJECTED**. The shaped signal remains finite and nonzero, but the
+  measured policy curve does not improve competence and regresses all three
+  protected non-clear metrics by batch 8. Do not extend this run, promote its
+  policy, tune from its fixed outcomes, or authorize a larger campaign.
+- The canonical artifact is 10,623 bytes with SHA-256
+  `2ba60fca57702f86a5bbc10796205f469274e89c516d2dde22a7725055a1a654`.
+  The committed repository copy includes a terminal newline (10,624 bytes,
+  SHA-256 `f11055b582058b9c45f54471d2c9bd48da8b41573974cad7ccd725cf66d49986`).
+  Independent reconstruction from all milestone, journal, runtime, and
+  evaluation artifacts is byte-identical to the canonical artifact.
+
+Next diagnostic boundary:
+
+- Read only the existing milestone policies and fixed seeds. Record canonical
+  per-checkpoint greedy action frequencies, first divergence from batch 0,
+  selected-action probability and legal-action entropy, plus exact per-seed
+  links to the existing terminal deltas.
+- Use the earliest divergence owner to distinguish action-distribution collapse
+  from value-only drift before proposing any new reward, optimizer, model, or
+  training schedule. No additional optimizer batch or live Balatro run is
+  authorized during this diagnostic.
+
 Requirements:
 
-- Add deterministic owner-level, environment, serialization/restore, rollout,
-  and GAE/return regressions for v2 while proving v1 bytes and rewards remain
-  unchanged by default.
-- CI-gate implementation before a bounded one-batch pilot. The pilot must use
-  isolated seeds/artifacts and report reward/advantage variance, episode depth,
-  runtime, and all fail-closed counters; it cannot resume or overwrite v1.
-- Do not tune either rejected shadow, change production policy, start another
-  1,024-batch run, or relax the promotion contract during this task.
+- Keep the attribution read-only and deterministic; reuse the canonical
+  milestone loader, sparse evaluation environment, and frozen greedy tie-break.
+- Bind every trace and aggregate to the training run, milestone/evaluation
+  hashes, fixed corpus, policy digest, seed, and action schema.
+- CI-gate the diagnostic before running its complete fixed corpus. Do not tune
+  either rejected shadow or v2 reward, change production policy, start another
+  optimizer batch, or relax the promotion contract during this task.
 
 ## Held and deferred work
 
@@ -2713,5 +2748,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BOSS_PROGRESS_SHADOW_REPORT.json`
 - `docs/balatro/BALATRO_PPO_PROGRESS_REWARD_PILOT_REPORT.json`
 - `docs/balatro/BALATRO_PPO_PROGRESS_REWARD_PAIRED_EVALUATION.json`
+- `docs/balatro/BALATRO_PPO_PROGRESS_STUDY_REPORT.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
