@@ -2508,7 +2508,10 @@ Progress-reward paired-evaluation implementation checkpoint:
   arms. Focused evaluator/pilot/candidate/diagnostics gate: **39 passed in
   4.40s**; broader PPO/evaluation gate: **170 passed in 89.47s**; final
   evaluator gate: **5 passed in 0.91s**. Syntax compilation and
-  `git diff --check` are clean. CI is still required before the 64-pair run.
+  `git diff --check` are clean.
+- GitHub Actions run `43689127769`, job `132735804366`, passed the authoritative
+  Balatro deterministic gate with **3346 passed, 1618 deselected in 293.22s**.
+  The single 64-pair read-only evaluation is authorized.
 
 ## Exact active task
 
@@ -2519,9 +2522,9 @@ and production mechanics. Report paired clears, Ante, requirement progress,
 terminal cash, episode depth, and exact per-seed deltas. Do not perform another
 optimizer update or relax the promotion contract.
 
-The evaluator is implemented locally at the checkpoint above. Push and CI-gate
-it next, then run the single 64-pair evaluation and publish its report. Do not
-start another optimizer batch.
+The evaluator is implemented and CI-green at the checkpoint above. Run the
+single 64-pair evaluation and publish its report. Do not start another
+optimizer batch.
 
 Requirements:
 
