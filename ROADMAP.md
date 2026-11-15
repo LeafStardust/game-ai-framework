@@ -2486,6 +2486,9 @@ Completed progress-reward one-batch pilot:
   counter fired. Competence is **not established** because every pilot episode
   lost. This authorizes a paired evaluation, not more optimizer batches or a
   new full campaign.
+- Published evidence commit `01ccf57e5667219761aa8baf31bc4d273929f856`
+  passed GitHub Actions run `43688229315`, job `132733106758`, with **3341
+  passed, 1618 deselected in 223.13s**.
 
 ## Exact active task
 
