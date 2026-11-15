@@ -2577,9 +2577,10 @@ Crash-consistent progress-study journal checkpoint:
 - Focused journal/campaign validation: **36 passed in 0.98s**. Broader PPO
   campaign, reward, pilot, evaluation, batch, model, and learner validation:
   **81 passed in 14.25s**. Syntax compilation and `git diff --check` are clean.
-- GitHub Actions gate is pending. Implement immutable milestone artifacts and
-  staged batch-0/1/2/4/8 evaluation only after this checkpoint is CI-green;
-  no study run is authorized yet.
+- GitHub Actions run `43691189501`, job `132742003967`, passed roadmap HEAD
+  `26b34f588c77ef1556e322c00282b0185958f053` with **3353 passed, 1618
+  deselected in 220.15s**. Implement immutable milestone artifacts and staged
+  batch-0/1/2/4/8 evaluation next; no study run is authorized yet.
 
 Requirements:
 
