@@ -25,6 +25,7 @@ from games.balatro.env.ppo_progress_reward_evaluation import (
     _canonical_bytes,
     _load_pilot_policies,
     evaluate_policy_pair,
+    evaluate_progress_policy_corpus_pair,
     run_progress_reward_evaluation,
 )
 from games.balatro.env.ppo_progress_reward_pilot import PILOT_REPORT_NAME
@@ -136,6 +137,33 @@ def test_progress_reward_evaluation_uses_identical_greedy_policy_path():
     assert result.initial == result.one_batch
     assert result.initial.status == "LOSS"
     assert result.initial.action_count >= 1
+
+
+def test_progress_reward_corpus_pair_requires_linked_models_and_complete_order():
+    first_run = PPOTrainingRun.from_seed(
+        "CORPUS-FIRST", contract=PPO_PROGRESS_TRAINING_CONTRACT
+    )
+    second_run = PPOTrainingRun.from_seed(
+        "CORPUS-SECOND", contract=PPO_PROGRESS_TRAINING_CONTRACT
+    )
+    with pytest.raises(PPOContractError, match="policy provenance drifted"):
+        evaluate_progress_policy_corpus_pair(
+            PPOActorCritic(first_run),
+            PPOActorCritic(second_run),
+            maximum_workers=1,
+            pair_executor=lambda *args: pytest.fail("must not evaluate"),
+        )
+
+    model = PPOActorCritic(first_run)
+    with pytest.raises(PPOContractError, match="incomplete or out of order"):
+        evaluate_progress_policy_corpus_pair(
+            model,
+            model,
+            maximum_workers=1,
+            pair_executor=lambda spec, *_: _paired(
+                FIXED_SEEDED_EPISODES[(spec.episode_index + 1) % 64]
+            ),
+        )
 
 
 def test_progress_reward_evaluation_loader_verifies_exact_artifact_links(

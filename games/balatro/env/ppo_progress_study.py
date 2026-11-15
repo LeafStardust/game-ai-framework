@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from hashlib import sha256
 import json
 import math
 from pathlib import Path
@@ -10,7 +11,16 @@ from typing import Any
 
 import numpy as np
 
-from games.balatro.env.ppo_campaign import _atomic_write
+from games.balatro.env.ppo_campaign import (
+    CHECKPOINT_NAME,
+    PROGRESS_NAME,
+    _atomic_write,
+    _canonical_bytes,
+    _checkpoint_payload,
+    _restore_session,
+    _state_manifest,
+    make_ppo_progress_training_environment,
+)
 from games.balatro.env.ppo_contract import (
     PPO_PROGRESS_TRAINING_CONTRACT,
     PPOContractError,
@@ -18,10 +28,17 @@ from games.balatro.env.ppo_contract import (
     PPOTrainingRun,
 )
 from games.balatro.env.ppo_model import compute_gae
+from games.balatro.env.ppo_training_session import PPOTrainingSession
 
 
 PPO_PROGRESS_STUDY_JOURNAL_SCHEMA = "balatro-red-white-progress-study-journal-v1"
 STUDY_JOURNAL_NAME = "study_journal.json"
+PPO_PROGRESS_STUDY_MILESTONE_SCHEMA = (
+    "balatro-red-white-progress-study-milestone-v1"
+)
+STUDY_MILESTONE_BATCHES = (0, 1, 2, 4, 8)
+STUDY_MILESTONE_DIRECTORY = "milestones"
+STUDY_MILESTONE_MANIFEST_NAME = "milestone.json"
 
 
 def _lower_digest(value: object, label: str) -> str:
@@ -282,3 +299,208 @@ def load_progress_study_journal(
     return PPOProgressStudyJournal(
         value["schema"], value["training_run_sha256"], records
     )
+
+
+@dataclass(frozen=True)
+class PPOProgressStudyMilestone:
+    schema: str
+    training_run_sha256: str
+    completed_batch_count: int
+    optimizer_consumed_transitions: int
+    collected_environment_transitions: int
+    policy_parameter_sha256: str
+    checkpoint_sha256: str
+    progress_sha256: str
+    journal_sha256: str
+
+    def __post_init__(self) -> None:
+        if self.schema != PPO_PROGRESS_STUDY_MILESTONE_SCHEMA:
+            raise PPOContractError("PPO progress study milestone schema mismatch")
+        for name in (
+            "training_run_sha256",
+            "policy_parameter_sha256",
+            "checkpoint_sha256",
+            "progress_sha256",
+            "journal_sha256",
+        ):
+            _lower_digest(getattr(self, name), f"milestone {name}")
+        batches = _exact_nonnegative(
+            self.completed_batch_count, "milestone batch count"
+        )
+        if batches not in STUDY_MILESTONE_BATCHES:
+            raise PPOContractError("PPO progress study milestone batch is not staged")
+        optimized = _exact_nonnegative(
+            self.optimizer_consumed_transitions,
+            "milestone optimizer transition count",
+        )
+        if optimized != batches * PPO_PROGRESS_TRAINING_CONTRACT.rollout_batch_size:
+            raise PPOContractError("PPO progress study milestone optimizer count drifted")
+        collected = _exact_nonnegative(
+            self.collected_environment_transitions,
+            "milestone collected transition count",
+        )
+        if collected < optimized:
+            raise PPOContractError("PPO progress study milestone collected count drifted")
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(
+            self.as_dict(), sort_keys=True, separators=(",", ":"), allow_nan=False
+        )
+
+
+@dataclass(frozen=True)
+class LoadedPPOProgressStudyMilestone:
+    milestone: PPOProgressStudyMilestone
+    session: PPOTrainingSession
+    journal: PPOProgressStudyJournal
+
+
+def _milestone_directory(directory: Path, batch_count: int) -> Path:
+    return directory / STUDY_MILESTONE_DIRECTORY / f"batch-{batch_count:03d}"
+
+
+def _validate_milestone_source(
+    session: PPOTrainingSession,
+    journal: PPOProgressStudyJournal,
+    batch_count: int,
+) -> PPOTrainingRun:
+    if not isinstance(session, PPOTrainingSession):
+        raise TypeError("session must be PPOTrainingSession")
+    if not isinstance(journal, PPOProgressStudyJournal):
+        raise TypeError("journal must be PPOProgressStudyJournal")
+    if batch_count not in STUDY_MILESTONE_BATCHES:
+        raise PPOContractError("PPO progress study milestone batch is not staged")
+    run = session.training_run
+    if (
+        run.contract_sha256 != PPO_PROGRESS_TRAINING_CONTRACT.sha256
+        or session.learner.completed_batch_count != batch_count
+        or journal.training_run_sha256 != run.sha256
+    ):
+        raise PPOContractError("PPO progress study milestone provenance drifted")
+    reconciled = journal.reconciled(
+        session.learner.assembler.next_episode_indices
+    )
+    if reconciled != journal:
+        raise PPOContractError("PPO progress study milestone journal is ahead")
+    if batch_count == 0:
+        if journal.records:
+            raise PPOContractError("PPO progress study batch-zero journal is not empty")
+    elif (
+        not journal.records
+        or journal.records[-1].completed_batch_count_after_commit != batch_count
+        or journal.records[-1].policy_parameter_sha256_after_commit
+        != session.learner.model.parameter_sha256
+    ):
+        raise PPOContractError("PPO progress study milestone signal drifted")
+    return run
+
+
+def _milestone_payloads(
+    session: PPOTrainingSession,
+    journal: PPOProgressStudyJournal,
+    batch_count: int,
+) -> tuple[PPOProgressStudyMilestone, dict[str, bytes]]:
+    run = _validate_milestone_source(session, journal, batch_count)
+    checkpoint_bytes = _canonical_bytes(_checkpoint_payload(run, session))
+    checkpoint_digest = sha256(checkpoint_bytes).hexdigest()
+    progress_bytes = _canonical_bytes(
+        _state_manifest(run, session, checkpoint_digest)
+    )
+    journal_bytes = journal.to_json().encode("utf-8")
+    milestone = PPOProgressStudyMilestone(
+        schema=PPO_PROGRESS_STUDY_MILESTONE_SCHEMA,
+        training_run_sha256=run.sha256,
+        completed_batch_count=batch_count,
+        optimizer_consumed_transitions=session.optimizer_consumed_transitions,
+        collected_environment_transitions=(
+            session.learner.total_consumed_environment_transitions
+        ),
+        policy_parameter_sha256=session.learner.model.parameter_sha256,
+        checkpoint_sha256=checkpoint_digest,
+        progress_sha256=sha256(progress_bytes).hexdigest(),
+        journal_sha256=sha256(journal_bytes).hexdigest(),
+    )
+    return milestone, {
+        CHECKPOINT_NAME: checkpoint_bytes,
+        PROGRESS_NAME: progress_bytes,
+        STUDY_JOURNAL_NAME: journal_bytes,
+        STUDY_MILESTONE_MANIFEST_NAME: milestone.to_json().encode("utf-8"),
+    }
+
+
+def publish_progress_study_milestone(
+    artifact_directory: str | Path,
+    session: PPOTrainingSession,
+    journal: PPOProgressStudyJournal,
+    batch_count: int,
+) -> PPOProgressStudyMilestone:
+    """Publish or exactly recover one immutable staged snapshot."""
+    directory = _milestone_directory(Path(artifact_directory), batch_count)
+    milestone, payloads = _milestone_payloads(session, journal, batch_count)
+    manifest_path = directory / STUDY_MILESTONE_MANIFEST_NAME
+    if manifest_path.exists():
+        if any(
+            not (directory / name).exists()
+            or (directory / name).read_bytes() != content
+            for name, content in payloads.items()
+        ):
+            raise PPOContractError("PPO progress study milestone is immutable")
+        return milestone
+    directory.mkdir(parents=True, exist_ok=True)
+    for name, content in payloads.items():
+        path = directory / name
+        if path.exists() and path.read_bytes() != content:
+            raise PPOContractError("PPO progress study milestone partial write drifted")
+        if not path.exists():
+            _atomic_write(path, content)
+    return milestone
+
+
+def load_progress_study_milestone(
+    artifact_directory: str | Path,
+    training_run: PPOTrainingRun,
+    batch_count: int,
+) -> LoadedPPOProgressStudyMilestone:
+    if (
+        not isinstance(training_run, PPOTrainingRun)
+        or training_run.contract_sha256 != PPO_PROGRESS_TRAINING_CONTRACT.sha256
+    ):
+        raise PPOContractError("PPO progress study milestone requires its v2 run")
+    if batch_count not in STUDY_MILESTONE_BATCHES:
+        raise PPOContractError("PPO progress study milestone batch is not staged")
+    directory = _milestone_directory(Path(artifact_directory), batch_count)
+    names = (
+        CHECKPOINT_NAME,
+        PROGRESS_NAME,
+        STUDY_JOURNAL_NAME,
+        STUDY_MILESTONE_MANIFEST_NAME,
+    )
+    try:
+        raw = {name: (directory / name).read_bytes() for name in names}
+        values = {
+            name: json.loads(content.decode("utf-8"))
+            for name, content in raw.items()
+        }
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise PPOContractError("PPO progress study milestone is unreadable") from error
+    if any(_canonical_bytes(values[name]) != raw[name] for name in names):
+        raise PPOContractError("PPO progress study milestone is noncanonical")
+    try:
+        milestone = PPOProgressStudyMilestone(**values[STUDY_MILESTONE_MANIFEST_NAME])
+    except (TypeError, PPOContractError) as error:
+        raise PPOContractError("PPO progress study milestone manifest is invalid") from error
+    session = _restore_session(
+        training_run,
+        values[CHECKPOINT_NAME],
+        make_ppo_progress_training_environment,
+    )
+    journal = load_progress_study_journal(
+        directory / STUDY_JOURNAL_NAME, training_run
+    )
+    expected, payloads = _milestone_payloads(session, journal, batch_count)
+    if milestone != expected or any(raw[name] != content for name, content in payloads.items()):
+        raise PPOContractError("PPO progress study milestone linkage drifted")
+    return LoadedPPOProgressStudyMilestone(milestone, session, journal)

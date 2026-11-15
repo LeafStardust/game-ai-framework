@@ -423,26 +423,27 @@ def _evaluate_worker(spec: FixedSeededEpisodeSpec) -> PPOProgressPairedEpisode:
     )
 
 
-def run_progress_reward_evaluation(
-    pilot_artifact_directory: str | Path,
-    output_path: str | Path,
+def evaluate_progress_policy_corpus_pair(
+    initial_model: PPOActorCritic,
+    candidate_model: PPOActorCritic,
     *,
     maximum_workers: int,
     pair_executor=None,
     progress_callback: Callable[[int, int], None] | None = None,
-) -> PPOProgressPairedEvaluationReport:
+) -> tuple[PPOProgressPairedEpisode, ...]:
+    """Evaluate two linked policies on the complete fixed corpus in order."""
+    if not isinstance(initial_model, PPOActorCritic) or not isinstance(
+        candidate_model, PPOActorCritic
+    ):
+        raise TypeError("PPO progress corpus models must be PPOActorCritic")
+    if initial_model.training_run_sha256 != candidate_model.training_run_sha256:
+        raise PPOContractError("PPO progress corpus policy provenance drifted")
     if (
         isinstance(maximum_workers, bool)
         or not isinstance(maximum_workers, int)
         or not 1 <= maximum_workers <= 8
     ):
         raise PPOContractError("PPO progress evaluation workers must be from 1 through 8")
-    destination = Path(output_path)
-    if destination.exists():
-        raise PPOContractError("PPO progress evaluation output already exists")
-    if not destination.parent.is_dir():
-        raise PPOContractError("PPO progress evaluation output directory is missing")
-    policies = _load_pilot_policies(Path(pilot_artifact_directory))
     if pair_executor is not None and not callable(pair_executor):
         raise TypeError("PPO progress pair executor must be callable")
     if progress_callback is not None and not callable(progress_callback):
@@ -450,6 +451,8 @@ def run_progress_reward_evaluation(
     episodes_values: list[PPOProgressPairedEpisode] = []
 
     def record(episode: PPOProgressPairedEpisode) -> None:
+        if not isinstance(episode, PPOProgressPairedEpisode):
+            raise PPOContractError("PPO progress corpus episode is malformed")
         episodes_values.append(episode)
         if progress_callback is not None:
             progress_callback(len(episodes_values), len(FIXED_SEEDED_EPISODES))
@@ -460,16 +463,43 @@ def run_progress_reward_evaluation(
             max_workers=maximum_workers,
             mp_context=context,
             initializer=_initialize_worker,
-            initargs=(policies.initial_model, policies.one_batch_model),
+            initargs=(initial_model, candidate_model),
         ) as executor:
             for episode in executor.map(_evaluate_worker, FIXED_SEEDED_EPISODES):
                 record(episode)
     else:
         for spec in FIXED_SEEDED_EPISODES:
-            record(
-                pair_executor(spec, policies.initial_model, policies.one_batch_model)
-            )
+            record(pair_executor(spec, initial_model, candidate_model))
     episodes = tuple(episodes_values)
+    expected = tuple(
+        (spec.episode_index, spec.game_seed) for spec in FIXED_SEEDED_EPISODES
+    )
+    if tuple((episode.episode_index, episode.game_seed) for episode in episodes) != expected:
+        raise PPOContractError("PPO progress corpus episodes are incomplete or out of order")
+    return episodes
+
+
+def run_progress_reward_evaluation(
+    pilot_artifact_directory: str | Path,
+    output_path: str | Path,
+    *,
+    maximum_workers: int,
+    pair_executor=None,
+    progress_callback: Callable[[int, int], None] | None = None,
+) -> PPOProgressPairedEvaluationReport:
+    destination = Path(output_path)
+    if destination.exists():
+        raise PPOContractError("PPO progress evaluation output already exists")
+    if not destination.parent.is_dir():
+        raise PPOContractError("PPO progress evaluation output directory is missing")
+    policies = _load_pilot_policies(Path(pilot_artifact_directory))
+    episodes = evaluate_progress_policy_corpus_pair(
+        policies.initial_model,
+        policies.one_batch_model,
+        maximum_workers=maximum_workers,
+        pair_executor=pair_executor,
+        progress_callback=progress_callback,
+    )
     report = PPOProgressPairedEvaluationReport(
         schema=PPO_PROGRESS_REWARD_EVALUATION_SCHEMA,
         fixed_corpus_sha256=FIXED_SEEDED_CORPUS_SHA256,

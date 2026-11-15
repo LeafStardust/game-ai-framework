@@ -23,11 +23,16 @@ from games.balatro.env.ppo_contract import (
 )
 from games.balatro.env.ppo_progress_study import (
     PPO_PROGRESS_STUDY_JOURNAL_SCHEMA,
+    STUDY_MILESTONE_MANIFEST_NAME,
     PPOProgressStudyEpisodeRecord,
     PPOProgressStudyJournal,
+    load_progress_study_milestone,
     load_progress_study_journal,
+    publish_progress_study_milestone,
     write_progress_study_journal,
 )
+from games.balatro.env.ppo_campaign import make_ppo_progress_training_environment
+from games.balatro.env.ppo_training_session import PPOTrainingSession
 from games.balatro.env.seeded_evaluation import EVALUATION_MODE
 from games.balatro.env.state import RunStatus, TurnOwner
 
@@ -189,3 +194,62 @@ def test_progress_study_journal_rejects_order_counter_and_provenance_drift(tmp_p
     path.write_text("{}", encoding="utf-8")
     with pytest.raises(PPOContractError, match="provenance drifted"):
         load_progress_study_journal(path, run)
+
+
+def test_progress_study_batch_zero_milestone_is_immutable_and_loadable(tmp_path):
+    run = _run()
+    session = PPOTrainingSession(run, make_ppo_progress_training_environment)
+    journal = PPOProgressStudyJournal.fresh(run)
+
+    milestone = publish_progress_study_milestone(tmp_path, session, journal, 0)
+    restored = load_progress_study_milestone(tmp_path, run, 0)
+
+    assert restored.milestone == milestone
+    assert restored.session.learner.completed_batch_count == 0
+    assert restored.session.learner.model.parameter_sha256 == (
+        session.learner.model.parameter_sha256
+    )
+    assert restored.journal == journal
+    assert publish_progress_study_milestone(tmp_path, session, journal, 0) == milestone
+
+    checkpoint = tmp_path / "milestones" / "batch-000" / "checkpoint.json"
+    checkpoint.write_bytes(checkpoint.read_bytes() + b"\n")
+    with pytest.raises(PPOContractError, match="immutable"):
+        publish_progress_study_milestone(tmp_path, session, journal, 0)
+
+
+def test_progress_study_milestone_recovers_only_exact_partial_publication(tmp_path):
+    run = _run()
+    session = PPOTrainingSession(run, make_ppo_progress_training_environment)
+    journal = PPOProgressStudyJournal.fresh(run)
+    milestone = publish_progress_study_milestone(tmp_path, session, journal, 0)
+    directory = tmp_path / "milestones" / "batch-000"
+    manifest = directory / STUDY_MILESTONE_MANIFEST_NAME
+    progress = directory / "progress.json"
+    manifest.unlink()
+    progress.unlink()
+
+    assert publish_progress_study_milestone(tmp_path, session, journal, 0) == milestone
+    assert manifest.exists()
+    assert progress.exists()
+
+    manifest.unlink()
+    progress.write_bytes(b"{}")
+    with pytest.raises(PPOContractError, match="partial write drifted"):
+        publish_progress_study_milestone(tmp_path, session, journal, 0)
+
+
+def test_progress_study_milestone_rejects_unstaged_batch_and_signal_drift(tmp_path):
+    run = _run()
+    session = PPOTrainingSession(run, make_ppo_progress_training_environment)
+    journal = PPOProgressStudyJournal.fresh(run)
+
+    with pytest.raises(PPOContractError, match="not staged"):
+        publish_progress_study_milestone(tmp_path, session, journal, 3)
+    with pytest.raises(PPOContractError, match="journal is ahead"):
+        publish_progress_study_milestone(
+            tmp_path,
+            session,
+            journal.append(_record(run, 0)),
+            0,
+        )
