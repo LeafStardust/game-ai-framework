@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`316150817fa7c097a99dcaf2d60a9b4037167e3f`.
+`5e7306c3ea85c8e1b0b3195790ebd150bb8b5395`.
 
 ## Objective
 
@@ -2490,6 +2490,26 @@ Completed progress-reward one-batch pilot:
   passed GitHub Actions run `43688229315`, job `132733106758`, with **3341
   passed, 1618 deselected in 223.13s**.
 
+Progress-reward paired-evaluation implementation checkpoint:
+
+- Implementation commit `5e7306c3ea85c8e1b0b3195790ebd150bb8b5395`
+  cryptographically loads the linked pilot checkpoint/progress/report,
+  reconstructs the exact initial model from the same v2 training run, and
+  restores the exact one-batch model. It evaluates both read-only on each fixed
+  corpus seed with production mechanics, sparse evaluation rewards, and the
+  frozen masked-greedy/lowest-index tie-break contract.
+- The report binds both policy hashes and all pilot artifact hashes, publishes
+  exact per-seed terminal metrics/deltas, and summarizes clears, Ante,
+  requirement progress, terminal cash, and action depth. The CLI emits one
+  progress record per completed seed pair; progress timing cannot enter the
+  deterministic report.
+- Actual pilot seed-0 smoke evidence restored the expected initial/final policy
+  hashes and produced identical `579/600`, Ante-1, seven-action losses on both
+  arms. Focused evaluator/pilot/candidate/diagnostics gate: **39 passed in
+  4.40s**; broader PPO/evaluation gate: **170 passed in 89.47s**; final
+  evaluator gate: **5 passed in 0.91s**. Syntax compilation and
+  `git diff --check` are clean. CI is still required before the 64-pair run.
+
 ## Exact active task
 
 Implement and CI-gate an isolated paired evaluation of the frozen initial v2
@@ -2498,6 +2518,10 @@ policy and the restored one-batch v2 pilot policy. Use the existing fixed
 and production mechanics. Report paired clears, Ante, requirement progress,
 terminal cash, episode depth, and exact per-seed deltas. Do not perform another
 optimizer update or relax the promotion contract.
+
+The evaluator is implemented locally at the checkpoint above. Push and CI-gate
+it next, then run the single 64-pair evaluation and publish its report. Do not
+start another optimizer batch.
 
 Requirements:
 
