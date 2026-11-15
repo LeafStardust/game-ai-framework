@@ -2532,6 +2532,9 @@ Completed progress-reward paired evaluation:
   Ante are unchanged while aggregate requirement progress and cash regress.
   The v2 learning signal remains real and nonzero, so this rejects immediate
   promotion/full training but permits one capped staged learning-curve study.
+- Published evidence commit `ede70eda6a34b7d8087135b9ef899b03b55da7f1`
+  passed GitHub Actions run `43689888402`, job `132738107772`, with **3346
+  passed, 1618 deselected in 164.63s**.
 
 ## Exact active task
 
