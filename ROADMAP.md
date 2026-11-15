@@ -2613,9 +2613,11 @@ Progress-study paired-evaluation checkpoint:
 - Focused study-evaluation/milestone validation: **16 passed in 12.16s**.
   Broader PPO evaluation, campaign, reward, batch, model, and learner gate:
   **82 passed in 14.84s**. Syntax compilation and `git diff --check` are clean.
-- GitHub Actions is pending. After it passes, implement the final resumable
-  orchestration, cumulative signal/runtime report, and CLI; no study run is
-  authorized yet.
+- GitHub Actions run `43693674092`, job `132749436846`, passed roadmap HEAD
+  `2749b5dc3bec7fd89ce28d2b2689752b00ec1e57` with **3359 passed, 1618
+  deselected in 193.09s**. Implement the final resumable orchestration,
+  cumulative signal/runtime report, and CLI next; no study run is authorized
+  yet.
 
 Requirements:
 
