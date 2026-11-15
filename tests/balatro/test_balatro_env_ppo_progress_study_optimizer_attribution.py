@@ -1,5 +1,6 @@
-from dataclasses import replace
 from copy import deepcopy
+from dataclasses import replace
+import json
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +15,7 @@ from games.balatro.env.ppo_model import PPOActorCritic, PPOBatch
 from games.balatro.env.ppo_progress_study import PPOProgressStudyEpisodeRecord
 from games.balatro.env.ppo_progress_study_optimizer_attribution import (
     _expected_post_batch_hashes,
+    _load_replay_progress,
     run_progress_study_optimizer_attribution,
     shapley_policy_margin_attribution,
     summarize_optimizer_batch,
@@ -115,6 +117,47 @@ def test_optimizer_attribution_shapley_partition_closes_exact_policy_margin():
     assert result["shapley_margin_delta"]["policy_head"] == pytest.approx(0.75)
     assert result["shapley_margin_delta"]["first_hidden"] == pytest.approx(0.0)
     assert result["shapley_margin_delta"]["second_hidden"] == pytest.approx(0.0)
+
+
+def test_optimizer_attribution_resume_progress_is_exact_and_linked():
+    value = {
+        "schema": "balatro-red-white-progress-study-optimizer-attribution-progress-v1",
+        "training_run_sha256": "a" * 64,
+        "behavior_report_sha256": "b" * 64,
+        "final_journal_sha256": "c" * 64,
+        "completed_batch_count": 2,
+        "batches": [
+            {"completed_batch_count": 1},
+            {"completed_batch_count": 2},
+        ],
+    }
+
+    class Source:
+        def exists(self):
+            return True
+
+        def read_bytes(self):
+            return json.dumps(
+                value, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+
+    completed, batches = _load_replay_progress(
+        Source(),
+        training_run_sha256="a" * 64,
+        behavior_report_sha256="b" * 64,
+        final_journal_sha256="c" * 64,
+    )
+    assert completed == 2
+    assert [batch["completed_batch_count"] for batch in batches] == [1, 2]
+
+    value["behavior_report_sha256"] = "d" * 64
+    with pytest.raises(PPOContractError, match="progress drifted"):
+        _load_replay_progress(
+            Source(),
+            training_run_sha256="a" * 64,
+            behavior_report_sha256="b" * 64,
+            final_journal_sha256="c" * 64,
+        )
 
 
 def test_optimizer_attribution_rejects_output_overwrite_before_replay():

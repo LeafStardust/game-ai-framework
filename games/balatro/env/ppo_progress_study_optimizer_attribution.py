@@ -23,6 +23,7 @@ from games.balatro.env.action_encoding import (
 from games.balatro.env.ppo_campaign import (
     _atomic_write,
     _canonical_bytes,
+    _checkpoint_payload,
     _collect_production_wave,
     make_ppo_training_environment,
 )
@@ -46,6 +47,12 @@ PPO_PROGRESS_STUDY_OPTIMIZER_ATTRIBUTION_SCHEMA = (
     "balatro-red-white-progress-study-optimizer-attribution-v1"
 )
 STUDY_OPTIMIZER_ATTRIBUTION_NAME = "optimizer_input_attribution.json"
+STUDY_OPTIMIZER_ATTRIBUTION_PROGRESS_NAME = (
+    "optimizer_input_attribution_progress.json"
+)
+PPO_PROGRESS_STUDY_OPTIMIZER_ATTRIBUTION_PROGRESS_SCHEMA = (
+    "balatro-red-white-progress-study-optimizer-attribution-progress-v1"
+)
 _END_SHOP_INDEX = 0
 _BUY_VOUCHER_INDEX = 4
 _POLICY_PARAMETER_GROUPS = {
@@ -381,6 +388,67 @@ def _expected_post_batch_hashes(records) -> dict[int, str]:
     return values
 
 
+def _load_replay_progress(
+    path: Path,
+    *,
+    training_run_sha256: str,
+    behavior_report_sha256: str,
+    final_journal_sha256: str,
+) -> tuple[int, list[dict[str, Any]]]:
+    if not path.exists():
+        return 0, []
+    value, raw = _read_canonical(path, "replay progress")
+    fields = {
+        "schema",
+        "training_run_sha256",
+        "behavior_report_sha256",
+        "final_journal_sha256",
+        "completed_batch_count",
+        "batches",
+    }
+    if (
+        not isinstance(value, dict)
+        or set(value) != fields
+        or value["schema"]
+        != PPO_PROGRESS_STUDY_OPTIMIZER_ATTRIBUTION_PROGRESS_SCHEMA
+        or value["training_run_sha256"] != training_run_sha256
+        or value["behavior_report_sha256"] != behavior_report_sha256
+        or value["final_journal_sha256"] != final_journal_sha256
+        or value["completed_batch_count"] not in {1, 2, 4}
+        or not isinstance(value["batches"], list)
+        or [batch.get("completed_batch_count") for batch in value["batches"]]
+        != list(range(1, value["completed_batch_count"] + 1))
+        or _canonical_bytes(value) != raw
+    ):
+        raise PPOContractError("optimizer attribution replay progress drifted")
+    return value["completed_batch_count"], value["batches"]
+
+
+def _write_replay_progress(
+    path: Path,
+    *,
+    training_run_sha256: str,
+    behavior_report_sha256: str,
+    final_journal_sha256: str,
+    completed_batch_count: int,
+    batches: list[dict[str, Any]],
+) -> None:
+    if completed_batch_count not in {1, 2, 4}:
+        raise PPOContractError("optimizer attribution progress boundary is invalid")
+    value = {
+        "schema": PPO_PROGRESS_STUDY_OPTIMIZER_ATTRIBUTION_PROGRESS_SCHEMA,
+        "training_run_sha256": training_run_sha256,
+        "behavior_report_sha256": behavior_report_sha256,
+        "final_journal_sha256": final_journal_sha256,
+        "completed_batch_count": completed_batch_count,
+        "batches": batches,
+    }
+    content = _canonical_bytes(value)
+    if path.exists() and path.read_bytes() == content:
+        return
+    _atomic_write(path, content)
+
+
 def run_progress_study_optimizer_attribution(
     artifact_directory: str | Path,
     output_path: str | Path,
@@ -425,14 +493,41 @@ def run_progress_study_optimizer_attribution(
     evaluation_attribution = _implicated_evaluation_attribution(
         directory, run, behavior
     )
-
-    session = initial.session
-    cursor = 0
-    batches: list[dict[str, Any]] = []
+    behavior_digest = sha256(behavior_raw).hexdigest()
+    journal_path = (
+        directory
+        / STUDY_MILESTONE_DIRECTORY
+        / "batch-008"
+        / STUDY_JOURNAL_NAME
+    )
+    journal_digest = sha256(journal_path.read_bytes()).hexdigest()
+    replay_progress_path = directory / STUDY_OPTIMIZER_ATTRIBUTION_PROGRESS_NAME
+    completed_batch_count, batches = _load_replay_progress(
+        replay_progress_path,
+        training_run_sha256=run.sha256,
+        behavior_report_sha256=behavior_digest,
+        final_journal_sha256=journal_digest,
+    )
+    if completed_batch_count:
+        resumed = load_progress_study_milestone(
+            directory, run, completed_batch_count
+        )
+        session = resumed.session
+        cursor = len(resumed.journal.records)
+        if (
+            batches[-1].get("post_policy_parameter_sha256")
+            != session.learner.model.parameter_sha256
+        ):
+            raise PPOContractError(
+                "optimizer attribution replay progress policy drifted"
+            )
+    else:
+        session = initial.session
+        cursor = 0
 
     def replay(collector: Callable) -> None:
         nonlocal cursor
-        for batch_count in range(1, 9):
+        for batch_count in range(completed_batch_count + 1, 9):
             pre_policy = session.learner.model.parameter_sha256
             captured: list[dict[str, Any]] = []
 
@@ -482,6 +577,26 @@ def run_progress_study_optimizer_attribution(
             captured[0]["pre_policy_parameter_sha256"] = pre_policy
             captured[0]["post_policy_parameter_sha256"] = expected_hashes[batch_count]
             batches.append(captured[0])
+            if batch_count in {1, 2, 4, 8}:
+                milestone = load_progress_study_milestone(
+                    directory, run, batch_count
+                )
+                checkpoint_digest = sha256(
+                    _canonical_bytes(_checkpoint_payload(run, session))
+                ).hexdigest()
+                if checkpoint_digest != milestone.milestone.checkpoint_sha256:
+                    raise PPOContractError(
+                        "optimizer attribution replayed checkpoint drifted"
+                    )
+            if batch_count in {1, 2, 4}:
+                _write_replay_progress(
+                    replay_progress_path,
+                    training_run_sha256=run.sha256,
+                    behavior_report_sha256=behavior_digest,
+                    final_journal_sha256=journal_digest,
+                    completed_batch_count=batch_count,
+                    batches=batches,
+                )
             if progress_callback is not None:
                 progress_callback(batch_count, 8)
 
@@ -514,17 +629,14 @@ def run_progress_study_optimizer_attribution(
                 "milestone_manifest_sha256": sha256(path.read_bytes()).hexdigest(),
             }
         )
-    journal_path = (
-        directory
-        / STUDY_MILESTONE_DIRECTORY
-        / "batch-008"
-        / STUDY_JOURNAL_NAME
-    )
     report = {
         "schema": PPO_PROGRESS_STUDY_OPTIMIZER_ATTRIBUTION_SCHEMA,
         "training_run_sha256": run.sha256,
-        "behavior_report_sha256": sha256(behavior_raw).hexdigest(),
-        "final_journal_sha256": sha256(journal_path.read_bytes()).hexdigest(),
+        "behavior_report_sha256": behavior_digest,
+        "final_journal_sha256": journal_digest,
+        "replay_progress_sha256": sha256(
+            replay_progress_path.read_bytes()
+        ).hexdigest(),
         "milestone_links": milestone_links,
         "replayed_episode_count": cursor,
         "batches": batches,
