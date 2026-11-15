@@ -2538,16 +2538,16 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Develop a read-only exact optimizer-input attribution for the rejected v2
-learning-curve study. Reconstruct each of the eight immutable 2,048-transition
-batches from the linked milestone/checkpoint state and deterministic training
-seeds, prove the reconstruction reproduces every stored post-batch policy hash,
-then report action-slot/legal-set frequencies, advantage/return distributions,
-and policy-gradient contributions at the shop decisions implicated by the
-completed behavior attribution. The diagnostic must identify whether the
-harmful `END_SHOP -> BUY_VOUCHER` shift is supported by the sampled advantages
-or emerges from shared-network/generalization effects before any reward,
-optimizer, architecture, or schedule change is proposed.
+Run and validate the now-CI-green read-only exact optimizer-input attribution
+for the rejected v2 learning-curve study. Reconstruct each of the eight
+immutable 2,048-transition batches from linked milestone/checkpoint state and
+deterministic training seeds, require every replayed checkpoint/policy/journal
+link to match, then publish the action-slot/legal-set frequencies,
+advantage/return distributions, direct first-step policy signals, and
+shared-network Shapley attribution. Use the result to decide whether the
+harmful `END_SHOP -> BUY_VOUCHER` shift is supported by sampled advantages or
+emerges from shared-network/generalization effects before proposing any reward,
+optimizer, architecture, or schedule change.
 
 No optimization beyond deterministic replay of the already-completed updates
 is authorized. Preserve production mechanics, the v2 reward and GAE contracts,
@@ -2804,9 +2804,33 @@ Optimizer-attribution implementation checkpoint:
   5.04s**. CLI import/help, syntax compilation, and `git diff --check` are
   clean. GitHub Actions run `43729336935`, job `132858100773`, passed with
   **3374 passed, 1618 deselected in 304.54s**.
-- The full replay is not yet authorized: add crash-consistent staged resume at
-  immutable batch 1/2/4 boundaries first, so interruption cannot discard the
-  entire multi-hour diagnostic.
+- Resume implementation commit
+  `1192a64b98d42fc64a8a90c0463425e5181fdefe` writes cryptographically linked
+  replay progress only at immutable batch 1/2/4 boundaries. Restart loads the
+  exact corresponding milestone session/journal, validates all prior batch
+  summaries and policy linkage, and continues without mutating source
+  artifacts. At batches 1/2/4/8, the entire reconstructed checkpoint hash must
+  equal the immutable source checkpoint; direct verification of all five
+  source milestone checkpoint reconstructions passed.
+- Focused resume/observer/attribution validation: **33 passed in 4.16s**.
+  GitHub Actions run `43730143157`, job `132860588486`, passed with **3375
+  passed, 1618 deselected in 169.94s**. The complete replay is authorized.
+
+Authorized optimizer-attribution replay:
+
+- Fresh final/progress outputs verified absent on 2026-11-15 under
+  `%LOCALAPPDATA%\Temp\balatro-ppo-progress-study-v1`.
+- Run from PowerShell in the canonical repository checkout. The same command
+  resumes from the latest verified batch 1/2/4 boundary after interruption:
+
+```powershell
+Set-Location -LiteralPath 'D:\0.5 - Coding\0. game-ai\game-ai-framework'; py -3.13 -m games.balatro.env.ppo_progress_study_optimizer_attribution --artifact-directory "$env:LOCALAPPDATA\Temp\balatro-ppo-progress-study-v1" --output-path "$env:LOCALAPPDATA\Temp\balatro-ppo-progress-study-v1\optimizer_input_attribution.json" --maximum-workers 8
+```
+
+- Expected wall time is approximately the original eight-batch study runtime
+  (about 3 hours 22 minutes), plus small attribution overhead. Progress prints
+  once per completed batch. Exit code 0 and the final report are required; a
+  replay mismatch fails closed and must not be bypassed.
 
 ## Held and deferred work
 
