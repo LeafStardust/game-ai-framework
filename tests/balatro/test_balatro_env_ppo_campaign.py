@@ -378,6 +378,26 @@ def test_env_ppo_campaign_allows_only_exact_capped_progress_study_resume(tmp_pat
         )
 
 
+def test_env_ppo_campaign_observer_failure_precedes_checkpoint_publication(tmp_path):
+    def reject_observation(session, episode):
+        raise PPOContractError("journal publication failed")
+
+    with pytest.raises(PPOContractError, match="journal publication failed"):
+        run_ppo_campaign(
+            "OBSERVER-ORDER",
+            tmp_path,
+            maximum_episodes=1,
+            maximum_batches=1,
+            maximum_workers=1,
+            session_opener=_fake_opener([]),
+            episode_wave_collector=lambda *args: (),
+            episode_commit_observer=reject_observation,
+        )
+
+    assert not (tmp_path / CHECKPOINT_NAME).exists()
+    assert not (tmp_path / PROGRESS_NAME).exists()
+
+
 def test_env_ppo_campaign_rebuilds_progress_from_checkpoint_on_resume(tmp_path):
     run_ppo_campaign(
         "REBUILD",

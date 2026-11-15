@@ -545,14 +545,14 @@ def run_ppo_campaign(
         )
 
     def publish_committed(current_session, episode):
+        if episode_commit_observer is not None:
+            episode_commit_observer(current_session, episode)
         checkpoint_bytes = _canonical_bytes(_checkpoint_payload(run, current_session))
         _atomic_write(checkpoint_path, checkpoint_bytes)
         progress = _state_manifest(
             run, current_session, sha256(checkpoint_bytes).hexdigest()
         )
         _atomic_write(progress_path, _canonical_bytes(progress))
-        if episode_commit_observer is not None:
-            episode_commit_observer(current_session, episode)
 
     if episode_wave_collector is not None:
         session.advance_parallel(
