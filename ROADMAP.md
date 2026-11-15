@@ -2538,19 +2538,22 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Run and validate the now-CI-green read-only fixed-corpus policy-behavior
-attribution for the completed v2 learning-curve study. Compare stored batch-0,
-1, 2, 4, and 8 milestone models without further optimization, then publish the
-exact action-slot frequencies, first policy-divergence locations, greedy
-confidence/entropy, and their relationship to the per-seed terminal regressions
-already recorded. Preserve the production mechanics, sparse evaluation
-environment, public-information boundary, greedy selection contract, and all
-promotion gates.
+Develop a read-only exact optimizer-input attribution for the rejected v2
+learning-curve study. Reconstruct each of the eight immutable 2,048-transition
+batches from the linked milestone/checkpoint state and deterministic training
+seeds, prove the reconstruction reproduces every stored post-batch policy hash,
+then report action-slot/legal-set frequencies, advantage/return distributions,
+and policy-gradient contributions at the shop decisions implicated by the
+completed behavior attribution. The diagnostic must identify whether the
+harmful `END_SHOP -> BUY_VOUCHER` shift is supported by the sampled advantages
+or emerges from shared-network/generalization effects before any reward,
+optimizer, architecture, or schedule change is proposed.
 
-The completed staged runner and report retain the exact per-checkpoint policy,
-reward, advantage, depth, runtime, fail-closed, and paired fixed-seed evidence.
-The attribution must link to those immutable artifacts and may not reinterpret
-or overwrite them.
+No optimization beyond deterministic replay of the already-completed updates
+is authorized. Preserve production mechanics, the v2 reward and GAE contracts,
+the public-information boundary, exact episode/stream ordering, minibatch RNG,
+Adam state, and all immutable artifact links. A failed exact policy-hash
+reproduction blocks interpretation rather than permitting approximation.
 
 Eight-batch campaign-boundary checkpoint:
 
@@ -2725,29 +2728,53 @@ Policy-behavior attribution implementation checkpoint:
   `56fa6c74bc23da794a0d9ef9328bf38694742054` with **3369 passed, 1618
   deselected in 181.23s**. The complete read-only diagnostic is authorized.
 
-Authorized diagnostic command:
+Completed policy-behavior attribution:
 
-- Fresh output verified absent on 2026-11-15:
-  `%LOCALAPPDATA%\Temp\balatro-ppo-progress-study-v1\policy_behavior_attribution.json`.
-- Run from PowerShell in the canonical repository checkout:
+- The read-only run completed all **5 milestone policies x 64 fixed seeds**
+  (**320 complete episodes**) without optimization. Its 1,131,416-byte
+  canonical artifact has SHA-256
+  `987a9124ab194092b6511ec6dbd3896db6f64a73a79a588f86853546f27d2d39`.
+  All five milestone-manifest and evaluation hashes independently match their
+  immutable files. The formatted repository copy is 1,706,241 bytes with
+  SHA-256
+  `4aa1d8bad2ce5640780c26295ca71955ca1ef47906db360b7a9ee28676498d4d`
+  and parses to exactly the same report value.
+- Batch 0/1/2/4/8 mean selected-action probabilities are respectively
+  `0.9212059834`, `0.9110330358`, `0.9134378747`, `0.9042042915`, and
+  `0.9147900861`; mean legal entropies are `0.1651058618`, `0.1732872309`,
+  `0.1707863908`, `0.1737917740`, and `0.1680346309`. This is not broad
+  action-distribution collapse.
+- Mean value estimates move from `-0.0749238948` at batch 0 to
+  `-0.6923439775`, `-0.9251577955`, `-1.0628463624`, and `-1.0451597069`.
+  Greedy behavior diverges from batch 0 on 29, 29, 23, and 22 of 64 seeds.
+  Every non-divergent seed reproduces zero terminal delta, so the changed
+  greedy decisions completely localize the observed evaluation changes.
+- At batch 8, the 22 divergent seeds average `-0.0454545455` Ante,
+  `-0.1089393939` terminal requirement progress, `-$6.7272727273`, and
+  `+1.1363636364` actions relative to batch 0. The dominant first divergence
+  is action slot `0 -> 4` (`END_SHOP -> BUY_VOUCHER`) on 12 seeds; those seeds
+  average `-0.0833333333` Ante, `-0.1457986111` progress, `-$8.6666666667`,
+  and `+1.8333333333` actions. First divergences occur only at decision indices
+  1 through 7 by batch 8.
+- Decision: the v2 curve is **not** failing through global confidence collapse
+  or value-only drift. It learns selective, early shop-policy changes while the
+  critic becomes substantially more negative; the dominant learned voucher
+  purchase shift is harmful on the fixed corpus. No further training or tuning
+  is authorized until the exact optimizer inputs causing that shift are
+  attributed.
 
-```powershell
-Set-Location -LiteralPath 'D:\0.5 - Coding\0. game-ai\game-ai-framework'; py -3.13 -m games.balatro.env.ppo_progress_study_behavior --artifact-directory "$env:LOCALAPPDATA\Temp\balatro-ppo-progress-study-v1" --output-path "$env:LOCALAPPDATA\Temp\balatro-ppo-progress-study-v1\policy_behavior_attribution.json" --maximum-workers 8
-```
+Optimizer-attribution requirements:
 
-- This command performs no optimization and does not alter checkpoints. After
-  exit code 0, verify and publish the canonical report before selecting any new
-  reward, optimizer, architecture, or training experiment.
-
-Requirements:
-
-- Keep the attribution read-only and deterministic; reuse the canonical
-  milestone loader, sparse evaluation environment, and frozen greedy tie-break.
-- Bind every trace and aggregate to the training run, milestone/evaluation
-  hashes, fixed corpus, policy digest, seed, and action schema.
-- CI-gate the diagnostic before running its complete fixed corpus. Do not tune
-  either rejected shadow or v2 reward, change production policy, start another
-  optimizer batch, or relax the promotion contract during this task.
+- Reconstruct, do not approximate, the exact complete episodes, stream slices,
+  GAE values, minibatch order, optimizer state, and post-update policy hashes
+  for all eight completed batches.
+- Bind each aggregate to its batch, episode/decision provenance, public action
+  slot/legal set, sampled action probability, advantage, return, and immutable
+  milestone/journal/checkpoint hashes.
+- Separate direct sampled-action gradient support from changes caused through
+  shared hidden layers and report the implicated evaluation states read-only.
+- CI-gate the diagnostic before any full replay. Do not alter the v2 reward,
+  optimizer, model, production policy, or promotion contract during this task.
 
 ## Held and deferred work
 
@@ -2791,5 +2818,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_PROGRESS_REWARD_PILOT_REPORT.json`
 - `docs/balatro/BALATRO_PPO_PROGRESS_REWARD_PAIRED_EVALUATION.json`
 - `docs/balatro/BALATRO_PPO_PROGRESS_STUDY_REPORT.json`
+- `docs/balatro/BALATRO_PPO_PROGRESS_STUDY_BEHAVIOR.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
