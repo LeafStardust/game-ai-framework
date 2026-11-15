@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`c647550f9e17c245160c091bd436bcf56566f89d`.
+`8cfa5fad8f833f3daab9f536fc592e675c30e578`.
 
 ## Objective
 
@@ -2562,8 +2562,24 @@ Eight-batch campaign-boundary checkpoint:
   `git diff --check` are clean.
 - GitHub Actions run `43690266537`, job `132739248975`, passed the authoritative
   Balatro deterministic gate with **3347 passed, 1618 deselected in 157.91s**.
-  The campaign cap/resume boundary is green. Implement the crash-consistent
-  staged metrics/evaluation owner next; no study run is authorized yet.
+  The campaign cap/resume boundary is green.
+
+Crash-consistent progress-study journal checkpoint:
+
+- Implementation commit `8cfa5fad8f833f3daab9f536fc592e675c30e578`
+  adds a canonical v2-only per-episode
+  journal containing exact rewards, recomputed frozen GAE advantages, terminal
+  depth/status, cumulative learner counters, and the post-commit policy hash.
+- Journal publication now precedes checkpoint publication. Resume may trim
+  exactly one journal-ahead episode after an interrupted checkpoint write;
+  journal-behind-checkpoint, larger drift, noncanonical bytes, malformed
+  provenance, and counter/order drift fail closed.
+- Focused journal/campaign validation: **36 passed in 0.98s**. Broader PPO
+  campaign, reward, pilot, evaluation, batch, model, and learner validation:
+  **81 passed in 14.25s**. Syntax compilation and `git diff --check` are clean.
+- GitHub Actions gate is pending. Implement immutable milestone artifacts and
+  staged batch-0/1/2/4/8 evaluation only after this checkpoint is CI-green;
+  no study run is authorized yet.
 
 Requirements:
 
