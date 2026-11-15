@@ -2559,8 +2559,11 @@ Eight-batch campaign-boundary checkpoint:
   rejects any other limit, rejects sparse-v1 use, and fails closed if the
   requested advance could cross or restart at the batch-8 cap.
 - Campaign regression gate: **30 passed in 0.86s**. Syntax compilation and
-  `git diff --check` are clean. Push and CI-gate this boundary next, then add
-  the staged metrics/evaluation owner; no study run is authorized yet.
+  `git diff --check` are clean.
+- GitHub Actions run `43690266537`, job `132739248975`, passed the authoritative
+  Balatro deterministic gate with **3347 passed, 1618 deselected in 157.91s**.
+  The campaign cap/resume boundary is green. Implement the crash-consistent
+  staged metrics/evaluation owner next; no study run is authorized yet.
 
 Requirements:
 
