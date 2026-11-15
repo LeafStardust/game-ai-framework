@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`69851274d1057df68b78d847c6c772b5fc674ad8`.
+`a6fc86d8130db243204663996a9eb3f33f9512ea`.
 
 ## Objective
 
@@ -2699,6 +2699,29 @@ Next diagnostic boundary:
   from value-only drift before proposing any new reward, optimizer, model, or
   training schedule. No additional optimizer batch or live Balatro run is
   authorized during this diagnostic.
+
+Policy-behavior attribution implementation checkpoint:
+
+- Implementation commit `a6fc86d8130db243204663996a9eb3f33f9512ea`
+  adds a read-only five-policy/64-seed trace owner. Every decision binds the
+  public observation digest, sorted legal action slots, frozen greedy choice,
+  selected-action probability, legal-action entropy, and value estimate.
+- The canonical report publishes all 27 action-slot frequencies per milestone,
+  aggregate confidence/entropy/value statistics, each seed's first shared-state
+  greedy divergence from batch 0, action-transition counts, and the exact
+  terminal delta from the immutable milestone evaluation.
+- Loading requires the fixed study identity, all five exact milestone and
+  evaluation hashes, fixed corpus digest, policy parameter digests, and public
+  action schema digest. Sparse evaluation terminal status, action count, and
+  complete terminal metrics must reproduce the existing evidence exactly;
+  overwrite, missing seeds, reordered batches, state drift, truncation, and
+  provenance mismatch fail closed.
+- Focused behavior/evaluation/milestone gate: **14 passed in 10.95s**. Broader
+  diagnostic, PPO serialization, campaign, session, model, batch, and learner
+  gate: **98 passed in 21.04s**. Syntax compilation and `git diff --check` are
+  clean.
+- GitHub Actions is pending. Do not run the complete diagnostic until this
+  implementation is CI-green and the exact command is recorded here.
 
 Requirements:
 
