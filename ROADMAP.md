@@ -2460,20 +2460,41 @@ Progress-reward one-batch pilot implementation checkpoint:
   `git diff --check` are clean.
 - GitHub Actions run `43637218779`, job `132576551806`, passed the authoritative
   Balatro deterministic gate with **3341 passed, 1618 deselected in 155.16s**.
-  The fresh one-batch pilot runner is now authorized; no pilot has run yet.
+  The fresh one-batch pilot runner is authorized.
+
+Completed progress-reward one-batch pilot:
+
+- The isolated pilot completed exactly **1 optimizer batch**, with **2243
+  collected / 2048 optimizer-consumed transitions** across **285 committed
+  episodes** in **1184.0724201 seconds (19:44.1)**. All 285 episodes terminated
+  in `LOSS`; action depth ranged 1 through 17 with mean `7.870175438596491`.
+- Reward variance is `0.14074160133962618`; advantage variance is
+  `0.3975327050717248`. The policy changed from SHA-256
+  `3c31dc9bac8512b3e42e628597560eaf60b238be2863f80bf0fac185a27326f6`
+  to `2069d19b1a683e12047e937996a3cc8615ed923de20e707c43bba38c6e91cf03`.
+  All six published fail-closed counters are zero.
+- The 46,697,911-byte checkpoint SHA-256 is
+  `e6e5d5831a4f6bcb5a3d53a68bb2ec2b89ab95d30ae87dca81f2b7da25cefb37`;
+  the 670-byte progress SHA-256 is
+  `10e7795e1ce85f9b52b9eb8f2b222702473b4d3319e2ccd23af2887d68f2070c`;
+  the 1504-byte canonical report SHA-256 is
+  `983ee1c6e5bb32202c1d2f7e5172c8bb364691a4afd79e1001db3ecfdfeb015d`.
+  Restoring the checkpoint reproduced its counters and final policy hash, and
+  all checkpoint/progress/report links verified exactly.
+- Evaluation: the learning-signal gate **passes** because reward and advantage
+  variance are finite and nonzero, parameters updated, and no fail-closed
+  counter fired. Competence is **not established** because every pilot episode
+  lost. This authorizes a paired evaluation, not more optimizer batches or a
+  new full campaign.
 
 ## Exact active task
 
-Implement and CI-gate the optional
-`balatro-red-white-progress-potential-reward-v2` backend and rollout path while
-preserving sparse v1 as the production/default contract. Then run only a bounded
-one-batch learning-signal pilot before authorizing any new campaign.
-
-The backend owner is implemented and CI-green at the checkpoint above.
-The separately versioned rollout and training-contract provenance path is
-CI-green, and the isolated bounded pilot path is also CI-green. Run exactly one
-fresh pilot batch without reading or writing any v1 campaign artifact. Publish
-and evaluate its report before authorizing any further training.
+Implement and CI-gate an isolated paired evaluation of the frozen initial v2
+policy and the restored one-batch v2 pilot policy. Use the existing fixed
+64-seed deterministic evaluation corpus, identical greedy action selection,
+and production mechanics. Report paired clears, Ante, requirement progress,
+terminal cash, episode depth, and exact per-seed deltas. Do not perform another
+optimizer update or relax the promotion contract.
 
 Requirements:
 
@@ -2525,5 +2546,6 @@ Requirements:
 - `docs/balatro/BALATRO_PPO_BOSS_SAFE_PACE_COUNTERFACTUAL.json`
 - `docs/balatro/BALATRO_PPO_BOSS_SAFE_PACE_SWEEP.json`
 - `docs/balatro/BALATRO_PPO_BOSS_PROGRESS_SHADOW_REPORT.json`
+- `docs/balatro/BALATRO_PPO_PROGRESS_REWARD_PILOT_REPORT.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
