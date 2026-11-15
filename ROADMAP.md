@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`364ecc3f55c3e91dccbe67102e081de02a5cee3b`.
+`69851274d1057df68b78d847c6c772b5fc674ad8`.
 
 ## Objective
 
@@ -2615,9 +2615,31 @@ Progress-study paired-evaluation checkpoint:
   **82 passed in 14.84s**. Syntax compilation and `git diff --check` are clean.
 - GitHub Actions run `43693674092`, job `132749436846`, passed roadmap HEAD
   `2749b5dc3bec7fd89ce28d2b2689752b00ec1e57` with **3359 passed, 1618
-  deselected in 193.09s**. Implement the final resumable orchestration,
-  cumulative signal/runtime report, and CLI next; no study run is authorized
-  yet.
+  deselected in 193.09s**.
+
+Final progress-study runner checkpoint:
+
+- Implementation commit `69851274d1057df68b78d847c6c772b5fc674ad8`
+  adds the fixed-root, fresh-directory study owner and CLI. It resumes the
+  canonical live campaign one bounded call at a time, journals before each
+  checkpoint, revalidates every prior milestone, and publishes/evaluates only
+  batches 0, 1, 2, 4, and 8.
+- The fixed root seed is `RED-WHITE-PROGRESS-STUDY-V1`; the identity binds the
+  v2 training/reward contracts, eight-batch cap, staged batches, training run,
+  and initial policy. Foreign/noncanonical directories, cross-run artifacts,
+  progress/journal drift, missing earlier milestones, and any attempt beyond
+  batch 8 fail closed.
+- The final immutable report links each milestone/evaluation and publishes its
+  exact policy/checkpoint/progress/journal hashes, cumulative reward,
+  advantage, episode-depth and terminal-status statistics, paired fixed-corpus
+  summary, measured training time, unmeasured interrupted episode count, and
+  all six fail-closed counters.
+- Focused runner/journal/milestone/evaluation validation: **16 passed in
+  13.15s**. Broader PPO runner, serialization, session, evaluation, campaign,
+  model, batch, and learner gate: **96 passed in 18.23s**. CLI import/help,
+  syntax compilation, and `git diff --check` are clean.
+- GitHub Actions is pending. Do not run the study until this checkpoint is
+  CI-green and the exact operator command is recorded here.
 
 Requirements:
 
