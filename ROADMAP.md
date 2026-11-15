@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`b17c7213752230868fb9eb8216a60cc492cac88b`.
+`364ecc3f55c3e91dccbe67102e081de02a5cee3b`.
 
 ## Objective
 
@@ -2598,8 +2598,24 @@ Immutable progress-study milestone checkpoint:
   Syntax compilation and `git diff --check` are clean.
 - GitHub Actions run `43691877543`, job `132744055807`, passed roadmap HEAD
   `61a1b1dd63ca14b25b77d3bb45542caf0be45d47` with **3357 passed, 1618
-  deselected in 244.31s**. Implement the resumable staged orchestration and
-  batch-0/1/2/4/8 study report next; no study run is authorized yet.
+  deselected in 244.31s**.
+
+Progress-study paired-evaluation checkpoint:
+
+- Implementation commit `364ecc3f55c3e91dccbe67102e081de02a5cee3b`
+  adds the study-specific immutable fixed-corpus report. It loads only the
+  cryptographically verified batch-0 and candidate milestone models and
+  publishes all 64 ordered seed pairs, aggregate metrics, and deltas using the
+  frozen sparse evaluation environment and greedy selection contract.
+- Existing one-batch evaluation serialization remains unchanged. Completed
+  study reports reject overwrite, malformed/noncanonical episodes, reordered
+  seeds, altered summaries, policy drift, and milestone-link drift.
+- Focused study-evaluation/milestone validation: **16 passed in 12.16s**.
+  Broader PPO evaluation, campaign, reward, batch, model, and learner gate:
+  **82 passed in 14.84s**. Syntax compilation and `git diff --check` are clean.
+- GitHub Actions is pending. After it passes, implement the final resumable
+  orchestration, cumulative signal/runtime report, and CLI; no study run is
+  authorized yet.
 
 Requirements:
 
