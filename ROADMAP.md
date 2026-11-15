@@ -2818,8 +2818,11 @@ Optimizer-attribution implementation checkpoint:
 
 Authorized optimizer-attribution replay:
 
-- Fresh final/progress outputs verified absent on 2026-11-15 under
-  `%LOCALAPPDATA%\Temp\balatro-ppo-progress-study-v1`.
+- The initial run published a valid canonical batch-1 replay checkpoint at
+  `%LOCALAPPDATA%\Temp\balatro-ppo-progress-study-v1\optimizer_input_attribution_progress.json`
+  (8,436 bytes, SHA-256
+  `272aee3f24a168881c22d2bd9e9e29ec766ba71b17947e2353fb6bdaee5e70f1`).
+  The final output remains absent.
 - Run from PowerShell in the canonical repository checkout. The same command
   resumes from the latest verified batch 1/2/4 boundary after interruption:
 
@@ -2831,6 +2834,18 @@ Set-Location -LiteralPath 'D:\0.5 - Coding\0. game-ai\game-ai-framework'; py -3.
   (about 3 hours 22 minutes), plus small attribution overhead. Progress prints
   once per completed batch. Exit code 0 and the final report are required; a
   replay mismatch fails closed and must not be bypassed.
+- The first batch-2 resume failed closed because the diagnostic incorrectly
+  required every carryover transition's stored old value/probability to equal
+  the current pre-update model. That assumption is invalid: stream carryover
+  can legitimately have been collected under the preceding policy.
+- Fix commit `c8d220de0234e28ca57f8a21381590bb7135cebb` removes that false
+  equality requirement and computes the direct first-step policy signal with
+  the frozen PPO importance ratio and clipping gate. A deterministic regression
+  now evaluates an exact batch collected under one policy after both policy and
+  value heads change. Focused validation: **48 passed in 4.96s**. GitHub Actions
+  run `43738547562`, job `132886452168`, passed with **3376 passed, 1618
+  deselected in 170.54s**. The existing batch-1 checkpoint remains valid and
+  resume is reauthorized.
 
 ## Held and deferred work
 
