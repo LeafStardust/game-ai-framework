@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`5e7306c3ea85c8e1b0b3195790ebd150bb8b5395`.
+`c647550f9e17c245160c091bd436bcf56566f89d`.
 
 ## Objective
 
@@ -2550,6 +2550,17 @@ advantage statistics, episode depth/runtime/fail-closed counters, and paired
 fixed-seed metrics versus batch 0. It must fail closed above batch 8 and must
 resume only from its own canonically linked artifacts. Do not authorize a
 1,024-batch run or production-policy change from this study alone.
+
+Eight-batch campaign-boundary checkpoint:
+
+- Implementation commit `c647550f9e17c245160c091bd436bcf56566f89d`
+  preserves the default one-fresh-batch v2 restriction and adds only an exact
+  eight-batch study opt-in. The opt-in accepts canonical campaign resume,
+  rejects any other limit, rejects sparse-v1 use, and fails closed if the
+  requested advance could cross or restart at the batch-8 cap.
+- Campaign regression gate: **30 passed in 0.86s**. Syntax compilation and
+  `git diff --check` are clean. Push and CI-gate this boundary next, then add
+  the staged metrics/evaluation owner; no study run is authorized yet.
 
 Requirements:
 
