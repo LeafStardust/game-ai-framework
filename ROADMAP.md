@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`8cfa5fad8f833f3daab9f536fc592e675c30e578`.
+`b17c7213752230868fb9eb8216a60cc492cac88b`.
 
 ## Objective
 
@@ -2579,8 +2579,25 @@ Crash-consistent progress-study journal checkpoint:
   **81 passed in 14.25s**. Syntax compilation and `git diff --check` are clean.
 - GitHub Actions run `43691189501`, job `132742003967`, passed roadmap HEAD
   `26b34f588c77ef1556e322c00282b0185958f053` with **3353 passed, 1618
-  deselected in 220.15s**. Implement immutable milestone artifacts and staged
-  batch-0/1/2/4/8 evaluation next; no study run is authorized yet.
+  deselected in 220.15s**.
+
+Immutable progress-study milestone checkpoint:
+
+- Implementation commit `b17c7213752230868fb9eb8216a60cc492cac88b`
+  publishes canonical snapshots only at batches 0, 1, 2, 4, and 8. Each
+  immutable manifest links its exact checkpoint, progress, journal, learner
+  counters, and policy parameter digest.
+- A missing manifest permits recovery only when every existing partial file
+  exactly matches the current staged session. A present manifest, cross-run
+  link, noncanonical file, unstaged batch, or signal/counter mismatch fails
+  closed. Loading restores the exact v2 session and revalidates every link.
+- The existing paired evaluator now exposes one shared fixed-corpus execution
+  owner for any two same-run policies while preserving the published
+  one-batch report format and bytes.
+- Focused milestone/evaluator/campaign validation: **45 passed in 4.37s**.
+  Syntax compilation and `git diff --check` are clean. GitHub Actions is
+  pending. After CI passes, implement the resumable staged orchestration and
+  batch-0/1/2/4/8 study report; no study run is authorized yet.
 
 Requirements:
 
