@@ -6,7 +6,7 @@ from base64 import b64decode, b64encode
 from copy import deepcopy
 from hashlib import sha256
 import math
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 
@@ -93,8 +93,16 @@ class PPOLearner:
         self.assembler.add_episode(episode)
         self.total_consumed_environment_transitions += episode.action_count
 
-    def update_ready_batch(self) -> tuple[PPOLoss, ...]:
+    def update_ready_batch(
+        self,
+        *,
+        batch_observer: Callable[[object], None] | None = None,
+    ) -> tuple[PPOLoss, ...]:
+        if batch_observer is not None and not callable(batch_observer):
+            raise TypeError("batch_observer must be callable")
         batch = self.assembler.assemble()
+        if batch_observer is not None:
+            batch_observer(deepcopy(batch))
         losses = self.optimizer.update(batch)
         self.completed_batch_count += 1
         return losses

@@ -44,7 +44,7 @@ class _LearnerOwner(Protocol):
 
     def add_episode(self, episode: PPORolloutEpisode) -> None: ...
 
-    def update_ready_batch(self) -> tuple: ...
+    def update_ready_batch(self, *, batch_observer=None) -> tuple: ...
 
     def serialize(self) -> dict[str, Any]: ...
 
@@ -197,7 +197,15 @@ class PPOTrainingSession:
             raise PPOContractError("PPO session policy parameter digest is invalid")
         return value
 
-    def _commit_episode(self, episode: object, expected_index: int) -> int:
+    def _commit_episode(
+        self,
+        episode: object,
+        expected_index: int,
+        *,
+        batch_observer=None,
+    ) -> int:
+        if batch_observer is not None and not callable(batch_observer):
+            raise TypeError("batch_observer must be callable")
         if not isinstance(episode, PPORolloutEpisode):
             raise PPOContractError("PPO session collector returned an incomplete episode")
         if episode.episode_index != expected_index:
@@ -212,7 +220,10 @@ class PPOTrainingSession:
         batches_before = self.learner.completed_batch_count
         while self.learner.assembler.ready and not self.complete:
             before = self.learner.completed_batch_count
-            self.learner.update_ready_batch()
+            if batch_observer is None:
+                self.learner.update_ready_batch()
+            else:
+                self.learner.update_ready_batch(batch_observer=batch_observer)
             if self.learner.completed_batch_count != before + 1:
                 raise PPOContractError("PPO session learner batch counter drifted")
         return self.learner.completed_batch_count - batches_before
@@ -260,6 +271,7 @@ class PPOTrainingSession:
         maximum_batches: int,
         wave_collector: EpisodeWaveCollector,
         on_episode_committed: EpisodeCommitCallback | None = None,
+        on_batch_ready=None,
     ) -> PPOTrainingAdvance:
         limit = _exact_positive_int(maximum_episodes, "maximum episodes")
         batch_limit = _exact_positive_int(maximum_batches, "maximum batches")
@@ -267,6 +279,8 @@ class PPOTrainingSession:
             raise TypeError("wave_collector must be callable")
         if on_episode_committed is not None and not callable(on_episode_committed):
             raise TypeError("on_episode_committed must be callable")
+        if on_batch_ready is not None and not callable(on_batch_ready):
+            raise TypeError("on_batch_ready must be callable")
         self._validate_learner()
         remaining_batches = self.target_batch_count - self.learner.completed_batch_count
         if batch_limit > remaining_batches:
@@ -310,7 +324,9 @@ class PPOTrainingSession:
 
             for result in collected:
                 batch_count = self._commit_episode(
-                    result.episode, result.request.episode_index
+                    result.episode,
+                    result.request.episode_index,
+                    batch_observer=on_batch_ready,
                 )
                 episodes_collected += 1
                 last_episode_index = result.request.episode_index

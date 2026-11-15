@@ -163,9 +163,11 @@ class _FakeLearner:
         self.assembler.queued[stream] += episode.action_count
         self.total_consumed_environment_transitions += episode.action_count
 
-    def update_ready_batch(self):
+    def update_ready_batch(self, *, batch_observer=None):
         required = PPO_TRAINING_CONTRACT.rollout_steps_per_environment
         assert self.assembler.ready
+        if batch_observer is not None:
+            batch_observer((self.completed_batch_count, tuple(self.assembler.queued)))
         self.assembler.queued = [count - required for count in self.assembler.queued]
         self.completed_batch_count += 1
         self.updates += 1
@@ -421,6 +423,7 @@ def test_env_ppo_training_session_parallel_stops_at_exact_new_batch_bound():
     learner.total_consumed_environment_transitions = sum(learner.assembler.queued)
     waves = []
     committed = []
+    batches = []
 
     def collect_wave(requests, training_run, model):
         waves.append(requests)
@@ -441,10 +444,12 @@ def test_env_ppo_training_session_parallel_stops_at_exact_new_batch_bound():
         on_episode_committed=lambda _session, episode: committed.append(
             episode.episode_index
         ),
+        on_batch_ready=batches.append,
     )
 
     assert waves == [tuple(PPOEpisodeRequest(index, index) for index in range(4))]
     assert committed == [0, 1]
+    assert batches == [(0, (256, 256, 256, 256, 256, 256, 256, 256))]
     assert result.episodes_collected == 2
     assert result.batches_completed == 1
     assert learner.assembler.next_episode_indices == (8, 9, 2, 3, 4, 5, 6, 7)

@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
@@ -141,6 +143,29 @@ def test_env_ppo_learner_restore_is_exact_across_next_optimizer_step(checkpoint)
         assert np.array_equal(
             uninterrupted.optimizer._second[name], restored.optimizer._second[name]
         )
+
+
+def test_env_ppo_learner_batch_observer_receives_detached_exact_batch():
+    run = PPOTrainingRun.from_seed("LEARNER-BATCH-OBSERVER")
+    learner = PPOLearner(run)
+    batch = _small_batch(learner)
+    observed = []
+    optimized = []
+    learner.assembler = SimpleNamespace(assemble=lambda: batch)
+    learner.optimizer = SimpleNamespace(update=lambda value: optimized.append(value) or ())
+
+    def observe(value):
+        observed.append(value)
+        value.action_indices[0] = 3
+
+    learner.update_ready_batch(batch_observer=observe)
+
+    assert len(observed) == 1
+    assert observed[0] is not batch
+    assert observed[0].action_indices[0] == 3
+    assert optimized == [batch]
+    assert batch.action_indices[0] == 0
+    assert learner.completed_batch_count == 1
 
 
 @pytest.mark.parametrize(
