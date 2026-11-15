@@ -2538,12 +2538,12 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Implement and CI-gate an isolated, resumable v2 learning-curve study capped at
-**8 optimizer batches**, with immutable checkpoints and read-only fixed-corpus
-evaluations at batches **0, 1, 2, 4, and 8**. Use a fresh training root seed and
-artifact directory distinct from both v1 and the one-batch pilot. Preserve the
-same v2 reward/training contract, production mechanics, greedy evaluation
-selection contract, and all promotion gates.
+Run and validate the now-CI-green isolated, resumable v2 learning-curve study
+capped at **8 optimizer batches**, with immutable checkpoints and read-only
+fixed-corpus evaluations at batches **0, 1, 2, 4, and 8**. The implementation
+is complete; the next action is the exact authorized operator command below.
+Preserve the same v2 reward/training contract, production mechanics, greedy
+evaluation selection contract, and all promotion gates.
 
 The staged runner must publish exact per-checkpoint policy hashes, reward and
 advantage statistics, episode depth/runtime/fail-closed counters, and paired
@@ -2638,8 +2638,28 @@ Final progress-study runner checkpoint:
   13.15s**. Broader PPO runner, serialization, session, evaluation, campaign,
   model, batch, and learner gate: **96 passed in 18.23s**. CLI import/help,
   syntax compilation, and `git diff --check` are clean.
-- GitHub Actions is pending. Do not run the study until this checkpoint is
-  CI-green and the exact operator command is recorded here.
+- GitHub Actions run `43694986901`, job `132753425581`, passed roadmap HEAD
+  `891fbd554fa54767d07fd87ce9b512739c00e3ba` with **3365 passed, 1618
+  deselected in 300.49s**. Development for the bounded study is complete.
+
+Authorized operator run:
+
+- Fixed training-run SHA-256:
+  `ec3329a143c489b6e43888737cc19dc6e0cc158ceb23792e0e053f7d3fc41862`.
+- Fresh artifact directory verified absent on 2026-11-15:
+  `%LOCALAPPDATA%\Temp\balatro-ppo-progress-study-v1`.
+- Run from PowerShell in the canonical repository checkout. The same command
+  safely resumes after interruption and stops permanently at batch 8:
+
+```powershell
+Set-Location -LiteralPath 'D:\0.5 - Coding\0. game-ai\game-ai-framework'; py -3.13 -m games.balatro.env.ppo_progress_study_runner --artifact-directory "$env:LOCALAPPDATA\Temp\balatro-ppo-progress-study-v1" --maximum-episodes-per-call 512 --maximum-workers 8
+```
+
+- After exit code 0, inspect and publish `progress_study_report.json`, verify
+  all five milestone/evaluation links and the final report hash, then decide
+  the next roadmap task from the measured learning curve. Do not infer
+  competence, change production policy, or authorize 1,024 batches from study
+  completion alone.
 
 Requirements:
 
