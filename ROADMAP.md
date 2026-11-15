@@ -2595,9 +2595,11 @@ Immutable progress-study milestone checkpoint:
   owner for any two same-run policies while preserving the published
   one-batch report format and bytes.
 - Focused milestone/evaluator/campaign validation: **45 passed in 4.37s**.
-  Syntax compilation and `git diff --check` are clean. GitHub Actions is
-  pending. After CI passes, implement the resumable staged orchestration and
-  batch-0/1/2/4/8 study report; no study run is authorized yet.
+  Syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `43691877543`, job `132744055807`, passed roadmap HEAD
+  `61a1b1dd63ca14b25b77d3bb45542caf0be45d47` with **3357 passed, 1618
+  deselected in 244.31s**. Implement the resumable staged orchestration and
+  batch-0/1/2/4/8 study report next; no study run is authorized yet.
 
 Requirements:
 
