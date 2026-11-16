@@ -24,6 +24,7 @@ from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
+from games.balatro.jokers.scholar import ScholarJoker
 
 
 @dataclass(frozen=True)
@@ -87,6 +88,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Odd Todd"
+    elif item.center_key == "j_scholar":
+        joker_type = ScholarJoker
+        expected_rarity = 1
+        expected_base_cost = 4
+        label = "Scholar"
     else:
         raise HeadlessTransitionError("generated Joker center is not materializable")
     if type(item.rarity) is not int or item.rarity != expected_rarity:

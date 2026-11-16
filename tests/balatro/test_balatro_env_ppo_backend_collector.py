@@ -36,6 +36,7 @@ from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
+from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.scoring import BalatroScorer
 
 
@@ -386,6 +387,36 @@ def test_env_ppo_backend_acquires_generated_gluttonous_and_discovers_its_center(
     assert sell in environment.legal_actions()
     environment.step(sell)
     assert backend.run.public.money == before_money - 3
+
+
+def test_env_ppo_backend_acquires_generated_scholar_and_discovers_its_center():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed=27)
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 1})
+    before_money = backend.run.public.money
+
+    assert tuple(
+        (item.center_key, item.base_cost, item.price, item.discovered)
+        for item in backend.run.public.shop_jokers
+    ) == (
+        ("j_droll", 4, 4, False),
+        ("j_scholar", 4, 4, False),
+    )
+    assert buy in environment.legal_actions()
+    environment.step(buy)
+
+    assert backend.run.public.money == before_money - 4
+    assert type(backend.run.public.jokers[0]) is ScholarJoker
+    assert backend.run.public.jokers[0].sell_cost == 2
+    assert backend.run.generated_center_discovered("j_scholar") is True
+    assert "j_scholar" in backend.run.tag_profile_state.discovered_center_keys
+    sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert sell in environment.legal_actions()
+    environment.step(sell)
+    assert backend.run.public.money == before_money - 2
 
 
 def test_env_ppo_backend_exposes_and_executes_exact_paid_shop_reroll():

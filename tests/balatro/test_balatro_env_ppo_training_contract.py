@@ -452,6 +452,61 @@ def test_env_ppo_rollout_crosses_exact_generated_gluttonous_lifecycle(
 
 
 @pytest.fixture(scope="module")
+def episode_115_with_scholar_lifecycle():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(0),
+        run,
+        episode_index=115,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_scholar_lifecycle(
+    episode_115_with_scholar_lifecycle,
+):
+    episode = episode_115_with_scholar_lifecycle
+
+    assert episode.game_seed == "58918DC7"
+    assert episode.action_count == 7
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+
+    before_buy = episode.boundaries[1]
+    after_buy = episode.boundaries[2]
+    after_sale = episode.boundaries[3]
+    scholar_center = float(JOKER_CENTER_KEYS.index("j_scholar") + 1)
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 9)
+    assert episode.decisions[1].action_mask.values[2] is True
+    assert _observation_feature(
+        before_buy.observation,
+        "shop.jokers.1.center",
+    ) == scholar_center
+    assert (after_buy.ante, after_buy.phase, after_buy.money) == (1, "SHOP", 5)
+    assert _observation_feature(
+        after_buy.observation,
+        "jokers.0.center",
+    ) == scholar_center
+    assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 7)
+    assert _observation_feature(
+        after_sale.observation,
+        "jokers.0.center",
+    ) == 0.0
+
+
+@pytest.fixture(scope="module")
 def episode_46_with_paint_brush():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(

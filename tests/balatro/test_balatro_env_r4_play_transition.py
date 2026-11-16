@@ -370,6 +370,40 @@ def test_env_r4_ordinary_play_scores_exact_materialized_gluttonous():
     assert type(result.public.jokers[0]).__name__ == "GluttonousJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_scholar():
+    baseline = None
+    run = None
+    ace_index = None
+    for attempt in range(52):
+        candidate = _play_run(seed=f"R4-SCHOLAR-{attempt}")
+        candidate_ace = next(
+            (
+                index
+                for index, card in enumerate(candidate.public.hand)
+                if card.rank == "A"
+            ),
+            None,
+        )
+        if candidate_ace is not None:
+            baseline = candidate
+            run = _play_run(seed=f"R4-SCHOLAR-{attempt}")
+            ace_index = candidate_ace
+            break
+
+    assert baseline is not None and run is not None and ace_index is not None
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_scholar", 1, 4, None, 4, False)
+        )
+    ]
+
+    baseline_result = apply_supported_ordinary_play(baseline, (ace_index,))
+    result = apply_supported_ordinary_play(run, (ace_index,))
+
+    assert result.public.score - baseline_result.public.score == 164
+    assert type(result.public.jokers[0]).__name__ == "ScholarJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],
