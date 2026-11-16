@@ -2538,23 +2538,41 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the fourth exact generated-Joker acquisition bridge for only uneditioned
-`j_even_steven`. The committed trace contains seven visible Even Stevens, all
-seven affordable and uneditioned. Its on-scored-card +4 Mult per even rank is
-already owned by `BalatroScorer`, and its discard callback is inert.
+Add the fifth exact generated-Joker acquisition bridge for only uneditioned
+`j_devious`. The committed trace contains seven visible Devious Jokers, all
+seven affordable and uneditioned. Its +100 Chips when the played hand contains a
+Straight is already owned by `BalatroScorer` and `HandEvaluator`, and its
+discard callback is inert.
 
-Extend the canonical generated-item materializer with an explicit
-`j_even_steven` to `EvenStevenJoker` entry and exact vanilla identity
-(`rarity=1`, `base_cost=4`, public label, purchase price, discovery transition,
-and sale value). Extend the generated-Joker tactical capability only for its
-already-owned on-scored effect and inert discard callback. Add deterministic
-materialization, mask, purchase, scoring, sale, isolation, natural
-production-backend, and complete rollout coverage. Keep the first three centers
-unchanged and every other generated center/edition/malformed state fail-closed.
-Do not add a generic factory, batch multiple centers, open boosters, change PPO,
-rewards, or tactics, or request an operator run during this checkpoint. Do not
-select Dusk yet: its pre-hand final-hand retrigger callback is not owned at the
-play-transition boundary.
+Extend the canonical generated-item materializer with an explicit `j_devious`
+to `DeviousJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`,
+public label, purchase price, discovery transition, and sale value). Extend the
+generated-Joker tactical capability only for its already-owned scoring effect
+and inert discard callback. Add deterministic materialization, mask, purchase,
+scoring, sale, isolation, natural production-backend, and complete rollout
+coverage. Keep the first four centers unchanged and every other generated
+center/edition/malformed state fail-closed. Do not add a generic factory, batch
+multiple centers, open boosters, change PPO, rewards, or tactics, or request an
+operator run during this checkpoint. Do not select Dusk yet: its pre-hand
+final-hand retrigger callback is not owned at the play-transition boundary.
+
+Exact generated Even Steven acquisition checkpoint:
+
+- Implementation commit `300d94f67fc7a264db77650ed1a594c6f7a30c46` adds only
+  exact uneditioned `j_even_steven` (`rarity=1`, `base_cost=4`) as the audited
+  `EvenStevenJoker`, with exact discovery, price/sale metadata, on-scored-card
+  +4 Mult per even rank, tactical continuation, and inverse sale lifecycle.
+- The generated-Joker tactical capability admits Even Steven only through its
+  existing exact on-scored-card owner and inert discard callback. Other centers,
+  mutations, and editions remain fail-closed.
+- Deterministic production-backend seed `40` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 12 / seed
+  `BAA636D2` locks the exact 11-action terminal trajectory, including the
+  $31-to-$27 purchase and $27-to-$29 sale boundaries.
+- The combined shop/backend/tactical/frozen-rollout local gate passed **123
+  tests in 47.55s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `43946541239`, job `133577602316`, passed the
+  authoritative **3442 passed, 1621 deselected in 263.48s**.
 
 Exact generated Odd Todd acquisition checkpoint:
 
