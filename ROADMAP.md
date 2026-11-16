@@ -2593,6 +2593,13 @@ Full-horizon tactical shadow implementation checkpoint:
   read-only integration smoke against the real immutable artifacts is now the
   exact next step; only after that smoke is green may the fixed 64-episode
   operator shadow be authorized.
+- The read-only real-artifact smoke is green. Fixed-corpus episode 0 / game seed
+  `9CA6BDC0` completed normally with status `LOSS`, 6 strategic actions, 13
+  tactical decisions, first-blind clear, and Ante 1. Tactical search consumed
+  27.853473500115797 seconds in total; the slowest decision took
+  11.943723100004718 seconds. The exact next step is one canonical fixed
+  64-episode operator execution, followed by publication of its frozen
+  accept/reject result. No production change is authorized by the smoke.
 
 Advantage-normalization shadow core checkpoint:
 
