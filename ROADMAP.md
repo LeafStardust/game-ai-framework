@@ -2567,6 +2567,27 @@ Do not change production defaults, PPO, rewards, mechanics, promotion gates, or
 live Balatro. No operator run is authorized until the shadow owner and focused
 regressions pass GitHub Actions.
 
+Stable-discard deep-search implementation checkpoint:
+
+- Commit `6f0d9b519862a28f9b2714197e17b06b46ccf45e` adds the explicit
+  shadow-only schedule mode at `LiveHandActionDecisionEngine` and a separately
+  versioned fixed-corpus runner. Production remains on the unchanged selective
+  mode.
+- The shadow retains the full owned schedule and unchanged play/exact-discard
+  clear-path behavior. An inexact discard clear path now continues until the
+  existing three-recommendation `stable_discard_consensus` agrees with the
+  selected action, then must pass the existing stronger same-horizon
+  confirmation. Otherwise the engine continues to its existing fallback.
+- The runner pins the exact 3,988,609-byte current-production reproduction
+  source by SHA-256, validates all campaign/promotion/corpus links, records
+  consensus decisions and full tactical traces, and applies the frozen paired
+  acceptance gates against the reproduced selective baseline.
+- Focused/broader local validation: **45 passed in 1.54s**. Syntax compilation
+  and `git diff --check` are clean. GitHub Actions run `43846807688`, job
+  `133228915853`, passed the authoritative **3400 passed, 1621 deselected in
+  280.37s**. The exact next step is one real-artifact episode smoke; only a
+  green smoke may authorize the fixed 64-episode shadow.
+
 Completed current-production reproduction audit:
 
 - The canonical run completed with exit code 0 and reproduced all **64/64**
