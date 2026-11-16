@@ -2880,6 +2880,9 @@ Completed optimizer-input attribution:
   evidence supports one bounded advantage-normalization shadow to test whether
   removing the demonstrated batch-wide offset stabilizes learning; it does not
   yet prove normalization will improve competence.
+- Published evidence commit `bde6120aef94f886360302717af7c1f0c21080c1`
+  passed GitHub Actions run `43817120680`, job `133131599629`, with **3376
+  passed, 1618 deselected in 234.41s**.
 
 ## Held and deferred work
 
