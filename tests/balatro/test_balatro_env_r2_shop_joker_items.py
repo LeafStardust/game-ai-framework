@@ -18,6 +18,7 @@ from games.balatro.env.transition import (
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
@@ -208,6 +209,53 @@ def test_env_r2_exact_droll_materialization_updates_discovery_scores_and_sells()
     assert sold_run.public.jokers == []
 
 
+def test_env_r2_exact_odd_todd_materialization_scores_and_sells():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(
+            center_key="j_odd_todd",
+            base_cost=4,
+            discovered=False,
+        )
+    )
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+
+    assert action in ShopTransitionEngine().legal_actions(inserted)
+    next_run = ShopTransitionEngine().step(inserted, action)
+
+    assert inserted.generation_discovery == {"j_odd_todd": False}
+    assert next_run.generation_discovery == {"j_odd_todd": True}
+    assert next_run.tag_profile_state.discovered_center_keys == frozenset(
+        {"j_odd_todd"}
+    )
+    joker = next_run.public.jokers[0]
+    assert type(joker) is OddToddJoker
+    assert (
+        joker.center,
+        joker.label,
+        joker.rarity,
+        joker.base_cost,
+        joker.cost,
+        joker.sell_cost,
+        joker.discovered,
+    ) == ("j_odd_todd", "Odd Todd", 1, 4, 4, 2, True)
+
+    score = BalatroScorer().score(
+        PokerHand.HIGH_CARD,
+        state=next_run.public,
+        cards=[BalatroCard("3", "Hearts")],
+        include_card_chips=True,
+    )
+    assert (score.chips, score.mult, score.total) == (39, 1, 39)
+
+    sold_run = ShopTransitionEngine().step(
+        next_run,
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+    )
+    assert sold_run.public.money == 18
+    assert sold_run.public.jokers == []
+
+
 @pytest.mark.parametrize(
     "item",
     (
@@ -218,6 +266,8 @@ def test_env_r2_exact_droll_materialization_updates_discovery_scores_and_sells()
         GeneratedShopJokerItem("j_joker", 1, 2, None, 2, None),
         GeneratedShopJokerItem("j_droll", 2, 4, None, 4, False),
         GeneratedShopJokerItem("j_droll", 1, 5, None, 5, False),
+        GeneratedShopJokerItem("j_odd_todd", 2, 4, None, 4, False),
+        GeneratedShopJokerItem("j_odd_todd", 1, 5, None, 5, False),
     ),
 )
 def test_env_r2_unsupported_generated_joker_materialization_fails_closed(item):

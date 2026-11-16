@@ -200,7 +200,7 @@ def test_env_ppo_rollout_acquires_exact_hone_after_boss_cashout(
 
 
 @pytest.fixture(scope="module")
-def episode_45_with_droll_lifecycle():
+def episode_45_with_generated_joker_lifecycles():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(5),
@@ -210,10 +210,10 @@ def episode_45_with_droll_lifecycle():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_generated_droll_buy_and_sale(
-    episode_45_with_droll_lifecycle,
+def test_env_ppo_rollout_crosses_exact_generated_droll_and_odd_todd_lifecycles(
+    episode_45_with_generated_joker_lifecycles,
 ):
-    episode = episode_45_with_droll_lifecycle
+    episode = episode_45_with_generated_joker_lifecycles
 
     assert episode.game_seed == "F41B6F3A"
     assert episode.action_count == 13
@@ -225,10 +225,10 @@ def test_env_ppo_rollout_crosses_exact_generated_droll_buy_and_sale(
         "END_SHOP",
         "SELECT_BLIND",
         "SELL_JOKER",
-        "BUY_VOUCHER",
+        "BUY_JOKER",
+        "SELL_JOKER",
         "END_SHOP",
         "SELECT_BLIND",
-        "BUY_VOUCHER",
         "END_SHOP",
         "SELECT_BLIND",
         "END_SHOP",
@@ -248,6 +248,20 @@ def test_env_ppo_rollout_crosses_exact_generated_droll_buy_and_sale(
         13,
     )
     assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 15)
+
+    before_odd_todd = episode.boundaries[5]
+    after_odd_todd = episode.boundaries[6]
+    assert (before_odd_todd.ante, before_odd_todd.phase, before_odd_todd.money) == (
+        1,
+        "SHOP",
+        15,
+    )
+    assert (after_odd_todd.ante, after_odd_todd.phase, after_odd_todd.money) == (
+        1,
+        "SHOP",
+        11,
+    )
+    assert episode.boundaries[7].money == 13
 
 
 @pytest.fixture(scope="module")
