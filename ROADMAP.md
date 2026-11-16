@@ -2538,16 +2538,35 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-No implementation or operator run is currently authorized. The bounded
-advantage-normalization shadow completed with exact provenance and was rejected
-by its frozen gates. It must not be tuned, extended, promoted, or converted into
-a production change. The production candidate remains not promoted and
-Red/White competence remains unestablished.
+Develop a separately versioned full-horizon tactical reference shadow. The
+frozen causal hypothesis is that the canonical public-safe expectimax model is
+materially stronger than its production outcomes show, but production's
+selective schedule normally stops after horizons 2 or 3 and therefore excludes
+the existing horizon-4/5 blind plan. Test this before replacing the planner's
+action model or evaluator.
 
-The next development task is intentionally unfrozen at this evidence boundary.
-Before further code or training, a new causal hypothesis and bounded acceptance
-contract must be added here from the existing evidence; do not infer one from a
-request to continue. No live Balatro run or headless training run is required.
+The shadow must construct the existing canonical D1 planner, evaluator, action
+generator, draw model, policy, mechanics, Boss integrations, and trained PPO
+candidate unchanged. Its only tactical difference is the already-owned full
+adaptive schedule through the useful five-action cap with the existing 5,000
+node cap and unchanged draw exactness/sample contracts. Evaluate one read-only
+candidate episode for every fixed 64-seed corpus item and compare against the
+immutable published production candidate. Record every tactical decision,
+search attempt, selected public action, first-blind result, terminal metrics,
+and elapsed decision time. Do not add an arbitration rule or production factory.
+
+Freeze acceptance before execution: complete campaign/promotion/candidate and
+fixed-corpus provenance, ordered deterministic episodes, zero illegal,
+unsupported, truncated, or incomplete outcomes, first-blind clear-count
+nonregression, and nonregression in full-game clears, mean Ante, mean terminal
+requirement progress, mean minimum cash, and mean terminal cash are mandatory.
+The reference must strictly improve at least one of full-game clears, mean Ante,
+or mean terminal requirement progress. Runtime is diagnostic rather than a
+promotion gate; an accepted reference would still require a separate bounded
+runtime-production task. Reject rather than tune after the result. Do not change
+production tactics, PPO, rewards, training, mechanics, promotion gates, or run
+live Balatro during this task. No operator run is authorized until the shadow
+owner and focused deterministic regressions pass GitHub Actions.
 
 Advantage-normalization shadow core checkpoint:
 
