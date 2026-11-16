@@ -2538,23 +2538,44 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the fifth exact generated-Joker acquisition bridge for only uneditioned
-`j_devious`. The committed trace contains seven visible Devious Jokers, all
-seven affordable and uneditioned. Its +100 Chips when the played hand contains a
-Straight is already owned by `BalatroScorer` and `HandEvaluator`, and its
-discard callback is inert.
+Add the sixth exact generated-Joker acquisition bridge for only uneditioned
+`j_gluttenous_joker`. The committed trace contains six exact uneditioned,
+affordable Gluttonous Jokers; the seventh visible copy has an edition and must
+remain fail-closed. Its on-scored-card +3 Mult per Club, including exact
+hand-rule suit projection, is already owned by `BalatroScorer`, and its discard
+callback is inert.
 
-Extend the canonical generated-item materializer with an explicit `j_devious`
-to `DeviousJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`,
-public label, purchase price, discovery transition, and sale value). Extend the
-generated-Joker tactical capability only for its already-owned scoring effect
-and inert discard callback. Add deterministic materialization, mask, purchase,
-scoring, sale, isolation, natural production-backend, and complete rollout
-coverage. Keep the first four centers unchanged and every other generated
-center/edition/malformed state fail-closed. Do not add a generic factory, batch
-multiple centers, open boosters, change PPO, rewards, or tactics, or request an
-operator run during this checkpoint. Do not select Dusk yet: its pre-hand
-final-hand retrigger callback is not owned at the play-transition boundary.
+Extend the canonical generated-item materializer with an explicit
+`j_gluttenous_joker` to `GluttonousJoker` entry and exact vanilla identity
+(`rarity=1`, `base_cost=5`, public label, purchase price, discovery transition,
+and sale value). Extend the generated-Joker tactical capability only for its
+already-owned on-scored effect and inert discard callback. Add deterministic
+materialization, mask, purchase, scoring, sale, isolation, natural
+production-backend, and complete rollout coverage. Keep the first five centers
+unchanged and every other generated center/edition/malformed state fail-closed.
+Do not add a generic factory, batch multiple centers, open boosters, change PPO,
+rewards, or tactics, or request an operator run during this checkpoint. Do not
+select Dusk yet: its pre-hand final-hand retrigger callback is not owned at the
+play-transition boundary.
+
+Exact generated Devious Joker acquisition checkpoint:
+
+- Implementation commit `eed2f41f9bc705bb00ce0e353ad6357dbfaf398c` adds only
+  exact uneditioned `j_devious` (`rarity=1`, `base_cost=4`) as the audited
+  `DeviousJoker`, with exact discovery, price/sale metadata, Straight scoring,
+  tactical continuation, and inverse sale lifecycle.
+- The generated-Joker tactical capability admits Devious only through its
+  existing exact `BalatroScorer` / `HandEvaluator` owner and inert discard
+  callback. Other centers, mutations, and editions remain fail-closed.
+- Deterministic production-backend seed `44` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 21 / seed
+  `1D88A8A1` locks the exact seven-action buy/sell trajectory. The frozen actor
+  also naturally buys Devious in Wheel episode 313 / seed `88DB75F5`; its exact
+  six-action loss now scores 576 chips.
+- The combined shop/backend/tactical/frozen-rollout local gate passed **131
+  tests in 49.65s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `43949565640`, job `133588119358`, passed the
+  authoritative **3450 passed, 1621 deselected in 223.37s**.
 
 Exact generated Even Steven acquisition checkpoint:
 
