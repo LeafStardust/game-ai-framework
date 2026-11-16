@@ -100,17 +100,6 @@ def _observation_feature(observation, name):
 
 
 @pytest.fixture(scope="module")
-def episode_25_with_hieroglyph():
-    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
-    return collect_complete_ppo_episode(
-        make_ppo_training_environment(1),
-        run,
-        episode_index=25,
-        policy=PPOActorCritic(run).infer,
-    )
-
-
-@pytest.fixture(scope="module")
 def episode_39_with_overstock():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
@@ -157,7 +146,7 @@ def test_env_ppo_rollout_crosses_exact_overstock_boss_cashout(
 
 
 @pytest.fixture(scope="module")
-def episode_41_with_tarot_merchant():
+def episode_41_with_hone():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(1),
@@ -167,47 +156,51 @@ def episode_41_with_tarot_merchant():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_tarot_merchant_boss_cashout(
-    episode_41_with_tarot_merchant,
+def test_env_ppo_rollout_acquires_exact_hone_after_boss_cashout(
+    episode_41_with_hone,
 ):
-    episode = episode_41_with_tarot_merchant
+    episode = episode_41_with_hone
 
     assert episode.game_seed == "20C74BCD"
-    assert episode.action_count == 12
+    assert episode.action_count == 13
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
+        "SELECT_BLIND",
+        "REROLL_SHOP",
+        "END_SHOP",
         "SELECT_BLIND",
         "BUY_CONSUMABLE",
         "END_SHOP",
         "SELECT_BLIND",
         "BUY_VOUCHER",
-        "END_SHOP",
-        "SELECT_BLIND",
-        "END_SHOP",
-        "SELECT_BLIND",
         "BUY_CONSUMABLE",
+        "END_SHOP",
+        "SELECT_BLIND",
         "END_SHOP",
         "SELECT_BLIND",
     ]
 
-    before = episode.boundaries[6]
-    after = episode.boundaries[7]
-    assert (before.ante, before.phase, before.money) == (1, "BLIND_SELECT", 3)
-    assert (after.ante, after.phase, after.money) == (2, "SHOP", 9)
-    for boundary in (before, after):
-        assert _observation_feature(
-            boundary.observation,
-            "vouchers.owned.v_tarot_merchant",
-        ) == 1.0
-        assert _observation_feature(
-            boundary.observation,
-            "state.tarot_rate",
-        ) == 9.6
+    before = episode.boundaries[7]
+    after = episode.boundaries[8]
+    assert (before.ante, before.phase, before.money) == (2, "SHOP", 15)
+    assert (after.ante, after.phase, after.money) == (2, "SHOP", 5)
+    assert _observation_feature(
+        before.observation,
+        "vouchers.owned.v_hone",
+    ) == 0.0
+    assert _observation_feature(
+        after.observation,
+        "vouchers.owned.v_hone",
+    ) == 1.0
+    assert _observation_feature(
+        after.observation,
+        "state.joker_generation_edition_rate",
+    ) == 2.0
 
 
 @pytest.fixture(scope="module")
-def episode_45_with_reroll_surplus():
+def episode_45_with_paid_reroll():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(5),
@@ -217,10 +210,10 @@ def episode_45_with_reroll_surplus():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_reroll_surplus_boss_cashout(
-    episode_45_with_reroll_surplus,
+def test_env_ppo_rollout_crosses_exact_paid_reroll_after_big_blind(
+    episode_45_with_paid_reroll,
 ):
-    episode = episode_45_with_reroll_surplus
+    episode = episode_45_with_paid_reroll
 
     assert episode.game_seed == "F41B6F3A"
     assert episode.action_count == 11
@@ -228,27 +221,22 @@ def test_env_ppo_rollout_crosses_exact_reroll_surplus_boss_cashout(
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
         "SELECT_BLIND",
+        "BUY_CONSUMABLE",
         "END_SHOP",
         "SELECT_BLIND",
-        "BUY_VOUCHER",
+        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
-        "BUY_VOUCHER",
         "END_SHOP",
         "SELECT_BLIND",
         "END_SHOP",
         "SELECT_BLIND",
     ]
 
-    before = episode.boundaries[5]
-    after = episode.boundaries[6]
-    assert (before.ante, before.phase, before.money) == (1, "BLIND_SELECT", 5)
-    assert (after.ante, after.phase, after.money) == (2, "SHOP", 12)
-    for boundary in (before, after):
-        assert _observation_feature(
-            boundary.observation,
-            "vouchers.owned.v_reroll_surplus",
-        ) == 1.0
+    before = episode.boundaries[4]
+    after = episode.boundaries[5]
+    assert (before.ante, before.phase, before.money) == (1, "SHOP", 12)
+    assert (after.ante, after.phase, after.money) == (1, "SHOP", 7)
 
 
 @pytest.fixture(scope="module")
@@ -268,7 +256,7 @@ def test_env_ppo_rollout_crosses_exact_paint_brush_boss_tactics(
     episode = episode_46_with_paint_brush
 
     assert episode.game_seed == "9AC8FAC6"
-    assert episode.action_count == 10
+    assert episode.action_count == 11
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
@@ -278,6 +266,7 @@ def test_env_ppo_rollout_crosses_exact_paint_brush_boss_tactics(
         "BUY_VOUCHER",
         "END_SHOP",
         "SELECT_BLIND",
+        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
         "END_SHOP",
@@ -329,7 +318,7 @@ def test_env_ppo_rollout_crosses_exact_wheel_play_and_discard_redraws(
         "END_SHOP",
         "SELECT_BLIND",
         "BUY_VOUCHER",
-        "BUY_CONSUMABLE",
+        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
         "END_SHOP",
@@ -367,8 +356,8 @@ def test_env_ppo_rollout_crosses_exact_house_play_facing(
         "SELECT_BLIND",
         "END_SHOP",
         "SELECT_BLIND",
-        "BUY_VOUCHER",
         "BUY_CONSUMABLE",
+        "BUY_VOUCHER",
         "END_SHOP",
         "SELECT_BLIND",
         "END_SHOP",
@@ -395,7 +384,7 @@ def test_env_ppo_rollout_crosses_exact_hieroglyph_boss_cashout(
     episode = episode_50_with_hieroglyph
 
     assert episode.game_seed == "05B3FF62"
-    assert episode.action_count == 16
+    assert episode.action_count == 19
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
@@ -408,11 +397,14 @@ def test_env_ppo_rollout_crosses_exact_hieroglyph_boss_cashout(
         "END_SHOP",
         "SELECT_BLIND",
         "BUY_VOUCHER",
+        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
+        "BUY_CONSUMABLE",
+        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
-        "BUY_VOUCHER",
+        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
     ]
@@ -479,7 +471,7 @@ def test_env_ppo_rollout_crosses_exact_flint_play_boundary(
 
 
 @pytest.fixture(scope="module")
-def episode_89_with_ante_zero_shop():
+def episode_89_with_reroll():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(1),
@@ -489,74 +481,43 @@ def episode_89_with_ante_zero_shop():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_ante_zero_shop_and_mixed_voucher_cashout(
-    episode_89_with_ante_zero_shop,
+def test_env_ppo_rollout_crosses_exact_reroll_and_later_voucher_purchase(
+    episode_89_with_reroll,
 ):
-    episode = episode_89_with_ante_zero_shop
+    episode = episode_89_with_reroll
 
     assert episode.game_seed == "C749D4F7"
-    assert episode.action_count == 17
+    assert episode.action_count == 11
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
         "SELECT_BLIND",
-        "BUY_VOUCHER",
+        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
         "BUY_CONSUMABLE",
         "END_SHOP",
         "SELECT_BLIND",
-        "END_SHOP",
-        "SELECT_BLIND",
-        "BUY_CONSUMABLE",
         "BUY_VOUCHER",
-        "END_SHOP",
-        "SELECT_BLIND",
-        "END_SHOP",
-        "SELECT_BLIND",
+        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
     ]
 
-    after_hieroglyph = episode.boundaries[2]
-    after_ante_zero_big = episode.boundaries[4]
-    after_mixed_voucher_boss = episode.boundaries[15]
-    assert (
-        after_hieroglyph.ante,
-        after_hieroglyph.phase,
-        after_hieroglyph.money,
-    ) == (0, "SHOP", 0)
-    assert (
-        after_ante_zero_big.ante,
-        after_ante_zero_big.phase,
-        after_ante_zero_big.money,
-    ) == (0, "SHOP", 6)
-    assert (
-        after_mixed_voucher_boss.ante,
-        after_mixed_voucher_boss.phase,
-        after_mixed_voucher_boss.money,
-    ) == (2, "SHOP", 9)
-    for boundary in (after_ante_zero_big, after_mixed_voucher_boss):
-        assert _observation_feature(
-            boundary.observation,
-            "vouchers.owned.v_hieroglyph",
-        ) == 1.0
-    assert _observation_feature(
-        after_mixed_voucher_boss.observation,
-        "vouchers.owned.v_wasteful",
-    ) == 1.0
-    assert _observation_feature(
-        after_mixed_voucher_boss.observation,
-        "state.round_reset_hands",
-    ) == 3.0
-    assert _observation_feature(
-        after_mixed_voucher_boss.observation,
-        "state.round_reset_discards",
-    ) == 4.0
+    assert (episode.boundaries[1].phase, episode.boundaries[1].money) == (
+        "SHOP",
+        10,
+    )
+    assert (episode.boundaries[2].phase, episode.boundaries[2].money) == (
+        "SHOP",
+        5,
+    )
+    assert (episode.boundaries[7].ante, episode.boundaries[7].money) == (2, 15)
+    assert (episode.boundaries[8].ante, episode.boundaries[8].money) == (2, 5)
 
 
 @pytest.fixture(scope="module")
-def episode_102_with_seed_money():
+def episode_102_with_first_shop_reroll():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(6),
@@ -566,10 +527,10 @@ def episode_102_with_seed_money():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_seed_money_boss_cashout(
-    episode_102_with_seed_money,
+def test_env_ppo_rollout_crosses_exact_first_shop_reroll_and_boss_cashout(
+    episode_102_with_first_shop_reroll,
 ):
-    episode = episode_102_with_seed_money
+    episode = episode_102_with_first_shop_reroll
 
     assert episode.game_seed == "0058185F"
     assert episode.action_count == 8
@@ -577,44 +538,28 @@ def test_env_ppo_rollout_crosses_exact_seed_money_boss_cashout(
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
         "SELECT_BLIND",
+        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
-        "BUY_VOUCHER",
         "END_SHOP",
         "SELECT_BLIND",
         "END_SHOP",
         "SELECT_BLIND",
     ]
-    after_seed_money = episode.boundaries[4]
-    assert (
-        after_seed_money.ante,
-        after_seed_money.phase,
-        after_seed_money.money,
-    ) == (1, "SHOP", 7)
-    assert _observation_feature(
-        after_seed_money.observation,
-        "vouchers.owned.v_seed_money",
-    ) == 1.0
-    assert _observation_feature(
-        after_seed_money.observation,
-        "state.interest_cap",
-    ) == 50.0
+    after_reroll = episode.boundaries[2]
+    assert (after_reroll.ante, after_reroll.phase, after_reroll.money) == (
+        1,
+        "SHOP",
+        4,
+    )
     after_boss_cashout = episode.boundaries[6]
-    assert (after_boss_cashout.phase, after_boss_cashout.money) == ("SHOP", 14)
-    assert _observation_feature(
-        after_boss_cashout.observation,
-        "vouchers.owned.v_seed_money",
-    ) == 1.0
-    assert _observation_feature(
-        after_boss_cashout.observation,
-        "state.interest_cap",
-    ) == 50.0
+    assert (after_boss_cashout.phase, after_boss_cashout.money) == ("SHOP", 19)
 
 
 def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
-    episode_25_with_hieroglyph,
+    episode_50_with_hieroglyph,
 ):
-    episode = episode_25_with_hieroglyph
+    episode = episode_50_with_hieroglyph
     decreases = [
         (index, before.ante, after.ante, decision.action.alias)
         for index, (before, after, decision) in enumerate(
@@ -623,11 +568,11 @@ def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
         if after.ante < before.ante
     ]
 
-    assert episode.game_seed == "2C383F87"
-    assert episode.action_count == 12
-    assert decreases == [(5, 2, 1, "BUY_VOUCHER")]
+    assert episode.game_seed == "05B3FF62"
+    assert episode.action_count == 19
+    assert decreases == [(3, 1, 0, "BUY_VOUCHER")]
 
-    after = episode.boundaries[6]
+    after = episode.boundaries[4]
     zero_observation = _replace_observation_feature(
         after.observation, "state.ante", 0.0
     )
@@ -637,13 +582,13 @@ def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
 
 
 def test_env_ppo_rollout_admits_exact_observed_petroglyph_ante_decrement(
-    episode_25_with_hieroglyph,
+    episode_50_with_hieroglyph,
 ):
-    episode = episode_25_with_hieroglyph
+    episode = episode_50_with_hieroglyph
     boundaries = list(episode.boundaries)
     decisions = list(episode.decisions)
-    before = boundaries[5]
-    after = boundaries[6]
+    before = boundaries[3]
+    after = boundaries[4]
     before_observation = _replace_observation_feature(
         before.observation,
         "shop.vouchers.0.center",
@@ -655,37 +600,37 @@ def test_env_ppo_rollout_admits_exact_observed_petroglyph_ante_decrement(
     after_observation = _replace_observation_feature(
         after.observation, "vouchers.owned.v_petroglyph", 1.0
     )
-    boundaries[5] = replace(before, observation=before_observation)
-    boundaries[6] = replace(after, observation=after_observation)
-    decisions[5] = replace(decisions[5], observation=before_observation)
-    decisions[6] = replace(decisions[6], observation=after_observation)
+    boundaries[3] = replace(before, observation=before_observation)
+    boundaries[4] = replace(after, observation=after_observation)
+    decisions[3] = replace(decisions[3], observation=before_observation)
+    decisions[4] = replace(decisions[4], observation=after_observation)
 
     assert replace(
         episode, boundaries=tuple(boundaries), decisions=tuple(decisions)
-    ).action_count == 12
+    ).action_count == 19
 
 
 @pytest.mark.parametrize(
     ("boundary_index", "feature", "value"),
     (
         (
-            5,
+            3,
             "shop.vouchers.0.center",
             float(VOUCHER_KEYS.index("v_overstock_norm") + 1),
         ),
         (
-            5,
+            3,
             "shop.vouchers.0.center",
             float(VOUCHER_KEYS.index("v_petroglyph") + 1),
         ),
-        (6, "vouchers.owned.v_hieroglyph", 0.0),
-        (6, "shop.vouchers.0.present", 1.0),
+        (4, "vouchers.owned.v_hieroglyph", 0.0),
+        (4, "shop.vouchers.0.present", 1.0),
     ),
 )
 def test_env_ppo_rollout_rejects_unproven_ante_voucher_decrement(
-    episode_25_with_hieroglyph, boundary_index, feature, value
+    episode_50_with_hieroglyph, boundary_index, feature, value
 ):
-    episode = episode_25_with_hieroglyph
+    episode = episode_50_with_hieroglyph
     boundaries = list(episode.boundaries)
     decisions = list(episode.decisions)
     boundary = boundaries[boundary_index]
@@ -705,15 +650,15 @@ def test_env_ppo_rollout_rejects_unproven_ante_voucher_decrement(
 
 
 def test_env_ppo_rollout_rejects_non_voucher_ante_decrement_action(
-    episode_25_with_hieroglyph,
+    episode_50_with_hieroglyph,
 ):
-    episode = episode_25_with_hieroglyph
+    episode = episode_50_with_hieroglyph
     decisions = list(episode.decisions)
-    decisions[5] = select_ppo_action(
+    decisions[3] = select_ppo_action(
         episode.training_run,
-        episode_index=25,
-        decision_index=5,
-        observation=episode.boundaries[5].observation,
+        episode_index=50,
+        decision_index=3,
+        observation=episode.boundaries[3].observation,
         legal_actions=(EnvAction.from_alias("END_SHOP"),),
         policy_output=_policy_output(),
     )

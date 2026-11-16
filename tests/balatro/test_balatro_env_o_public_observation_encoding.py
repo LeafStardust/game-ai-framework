@@ -74,6 +74,7 @@ def test_env_o_v2_separates_all_voucher_identities_from_mechanics_support():
     run = HeadlessRunState(public=frame.state, seed="UNSUPPORTED-VOUCHER")
     assert ShopTransitionEngine().legal_actions(run) == (
         # Identity is visible, but Blank redemption remains unsupported.
+        EnvAction.from_alias("REROLL_SHOP"),
         EnvAction.from_alias("END_SHOP"),
     )
 
