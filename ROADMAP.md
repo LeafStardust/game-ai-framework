@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`91ec1092231694ce8377bf629a84b707b978e2c9`.
+`50606156dfd06a4bf8b7c6665fa3df78eb45ca64`.
 
 ## Objective
 
@@ -2538,20 +2538,42 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the second exact generated-Joker acquisition bridge for only uneditioned
-`j_droll`. The committed 64-episode trace contains nine visible Droll Jokers,
-eight of them affordable and uneditioned, making it the most frequent currently
-unsupported generated center whose runtime model is already in the audited
-inventory-only acquisition set.
+Add the third exact generated-Joker acquisition bridge for only uneditioned
+`j_odd_todd`. The committed 64-episode trace contains ten visible Odd Todds,
+eight of them affordable and uneditioned. It is now the most frequent remaining
+generated center whose runtime acquisition and on-scored-card mechanics are
+already exact.
 
-Extend the canonical generated-item materializer with an explicit `j_droll` to
-`DrollJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`, public
-label, purchase price, discovery state, and sale value). Add deterministic
-materialization, mask, purchase, scoring, sale, isolation, and natural
-production-backend coverage for this center. Keep `j_joker` unchanged and all
-other generated centers/editions/malformed metadata fail-closed. Do not add a
-generic/dynamic factory, batch multiple centers, open boosters, change PPO,
-rewards, or tactics, or request an operator run during this checkpoint.
+Extend the canonical generated-item materializer with an explicit `j_odd_todd`
+to `OddToddJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`,
+public label, purchase price, discovery transition, and sale value). Extend the
+generated-Joker tactical capability only for its already-owned on-scored-card
+effect and inert discard callback. Add deterministic materialization, mask,
+purchase, scoring, sale, isolation, natural production-backend, and complete
+rollout coverage. Keep `j_joker`/`j_droll` unchanged and every other generated
+center/edition/malformed state fail-closed. Do not add a generic factory, batch
+multiple centers, open boosters, change PPO/rewards/tactics, or request an
+operator run during this checkpoint.
+
+Exact generated Droll Joker acquisition checkpoint:
+
+- Implementation commit `50606156dfd06a4bf8b7c6665fa3df78eb45ca64`
+  adds only exact uneditioned `j_droll` (`rarity=1`, `base_cost=4`) as the
+  audited `DrollJoker`. Purchase updates both retained generation discovery and
+  Tag-profile discovery exactly, preserves immutable source state, installs the
+  vanilla price/sale metadata, and remains sellable through the existing exact
+  inverse lifecycle.
+- The checkpoint also closes the necessary downstream capability boundary:
+  materialized base/Droll Jokers are admitted through Play only for their exact
+  scoring callbacks and through Discard only as audited callback no-ops.
+  Unsupported identities, mutations, editions, and Verdant-with-Joker Play
+  remain fail-closed.
+- Focused shop/backend/tactical validation passed **74 tests**; frozen rollout
+  and public-observation validation passed **51 tests**. Episode 45 now locks
+  the exact natural Droll buy, tactical continuation, later sale, and complete
+  13-action loss trajectory instead of crashing at the first discard.
+- GitHub Actions run `43894715826`, job `133395006103`, passed with **3429
+  passed, 1621 deselected in 318.72s**.
 
 Exact generated base-Joker acquisition checkpoint:
 
