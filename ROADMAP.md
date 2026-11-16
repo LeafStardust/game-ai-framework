@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`50606156dfd06a4bf8b7c6665fa3df78eb45ca64`.
+`61210b6d4f106eabe660a433854e7994ee849751`.
 
 ## Objective
 
@@ -2538,22 +2538,38 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the third exact generated-Joker acquisition bridge for only uneditioned
-`j_odd_todd`. The committed 64-episode trace contains ten visible Odd Todds,
-eight of them affordable and uneditioned. It is now the most frequent remaining
-generated center whose runtime acquisition and on-scored-card mechanics are
-already exact.
+Add the fourth exact generated-Joker acquisition bridge for only uneditioned
+`j_even_steven`. The committed trace contains seven visible Even Stevens, all
+seven affordable and uneditioned. Its on-scored-card +4 Mult per even rank is
+already owned by `BalatroScorer`, and its discard callback is inert.
 
-Extend the canonical generated-item materializer with an explicit `j_odd_todd`
-to `OddToddJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`,
-public label, purchase price, discovery transition, and sale value). Extend the
-generated-Joker tactical capability only for its already-owned on-scored-card
-effect and inert discard callback. Add deterministic materialization, mask,
-purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep `j_joker`/`j_droll` unchanged and every other generated
-center/edition/malformed state fail-closed. Do not add a generic factory, batch
-multiple centers, open boosters, change PPO/rewards/tactics, or request an
-operator run during this checkpoint.
+Extend the canonical generated-item materializer with an explicit
+`j_even_steven` to `EvenStevenJoker` entry and exact vanilla identity
+(`rarity=1`, `base_cost=4`, public label, purchase price, discovery transition,
+and sale value). Extend the generated-Joker tactical capability only for its
+already-owned on-scored effect and inert discard callback. Add deterministic
+materialization, mask, purchase, scoring, sale, isolation, natural
+production-backend, and complete rollout coverage. Keep the first three centers
+unchanged and every other generated center/edition/malformed state fail-closed.
+Do not add a generic factory, batch multiple centers, open boosters, change PPO,
+rewards, or tactics, or request an operator run during this checkpoint. Do not
+select Dusk yet: its pre-hand final-hand retrigger callback is not owned at the
+play-transition boundary.
+
+Exact generated Odd Todd acquisition checkpoint:
+
+- Implementation commit `61210b6d4f106eabe660a433854e7994ee849751`
+  adds only exact uneditioned `j_odd_todd` (`rarity=1`, `base_cost=4`) as the
+  audited `OddToddJoker`, with exact discovery, price/sale metadata, scoring,
+  tactical continuation, and inverse sale lifecycle.
+- The generated-Joker tactical capability admits Odd Todd only through its
+  existing exact on-scored-card owner and inert discard callback. Other centers,
+  mutations, and editions remain fail-closed.
+- The combined shop/backend/tactical/frozen-rollout gate passed **115 tests**.
+  Episode 45 now locks Droll purchase/sale followed by Odd Todd purchase/sale
+  and complete tactical continuation in its exact 13-action loss trajectory.
+- GitHub Actions run `43896566063`, job `133401594528`, passed with **3434
+  passed, 1621 deselected in 227.15s**.
 
 Exact generated Droll Joker acquisition checkpoint:
 
