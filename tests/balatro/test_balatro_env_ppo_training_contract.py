@@ -200,7 +200,7 @@ def test_env_ppo_rollout_acquires_exact_hone_after_boss_cashout(
 
 
 @pytest.fixture(scope="module")
-def episode_45_with_paid_reroll():
+def episode_45_with_droll_lifecycle():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(5),
@@ -210,33 +210,44 @@ def episode_45_with_paid_reroll():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_paid_reroll_after_big_blind(
-    episode_45_with_paid_reroll,
+def test_env_ppo_rollout_crosses_exact_generated_droll_buy_and_sale(
+    episode_45_with_droll_lifecycle,
 ):
-    episode = episode_45_with_paid_reroll
+    episode = episode_45_with_droll_lifecycle
 
     assert episode.game_seed == "F41B6F3A"
-    assert episode.action_count == 11
+    assert episode.action_count == 13
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
         "SELECT_BLIND",
-        "BUY_CONSUMABLE",
+        "BUY_JOKER",
         "END_SHOP",
         "SELECT_BLIND",
-        "REROLL_SHOP",
+        "SELL_JOKER",
+        "BUY_VOUCHER",
         "END_SHOP",
         "SELECT_BLIND",
+        "BUY_VOUCHER",
         "END_SHOP",
         "SELECT_BLIND",
         "END_SHOP",
         "SELECT_BLIND",
     ]
 
-    before = episode.boundaries[4]
-    after = episode.boundaries[5]
-    assert (before.ante, before.phase, before.money) == (1, "SHOP", 12)
-    assert (after.ante, after.phase, after.money) == (1, "SHOP", 7)
+    before_buy = episode.boundaries[1]
+    after_buy = episode.boundaries[2]
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 9)
+    assert (after_buy.ante, after_buy.phase, after_buy.money) == (1, "SHOP", 5)
+
+    before_sale = episode.boundaries[4]
+    after_sale = episode.boundaries[5]
+    assert (before_sale.ante, before_sale.phase, before_sale.money) == (
+        1,
+        "SHOP",
+        13,
+    )
+    assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 15)
 
 
 @pytest.fixture(scope="module")

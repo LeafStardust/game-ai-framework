@@ -310,7 +310,17 @@ def _require_supported_context(run: HeadlessRunState) -> None:
     if getattr(state.blind, "tag_key", None) is not None:
         raise HeadlessTransitionError("R4 baseline Play does not yet own blind-tag callbacks")
     if state.jokers:
-        raise HeadlessTransitionError("R4 baseline Play does not yet own Joker callbacks")
+        from games.balatro.env.joker_tactical_capabilities import (
+            generated_joker_tactical_callbacks_are_exact,
+        )
+
+        if (
+            boss_name == "Verdant Leaf"
+            or not generated_joker_tactical_callbacks_are_exact(state.jokers)
+        ):
+            raise HeadlessTransitionError(
+                "R4 baseline Play does not yet own Joker callbacks"
+            )
     if run.tags:
         raise HeadlessTransitionError("R4 baseline Play does not yet own Tag callbacks")
     if any(not _is_play_time_no_effect_consumable(item) for item in state.consumables):

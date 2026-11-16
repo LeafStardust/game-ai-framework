@@ -5,6 +5,10 @@ from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.serialization import serialize_headless_run_state
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
+from games.balatro.env.shop_items import (
+    GeneratedShopJokerItem,
+    materialize_generated_shop_joker_for_acquisition,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
@@ -220,6 +224,43 @@ def test_env_r4_ordinary_play_fails_closed_on_joker_tag_consumable_and_voucher_c
     voucher_run.public.vouchers = ["v_observatory"]
     with pytest.raises(HeadlessTransitionError, match="Voucher action-time"):
         apply_supported_ordinary_play(voucher_run, (0,))
+
+
+def test_env_r4_ordinary_play_scores_exact_materialized_droll():
+    baseline = None
+    run = None
+    indices = None
+    for attempt in range(500):
+        candidate = _play_run(seed=f"R4-DROLL-{attempt}")
+        by_suit = {}
+        for index, card in enumerate(candidate.public.hand):
+            by_suit.setdefault(card.suit, []).append(index)
+        flush = next(
+            (positions[:5] for positions in by_suit.values() if len(positions) >= 5),
+            None,
+        )
+        if flush is not None:
+            baseline = candidate
+            run = _play_run(seed=f"R4-DROLL-{attempt}")
+            indices = tuple(flush)
+            break
+
+    assert baseline is not None and run is not None and indices is not None
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_droll", 1, 4, None, 4, False)
+        )
+    ]
+    selected_chips = 35 + sum(
+        BalatroScorer.RANK_CHIPS[run.public.hand[index].rank] for index in indices
+    )
+
+    baseline_result = apply_supported_ordinary_play(baseline, indices)
+    result = apply_supported_ordinary_play(run, indices)
+
+    assert result.public.last_played_hand == "FLUSH"
+    assert result.public.score - baseline_result.public.score == selected_chips * 10
+    assert type(result.public.jokers[0]).__name__ == "DrollJoker"
 
 
 @pytest.mark.parametrize(

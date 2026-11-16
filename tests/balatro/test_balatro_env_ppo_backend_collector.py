@@ -31,6 +31,7 @@ from games.balatro.env.state import RunStatus, TurnOwner
 from games.balatro.env.transition import HeadlessTransitionError
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.scoring import BalatroScorer
 
 
@@ -222,6 +223,7 @@ def test_env_ppo_backend_clear_cashout_exposes_exact_generated_first_shop():
     actions = environment.legal_actions()
     assert EnvAction.from_alias("END_SHOP") in actions
     assert EnvAction.from_alias("REROLL_SHOP") in actions
+    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) in actions
     assert all(action.alias != "OPEN_PACK" for action in actions)
     assert all(action.alias != "BUY_VOUCHER" for action in actions)
     assert legal_action_mask(actions).values[action_index(EnvAction.from_alias("END_SHOP"))]
@@ -232,6 +234,35 @@ def test_env_ppo_backend_clear_cashout_exposes_exact_generated_first_shop():
     assert restored.frame.encoded_observation().values == observation.values
     assert restored.serialize() == snapshot
     assert restored.legal_actions() == actions
+
+
+def test_env_ppo_backend_acquires_generated_droll_and_discovers_its_center():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed="CLEAR")
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    before_money = backend.run.public.money
+
+    assert (
+        backend.run.public.shop_jokers[0].center_key,
+        backend.run.public.shop_jokers[0].base_cost,
+        backend.run.public.shop_jokers[0].price,
+        backend.run.public.shop_jokers[0].discovered,
+    ) == ("j_droll", 4, 4, False)
+    assert buy in environment.legal_actions()
+    environment.step(buy)
+
+    assert backend.run.public.money == before_money - 4
+    assert type(backend.run.public.jokers[0]) is DrollJoker
+    assert backend.run.public.jokers[0].sell_cost == 2
+    assert backend.run.generated_center_discovered("j_droll") is True
+    assert "j_droll" in backend.run.tag_profile_state.discovered_center_keys
+    sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert sell in environment.legal_actions()
+    environment.step(sell)
+    assert backend.run.public.money == before_money - 2
 
 
 def test_env_ppo_backend_exposes_and_executes_exact_paid_shop_reroll():

@@ -555,7 +555,7 @@ class ShopTransitionEngine:
             actions.extend(
                 EnvAction.from_alias("BUY_JOKER", {"slot": slot})
                 for slot, item in enumerate(state.shop_jokers)
-                if self._joker_acquisition_is_exact(state, item)
+                if self._joker_acquisition_is_exact(run, item)
                 and self._is_affordable(state, item)
             )
         if len(state.consumables) < state.consumable_slots:
@@ -635,6 +635,25 @@ class ShopTransitionEngine:
                 purchased = materialize_generated_shop_joker_for_acquisition(
                     source_item
                 )
+                discovered = next_run.generated_center_discovered(
+                    source_item.center_key
+                )
+                if discovered is not source_item.discovered:
+                    raise HeadlessTransitionError(
+                        "generated Joker discovery authority drifted"
+                    )
+                if not discovered:
+                    if next_run.tag_profile_state is None:
+                        raise HeadlessTransitionError(
+                            "generated Joker discovery requires exact Tag profile"
+                        )
+                    from games.balatro.env.tag_selection import TagProfileState
+
+                    next_run.generation_discovery[source_item.center_key] = True
+                    next_run.tag_profile_state = TagProfileState(
+                        next_run.tag_profile_state.discovered_center_keys
+                        | {source_item.center_key}
+                    )
             if next_run.joker_order_state is not None:
                 try:
                     next_run.joker_order_state.acquire(purchased, state.jokers)
@@ -690,7 +709,8 @@ class ShopTransitionEngine:
         raise HeadlessTransitionError(f"unimplemented shop transition: {action.alias}")
 
     @staticmethod
-    def _joker_acquisition_is_exact(state: BalatroState, item: Any) -> bool:
+    def _joker_acquisition_is_exact(run: HeadlessRunState, item: Any) -> bool:
+        state = run.public
         from games.balatro.env.shop_items import (
             GeneratedShopJokerItem,
             materialize_generated_shop_joker_for_acquisition,
@@ -700,6 +720,14 @@ class ShopTransitionEngine:
             try:
                 materialize_generated_shop_joker_for_acquisition(item)
             except (TypeError, HeadlessTransitionError):
+                return False
+            try:
+                discovered = run.generated_center_discovered(item.center_key)
+            except HeadlessTransitionError:
+                return False
+            if discovered is None or discovered is not item.discovered:
+                return False
+            if not discovered and run.tag_profile_state is None:
                 return False
             return True
         if getattr(item, "edition", None):

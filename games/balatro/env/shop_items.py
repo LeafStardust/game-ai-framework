@@ -17,6 +17,8 @@ from games.balatro.env.shop_pricing import (
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import expected_main_shop_slots_for_vouchers
+from games.balatro.joker import Joker
+from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 
 
@@ -42,36 +44,47 @@ class GeneratedShopJokerItem:
 
 def materialize_generated_shop_joker_for_acquisition(
     item: GeneratedShopJokerItem,
-) -> FlatMultJoker:
+) -> Joker:
     """Construct the first exactly owned generated gameplay Joker.
 
-    Only vanilla's discovered, uneditioned base ``j_joker`` is admitted.  Every
-    other generated center stays metadata-only until its runtime mechanics and
+    Only explicitly audited vanilla center identities are admitted. Every other
+    generated center stays metadata-only until its runtime mechanics and
     lifecycle are independently owned.
     """
     if type(item) is not GeneratedShopJokerItem:
         raise TypeError("item must be an exact GeneratedShopJokerItem")
-    if item.center_key != "j_joker":
+    if item.center_key == "j_joker":
+        joker_type = FlatMultJoker
+        expected_rarity = 1
+        expected_base_cost = 2
+        label = "Joker"
+    elif item.center_key == "j_droll":
+        joker_type = DrollJoker
+        expected_rarity = 1
+        expected_base_cost = 4
+        label = "Droll Joker"
+    else:
         raise HeadlessTransitionError("generated Joker center is not materializable")
-    if type(item.rarity) is not int or item.rarity != 1:
-        raise HeadlessTransitionError("base Joker rarity must be exact")
-    if type(item.base_cost) is not int or item.base_cost != 2:
-        raise HeadlessTransitionError("base Joker cost must be exact")
+    if type(item.rarity) is not int or item.rarity != expected_rarity:
+        raise HeadlessTransitionError("generated Joker rarity must be exact")
+    if type(item.base_cost) is not int or item.base_cost != expected_base_cost:
+        raise HeadlessTransitionError("generated Joker base cost must be exact")
     if item.edition is not None:
         raise HeadlessTransitionError("generated Joker edition is not materializable")
     if type(item.price) is not int or item.price < 1:
         raise HeadlessTransitionError("generated Joker price must be exact")
-    if item.discovered is not True:
-        raise HeadlessTransitionError("base Joker discovery state must be exact")
+    if not isinstance(item.discovered, bool):
+        raise HeadlessTransitionError("generated Joker discovery state must be exact")
 
-    joker = FlatMultJoker()
+    joker = joker_type()
     joker.center = item.center_key
-    joker.label = "Joker"
+    joker.label = label
     joker.rarity = item.rarity
     joker.edition = None
     joker.base_cost = item.base_cost
     joker.cost = item.price
     joker.sell_cost = vanilla_card_sell_cost(item.price)
+    # Vanilla ``Card:add_to_deck`` discovers the center as part of acquisition.
     joker.discovered = True
     joker.eternal = False
     return joker

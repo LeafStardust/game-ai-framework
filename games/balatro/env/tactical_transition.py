@@ -260,6 +260,12 @@ def _require_baseline_discard_callbacks_exact(run: HeadlessRunState) -> None:
             f"{state.boss_name!r}"
         )
     if state.jokers:
+        from games.balatro.env.joker_tactical_capabilities import (
+            generated_joker_tactical_callbacks_are_exact,
+        )
+
+        if generated_joker_tactical_callbacks_are_exact(state.jokers):
+            return
         raise HeadlessTransitionError(
             "R4 baseline discard does not yet own Joker discard callbacks"
         )
