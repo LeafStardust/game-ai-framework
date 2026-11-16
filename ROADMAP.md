@@ -2538,21 +2538,16 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Develop a separately versioned, one-batch advantage-normalization shadow for
-the rejected v2 progress reward. Reconstruct the exact immutable batch-1
-rollouts once, prove the unchanged unnormalized branch reproduces the stored
-batch-1 checkpoint, then apply standard zero-mean/unit-variance normalization
-only to a cloned shadow batch before the existing PPO optimizer. Evaluate the
-initial, published unnormalized batch-1, and normalized-shadow policies on the
-same fixed 64-seed sparse-reward corpus.
+No implementation or operator run is currently authorized. The bounded
+advantage-normalization shadow completed with exact provenance and was rejected
+by its frozen gates. It must not be tuned, extended, promoted, or converted into
+a production change. The production candidate remains not promoted and
+Red/White competence remains unestablished.
 
-Freeze acceptance before execution: complete provenance and exact source
-reproduction are mandatory; the normalized arm may not regress either source
-arm in clears, mean Ante, terminal requirement progress, minimum cash, or
-terminal cash, and must strictly improve at least one of clears, Ante, or
-requirement progress. Reject rather than tune after the result. Do not change
-production reward, GAE, optimizer, model, mechanics, action policy, or promotion
-gates during this shadow experiment.
+The next development task is intentionally unfrozen at this evidence boundary.
+Before further code or training, a new causal hypothesis and bounded acceptance
+contract must be added here from the existing evidence; do not infer one from a
+request to continue. No live Balatro run or headless training run is required.
 
 Advantage-normalization shadow core checkpoint:
 
@@ -2596,9 +2591,39 @@ Advantage-normalization shadow core checkpoint:
   64-seed evaluation stages, without changing replay, optimization, or
   acceptance semantics. Focused local validation: **7 passed in 28.18s**.
   GitHub Actions run `43820451272`, job `133142088973`, passed the
-  authoritative **3383 passed, 1618 deselected in 247.42s**. The exact next
-  step is one canonical shadow execution and then a frozen accept/reject
-  publication; no production change or larger training is authorized.
+  authoritative **3383 passed, 1618 deselected in 247.42s**. At that
+  checkpoint, one canonical shadow execution and frozen accept/reject
+  publication were authorized; no production change or larger training was.
+
+Completed advantage-normalization shadow:
+
+- The canonical run completed with exit code 0 and exactly replayed all **288
+  batch-1 episodes / 2,048 optimizer transitions**. Its source batch SHA-256 is
+  `34612afdc697fa12a2bb18ce5af82f3788c13ba8d05ddb96d293dfaac805ea8d`.
+  Batch-0 and batch-1 milestone manifests, the published batch-1 checkpoint,
+  and the batch-1 journal all link exactly; the unchanged optimizer branch
+  reproduces published policy
+  `95b67aef977ba5c8c47ac48833970a2f72876c167b9ee4ef9b3e1027d99b1c90`.
+- The source advantage mean is `-0.7945601920605306` with variance
+  `0.5202687204900613`. The cloned shadow has mean
+  `-1.10588621593521e-17` and variance exactly `1.0`, consumes the same batch
+  through the existing 80-step optimizer, and produces policy
+  `6bac0d282112d8e5fffef299740de3496da34185ca74fd87baaf60b3e1d033be`.
+- Final decision: **REJECTED**. All three arms clear **0/64**. Initial,
+  published unnormalized, and normalized-shadow mean Ante are respectively
+  `1.515625`, `1.515625`, and `1.5`; mean terminal requirement progress is
+  `0.6561360677083333`, `0.6454286024305556`, and `0.649833984375`; mean
+  minimum cash is `$3.125`, `$3.1875`, and `$3.09375`; mean terminal cash is
+  `$9.5`, `$9.71875`, and `$9.484375`. The shadow regresses four protected
+  gates versus at least one source and strictly improves none of clears, Ante,
+  or requirement progress versus both sources.
+- The canonical 99,230-byte report and committed repository copy are
+  byte-identical with SHA-256
+  `13d68b9cbe9d74bb5b4fdbde077767bff58e636e5f55f77fb70b034e667e8f04`.
+  Evidence commit `9db22a480ae9f20634adb3a2aa705e8042b502c6` passed manually dispatched
+  GitHub Actions run `43823610291`, job `133152122846`, with **3383 passed,
+  1618 deselected in 250.92s**. V2 progress reward, its larger study,
+  advantage normalization, and further training on this line remain rejected.
 
 Eight-batch campaign-boundary checkpoint:
 
