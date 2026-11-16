@@ -2590,9 +2590,15 @@ Advantage-normalization shadow core checkpoint:
 - Focused local validation: **29 passed in 31.22s**; syntax compilation and
   `git diff --check` are clean. GitHub Actions run `43819636136`, job
   `133139496817`, passed the authoritative **3383 passed, 1618 deselected in
-  248.75s**. The exact next step is one canonical shadow execution and then a
-  frozen accept/reject publication; no production change or larger training is
-  authorized.
+  248.75s**.
+- Commit `6dd56ba902c42ae0219605f502096651e2af25bc` adds deterministic
+  `reconstruct_batch_1` progress for all 288 source episodes before the two
+  64-seed evaluation stages, without changing replay, optimization, or
+  acceptance semantics. Focused local validation: **7 passed in 28.18s**.
+  GitHub Actions run `43820451272`, job `133142088973`, passed the
+  authoritative **3383 passed, 1618 deselected in 247.42s**. The exact next
+  step is one canonical shadow execution and then a frozen accept/reject
+  publication; no production change or larger training is authorized.
 
 Eight-batch campaign-boundary checkpoint:
 
