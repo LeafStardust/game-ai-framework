@@ -2538,33 +2538,50 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Develop a separately versioned current-production strategic/shop decision trace.
-The full-horizon and stable-discard shadows are both rejected, while current
-production already clears the first blind on 62/64 seeds but wins 0/64 complete
-runs. Deeper tactical search is therefore closed as the active competence line;
-the next demonstrated boundary is whether the trained strategic policy acquires
-enough public shop power after those first clears.
+Restore the already-owned exact ordinary paid `REROLL_SHOP` transition to the
+production strategic action surface at `ShopTransitionEngine`. The completed
+trace proves the production backend never exposes `REROLL_SHOP`, `BUY_JOKER`, or
+`OPEN_PACK`; this is an environment action-bridge gap before policy quality can
+be judged. Start with reroll because `shop_reroll.can_reroll_base_main_shop` and
+`reroll_base_main_shop` already own its exact legality, price progression, RNG,
+inventory replacement, and Voucher constraints.
 
-Replay the exact current selective candidate on the fixed ordered 64-seed corpus
-and require byte-linked campaign, promotion, reproduction, and corpus provenance
-plus exact reproduction of every published terminal result. Record every PPO
-strategic decision with phase, public frame fields, observation digest, complete
-legal-action mask, masked probabilities, value estimate, selected indexed
-action, and its immediately observed next public frame. For every SHOP decision,
-also record canonical visible Joker/consumable/booster/Voucher descriptors and
-prices, owned capacity/counts, money, reroll cost, and all legal purchase/end/
-reroll actions. Use existing public serialization owners; do not invent item
-values or reconstruct hidden shop information.
+Expose only the parameterless `REROLL_SHOP` action when the canonical capability
+returns true and execute only through `reroll_base_main_shop(...).run`. Add
+focused deterministic regressions at `ShopTransitionEngine` and the production
+PPO backend for legal masking, money/current-next reroll cost, regenerated main
+inventory, preserved Voucher/booster inventory, and fail-closed unsupported
+states. Do not duplicate reroll mechanics, relax the canonical guard, add an
+RL-only transition, or change PPO/rewards/tactics. Generated-Joker materialization
+and booster opening remain later, separately gated action-bridge tasks; do not
+combine them with this checkpoint. No operator run is authorized before the
+implementation and focused regressions pass GitHub Actions.
 
-Publish exact phase/action frequencies and per-episode shop sequences, including
-how often `END_SHOP` is selected while an affordable purchase is legal, how often
-each acquisition family is selected, money before/after, and the associated
-terminal Ante/progress outcome. This is attribution only: do not substitute the
-retired manual Bond workflow, add a heuristic override, change PPO/rewards,
-alter tactics/mechanics, or run live Balatro. The result must name the earliest
-demonstrated strategic owner before any acquisition-policy shadow is frozen. No
-operator run is authorized until the trace owner and focused regressions pass
-GitHub Actions.
+Completed current-production strategic/shop attribution:
+
+- The fixed ordered 64-episode run completed with exit code 0 and exactly
+  reproduced every published production terminal result. The canonical and
+  committed 1,173,389-byte reports are byte-identical with SHA-256
+  `4f8902061a2d042cf27320e34337b7037884921f1ca91165eedb400eea4d44fc`.
+- The trace records 512 strategic decisions: 245 BLIND_SELECT and 267 SHOP
+  decisions across 62 shop-reaching episodes. Actions are 241 `SELECT_BLIND`,
+  4 `SKIP_BLIND`, 177 `END_SHOP`, 48 `BUY_CONSUMABLE`, and 42 `BUY_VOUCHER`.
+  `BUY_JOKER`, `OPEN_PACK`, and `REROLL_SHOP` are never legal or selected.
+- `END_SHOP` is selected 42 times while a currently legal affordable purchase
+  exists: 23 with consumable availability, 13 with Voucher availability, and 6
+  with both/two consumables. Those 42 choices span 34 episodes. The candidate
+  makes 90 purchases with mean immediate money delta `-$6.266666666666667`.
+- The stronger owner is the missing action bridge, not learned purchase refusal.
+  Affordable visible Jokers exist at 206/267 SHOP decisions across all 62 such
+  episodes, including 133 `END_SHOP` decisions. Affordable visible boosters
+  exist at 239/267 decisions, including 150 `END_SHOP` decisions. Money is at
+  least the environment-owned reroll cost at 233/267 decisions across all 62
+  episodes, including 146 `END_SHOP` decisions. These are availability counts,
+  not claims that currently absent transitions are legal.
+- Descriptively, the 48 episodes making any legal purchase average Ante
+  `1.64583333333333`, versus `1.0625` for the 16 without a purchase, but this is
+  observational trajectory evidence and does not establish causal policy value.
+  No acquisition-policy shadow is authorized until the action bridge is exact.
 
 Current-production strategic/shop trace implementation checkpoint:
 
@@ -3207,5 +3224,6 @@ Completed optimizer-input attribution:
 - `docs/balatro/BALATRO_PPO_PROGRESS_STUDY_REPORT.json`
 - `docs/balatro/BALATRO_PPO_PROGRESS_STUDY_BEHAVIOR.json`
 - `docs/balatro/BALATRO_PPO_PROGRESS_STUDY_OPTIMIZER_ATTRIBUTION.json`
+- `docs/balatro/BALATRO_PPO_STRATEGIC_SHOP_TRACE.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
