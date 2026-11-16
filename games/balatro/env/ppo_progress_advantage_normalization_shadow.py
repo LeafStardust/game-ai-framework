@@ -350,6 +350,7 @@ def _reconstruct_batch_one(
     *,
     maximum_workers: int,
     wave_collector: Callable | None = None,
+    progress_callback: Callable[[int, int], None] | None = None,
 ) -> _ReconstructedBatchOne:
     if (
         isinstance(maximum_workers, bool)
@@ -359,6 +360,8 @@ def _reconstruct_batch_one(
         raise PPOContractError("normalized shadow workers must be from 1 through 8")
     if wave_collector is not None and not callable(wave_collector):
         raise TypeError("wave_collector must be callable")
+    if progress_callback is not None and not callable(progress_callback):
+        raise TypeError("progress_callback must be callable")
     directory = Path(artifact_directory)
     training_run, _ = initialize_progress_study(directory)
     initial = load_progress_study_milestone(directory, training_run, 0)
@@ -385,6 +388,8 @@ def _reconstruct_batch_one(
         if actual != source_records[cursor]:
             raise PPOContractError("normalized shadow replayed episode drifted")
         cursor += 1
+        if progress_callback is not None:
+            progress_callback(cursor, len(source_records))
 
     def replay(collector: Callable) -> None:
         advance = session.advance_parallel(
@@ -499,10 +504,16 @@ def run_progress_advantage_normalization_shadow(
         raise TypeError("pair_executor must be callable")
     if progress_callback is not None and not callable(progress_callback):
         raise TypeError("progress_callback must be callable")
+    def progress(stage: str):
+        if progress_callback is None:
+            return None
+        return lambda completed, total: progress_callback(stage, completed, total)
+
     source = _reconstruct_batch_one(
         artifact_directory,
         maximum_workers=maximum_workers,
         wave_collector=wave_collector,
+        progress_callback=progress("reconstruct_batch_1"),
     )
     update = run_normalized_advantage_shadow_update(
         source.initial_learner,
@@ -515,11 +526,6 @@ def run_progress_advantage_normalization_shadow(
         source.initial_learner.model.parameter_sha256
     ):
         raise PPOContractError("normalized shadow initial policy linkage drifted")
-
-    def progress(stage: str):
-        if progress_callback is None:
-            return None
-        return lambda completed, total: progress_callback(stage, completed, total)
 
     published_pairs = evaluate_progress_policy_corpus_pair(
         source.initial_learner.model,

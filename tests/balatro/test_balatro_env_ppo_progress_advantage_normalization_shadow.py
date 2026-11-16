@@ -19,6 +19,7 @@ from games.balatro.env.ppo_progress_advantage_normalization_shadow import (
     PPOProgressNormalizationEpisode,
     _ReconstructedBatchOne,
     _combine_evaluations,
+    _reconstruct_batch_one,
     frozen_normalization_acceptance,
     normalize_ppo_batch_advantages,
     run_progress_advantage_normalization_shadow,
@@ -215,6 +216,12 @@ def test_normalized_shadow_rejects_output_overwrite_before_replay():
             "missing-study",
             __file__,
             maximum_workers=1,
+        )
+    with pytest.raises(TypeError, match="progress_callback must be callable"):
+        _reconstruct_batch_one(
+            "missing-study",
+            maximum_workers=1,
+            progress_callback=3,
         )
 
 
