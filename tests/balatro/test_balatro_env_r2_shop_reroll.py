@@ -5,7 +5,12 @@ from games.balatro.env.shop_reroll import (
     can_reroll_base_main_shop,
     reroll_base_main_shop,
 )
-from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.actions import EnvAction
+from games.balatro.env.transition import (
+    HeadlessRunState,
+    HeadlessTransitionError,
+    ShopTransitionEngine,
+)
 from games.balatro.jokers.chaos_the_clown import ChaosTheClownJoker
 from games.balatro.jokers.credit_card import CreditCardJoker
 from games.balatro.state import BalatroState
@@ -81,6 +86,38 @@ def test_env_r2_paid_reroll_charges_then_increments_cost_and_replaces_two_cards(
     assert run.public.money == 20
     assert run.reroll_cost == 5
     assert tuple(run.public.shop_jokers) + tuple(run.public.shop_consumables) == old_items
+
+
+def test_env_r2_shop_transition_delegates_exact_paid_reroll_without_mutation():
+    run = _generated_run("REROLL-BRIDGE")
+    action = EnvAction.from_alias("REROLL_SHOP")
+    engine = ShopTransitionEngine()
+    expected = reroll_base_main_shop(run)
+
+    assert action in engine.legal_actions(run)
+    actual = engine.step(run, action)
+
+    assert actual.serialize() == expected.run.serialize()
+    assert actual.public.money == 15
+    assert actual.reroll_cost == 6
+    assert run.public.money == 20
+    assert run.reroll_cost == 5
+
+
+def test_env_r2_shop_transition_masks_unaffordable_reroll_fail_closed():
+    run = _generated_run("REROLL-BRIDGE-UNAFFORDABLE")
+    run.public.money = 4
+    before = run.serialize()
+    action = EnvAction.from_alias("REROLL_SHOP")
+    engine = ShopTransitionEngine()
+
+    assert action not in engine.legal_actions(run)
+    with pytest.raises(
+        HeadlessTransitionError,
+        match="illegal shop transition: REROLL_SHOP",
+    ):
+        engine.step(run, action)
+    assert run.serialize() == before
 
 
 def test_env_r2_paid_reroll_replay_is_deterministic():

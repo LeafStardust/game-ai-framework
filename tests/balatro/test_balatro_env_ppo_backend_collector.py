@@ -218,6 +218,7 @@ def test_env_ppo_backend_clear_cashout_exposes_exact_generated_first_shop():
 
     actions = environment.legal_actions()
     assert EnvAction.from_alias("END_SHOP") in actions
+    assert EnvAction.from_alias("REROLL_SHOP") in actions
     assert all(action.alias != "OPEN_PACK" for action in actions)
     assert all(action.alias != "BUY_VOUCHER" for action in actions)
     assert legal_action_mask(actions).values[action_index(EnvAction.from_alias("END_SHOP"))]
@@ -228,6 +229,37 @@ def test_env_ppo_backend_clear_cashout_exposes_exact_generated_first_shop():
     assert restored.frame.encoded_observation().values == observation.values
     assert restored.serialize() == snapshot
     assert restored.legal_actions() == actions
+
+
+def test_env_ppo_backend_exposes_and_executes_exact_paid_shop_reroll():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed="PPO-REROLL-BRIDGE")
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    action = EnvAction.from_alias("REROLL_SHOP")
+    before_money = backend.run.public.money
+    before_cost = backend.run.reroll_cost
+    before_main = tuple(backend.run.public.shop_jokers) + tuple(
+        backend.run.public.shop_consumables
+    )
+    before_boosters = tuple(backend.run.public.shop_boosters)
+    before_vouchers = tuple(backend.run.public.shop_vouchers)
+
+    assert action in environment.legal_actions()
+    _, reward, terminated, truncated, _ = environment.step(action)
+
+    assert (reward, terminated, truncated) == (0.0, False, False)
+    assert backend.run.public.money == before_money - before_cost
+    assert backend.run.reroll_cost == before_cost + 1
+    assert tuple(backend.run.public.shop_jokers) + tuple(
+        backend.run.public.shop_consumables
+    ) != before_main
+    assert tuple(backend.run.public.shop_boosters) == before_boosters
+    assert tuple(backend.run.public.shop_vouchers) == before_vouchers
+    assert environment.frame.state.phase == "SHOP"
+    assert backend.run.public.money < backend.run.reroll_cost
+    assert action not in environment.legal_actions()
 
 
 def test_env_ppo_backend_replays_first_shop_big_blind_and_later_shop_exactly():
@@ -311,10 +343,11 @@ def test_env_ppo_backend_replays_first_shop_big_blind_and_later_shop_exactly():
     actions = environment.legal_actions()
     assert actions == (
         EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}),
+        EnvAction.from_alias("REROLL_SHOP"),
         EnvAction.from_alias("END_SHOP"),
     )
     mask = legal_action_mask(actions)
-    assert sum(mask.values) == 2
+    assert sum(mask.values) == 3
     assert mask.values[action_index(actions[0])] is True
     assert all(action.alias != "OPEN_PACK" for action in actions)
     later_boundary = PPORolloutBoundary.from_frame(environment.frame)
@@ -407,6 +440,7 @@ def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
     expected_actions = (
         EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 0}),
         EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}),
+        EnvAction.from_alias("REROLL_SHOP"),
         EnvAction.from_alias("END_SHOP"),
     )
     assert environment.legal_actions() == expected_actions

@@ -570,6 +570,10 @@ class ShopTransitionEngine:
             if self._voucher_redemption_is_exact(run, item, slot)
             and self._is_affordable(state, item)
         )
+        from games.balatro.env.shop_reroll import can_reroll_base_main_shop
+
+        if can_reroll_base_main_shop(run):
+            actions.append(EnvAction.from_alias("REROLL_SHOP"))
         if run.blind_progression_state is None:
             # Retain the original isolated R1 phase-transfer surface for generic
             # shop states that do not claim exact run progression.
@@ -612,6 +616,11 @@ class ShopTransitionEngine:
             state.shop_boosters.clear()
             state.shop_vouchers.clear()
             return next_run
+
+        if action.alias == "REROLL_SHOP":
+            from games.balatro.env.shop_reroll import reroll_base_main_shop
+
+            return reroll_base_main_shop(run).run
 
         slot = self._slot(params)
         if action.alias == "BUY_JOKER":
