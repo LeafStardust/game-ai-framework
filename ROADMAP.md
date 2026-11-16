@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`c55704d1887ff820c9e76e57dce4bf7ba14b33ea`.
+`91ec1092231694ce8377bf629a84b707b978e2c9`.
 
 ## Objective
 
@@ -2538,23 +2538,37 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the first exact generated-Joker acquisition bridge for only the ordinary
-base `j_joker` card. `GeneratedShopJokerItem` currently owns exact visible shop
-identity and price but deliberately is not a gameplay Joker, so the production
-backend cannot expose `BUY_JOKER` for generated inventory. Close only this one
-known mechanical boundary at the canonical generated-item/acquisition owners.
+Add the second exact generated-Joker acquisition bridge for only uneditioned
+`j_droll`. The committed 64-episode trace contains nine visible Droll Jokers,
+eight of them affordable and uneditioned, making it the most frequent currently
+unsupported generated center whose runtime model is already in the audited
+inventory-only acquisition set.
 
-Materialize an uneditioned exact `j_joker` descriptor as the canonical +4 Mult
-`FlatMultJoker`, preserving its exact center, rarity, base cost, purchase price,
-discovery state, and vanilla sale value. `ShopTransitionEngine` may expose and
-execute `BUY_JOKER` for that materializable item only; all other generated
-centers, editions, malformed metadata, and unsupported sticker/state cases must
-remain fail-closed. Keep existing modeled runtime-Joker acquisition unchanged.
-Add deterministic generation-to-mask-to-purchase regressions, exact scoring and
-sale lifecycle coverage, source-run isolation, and production PPO backend mask
-coverage. Do not add a generic/dynamic Joker factory, approximate unknown
-Jokers, widen other center support, open boosters, change PPO/rewards/tactics,
-or request an operator run during this checkpoint.
+Extend the canonical generated-item materializer with an explicit `j_droll` to
+`DrollJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`, public
+label, purchase price, discovery state, and sale value). Add deterministic
+materialization, mask, purchase, scoring, sale, isolation, and natural
+production-backend coverage for this center. Keep `j_joker` unchanged and all
+other generated centers/editions/malformed metadata fail-closed. Do not add a
+generic/dynamic factory, batch multiple centers, open boosters, change PPO,
+rewards, or tactics, or request an operator run during this checkpoint.
+
+Exact generated base-Joker acquisition checkpoint:
+
+- Implementation commit `91ec1092231694ce8377bf629a84b707b978e2c9`
+  materializes only exact discovered, uneditioned `j_joker` metadata with
+  canonical rarity 1/base cost 2 as `FlatMultJoker(+4 Mult)`. The purchase
+  preserves exact public metadata, uses vanilla `max(1, floor(cost / 2))` sale
+  value, and reuses the existing shop debit/order/acquisition and Joker-sale
+  owners.
+- Other centers, editions, wrong rarity/cost, unknown discovery, malformed
+  prices, and non-exact item types remain unavailable. Existing modeled runtime
+  Joker acquisition is unchanged.
+- Focused pricing/materialization/production-backend validation passed **48
+  tests**. The natural production seed `225` proves generation, legal-action
+  masking, purchase, exact +4 Mult scoring, sale masking, and exact resale.
+- GitHub Actions run `43892042820`, job `133385564033`, passed with **3424
+  passed, 1621 deselected in 316.08s**.
 
 Exact paid-reroll action-bridge checkpoint:
 
