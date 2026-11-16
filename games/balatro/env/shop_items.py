@@ -11,9 +11,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from games.balatro.env.shop_joker_generation import OrdinaryShopJokerDescriptor
-from games.balatro.env.shop_pricing import price_base_shop_joker_descriptor
+from games.balatro.env.shop_pricing import (
+    price_base_shop_joker_descriptor,
+    vanilla_card_sell_cost,
+)
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import expected_main_shop_slots_for_vouchers
+from games.balatro.jokers.flat_mult import FlatMultJoker
 
 
 @dataclass(frozen=True)
@@ -34,6 +38,43 @@ class GeneratedShopJokerItem:
     @property
     def center(self) -> str:
         return self.center_key
+
+
+def materialize_generated_shop_joker_for_acquisition(
+    item: GeneratedShopJokerItem,
+) -> FlatMultJoker:
+    """Construct the first exactly owned generated gameplay Joker.
+
+    Only vanilla's discovered, uneditioned base ``j_joker`` is admitted.  Every
+    other generated center stays metadata-only until its runtime mechanics and
+    lifecycle are independently owned.
+    """
+    if type(item) is not GeneratedShopJokerItem:
+        raise TypeError("item must be an exact GeneratedShopJokerItem")
+    if item.center_key != "j_joker":
+        raise HeadlessTransitionError("generated Joker center is not materializable")
+    if type(item.rarity) is not int or item.rarity != 1:
+        raise HeadlessTransitionError("base Joker rarity must be exact")
+    if type(item.base_cost) is not int or item.base_cost != 2:
+        raise HeadlessTransitionError("base Joker cost must be exact")
+    if item.edition is not None:
+        raise HeadlessTransitionError("generated Joker edition is not materializable")
+    if type(item.price) is not int or item.price < 1:
+        raise HeadlessTransitionError("generated Joker price must be exact")
+    if item.discovered is not True:
+        raise HeadlessTransitionError("base Joker discovery state must be exact")
+
+    joker = FlatMultJoker()
+    joker.center = item.center_key
+    joker.label = "Joker"
+    joker.rarity = item.rarity
+    joker.edition = None
+    joker.base_cost = item.base_cost
+    joker.cost = item.price
+    joker.sell_cost = vanilla_card_sell_cost(item.price)
+    joker.discovered = True
+    joker.eternal = False
+    return joker
 
 
 def materialize_shop_joker_descriptor(

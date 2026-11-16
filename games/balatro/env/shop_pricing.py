@@ -68,6 +68,18 @@ def vanilla_card_cost(
     return ordinary_cost * post_discount_multiplier
 
 
+def vanilla_card_sell_cost(cost: int, *, extra_value: int = 0) -> int:
+    """Return vanilla ``Card:set_cost`` sale value for an exact card cost."""
+    for name, value in (("cost", cost), ("extra_value", extra_value)):
+        if type(value) is not int:
+            raise HeadlessTransitionError(f"{name} must be an exact integer")
+    if cost < 0:
+        raise HeadlessTransitionError("cost cannot be negative")
+    if extra_value < 0:
+        raise HeadlessTransitionError("extra_value cannot be negative")
+    return max(1, math.floor(cost / 2)) + extra_value
+
+
 def price_base_shop_joker_descriptor(descriptor: OrdinaryShopJokerDescriptor) -> int:
     """Price one descriptor from authoritative canonical pricing state."""
     if not isinstance(descriptor, OrdinaryShopJokerDescriptor):

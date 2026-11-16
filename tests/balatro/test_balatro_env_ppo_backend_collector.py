@@ -29,6 +29,9 @@ from games.balatro.env.ppo_contract import (
 from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.state import RunStatus, TurnOwner
 from games.balatro.env.transition import HeadlessTransitionError
+from games.balatro.hand import PokerHand
+from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.scoring import BalatroScorer
 
 
 class _OneCardTacticalPolicy:
@@ -260,6 +263,52 @@ def test_env_ppo_backend_exposes_and_executes_exact_paid_shop_reroll():
     assert environment.frame.state.phase == "SHOP"
     assert backend.run.public.money < backend.run.reroll_cost
     assert action not in environment.legal_actions()
+
+
+def test_env_ppo_backend_exposes_exact_generated_base_joker_buy_and_sale():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed=225)
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+
+    assert tuple(
+        (item.center_key, item.base_cost, item.price, item.discovered)
+        for item in backend.run.public.shop_jokers
+    ) == (("j_joker", 2, 2, True),)
+    assert buy in environment.legal_actions()
+    assert legal_action_mask(environment.legal_actions()).values[
+        action_index(buy)
+    ] is True
+    before_money = backend.run.public.money
+    before_mult = BalatroScorer().score(
+        PokerHand.HIGH_CARD,
+        state=backend.run.public,
+    ).mult
+
+    _, reward, terminated, truncated, _ = environment.step(buy)
+
+    assert (reward, terminated, truncated) == (0.0, False, False)
+    assert backend.run.public.money == before_money - 2
+    assert backend.run.public.shop_jokers == []
+    assert len(backend.run.public.jokers) == 1
+    joker = backend.run.public.jokers[0]
+    assert type(joker) is FlatMultJoker
+    assert (joker.mult, joker.cost, joker.sell_cost) == (4, 2, 1)
+    assert BalatroScorer().score(
+        PokerHand.HIGH_CARD,
+        state=backend.run.public,
+    ).mult == before_mult + 4
+
+    sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert sell in environment.legal_actions()
+    assert legal_action_mask(environment.legal_actions()).values[
+        action_index(sell)
+    ] is True
+    environment.step(sell)
+    assert backend.run.public.money == before_money - 1
+    assert backend.run.public.jokers == []
 
 
 def test_env_ppo_backend_replays_first_shop_big_blind_and_later_shop_exactly():

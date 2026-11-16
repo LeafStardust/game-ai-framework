@@ -624,7 +624,17 @@ class ShopTransitionEngine:
 
         slot = self._slot(params)
         if action.alias == "BUY_JOKER":
-            purchased = state.shop_jokers[slot]
+            source_item = state.shop_jokers[slot]
+            purchased = source_item
+            from games.balatro.env.shop_items import (
+                GeneratedShopJokerItem,
+                materialize_generated_shop_joker_for_acquisition,
+            )
+
+            if type(source_item) is GeneratedShopJokerItem:
+                purchased = materialize_generated_shop_joker_for_acquisition(
+                    source_item
+                )
             if next_run.joker_order_state is not None:
                 try:
                     next_run.joker_order_state.acquire(purchased, state.jokers)
@@ -632,7 +642,15 @@ class ShopTransitionEngine:
                     raise HeadlessTransitionError(
                         "cannot retain exact Joker order for purchase"
                     ) from exc
-            self._buy(state, state.shop_jokers, state.jokers, slot)
+            if purchased is source_item:
+                self._buy(state, state.shop_jokers, state.jokers, slot)
+            else:
+                price = self._price(source_item)
+                if price < 0 or state.money < price:
+                    raise HeadlessTransitionError("shop item is not affordable")
+                state.money -= price
+                state.shop_jokers.pop(slot)
+                state.jokers.append(purchased)
             self._apply_joker_acquisition_effects(state, state.jokers[-1])
             return next_run
         if action.alias == "BUY_CONSUMABLE":
@@ -673,6 +691,17 @@ class ShopTransitionEngine:
 
     @staticmethod
     def _joker_acquisition_is_exact(state: BalatroState, item: Any) -> bool:
+        from games.balatro.env.shop_items import (
+            GeneratedShopJokerItem,
+            materialize_generated_shop_joker_for_acquisition,
+        )
+
+        if type(item) is GeneratedShopJokerItem:
+            try:
+                materialize_generated_shop_joker_for_acquisition(item)
+            except (TypeError, HeadlessTransitionError):
+                return False
+            return True
         if getattr(item, "edition", None):
             return False
         if type(item) in _EXACT_R1_JOKER_ACQUISITION_TYPES:

@@ -4,6 +4,7 @@ from games.balatro.env.shop_joker_generation import OrdinaryShopJokerDescriptor
 from games.balatro.env.shop_pricing import (
     price_base_shop_joker_descriptor,
     vanilla_card_cost,
+    vanilla_card_sell_cost,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
@@ -60,6 +61,23 @@ def test_env_r2_vanilla_card_cost_matches_discount_rounding_and_floor():
 
 def test_env_r2_vanilla_card_cost_includes_inflation_before_discount():
     assert vanilla_card_cost(5, edition="Holographic", inflation=2, discount_percent=25) == 7
+
+
+@pytest.mark.parametrize(
+    ("cost", "expected"),
+    ((1, 1), (2, 1), (3, 1), (4, 2), (5, 2), (6, 3)),
+)
+def test_env_r2_vanilla_card_sell_cost_matches_card_set_cost(cost, expected):
+    assert vanilla_card_sell_cost(cost) == expected
+
+
+def test_env_r2_vanilla_card_sell_cost_rejects_inexact_inputs():
+    with pytest.raises(HeadlessTransitionError, match="cost must be an exact integer"):
+        vanilla_card_sell_cost(2.0)
+    with pytest.raises(HeadlessTransitionError, match="cost cannot be negative"):
+        vanilla_card_sell_cost(-1)
+    with pytest.raises(HeadlessTransitionError, match="extra_value cannot be negative"):
+        vanilla_card_sell_cost(2, extra_value=-1)
 
 
 def test_env_r2_vanilla_card_cost_rejects_inexact_inputs_and_unknown_editions():
