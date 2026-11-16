@@ -2538,35 +2538,57 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Develop a separately versioned full-horizon tactical reference shadow. The
-frozen causal hypothesis is that the canonical public-safe expectimax model is
-materially stronger than its production outcomes show, but production's
-selective schedule normally stops after horizons 2 or 3 and therefore excludes
-the existing horizon-4/5 blind plan. Test this before replacing the planner's
-action model or evaluator.
+Develop a separately versioned current-production reproduction and divergence
+audit. The full-horizon shadow used the current environment and tactical owners
+but compared them with an immutable production candidate published before later
+repository changes. Several regressed episodes contain recorded decisions whose
+selected plans remain at horizons 1 through 3, so schedule-only causality is not
+yet established. Reproduce the current selective production engine before
+changing the action model or evaluator.
 
-The shadow must construct the existing canonical D1 planner, evaluator, action
-generator, draw model, policy, mechanics, Boss integrations, and trained PPO
-candidate unchanged. Its only tactical difference is the already-owned full
-adaptive schedule through the useful five-action cap with the existing 5,000
-node cap and unchanged draw exactness/sample contracts. Evaluate one read-only
-candidate episode for every fixed 64-seed corpus item and compare against the
-immutable published production candidate. Record every tactical decision,
-search attempt, selected public action, first-blind result, terminal metrics,
-and elapsed decision time. Do not add an arbitration rule or production factory.
+Load the same completed campaign, promotion result, fixed 64-seed corpus,
+published production candidate, published first-blind evidence, and committed
+full-horizon report. Execute the current canonical selective factory read-only
+on all 64 ordered seeds and record the same public decision/search/timing and
+terminal evidence. Compare current selective outcomes independently with both
+the immutable published baseline and current-code full-horizon outcomes. Record
+the earliest common-trajectory action divergence for every differing episode;
+do not infer equivalence merely from terminal metrics.
 
-Freeze acceptance before execution: complete campaign/promotion/candidate and
-fixed-corpus provenance, ordered deterministic episodes, zero illegal,
-unsupported, truncated, or incomplete outcomes, first-blind clear-count
-nonregression, and nonregression in full-game clears, mean Ante, mean terminal
-requirement progress, mean minimum cash, and mean terminal cash are mandatory.
-The reference must strictly improve at least one of full-game clears, mean Ante,
-or mean terminal requirement progress. Runtime is diagnostic rather than a
-promotion gate; an accepted reference would still require a separate bounded
-runtime-production task. Reject rather than tune after the result. Do not change
-production tactics, PPO, rewards, training, mechanics, promotion gates, or run
-live Balatro during this task. No operator run is authorized until the shadow
-owner and focused deterministic regressions pass GitHub Actions.
+Freeze the audit before execution: every source digest and corpus item must link
+exactly, the current selective factory must retain its production configuration,
+all episodes must be ordered and complete, and illegal, unsupported, truncated,
+or incomplete outcomes remain forbidden. Exact reproduction means status,
+action count, first-blind result, and all terminal metrics equal the published
+baseline for every seed. Independently apply the already-frozen full-horizon
+acceptance gates against the current selective replay. If reproduction drifts,
+publish the earliest deterministic divergence and return to that owner; if it
+is exact, the schedule attribution stands and the next task may target the
+evaluator/action model. This audit cannot promote full-horizon search or change
+production, PPO, rewards, mechanics, or live Balatro. No operator run is
+authorized until its owner and focused regressions pass GitHub Actions.
+
+Completed full-horizon tactical shadow:
+
+- The canonical 64-episode run completed with exit code 0. All source hashes,
+  fixed-corpus ordering, canonical bytes, and terminal statuses validate; there
+  are zero illegal, unsupported, truncated, or incomplete outcomes.
+- Final decision: **REJECTED**. First-blind clears remain **62/64** and full-game
+  clears remain **0/64**. Mean terminal requirement progress improves from
+  `0.6189615885416667` to `0.6402810329861112`, and mean minimum cash improves
+  from `$3.171875` to `$3.25`, but mean Ante regresses from `1.5` to `1.46875`
+  and mean terminal cash regresses from `$11.09375` to `$11.0`. Mandatory
+  nonregression therefore fails despite a strict competence-metric improvement.
+- The reference made 1,187 tactical decisions. Measured tactical search totals
+  17,098.247011898784 CPU-seconds; the slowest single decision took
+  1,394.076732199872 seconds. Runtime remains diagnostic and is not promotable.
+- The canonical and committed 2,393,562-byte reports are byte-identical with
+  SHA-256
+  `3147f3b6144303952c3d105444ce0791b9cb8e031b6ae2810b63dd4e1744d77e`.
+  Evidence commit `73420a1e18893654bdccc9eef2dc894ed02de1ce` passed manually
+  dispatched GitHub Actions run `43839855740`, job `133205534851`, with
+  **3390 passed, 1618 deselected in 257.46s**. Do not tune or rerun the rejected
+  full-horizon reference.
 
 Full-horizon tactical shadow implementation checkpoint:
 
@@ -2589,17 +2611,16 @@ Full-horizon tactical shadow implementation checkpoint:
   validation: **38 passed, 1 deselected in 3.19s**. Syntax compilation and
   `git diff --check` are clean.
 - GitHub Actions run `43829109036`, job `133169836913`, passed the
-  authoritative **3390 passed, 1618 deselected in 279.36s**. A minimal
-  read-only integration smoke against the real immutable artifacts is now the
-  exact next step; only after that smoke is green may the fixed 64-episode
-  operator shadow be authorized.
+  authoritative **3390 passed, 1618 deselected in 279.36s**. This authorized
+  the subsequent minimal read-only integration smoke against the real immutable
+  artifacts.
 - The read-only real-artifact smoke is green. Fixed-corpus episode 0 / game seed
   `9CA6BDC0` completed normally with status `LOSS`, 6 strategic actions, 13
   tactical decisions, first-blind clear, and Ante 1. Tactical search consumed
   27.853473500115797 seconds in total; the slowest decision took
-  11.943723100004718 seconds. The exact next step is one canonical fixed
-  64-episode operator execution, followed by publication of its frozen
-  accept/reject result. No production change is authorized by the smoke.
+  11.943723100004718 seconds. This authorized the now-completed canonical fixed
+  64-episode operator execution. No production change was authorized by the
+  smoke.
 
 Advantage-normalization shadow core checkpoint:
 
