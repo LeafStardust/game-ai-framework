@@ -2568,6 +2568,29 @@ evaluator/action model. This audit cannot promote full-horizon search or change
 production, PPO, rewards, mechanics, or live Balatro. No operator run is
 authorized until its owner and focused regressions pass GitHub Actions.
 
+Current-production reproduction audit implementation checkpoint:
+
+- Commit `de3a3a268e20276aea890769a8890ca47f826798` adds the separately
+  versioned read-only audit owner and CLI. It validates and uses the canonical
+  selective production factory unchanged, replays the fixed 64-seed candidate,
+  and links the completed campaign, promotion, diagnostics, first-blind source,
+  and committed full-horizon report by their exact digests.
+- The audit compares current selective outcomes independently with the published
+  production outcomes and current-code full-horizon outcomes. It records the
+  earliest state, tactical action, trace-length, or post-trace terminal
+  divergence instead of treating equal terminal metrics as equal trajectories,
+  and reapplies the frozen full-horizon gates against the current replay.
+- Source drift, noncanonical bytes, corpus/order drift, output overwrite,
+  production-factory drift, malformed decision evidence, and missing tactical
+  traces fail closed. The implementation changes no production factory, policy,
+  planner, evaluator, PPO, reward, or mechanic.
+- Focused local validation: **13 passed in 0.87s**. Broader affected local
+  validation: **70 passed in 4.69s**. Syntax compilation and `git diff --check`
+  are clean. GitHub Actions run `43841767886`, job `133211928439`, passed the
+  authoritative **3396 passed, 1618 deselected in 177.47s**. The exact next
+  step is a one-episode real-artifact integration smoke; only a green smoke may
+  authorize the canonical 64-episode audit execution.
+
 Completed full-horizon tactical shadow:
 
 - The canonical 64-episode run completed with exit code 0. All source hashes,
