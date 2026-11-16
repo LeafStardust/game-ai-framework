@@ -2570,8 +2570,29 @@ Advantage-normalization shadow core checkpoint:
   **25 passed in 36.13s**; syntax compilation and `git diff --check` are clean.
 - GitHub Actions run `43818158567`, job `133134846462`, passed the
   authoritative **3379 passed, 1618 deselected in 180.93s**. The active task
-  remains the exact canonical batch-1 reconstruction, three-arm fixed-corpus
-  report, and frozen accept/reject decision; no user run is authorized yet.
+  remained the exact canonical batch-1 reconstruction, three-arm fixed-corpus
+  report, and frozen accept/reject decision.
+- Commit `2eb46bd529b5ec8148510f390605cb86cdb52757` completes that bounded
+  runner. It loads only the immutable batch-0/batch-1 milestones, replays the
+  published journal through the production collector, captures the exact
+  2,048-transition optimizer batch, and requires the replayed checkpoint and
+  unnormalized policy digests to reproduce batch 1. It then evaluates initial,
+  published unnormalized, and normalized-shadow policies on the same fixed
+  sparse-reward corpus and writes all 64 ordered three-arm outcomes, source and
+  batch hashes, both 80-step optimizer traces, normalization statistics, and
+  the predeclared decision.
+- The frozen decision requires the normalized arm to match or exceed both
+  source arms on clears, mean Ante, mean terminal requirement progress, mean
+  minimum cash, and mean terminal cash, plus strictly exceed both sources on at
+  least one of clears, Ante, or requirement progress. Regression, a tie on all
+  three competence metrics, journal/order drift, repeated-initial evaluation
+  drift, incomplete provenance, and output overwrite all fail closed.
+- Focused local validation: **29 passed in 31.22s**; syntax compilation and
+  `git diff --check` are clean. GitHub Actions run `43819636136`, job
+  `133139496817`, passed the authoritative **3383 passed, 1618 deselected in
+  248.75s**. The exact next step is one canonical shadow execution and then a
+  frozen accept/reject publication; no production change or larger training is
+  authorized.
 
 Eight-batch campaign-boundary checkpoint:
 
