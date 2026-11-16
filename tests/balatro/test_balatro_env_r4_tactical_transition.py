@@ -192,6 +192,22 @@ def test_env_r4_baseline_discard_admits_exact_materialized_devious_noop_callback
     assert type(result.public.jokers[0]).__name__ == "DeviousJoker"
 
 
+def test_env_r4_baseline_discard_admits_exact_materialized_gluttonous_noop_callback():
+    run = _dealt_run(seed="R4-GLUTTONOUS-DISCARD")
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_gluttenous_joker", 1, 5, None, 5, False)
+        )
+    ]
+    before = _card_signature(run.public.hand[0])
+
+    result = apply_supported_tactical_discard(run, (0,))
+
+    assert _card_signature(result.public.discard_pile[-1]) == before
+    assert result.public.discards_remaining == 2
+    assert type(result.public.jokers[0]).__name__ == "GluttonousJoker"
+
+
 def test_env_r4_baseline_discard_requires_authoritative_private_draw_zone():
     run = _dealt_run()
     run.draw_pile.pop()
