@@ -2538,25 +2538,43 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the seventh exact generated-Joker acquisition bridge for only uneditioned
-`j_scholar`. The committed trace contains six exact uneditioned Scholar copies,
-five of which are affordable at the observed boundary. Its on-scored-card +20
-Chips and +4 Mult per Ace is already owned by `BalatroScorer`, and its discard
-callback is inert.
+Add the eighth exact generated-Joker acquisition bridge for only uneditioned
+`j_blue_joker`. The committed trace contains seven exact uneditioned Blue Joker
+copies, six of which are affordable at the observed boundary. Its +2 Chips per
+remaining draw-pile card is already owned by `BalatroScorer` and the exact
+private/public draw-zone synchronization, and its discard callback is inert.
 
-Extend the canonical generated-item materializer with an explicit `j_scholar`
-to `ScholarJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`,
-public label, purchase price, discovery transition, and sale value). Extend the
-generated-Joker tactical capability only for its already-owned on-scored effect
-and inert discard callback. Add deterministic materialization, mask, purchase,
-scoring, sale, isolation, natural production-backend, and complete rollout
-coverage. Keep the first six centers unchanged and every other generated
-center/edition/malformed state fail-closed. Do not add a generic factory, batch
-multiple centers, open boosters, change PPO, rewards, or tactics, or request an
-operator run during this checkpoint. Do not select Drunkard yet: its generated
-resource-changing acquisition/sale inverse is not owned. Do not select Dusk
-yet: its pre-hand final-hand retrigger callback is not owned at the
-play-transition boundary.
+Extend the canonical generated-item materializer with an explicit
+`j_blue_joker` to `BlueJoker` entry and exact vanilla identity (`rarity=1`,
+`base_cost=5`, public label, purchase price, discovery transition, and sale
+value). Extend the generated-Joker tactical capability only for its
+already-owned remaining-deck scoring effect and inert discard callback. Add
+deterministic materialization, mask, purchase, scoring, sale, isolation,
+natural production-backend, and complete rollout coverage. Keep the first
+seven centers unchanged and every other generated center/edition/malformed
+state fail-closed. Do not add a generic factory, batch multiple centers, open
+boosters, change PPO, rewards, or tactics, or request an operator run during
+this checkpoint. Keep the more frequent Drunkard, 8 Ball, Hallucination, Dusk,
+and Faceless Joker candidates fail-closed because their resource, stochastic,
+pack, pre-hand, or discard callbacks are not fully owned at the generated
+acquisition lifecycle.
+
+Exact generated Scholar acquisition checkpoint:
+
+- Implementation commit `4a0fefc6a5979d4447cf884a2d9150497a1b1bae` adds only
+  exact uneditioned `j_scholar` (`rarity=1`, `base_cost=4`) as the audited
+  `ScholarJoker`, with exact discovery, price/sale metadata, Ace scoring,
+  tactical continuation, and inverse sale lifecycle.
+- The generated-Joker tactical capability admits Scholar only through its
+  existing exact `BalatroScorer` owner and inert discard callback. Other
+  centers, mutations, and editions remain fail-closed.
+- Deterministic production-backend seed `27` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 115 / seed
+  `58918DC7` locks the exact seven-action buy/sell lifecycle.
+- The combined shop/backend/tactical/complete-rollout local gate passed **147
+  tests in 55.27s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `43956682316`, job `133612960160`, passed the authoritative
+  Balatro deterministic gate with **3466 passed, 1621 deselected in 275.85s**.
 
 Exact generated Gluttonous Joker acquisition checkpoint:
 
