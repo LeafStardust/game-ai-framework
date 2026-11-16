@@ -19,6 +19,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.env.voucher_capabilities import expected_main_shop_slots_for_vouchers
 from games.balatro.joker import Joker
 from games.balatro.jokers.droll_joker import DrollJoker
+from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 
@@ -64,6 +65,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Droll Joker"
+    elif item.center_key == "j_even_steven":
+        joker_type = EvenStevenJoker
+        expected_rarity = 1
+        expected_base_cost = 4
+        label = "Even Steven"
     elif item.center_key == "j_odd_todd":
         joker_type = OddToddJoker
         expected_rarity = 1

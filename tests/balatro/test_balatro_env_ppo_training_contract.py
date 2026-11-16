@@ -7,6 +7,7 @@ from games.balatro.blinds.blind import create_small_blind
 from games.balatro.env.action_encoding import legal_action_mask
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.observation_encoding import (
+    JOKER_CENTER_KEYS,
     PUBLIC_OBSERVATION_SCHEMA,
     VOUCHER_KEYS,
 )
@@ -53,6 +54,21 @@ def _policy_output(value=1.0):
         observation_version=PPO_TRAINING_CONTRACT.observation_version,
         action_version=PPO_TRAINING_CONTRACT.action_version,
         probabilities=(value,) * PPO_TRAINING_CONTRACT.action_size,
+        value_estimate=0.0,
+    )
+
+
+def _generated_joker_lifecycle_policy(observation, mask):
+    del observation
+    priorities = (*range(11, 17), 2, 1, 3, 0, 26, 25)
+    selected = next(index for index in priorities if mask.values[index])
+    probabilities = [0.0] * PPO_TRAINING_CONTRACT.action_size
+    probabilities[selected] = 1.0
+    return PPOPolicyOutput(
+        schema_version=PPO_POLICY_OUTPUT_SCHEMA,
+        observation_version=PPO_TRAINING_CONTRACT.observation_version,
+        action_version=PPO_TRAINING_CONTRACT.action_version,
+        probabilities=tuple(probabilities),
         value_estimate=0.0,
     )
 
@@ -262,6 +278,65 @@ def test_env_ppo_rollout_crosses_exact_generated_droll_and_odd_todd_lifecycles(
         11,
     )
     assert episode.boundaries[7].money == 13
+
+
+@pytest.fixture(scope="module")
+def episode_12_with_even_steven_lifecycle():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(4),
+        run,
+        episode_index=12,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_even_steven_lifecycle(
+    episode_12_with_even_steven_lifecycle,
+):
+    episode = episode_12_with_even_steven_lifecycle
+
+    assert episode.game_seed == "BAA636D2"
+    assert episode.action_count == 11
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+
+    before_buy = episode.boundaries[7]
+    after_buy = episode.boundaries[8]
+    after_sale = episode.boundaries[9]
+    even_center = float(JOKER_CENTER_KEYS.index("j_even_steven") + 1)
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (2, "SHOP", 31)
+    assert episode.decisions[7].action_mask.values[1] is True
+    assert _observation_feature(
+        before_buy.observation,
+        "shop.jokers.0.center",
+    ) == even_center
+    assert (after_buy.ante, after_buy.phase, after_buy.money) == (2, "SHOP", 27)
+    assert _observation_feature(
+        after_buy.observation,
+        "jokers.0.center",
+    ) == even_center
+    assert (after_sale.ante, after_sale.phase, after_sale.money) == (2, "SHOP", 29)
+    assert _observation_feature(
+        after_sale.observation,
+        "jokers.0.center",
+    ) == 0.0
 
 
 @pytest.fixture(scope="module")

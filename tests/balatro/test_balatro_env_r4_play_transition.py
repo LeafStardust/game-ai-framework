@@ -284,6 +284,29 @@ def test_env_r4_ordinary_play_scores_exact_materialized_odd_todd():
     assert type(result.public.jokers[0]).__name__ == "OddToddJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_even_steven():
+    baseline = _play_run(seed="R4-EVEN-STEVEN")
+    run = _play_run(seed="R4-EVEN-STEVEN")
+    even_index = next(
+        index
+        for index, card in enumerate(run.public.hand)
+        if card.rank in {"2", "4", "6", "8", "10"}
+    )
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_even_steven", 1, 4, None, 4, False)
+        )
+    ]
+
+    baseline_result = apply_supported_ordinary_play(baseline, (even_index,))
+    result = apply_supported_ordinary_play(run, (even_index,))
+
+    assert result.public.score - baseline_result.public.score == (
+        baseline_result.public.score * 4
+    )
+    assert type(result.public.jokers[0]).__name__ == "EvenStevenJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],
