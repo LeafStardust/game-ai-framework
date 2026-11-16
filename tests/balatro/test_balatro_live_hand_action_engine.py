@@ -9,6 +9,7 @@ from games.balatro.live.hand_action_policy import (
     PACE_PLAY,
     PACE_RECOVERY,
     SEARCH_SCHEDULE_SELECTIVE,
+    SEARCH_SCHEDULE_STABLE_DISCARD,
     HandActionThresholds,
     LiveHandActionDecisionEngine,
     LiveHandActionPolicy,
@@ -358,6 +359,179 @@ def test_sampled_clear_path_is_rejected_when_confirmation_changes_first_action()
     assert decision.sampled_clear_path_confirmed is False
     assert len(decision.search_attempts) == 2
     assert decision.search_attempts[1].confirmation is True
+
+
+def _search_config(horizon):
+    return SimpleNamespace(
+        horizon=horizon,
+        samples=8,
+        play_width=3,
+        discard_width=2,
+        max_nodes=5000,
+    )
+
+
+def test_stable_discard_shadow_requires_three_matching_searches_before_confirmation():
+    discard_marker = object()
+    fallback_marker = object()
+    sampled = _plan(
+        DISCARD_CARDS,
+        clear=0.85,
+        immediate_score=200.0,
+        marker=discard_marker,
+        exact=False,
+    )
+    confirmed = _plan(
+        DISCARD_CARDS,
+        clear=0.80,
+        immediate_score=200.0,
+        marker=discard_marker,
+        exact=False,
+    )
+    fallback = _plan(
+        PLAY_CARDS,
+        clear=0.0,
+        immediate_score=200.0,
+        marker=fallback_marker,
+    )
+    engine = _ConfirmationTestEngine(
+        adaptive_by_horizon={
+            2: [sampled, fallback],
+            3: [sampled, fallback],
+            4: [sampled, fallback],
+        },
+        confirmation_by_horizon={4: [confirmed, fallback]},
+        fallback_plans=[fallback],
+        policy=_policy(),
+        max_horizon=4,
+    )
+    engine.search_schedule_mode = SEARCH_SCHEDULE_STABLE_DISCARD
+
+    decision = engine._decide_schedule(
+        _state(discard_marker, fallback_marker),
+        tuple(_search_config(horizon) for horizon in (2, 3, 4)),
+    )
+
+    assert decision.mode == CLEAR_PATH
+    assert decision.action.cards == [discard_marker]
+    assert decision.setup_discard_consensus is True
+    assert decision.sampled_clear_path_confirmed is True
+    assert [attempt.horizon for attempt in decision.search_attempts] == [2, 3, 4, 4]
+    assert decision.search_attempts[-1].confirmation is True
+
+
+def test_stable_discard_shadow_rejects_unstable_sampled_discard_and_falls_back():
+    first_marker = object()
+    changed_marker = object()
+    fallback_marker = object()
+    first = _plan(
+        DISCARD_CARDS,
+        clear=0.85,
+        immediate_score=200.0,
+        marker=first_marker,
+        exact=False,
+    )
+    changed = _plan(
+        DISCARD_CARDS,
+        clear=0.85,
+        immediate_score=200.0,
+        marker=changed_marker,
+        exact=False,
+    )
+    fallback = _plan(
+        PLAY_CARDS,
+        clear=0.0,
+        immediate_score=200.0,
+        marker=fallback_marker,
+    )
+    engine = _ConfirmationTestEngine(
+        adaptive_by_horizon={2: [first], 3: [changed], 4: [changed]},
+        fallback_plans=[fallback],
+        policy=_policy(),
+        max_horizon=4,
+    )
+    engine.search_schedule_mode = SEARCH_SCHEDULE_STABLE_DISCARD
+
+    decision = engine._decide_schedule(
+        _state(first_marker, changed_marker, fallback_marker),
+        tuple(_search_config(horizon) for horizon in (2, 3, 4)),
+    )
+
+    assert decision.mode == PACE_PLAY
+    assert decision.action.cards == [fallback_marker]
+    assert decision.setup_discard_consensus is False
+    assert len(decision.search_attempts) == 3
+    assert not any(attempt.confirmation for attempt in decision.search_attempts)
+
+
+def test_stable_discard_shadow_keeps_exact_discard_and_sampled_play_semantics():
+    exact_discard_marker = object()
+    play_marker = object()
+    fallback_marker = object()
+    exact_discard = _plan(
+        DISCARD_CARDS,
+        clear=0.85,
+        immediate_score=200.0,
+        marker=exact_discard_marker,
+        exact=True,
+    )
+    fallback = _plan(
+        PLAY_CARDS,
+        clear=0.0,
+        immediate_score=200.0,
+        marker=fallback_marker,
+    )
+    exact_engine = _ConfirmationTestEngine(
+        adaptive_by_horizon={2: [exact_discard, fallback]},
+        fallback_plans=[fallback],
+        policy=_policy(),
+        max_horizon=2,
+    )
+    exact_engine.search_schedule_mode = SEARCH_SCHEDULE_STABLE_DISCARD
+
+    exact = exact_engine._decide_schedule(
+        _state(exact_discard_marker, fallback_marker),
+        (_search_config(2),),
+    )
+
+    assert exact.mode == CLEAR_PATH
+    assert exact.action.cards == [exact_discard_marker]
+    assert exact.setup_discard_consensus is False
+    assert len(exact.search_attempts) == 1
+
+    sampled_play = _plan(
+        PLAY_CARDS,
+        clear=0.85,
+        immediate_score=200.0,
+        marker=play_marker,
+        exact=False,
+    )
+    confirmed_play = _plan(
+        PLAY_CARDS,
+        clear=0.80,
+        immediate_score=200.0,
+        marker=play_marker,
+        exact=False,
+    )
+    play_engine = _ConfirmationTestEngine(
+        adaptive_by_horizon={2: [sampled_play]},
+        confirmation_by_horizon={2: [confirmed_play]},
+        fallback_plans=[fallback],
+        policy=_policy(),
+        max_horizon=2,
+    )
+    play_engine.search_schedule_mode = SEARCH_SCHEDULE_STABLE_DISCARD
+
+    play = play_engine._decide_schedule(
+        _state(play_marker, fallback_marker),
+        (_search_config(2),),
+    )
+
+    assert play.mode == CLEAR_PATH
+    assert play.action.cards == [play_marker]
+    assert play.setup_discard_consensus is False
+    assert play.sampled_clear_path_confirmed is True
+    assert len(play.search_attempts) == 2
 
 
 def test_adaptive_engine_enters_pace_fallback_when_no_clear_path_exists():

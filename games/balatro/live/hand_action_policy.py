@@ -30,10 +30,12 @@ PACE_RECOVERY = "PACE_RECOVERY"
 SEARCH_SCHEDULE_FULL = "full"
 SEARCH_SCHEDULE_PROBE_DEEPEST = "probe-deepest"
 SEARCH_SCHEDULE_SELECTIVE = "selective"
+SEARCH_SCHEDULE_STABLE_DISCARD = "stable-discard"
 _SEARCH_SCHEDULE_MODES = {
     SEARCH_SCHEDULE_FULL,
     SEARCH_SCHEDULE_PROBE_DEEPEST,
     SEARCH_SCHEDULE_SELECTIVE,
+    SEARCH_SCHEDULE_STABLE_DISCARD,
 }
 
 
@@ -867,6 +869,7 @@ class LiveHandActionDecisionEngine:
         if self.search_schedule_mode in {
             SEARCH_SCHEDULE_FULL,
             SEARCH_SCHEDULE_SELECTIVE,
+            SEARCH_SCHEDULE_STABLE_DISCARD,
         } or len(schedule) <= 1:
             return schedule
 
@@ -943,13 +946,34 @@ class LiveHandActionDecisionEngine:
                     break
                 continue
 
+            stable_sampled_discard = False
+            if (
+                self.search_schedule_mode == SEARCH_SCHEDULE_STABLE_DISCARD
+                and clear_path.action.name == DISCARD_CARDS
+                and not clear_path.exact
+            ):
+                stable_sampled_discard = stable_discard_consensus(
+                    tuple(summaries),
+                    minimum_agreement=(
+                        self.policy.thresholds.setup_discard_consensus_agreement
+                    ),
+                ) and self._action_signature(
+                    state, clear_path.action
+                ) == self._action_signature(
+                    state, best.action
+                )
+                if not stable_sampled_discard:
+                    if self._budget_exhausted():
+                        break
+                    continue
+
             if clear_path.exact:
                 return self.policy.decide(
                     state,
                     plans,
                     search_attempts=tuple(attempts),
                     completed_search_plans=tuple(completed_search_plans),
-                    setup_discard_consensus=False,
+                    setup_discard_consensus=stable_sampled_discard,
                 )
 
             confirmation_config = self._confirmation_config(config)
@@ -1006,7 +1030,7 @@ class LiveHandActionDecisionEngine:
                     confirmed_plans,
                     search_attempts=tuple(attempts),
                     completed_search_plans=tuple(completed_search_plans),
-                    setup_discard_consensus=False,
+                    setup_discard_consensus=stable_sampled_discard,
                 )
             return self.policy.decide(
                 state,
@@ -1014,7 +1038,7 @@ class LiveHandActionDecisionEngine:
                 search_attempts=tuple(attempts),
                 completed_search_plans=tuple(completed_search_plans),
                 confirmed_clear_path=confirmed,
-                setup_discard_consensus=False,
+                setup_discard_consensus=stable_sampled_discard,
             )
 
         consensus = stable_discard_consensus(
