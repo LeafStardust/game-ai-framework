@@ -2590,9 +2590,13 @@ Current-production strategic/shop trace implementation checkpoint:
   **67 passed in 15.46s**. CLI import/help, syntax compilation, and
   `git diff --check` are clean. GitHub Actions run `43865361267`, job
   `133292403885`, passed with **3407 passed, 1621 deselected in 248.10s**.
-- A one-episode real-artifact smoke is now authorized. Do not run the fixed
-  64-episode trace until that smoke reproduces production and writes complete
-  strategic/shop evidence.
+- The real-artifact episode-0 / seed `9CA6BDC0` smoke is green. It exactly
+  reproduces the published production result (`LOSS`, 6 strategic actions),
+  records all 6 PPO decisions including 3 SHOP decisions, and produces episode
+  trace SHA-256
+  `f35b46ec0a5f7b3ad1c12f133b6bc761f50910d85c12cdc5f9d7400c19257342`.
+  The fixed ordered 64-episode strategic/shop trace is now authorized; its
+  canonical report must complete with exit code 0 before attribution begins.
 
 Completed stable-discard deep-search shadow:
 
