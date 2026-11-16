@@ -2538,34 +2538,59 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Develop a separately versioned stable-discard deep-search shadow at the
-canonical `LiveHandActionDecisionEngine` owner. The reproduction audit proves
-that schedule-only deepening causes all 33 trajectory divergences. The existing
-engine already owns `stable_discard_consensus` for sampled setup discards, but a
-sampled deep discard that crosses the clear-path probability floor returns
-before that cross-horizon stability rule is consulted.
+Develop a separately versioned current-production strategic/shop decision trace.
+The full-horizon and stable-discard shadows are both rejected, while current
+production already clears the first blind on 62/64 seeds but wins 0/64 complete
+runs. Deeper tactical search is therefore closed as the active competence line;
+the next demonstrated boundary is whether the trained strategic policy acquires
+enough public shop power after those first clears.
 
-Add one explicit shadow schedule mode. It must retain the full adaptive schedule,
-all existing horizons, node/sample/exactness limits, candidate generation,
-evaluator, policy, mechanics, trained PPO, and same-horizon confirmation.
-Play clear paths and exact discard clear paths remain unchanged. An inexact
-discard clear path may be admitted only after the existing three-recommendation
-`stable_discard_consensus` succeeds on completed ordinary search attempts; it
-must then pass the unchanged stronger same-horizon confirmation. Without that
-consensus, continue the already-owned schedule and eventually use the existing
-immediate fallback. Do not add a new probability threshold or hand-authored
-action override.
+Replay the exact current selective candidate on the fixed ordered 64-seed corpus
+and require byte-linked campaign, promotion, reproduction, and corpus provenance
+plus exact reproduction of every published terminal result. Record every PPO
+strategic decision with phase, public frame fields, observation digest, complete
+legal-action mask, masked probabilities, value estimate, selected indexed
+action, and its immediately observed next public frame. For every SHOP decision,
+also record canonical visible Joker/consumable/booster/Voucher descriptors and
+prices, owned capacity/counts, money, reroll cost, and all legal purchase/end/
+reroll actions. Use existing public serialization owners; do not invent item
+values or reconstruct hidden shop information.
 
-Evaluate the shadow on the same ordered fixed 64-seed corpus against the exact
-current selective outcomes committed by the reproduction audit. Freeze the same
-zero-failure, first-blind, full-clear, mean Ante, requirement-progress, minimum-
-cash, terminal-cash, and strict-improvement gates. Record every decision,
-attempt, consensus decision, first-blind result, terminal metric, and elapsed
-time. Reject rather than tune. A fixed-corpus acceptance would authorize only a
-separate immutable unseeded-manifest validation before any production change.
-Do not change production defaults, PPO, rewards, mechanics, promotion gates, or
-live Balatro. No operator run is authorized until the shadow owner and focused
-regressions pass GitHub Actions.
+Publish exact phase/action frequencies and per-episode shop sequences, including
+how often `END_SHOP` is selected while an affordable purchase is legal, how often
+each acquisition family is selected, money before/after, and the associated
+terminal Ante/progress outcome. This is attribution only: do not substitute the
+retired manual Bond workflow, add a heuristic override, change PPO/rewards,
+alter tactics/mechanics, or run live Balatro. The result must name the earliest
+demonstrated strategic owner before any acquisition-policy shadow is frozen. No
+operator run is authorized until the trace owner and focused regressions pass
+GitHub Actions.
+
+Completed stable-discard deep-search shadow:
+
+- The canonical 64-episode run completed with exit code 0, canonical bytes,
+  exact source/corpus order, and zero illegal, unsupported, truncated, or
+  incomplete outcomes.
+- Final decision: **REJECTED**. First-blind clears remain **62/64** and full-game
+  clears remain **0/64**. Mean requirement progress improves from
+  `0.6189615885416667` to `0.6384233940972223` and mean minimum cash from
+  `$3.171875` to `$3.25`, but mean Ante regresses from `1.5` to `1.484375` and
+  terminal cash from `$11.09375` to `$11.03125`.
+- The rule admitted 159 stable-discard consensus decisions across 1,194 tactical
+  decisions and still produced 33 trajectory divergences. It prevents the full
+  shadow's Ante regressions on episodes 21 and 40, but introduces a new Ante
+  regression on episode 2. Relative to production, four seeds regress by one
+  Ante and three improve by one; the mandatory nonregression gate remains false.
+- Tactical search consumed 19,091.189077496994 CPU-seconds; the slowest decision
+  took 1,899.1425431999378 seconds. This is slower than the rejected unrestricted
+  full shadow and is not production-viable.
+- The canonical and committed 2,574,290-byte reports are byte-identical with
+  SHA-256
+  `f9cdcc3d44d5ddb1570187e3ef14d019386aca7ab8d4b4b75a0fb89312ec74ba`.
+  Evidence commit `902ad9c65d9037ca86d33d1f976fc7e002a5cdd7` passed manually
+  dispatched GitHub Actions run `43862084657`, job `133281184889`, with
+  **3400 passed, 1621 deselected in 247.06s**. Do not tune or rerun either
+  rejected deep-search shadow.
 
 Stable-discard deep-search implementation checkpoint:
 
@@ -2590,9 +2615,8 @@ Stable-discard deep-search implementation checkpoint:
   6 strategic actions, 13 tactical decisions, first-blind clear, Ante 1, and
   zero stable-discard consensus admissions. Tactical search consumed
   23.540129899978638 seconds; the slowest decision took
-  11.665872200159356 seconds. The exact next step is one canonical fixed
-  64-episode stable-discard shadow, followed by its frozen accept/reject
-  publication. No production change is authorized.
+  11.665872200159356 seconds. This authorized the now-completed canonical fixed
+  64-episode stable-discard shadow. No production change was authorized.
 
 Completed current-production reproduction audit:
 
