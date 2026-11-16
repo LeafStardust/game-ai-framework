@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`b42050c986cb3b592522ce6fd40d92a7af5add62`.
+`c55704d1887ff820c9e76e57dce4bf7ba14b33ea`.
 
 ## Objective
 
@@ -2538,24 +2538,40 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Restore the already-owned exact ordinary paid `REROLL_SHOP` transition to the
-production strategic action surface at `ShopTransitionEngine`. The completed
-trace proves the production backend never exposes `REROLL_SHOP`, `BUY_JOKER`, or
-`OPEN_PACK`; this is an environment action-bridge gap before policy quality can
-be judged. Start with reroll because `shop_reroll.can_reroll_base_main_shop` and
-`reroll_base_main_shop` already own its exact legality, price progression, RNG,
-inventory replacement, and Voucher constraints.
+Add the first exact generated-Joker acquisition bridge for only the ordinary
+base `j_joker` card. `GeneratedShopJokerItem` currently owns exact visible shop
+identity and price but deliberately is not a gameplay Joker, so the production
+backend cannot expose `BUY_JOKER` for generated inventory. Close only this one
+known mechanical boundary at the canonical generated-item/acquisition owners.
 
-Expose only the parameterless `REROLL_SHOP` action when the canonical capability
-returns true and execute only through `reroll_base_main_shop(...).run`. Add
-focused deterministic regressions at `ShopTransitionEngine` and the production
-PPO backend for legal masking, money/current-next reroll cost, regenerated main
-inventory, preserved Voucher/booster inventory, and fail-closed unsupported
-states. Do not duplicate reroll mechanics, relax the canonical guard, add an
-RL-only transition, or change PPO/rewards/tactics. Generated-Joker materialization
-and booster opening remain later, separately gated action-bridge tasks; do not
-combine them with this checkpoint. No operator run is authorized before the
-implementation and focused regressions pass GitHub Actions.
+Materialize an uneditioned exact `j_joker` descriptor as the canonical +4 Mult
+`FlatMultJoker`, preserving its exact center, rarity, base cost, purchase price,
+discovery state, and vanilla sale value. `ShopTransitionEngine` may expose and
+execute `BUY_JOKER` for that materializable item only; all other generated
+centers, editions, malformed metadata, and unsupported sticker/state cases must
+remain fail-closed. Keep existing modeled runtime-Joker acquisition unchanged.
+Add deterministic generation-to-mask-to-purchase regressions, exact scoring and
+sale lifecycle coverage, source-run isolation, and production PPO backend mask
+coverage. Do not add a generic/dynamic Joker factory, approximate unknown
+Jokers, widen other center support, open boosters, change PPO/rewards/tactics,
+or request an operator run during this checkpoint.
+
+Exact paid-reroll action-bridge checkpoint:
+
+- Implementation commit `c55704d1887ff820c9e76e57dce4bf7ba14b33ea`
+  restores parameterless `REROLL_SHOP` at `ShopTransitionEngine` only when
+  `shop_reroll.can_reroll_base_main_shop` accepts the run, and executes only
+  through `reroll_base_main_shop(...).run`. The production change is nine lines
+  and duplicates no reroll mechanics.
+- Focused transition/backend validation passed **45 tests**. The broader local
+  environment gate passed **1213 tests, 3818 deselected**.
+- The first CI run correctly exposed one stale legal-mask assertion and 15
+  exact seeded rollout expectations whose trajectories changed because paid
+  reroll became genuinely selectable. No assertion was weakened; commit
+  `8744753ce19b837b2ba2078dc01c3861ce3ccec7` updates those deterministic
+  trajectory contracts and the affected exact corruption indices.
+- GitHub Actions run `43888746568`, job `133373881308`, passed the corrected
+  authoritative branch with **3410 passed, 1621 deselected in 276.24s**.
 
 Completed current-production strategic/shop attribution:
 
