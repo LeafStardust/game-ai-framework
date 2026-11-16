@@ -2568,6 +2568,32 @@ production tactics, PPO, rewards, training, mechanics, promotion gates, or run
 live Balatro during this task. No operator run is authorized until the shadow
 owner and focused deterministic regressions pass GitHub Actions.
 
+Full-horizon tactical shadow implementation checkpoint:
+
+- Commit `df192fcb7f94be54ee5c98018db28d6a0e315f7f` adds the separately
+  versioned read-only shadow owner and CLI. It reconstructs the production
+  tactical engine and changes only its existing adaptive schedule from
+  selective to full, retaining the useful horizon-5 cap, 5,000-node ceiling,
+  draw contracts, policy, mechanics, and trained PPO candidate.
+- The runner cryptographically loads the completed campaign, promotion result,
+  fixed 64-seed candidate corpus, published production candidate, and published
+  first-blind evidence. It records ordered full-game outcomes plus every
+  tactical decision, public action, search attempt, selected plan, first-blind
+  result, and elapsed decision time. Source/order drift, artifact overwrite,
+  malformed counters, illegal/unsupported/truncated/incomplete outcomes, and
+  failure of any frozen acceptance gate fail closed.
+- Deterministic regressions prove that only the schedule mode changes, exercise
+  acceptance and each rejection family, verify the exact published first-blind
+  source and SHOP boundary, and cover ordering, overwrite, and counter
+  validation. Focused local validation: **7 passed in 0.69s**; broader affected
+  validation: **38 passed, 1 deselected in 3.19s**. Syntax compilation and
+  `git diff --check` are clean.
+- GitHub Actions run `43829109036`, job `133169836913`, passed the
+  authoritative **3390 passed, 1618 deselected in 279.36s**. A minimal
+  read-only integration smoke against the real immutable artifacts is now the
+  exact next step; only after that smoke is green may the fixed 64-episode
+  operator shadow be authorized.
+
 Advantage-normalization shadow core checkpoint:
 
 - Commit `b63535013dbdba69ae62a7fb4c84b3d0345632c0` adds a separately
