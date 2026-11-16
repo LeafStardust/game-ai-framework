@@ -30,6 +30,7 @@ from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.state import RunStatus, TurnOwner
 from games.balatro.env.transition import HeadlessTransitionError
 from games.balatro.hand import PokerHand
+from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
@@ -321,6 +322,36 @@ def test_env_ppo_backend_acquires_generated_even_steven_and_discovers_its_center
     assert backend.run.public.jokers[0].sell_cost == 2
     assert backend.run.generated_center_discovered("j_even_steven") is True
     assert "j_even_steven" in backend.run.tag_profile_state.discovered_center_keys
+    sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert sell in environment.legal_actions()
+    environment.step(sell)
+    assert backend.run.public.money == before_money - 2
+
+
+def test_env_ppo_backend_acquires_generated_devious_and_discovers_its_center():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed=44)
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 1})
+    before_money = backend.run.public.money
+
+    assert tuple(
+        (item.center_key, item.base_cost, item.price, item.discovered)
+        for item in backend.run.public.shop_jokers
+    ) == (
+        ("j_rocket", 6, 6, False),
+        ("j_devious", 4, 4, False),
+    )
+    assert buy in environment.legal_actions()
+    environment.step(buy)
+
+    assert backend.run.public.money == before_money - 4
+    assert type(backend.run.public.jokers[0]) is DeviousJoker
+    assert backend.run.public.jokers[0].sell_cost == 2
+    assert backend.run.generated_center_discovered("j_devious") is True
+    assert "j_devious" in backend.run.tag_profile_state.discovered_center_keys
     sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
     assert sell in environment.legal_actions()
     environment.step(sell)

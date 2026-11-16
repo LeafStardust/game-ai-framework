@@ -340,6 +340,61 @@ def test_env_ppo_rollout_crosses_exact_generated_even_steven_lifecycle(
 
 
 @pytest.fixture(scope="module")
+def episode_21_with_devious_lifecycle():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(5),
+        run,
+        episode_index=21,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_devious_lifecycle(
+    episode_21_with_devious_lifecycle,
+):
+    episode = episode_21_with_devious_lifecycle
+
+    assert episode.game_seed == "1D88A8A1"
+    assert episode.action_count == 7
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+
+    before_buy = episode.boundaries[1]
+    after_buy = episode.boundaries[2]
+    after_sale = episode.boundaries[3]
+    devious_center = float(JOKER_CENTER_KEYS.index("j_devious") + 1)
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 7)
+    assert episode.decisions[1].action_mask.values[1] is True
+    assert _observation_feature(
+        before_buy.observation,
+        "shop.jokers.0.center",
+    ) == devious_center
+    assert (after_buy.ante, after_buy.phase, after_buy.money) == (1, "SHOP", 3)
+    assert _observation_feature(
+        after_buy.observation,
+        "jokers.0.center",
+    ) == devious_center
+    assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 5)
+    assert _observation_feature(
+        after_sale.observation,
+        "jokers.0.center",
+    ) == 0.0
+
+
+@pytest.fixture(scope="module")
 def episode_46_with_paint_brush():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
@@ -400,32 +455,41 @@ def episode_313_with_wheel_redraws():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_wheel_play_and_discard_redraws(
+def test_env_ppo_rollout_crosses_exact_devious_purchase_and_wheel_redraws(
     episode_313_with_wheel_redraws,
 ):
     episode = episode_313_with_wheel_redraws
 
     assert episode.game_seed == "88DB75F5"
-    assert episode.action_count == 13
+    assert episode.action_count == 6
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert episode.boundaries[-1].ante == 1
-    assert episode.boundaries[-1].score == 364
+    assert episode.boundaries[-1].score == 576
     assert [decision.action.alias for decision in episode.decisions] == [
         "SELECT_BLIND",
         "END_SHOP",
         "SELECT_BLIND",
-        "END_SHOP",
-        "SELECT_BLIND",
-        "BUY_VOUCHER",
-        "REROLL_SHOP",
-        "END_SHOP",
-        "SELECT_BLIND",
-        "END_SHOP",
-        "SELECT_BLIND",
+        "BUY_JOKER",
         "END_SHOP",
         "SELECT_BLIND",
     ]
+
+    before_buy = episode.boundaries[3]
+    after_buy = episode.boundaries[4]
+    devious_center = float(JOKER_CENTER_KEYS.index("j_devious") + 1)
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 14)
+    assert episode.decisions[3].action.payload() == {"slot": 0}
+    assert episode.decisions[3].action_mask.values[1] is True
+    assert _observation_feature(
+        before_buy.observation,
+        "shop.jokers.0.center",
+    ) == devious_center
+    assert (after_buy.ante, after_buy.phase, after_buy.money) == (1, "SHOP", 10)
+    assert _observation_feature(
+        after_buy.observation,
+        "jokers.0.center",
+    ) == devious_center
 
 
 @pytest.fixture(scope="module")

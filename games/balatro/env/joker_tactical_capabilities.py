@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
@@ -17,6 +18,8 @@ def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
             if type(joker.mult) is not int or joker.mult != 4:
                 return False
             expected_center = "j_joker"
+        elif type(joker) is DeviousJoker:
+            expected_center = "j_devious"
         elif type(joker) is DrollJoker:
             expected_center = "j_droll"
         elif type(joker) is EvenStevenJoker:

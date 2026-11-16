@@ -1,3 +1,5 @@
+from itertools import combinations
+
 import pytest
 
 from games.balatro.blinds.blind import Blind, BlindType
@@ -10,6 +12,8 @@ from games.balatro.env.shop_items import (
     materialize_generated_shop_joker_for_acquisition,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.hand import PokerHand
+from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 from games.balatro.consumable import PlanetCard
@@ -305,6 +309,44 @@ def test_env_r4_ordinary_play_scores_exact_materialized_even_steven():
         baseline_result.public.score * 4
     )
     assert type(result.public.jokers[0]).__name__ == "EvenStevenJoker"
+
+
+def test_env_r4_ordinary_play_scores_exact_materialized_devious():
+    baseline = None
+    run = None
+    indices = None
+    for attempt in range(500):
+        candidate = _play_run(seed=f"R4-DEVIOUS-{attempt}")
+        straight = next(
+            (
+                positions
+                for positions in combinations(range(len(candidate.public.hand)), 5)
+                if HandEvaluator().contains(
+                    [candidate.public.hand[index] for index in positions],
+                    PokerHand.STRAIGHT,
+                )
+            ),
+            None,
+        )
+        if straight is not None:
+            baseline = candidate
+            run = _play_run(seed=f"R4-DEVIOUS-{attempt}")
+            indices = tuple(straight)
+            break
+
+    assert baseline is not None and run is not None and indices is not None
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_devious", 1, 4, None, 4, False)
+        )
+    ]
+
+    baseline_result = apply_supported_ordinary_play(baseline, indices)
+    result = apply_supported_ordinary_play(run, indices)
+
+    assert result.public.last_played_hand == "STRAIGHT"
+    assert result.public.score - baseline_result.public.score == 400
+    assert type(result.public.jokers[0]).__name__ == "DeviousJoker"
 
 
 @pytest.mark.parametrize(
