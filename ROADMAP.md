@@ -2538,35 +2538,60 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Develop a separately versioned current-production reproduction and divergence
-audit. The full-horizon shadow used the current environment and tactical owners
-but compared them with an immutable production candidate published before later
-repository changes. Several regressed episodes contain recorded decisions whose
-selected plans remain at horizons 1 through 3, so schedule-only causality is not
-yet established. Reproduce the current selective production engine before
-changing the action model or evaluator.
+Develop a separately versioned stable-discard deep-search shadow at the
+canonical `LiveHandActionDecisionEngine` owner. The reproduction audit proves
+that schedule-only deepening causes all 33 trajectory divergences. The existing
+engine already owns `stable_discard_consensus` for sampled setup discards, but a
+sampled deep discard that crosses the clear-path probability floor returns
+before that cross-horizon stability rule is consulted.
 
-Load the same completed campaign, promotion result, fixed 64-seed corpus,
-published production candidate, published first-blind evidence, and committed
-full-horizon report. Execute the current canonical selective factory read-only
-on all 64 ordered seeds and record the same public decision/search/timing and
-terminal evidence. Compare current selective outcomes independently with both
-the immutable published baseline and current-code full-horizon outcomes. Record
-the earliest common-trajectory action divergence for every differing episode;
-do not infer equivalence merely from terminal metrics.
+Add one explicit shadow schedule mode. It must retain the full adaptive schedule,
+all existing horizons, node/sample/exactness limits, candidate generation,
+evaluator, policy, mechanics, trained PPO, and same-horizon confirmation.
+Play clear paths and exact discard clear paths remain unchanged. An inexact
+discard clear path may be admitted only after the existing three-recommendation
+`stable_discard_consensus` succeeds on completed ordinary search attempts; it
+must then pass the unchanged stronger same-horizon confirmation. Without that
+consensus, continue the already-owned schedule and eventually use the existing
+immediate fallback. Do not add a new probability threshold or hand-authored
+action override.
 
-Freeze the audit before execution: every source digest and corpus item must link
-exactly, the current selective factory must retain its production configuration,
-all episodes must be ordered and complete, and illegal, unsupported, truncated,
-or incomplete outcomes remain forbidden. Exact reproduction means status,
-action count, first-blind result, and all terminal metrics equal the published
-baseline for every seed. Independently apply the already-frozen full-horizon
-acceptance gates against the current selective replay. If reproduction drifts,
-publish the earliest deterministic divergence and return to that owner; if it
-is exact, the schedule attribution stands and the next task may target the
-evaluator/action model. This audit cannot promote full-horizon search or change
-production, PPO, rewards, mechanics, or live Balatro. No operator run is
-authorized until its owner and focused regressions pass GitHub Actions.
+Evaluate the shadow on the same ordered fixed 64-seed corpus against the exact
+current selective outcomes committed by the reproduction audit. Freeze the same
+zero-failure, first-blind, full-clear, mean Ante, requirement-progress, minimum-
+cash, terminal-cash, and strict-improvement gates. Record every decision,
+attempt, consensus decision, first-blind result, terminal metric, and elapsed
+time. Reject rather than tune. A fixed-corpus acceptance would authorize only a
+separate immutable unseeded-manifest validation before any production change.
+Do not change production defaults, PPO, rewards, mechanics, promotion gates, or
+live Balatro. No operator run is authorized until the shadow owner and focused
+regressions pass GitHub Actions.
+
+Completed current-production reproduction audit:
+
+- The canonical run completed with exit code 0 and reproduced all **64/64**
+  published production episodes exactly: status, action count, first-blind
+  result, and every terminal metric have zero mismatches. This establishes that
+  the rejected full-horizon result is schedule-caused rather than code-era drift.
+- All **33** current-selective/full-horizon trajectory differences have a common
+  state followed by a tactical action divergence; none begin with unexplained
+  state, trace-length, or terminal-only drift. Earliest changes comprise 24
+  discard-to-different-discard choices, 8 play-to-different-play choices, and 1
+  play-to-discard choice.
+- The eight Ante-changing first divergences all replace a horizon-1 fallback
+  with a horizon-3/4 sampled clear path at reported probability 0.75 through
+  1.0. Five reduce final Ante and three improve it. Four of the five regressions
+  replace a smaller discard with a five-card discard; sampled deep-discard
+  admission is therefore the earliest demonstrated owner.
+- Full horizon remains **REJECTED** against the exactly reproduced current
+  selective baseline: mean Ante and terminal cash regress despite improved
+  requirement progress and minimum cash. All failure counters remain zero.
+- The canonical and committed 3,988,609-byte audit reports are byte-identical
+  with SHA-256
+  `984ee7441025b6744bba988509bc2fa0ac35765acb85ccc4f77fa8ff42097ec8`.
+  Evidence commit `528d626f4f038b11ab5373bb3123f58f412c2ad8` passed manually
+  dispatched GitHub Actions run `43844844195`, job `133222345488`, with
+  **3396 passed, 1618 deselected in 322.46s**.
 
 Current-production reproduction audit implementation checkpoint:
 
@@ -2592,9 +2617,8 @@ Current-production reproduction audit implementation checkpoint:
   completed normally with status `LOSS`, 6 strategic actions, 13 tactical
   decisions, first-blind clear, and Ante 1. Selective tactical search consumed
   0.97287020040676 seconds in total; the slowest decision took
-  0.12128830002620816 seconds. The exact next step is one canonical fixed
-  64-episode reproduction audit, followed by publication of its frozen
-  reproduction/divergence result. No production change is authorized.
+  0.12128830002620816 seconds. This authorized the now-completed canonical
+  fixed 64-episode reproduction audit. No production change was authorized.
 
 Completed full-horizon tactical shadow:
 
