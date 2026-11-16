@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
@@ -16,7 +17,9 @@ from games.balatro.jokers.scholar import ScholarJoker
 def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
     """Return whether every owned Joker has only the currently owned callbacks."""
     for joker in jokers:
-        if type(joker) is FlatMultJoker:
+        if type(joker) is BlueJoker:
+            expected_center = "j_blue_joker"
+        elif type(joker) is FlatMultJoker:
             if type(joker.mult) is not int or joker.mult != 4:
                 return False
             expected_center = "j_joker"

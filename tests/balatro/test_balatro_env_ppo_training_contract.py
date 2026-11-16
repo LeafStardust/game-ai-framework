@@ -178,7 +178,7 @@ def test_env_ppo_rollout_acquires_exact_hone_after_boss_cashout(
     episode = episode_41_with_hone
 
     assert episode.game_seed == "20C74BCD"
-    assert episode.action_count == 13
+    assert episode.action_count == 15
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
@@ -193,6 +193,8 @@ def test_env_ppo_rollout_acquires_exact_hone_after_boss_cashout(
         "BUY_CONSUMABLE",
         "END_SHOP",
         "SELECT_BLIND",
+        "BUY_JOKER",
+        "SELL_JOKER",
         "END_SHOP",
         "SELECT_BLIND",
     ]
@@ -213,6 +215,16 @@ def test_env_ppo_rollout_acquires_exact_hone_after_boss_cashout(
         after.observation,
         "state.joker_generation_edition_rate",
     ) == 2.0
+    blue_center = float(JOKER_CENTER_KEYS.index("j_blue_joker") + 1)
+    assert _observation_feature(
+        episode.boundaries[11].observation,
+        "shop.jokers.0.center",
+    ) == blue_center
+    assert _observation_feature(
+        episode.boundaries[12].observation,
+        "jokers.0.center",
+    ) == blue_center
+    assert (episode.boundaries[11].money, episode.boundaries[13].money) == (6, 3)
 
 
 @pytest.fixture(scope="module")
@@ -507,6 +519,61 @@ def test_env_ppo_rollout_crosses_exact_generated_scholar_lifecycle(
 
 
 @pytest.fixture(scope="module")
+def episode_34_with_blue_joker_lifecycle():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(0),
+        run,
+        episode_index=34,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_blue_joker_lifecycle(
+    episode_34_with_blue_joker_lifecycle,
+):
+    episode = episode_34_with_blue_joker_lifecycle
+
+    assert episode.game_seed == "2B8499E6"
+    assert episode.action_count == 7
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+
+    before_buy = episode.boundaries[1]
+    after_buy = episode.boundaries[2]
+    after_sale = episode.boundaries[3]
+    blue_center = float(JOKER_CENTER_KEYS.index("j_blue_joker") + 1)
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 8)
+    assert episode.decisions[1].action_mask.values[1] is True
+    assert _observation_feature(
+        before_buy.observation,
+        "shop.jokers.0.center",
+    ) == blue_center
+    assert (after_buy.ante, after_buy.phase, after_buy.money) == (1, "SHOP", 3)
+    assert _observation_feature(
+        after_buy.observation,
+        "jokers.0.center",
+    ) == blue_center
+    assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 5)
+    assert _observation_feature(
+        after_sale.observation,
+        "jokers.0.center",
+    ) == 0.0
+
+
+@pytest.fixture(scope="module")
 def episode_46_with_paint_brush():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
@@ -523,16 +590,20 @@ def test_env_ppo_rollout_crosses_exact_paint_brush_boss_tactics(
     episode = episode_46_with_paint_brush
 
     assert episode.game_seed == "9AC8FAC6"
-    assert episode.action_count == 11
+    assert episode.action_count == 15
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
         "SELECT_BLIND",
         "END_SHOP",
         "SELECT_BLIND",
+        "BUY_JOKER",
+        "SELL_JOKER",
         "BUY_VOUCHER",
         "END_SHOP",
         "SELECT_BLIND",
+        "BUY_JOKER",
+        "SELL_JOKER",
         "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
@@ -540,10 +611,21 @@ def test_env_ppo_rollout_crosses_exact_paint_brush_boss_tactics(
         "SELECT_BLIND",
     ]
 
-    before = episode.boundaries[5]
-    after = episode.boundaries[6]
-    assert (before.ante, before.phase, before.money) == (1, "BLIND_SELECT", 4)
-    assert (after.ante, after.phase, after.money) == (2, "SHOP", 11)
+    blue_center = float(JOKER_CENTER_KEYS.index("j_blue_joker") + 1)
+    assert _observation_feature(
+        episode.boundaries[3].observation,
+        "shop.jokers.0.center",
+    ) == blue_center
+    assert _observation_feature(
+        episode.boundaries[4].observation,
+        "jokers.0.center",
+    ) == blue_center
+    assert (episode.boundaries[3].money, episode.boundaries[5].money) == (14, 11)
+
+    before = episode.boundaries[7]
+    after = episode.boundaries[8]
+    assert (before.ante, before.phase, before.money) == (1, "BLIND_SELECT", 1)
+    assert (after.ante, after.phase, after.money) == (2, "SHOP", 8)
     assert _observation_feature(before.observation, "state.hand_size") == 9.0
     assert _observation_feature(
         before.observation,
@@ -757,13 +839,13 @@ def episode_89_with_reroll():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_reroll_and_later_voucher_purchase(
+def test_env_ppo_rollout_crosses_exact_rerolls_and_blue_joker_lifecycle(
     episode_89_with_reroll,
 ):
     episode = episode_89_with_reroll
 
     assert episode.game_seed == "C749D4F7"
-    assert episode.action_count == 11
+    assert episode.action_count == 13
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
@@ -774,7 +856,9 @@ def test_env_ppo_rollout_crosses_exact_reroll_and_later_voucher_purchase(
         "BUY_CONSUMABLE",
         "END_SHOP",
         "SELECT_BLIND",
-        "BUY_VOUCHER",
+        "BUY_JOKER",
+        "SELL_JOKER",
+        "REROLL_SHOP",
         "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
@@ -789,7 +873,19 @@ def test_env_ppo_rollout_crosses_exact_reroll_and_later_voucher_purchase(
         5,
     )
     assert (episode.boundaries[7].ante, episode.boundaries[7].money) == (2, 15)
-    assert (episode.boundaries[8].ante, episode.boundaries[8].money) == (2, 5)
+    assert (episode.boundaries[8].ante, episode.boundaries[8].money) == (2, 10)
+    assert (episode.boundaries[9].ante, episode.boundaries[9].money) == (2, 12)
+    assert (episode.boundaries[10].ante, episode.boundaries[10].money) == (2, 7)
+    assert (episode.boundaries[11].ante, episode.boundaries[11].money) == (2, 1)
+    blue_center = float(JOKER_CENTER_KEYS.index("j_blue_joker") + 1)
+    assert _observation_feature(
+        episode.boundaries[7].observation,
+        "shop.jokers.0.center",
+    ) == blue_center
+    assert _observation_feature(
+        episode.boundaries[8].observation,
+        "jokers.0.center",
+    ) == blue_center
 
 
 @pytest.fixture(scope="module")

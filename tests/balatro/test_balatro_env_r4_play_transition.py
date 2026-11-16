@@ -404,6 +404,25 @@ def test_env_r4_ordinary_play_scores_exact_materialized_scholar():
     assert type(result.public.jokers[0]).__name__ == "ScholarJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_blue_joker():
+    baseline = _play_run(seed="R4-BLUE-JOKER")
+    run = _play_run(seed="R4-BLUE-JOKER")
+    remaining_draw_cards = len(run.public.deck)
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_blue_joker", 1, 5, None, 5, False)
+        )
+    ]
+
+    baseline_result = apply_supported_ordinary_play(baseline, (0,))
+    result = apply_supported_ordinary_play(run, (0,))
+
+    assert result.public.score - baseline_result.public.score == (
+        remaining_draw_cards * 2
+    )
+    assert type(result.public.jokers[0]).__name__ == "BlueJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],
