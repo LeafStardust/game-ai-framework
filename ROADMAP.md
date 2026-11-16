@@ -2538,22 +2538,21 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Run and validate the now-CI-green read-only exact optimizer-input attribution
-for the rejected v2 learning-curve study. Reconstruct each of the eight
-immutable 2,048-transition batches from linked milestone/checkpoint state and
-deterministic training seeds, require every replayed checkpoint/policy/journal
-link to match, then publish the action-slot/legal-set frequencies,
-advantage/return distributions, direct first-step policy signals, and
-shared-network Shapley attribution. Use the result to decide whether the
-harmful `END_SHOP -> BUY_VOUCHER` shift is supported by sampled advantages or
-emerges from shared-network/generalization effects before proposing any reward,
-optimizer, architecture, or schedule change.
+Develop a separately versioned, one-batch advantage-normalization shadow for
+the rejected v2 progress reward. Reconstruct the exact immutable batch-1
+rollouts once, prove the unchanged unnormalized branch reproduces the stored
+batch-1 checkpoint, then apply standard zero-mean/unit-variance normalization
+only to a cloned shadow batch before the existing PPO optimizer. Evaluate the
+initial, published unnormalized batch-1, and normalized-shadow policies on the
+same fixed 64-seed sparse-reward corpus.
 
-No optimization beyond deterministic replay of the already-completed updates
-is authorized. Preserve production mechanics, the v2 reward and GAE contracts,
-the public-information boundary, exact episode/stream ordering, minibatch RNG,
-Adam state, and all immutable artifact links. A failed exact policy-hash
-reproduction blocks interpretation rather than permitting approximation.
+Freeze acceptance before execution: complete provenance and exact source
+reproduction are mandatory; the normalized arm may not regress either source
+arm in clears, mean Ante, terminal requirement progress, minimum cash, or
+terminal cash, and must strictly improve at least one of clears, Ante, or
+requirement progress. Reject rather than tune after the result. Do not change
+production reward, GAE, optimizer, model, mechanics, action policy, or promotion
+gates during this shadow experiment.
 
 Eight-batch campaign-boundary checkpoint:
 
@@ -2847,6 +2846,41 @@ Set-Location -LiteralPath 'D:\0.5 - Coding\0. game-ai\game-ai-framework'; py -3.
   deselected in 170.54s**. The existing batch-1 checkpoint remains valid and
   resume is reauthorized.
 
+Completed optimizer-input attribution:
+
+- The crash-resumed run completed with exit code 0 and exactly replayed all
+  **2,183 episodes / 8 x 2,048-transition batches**. Every replayed episode,
+  post-batch policy, staged checkpoint, behavior report, final journal, replay
+  progress file, and all five milestone manifests verified against immutable
+  source evidence.
+- The canonical 93,889-byte report has SHA-256
+  `13ecab65dc77f2386c412e24ff3b360d102aadf9fc01bda63682bc7ad6915d79`.
+  The committed copy has a terminal newline (93,890 bytes, SHA-256
+  `0cdc60c43f085190bae1e1f33704218e365662d4e3c5f81d974f048c2554984f`)
+  and parses to exactly the same report value.
+- Whole-batch mean advantages for batches 1 through 8 are respectively
+  `-0.7945601921`, `-0.3211239513`, `-0.1284189517`, `-0.0299296852`,
+  `0.0118731277`, `0.0131106568`, `0.0156215802`, and `0.0096626447`.
+  Thus the earliest and largest updates carry a substantial nonzero global
+  advantage offset rather than a centered policy-learning signal.
+- Exact voucher-minus-end direct first-step signals are `16.1794780904`,
+  `10.8436878355`, `4.9612217819`, `-1.0518518729`, `1.9164966792`,
+  `1.8294723610`, `1.1467288187`, and `0.8596393604`, totaling
+  **`36.6848730542` toward `BUY_VOUCHER`**. The optimizer inputs therefore
+  directly support the harmful shift in seven of eight batches; it is not only
+  critic/value drift.
+- By batches 5 through 8, voucher selections themselves have positive mean
+  advantages (`0.0097435161`, `0.0244353626`, `0.0303672681`, and
+  `0.0206094309`) and contribute positive voucher-margin signals. At the 12
+  batch-8 harmful fixed states, the actual mean margin shift remains
+  `1.1920152176`; its Shapley split is `0.5730679789` first hidden,
+  `0.5375031284` second hidden, and only `0.0814441103` policy head. Direct
+  advantage support is therefore amplified primarily through shared features.
+- Decision: v2 remains rejected and no larger training is authorized. The
+  evidence supports one bounded advantage-normalization shadow to test whether
+  removing the demonstrated batch-wide offset stabilizes learning; it does not
+  yet prove normalization will improve competence.
+
 ## Held and deferred work
 
 - Natural Money Tree live parity evidence is explicitly on hold by user
@@ -2890,5 +2924,6 @@ Set-Location -LiteralPath 'D:\0.5 - Coding\0. game-ai\game-ai-framework'; py -3.
 - `docs/balatro/BALATRO_PPO_PROGRESS_REWARD_PAIRED_EVALUATION.json`
 - `docs/balatro/BALATRO_PPO_PROGRESS_STUDY_REPORT.json`
 - `docs/balatro/BALATRO_PPO_PROGRESS_STUDY_BEHAVIOR.json`
+- `docs/balatro/BALATRO_PPO_PROGRESS_STUDY_OPTIMIZER_ATTRIBUTION.json`
 - Git history before `ac4a9287260cc485e7eb5476854679ac9cbc2b8d` for completed checkpoint
   narration intentionally removed by the roadmap cleanup.
