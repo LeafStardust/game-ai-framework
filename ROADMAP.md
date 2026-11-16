@@ -2587,9 +2587,14 @@ Current-production reproduction audit implementation checkpoint:
 - Focused local validation: **13 passed in 0.87s**. Broader affected local
   validation: **70 passed in 4.69s**. Syntax compilation and `git diff --check`
   are clean. GitHub Actions run `43841767886`, job `133211928439`, passed the
-  authoritative **3396 passed, 1618 deselected in 177.47s**. The exact next
-  step is a one-episode real-artifact integration smoke; only a green smoke may
-  authorize the canonical 64-episode audit execution.
+  authoritative **3396 passed, 1618 deselected in 177.47s**.
+- The one-episode real-artifact smoke is green. Episode 0 / seed `9CA6BDC0`
+  completed normally with status `LOSS`, 6 strategic actions, 13 tactical
+  decisions, first-blind clear, and Ante 1. Selective tactical search consumed
+  0.97287020040676 seconds in total; the slowest decision took
+  0.12128830002620816 seconds. The exact next step is one canonical fixed
+  64-episode reproduction audit, followed by publication of its frozen
+  reproduction/divergence result. No production change is authorized.
 
 Completed full-horizon tactical shadow:
 
