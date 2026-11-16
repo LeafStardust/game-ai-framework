@@ -2554,6 +2554,25 @@ requirement progress. Reject rather than tune after the result. Do not change
 production reward, GAE, optimizer, model, mechanics, action policy, or promotion
 gates during this shadow experiment.
 
+Advantage-normalization shadow core checkpoint:
+
+- Commit `b63535013dbdba69ae62a7fb4c84b3d0345632c0` adds a separately
+  versioned diagnostic owner that clones the immutable initial learner twice,
+  applies the unchanged batch to one clone, and applies population
+  zero-mean/unit-variance normalization only to the other clone's advantages
+  before the existing PPO optimizer. It rejects non-2048 batches, zero or
+  nonfinite variance, source-policy reproduction drift, incomplete optimizer
+  evidence, and any mutation of the initial learner.
+- Deterministic regressions prove every non-advantage batch field is unchanged,
+  the normalized batch has mean 0 and variance 1, the unchanged branch exactly
+  reproduces its expected policy digest, the normalized branch is independent,
+  and invalid variance/source digests fail closed. Focused local validation:
+  **25 passed in 36.13s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `43818158567`, job `133134846462`, passed the
+  authoritative **3379 passed, 1618 deselected in 180.93s**. The active task
+  remains the exact canonical batch-1 reconstruction, three-arm fixed-corpus
+  report, and frozen accept/reject decision; no user run is authorized yet.
+
 Eight-batch campaign-boundary checkpoint:
 
 - Implementation commit `c647550f9e17c245160c091bd436bcf56566f89d`
