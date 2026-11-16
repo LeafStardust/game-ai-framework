@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`a6fc86d8130db243204663996a9eb3f33f9512ea`.
+`b42050c986cb3b592522ce6fd40d92a7af5add62`.
 
 ## Objective
 
@@ -2565,6 +2565,34 @@ alter tactics/mechanics, or run live Balatro. The result must name the earliest
 demonstrated strategic owner before any acquisition-policy shadow is frozen. No
 operator run is authorized until the trace owner and focused regressions pass
 GitHub Actions.
+
+Current-production strategic/shop trace implementation checkpoint:
+
+- Commit `b42050c986cb3b592522ce6fd40d92a7af5add62` adds the
+  separately versioned read-only trace owner and CLI. It uses the unchanged
+  selective production tactical factory and records every PPO strategic
+  boundary without changing backend state, policy sampling, rewards, tactics,
+  mechanics, or the action surface.
+- Each decision records the public strategic frame, observation digest and
+  schema, complete 27-slot legal mask and masked probabilities, value estimate,
+  selected indexed action, and immediate next public frame. SHOP boundaries use
+  the canonical generated-item serializer for exact visible metadata/prices and
+  record owned capacity/counts, exact environment reroll cost, all legal actions,
+  the purchase/end/reroll subset, and legal affordable acquisitions. The report
+  explicitly marks reroll cost as environment-owned but absent from the current
+  policy observation.
+- The runner pins the exact current-production reproduction report by its
+  3,988,609-byte SHA-256, enforces fixed corpus order and campaign/promotion/
+  corpus linkage, and requires every terminal result to reproduce exactly before
+  writing canonical output. Malformed masks, probabilities, indexed actions,
+  decision order, source order, overwrite, or provenance fail closed.
+- Focused validation: **7 passed in 1.53s**. Broader affected local validation:
+  **67 passed in 15.46s**. CLI import/help, syntax compilation, and
+  `git diff --check` are clean. GitHub Actions run `43865361267`, job
+  `133292403885`, passed with **3407 passed, 1621 deselected in 248.10s**.
+- A one-episode real-artifact smoke is now authorized. Do not run the fixed
+  64-episode trace until that smoke reproduces production and writes complete
+  strategic/shop evidence.
 
 Completed stable-discard deep-search shadow:
 
