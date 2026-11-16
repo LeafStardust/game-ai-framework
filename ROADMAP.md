@@ -2585,8 +2585,14 @@ Stable-discard deep-search implementation checkpoint:
 - Focused/broader local validation: **45 passed in 1.54s**. Syntax compilation
   and `git diff --check` are clean. GitHub Actions run `43846807688`, job
   `133228915853`, passed the authoritative **3400 passed, 1621 deselected in
-  280.37s**. The exact next step is one real-artifact episode smoke; only a
-  green smoke may authorize the fixed 64-episode shadow.
+  280.37s**.
+- The real-artifact episode-0 / seed `9CA6BDC0` smoke is green: status `LOSS`,
+  6 strategic actions, 13 tactical decisions, first-blind clear, Ante 1, and
+  zero stable-discard consensus admissions. Tactical search consumed
+  23.540129899978638 seconds; the slowest decision took
+  11.665872200159356 seconds. The exact next step is one canonical fixed
+  64-episode stable-discard shadow, followed by its frozen accept/reject
+  publication. No production change is authorized.
 
 Completed current-production reproduction audit:
 
