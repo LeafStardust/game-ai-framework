@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`b19ffc80e202da66b735cedb503a8264c597172c`.
+`4deec6283677ecccd2696a24ef47450cbaef44d9`.
 
 ## Objective
 
@@ -2538,24 +2538,39 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the twentieth exact generated-Joker acquisition bridge for only uneditioned
-`j_raised_fist`. The committed trace contains one exact uneditioned, affordable
-Raised Fist observation and no edited copy. Its held-lowest-rank payoff,
-rightmost tie behavior, debuff handling, and retriggers are already owned by
-`RaisedFistJoker` and their canonical projection tests.
+Add the twenty-first exact generated-Joker acquisition bridge for only
+uneditioned `j_clever`. The committed trace contains four exact uneditioned,
+affordable Clever Joker observations across two episodes and no edited copy.
+Its +80 Chips when the played cards contain Two Pair is already owned by
+`CleverJoker` and the canonical hand evaluator; non-scoring callbacks are inert.
 
 Extend the canonical generated-item materializer with an explicit
-`j_raised_fist` to `RaisedFistJoker` entry and exact vanilla identity
-(`rarity=1`, `base_cost=5`, public label, purchase price, discovery transition,
+`j_clever` to `CleverJoker` entry and exact vanilla identity
+(`rarity=1`, `base_cost=4`, public label, purchase price, discovery transition,
 and sale value). Extend the generated-Joker tactical capability only for its
-already-owned held-card effect. Add deterministic materialization, mask,
+already-owned Two Pair scoring effect. Add deterministic materialization, mask,
 purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep the first nineteen centers unchanged and every other
+rollout coverage. Keep the first twenty centers unchanged and every other
 generated center/edition/malformed state fail-closed. Do not add a generic
 factory, batch multiple centers, open boosters, change PPO, rewards, or tactics,
 or request an operator run during this checkpoint. Keep Drunkard, 8 Ball,
 Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
 unowned callbacks, and do not batch another Joker into this checkpoint.
+
+Exact generated Raised Fist acquisition checkpoint:
+
+- Implementation commit `4deec6283677ecccd2696a24ef47450cbaef44d9` adds only
+  exact uneditioned `j_raised_fist` (`rarity=1`, `base_cost=5`) as the audited
+  `RaisedFistJoker`, with exact discovery, price/sale metadata, held-lowest-rank
+  scoring, tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `15` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 62 / seed
+  `43F62C55` locks Raised Fist before existing Scary Face and Walkie Talkie
+  lifecycles in the fifteen-action trajectory.
+- The combined shop/backend/tactical/complete-rollout local gate passed **250
+  tests in 95.46s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44157989080`, job `134303797020`, passed the authoritative
+  Balatro deterministic gate with **3569 passed, 1621 deselected in 403.78s**.
 
 Exact generated Smiley Face acquisition checkpoint:
 
