@@ -25,6 +25,7 @@ from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.scholar import ScholarJoker
+from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
@@ -561,6 +562,37 @@ def test_env_r2_exact_jolly_materialization_scores_and_sells():
     assert sold_run.public.jokers == []
 
 
+def test_env_r2_exact_sly_materialization_scores_and_sells():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_sly", base_cost=3, discovered=False)
+    )
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert action in ShopTransitionEngine().legal_actions(inserted)
+    next_run = ShopTransitionEngine().step(inserted, action)
+    assert inserted.generation_discovery == {"j_sly": False}
+    assert next_run.generation_discovery == {"j_sly": True}
+    assert next_run.tag_profile_state.discovered_center_keys == frozenset({"j_sly"})
+    assert next_run.public.money == 17
+    joker = next_run.public.jokers[0]
+    assert type(joker) is SlyJoker
+    assert (joker.center, joker.label, joker.rarity, joker.base_cost, joker.cost,
+            joker.sell_cost, joker.discovered) == (
+        "j_sly", "Sly Joker", 1, 3, 3, 1, True
+    )
+    score = BalatroScorer().score(
+        PokerHand.PAIR,
+        state=next_run.public,
+        cards=[BalatroCard("2", "Hearts"), BalatroCard("2", "Clubs")],
+    )
+    assert (score.chips, score.mult, score.total) == (60, 2, 120)
+    sold_run = ShopTransitionEngine().step(
+        next_run, EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    )
+    assert sold_run.public.money == 18
+    assert sold_run.public.jokers == []
+
+
 @pytest.mark.parametrize(
     "item",
     (
@@ -591,6 +623,9 @@ def test_env_r2_exact_jolly_materialization_scores_and_sells():
         GeneratedShopJokerItem("j_jolly", 2, 3, None, 3, False),
         GeneratedShopJokerItem("j_jolly", 1, 4, None, 4, False),
         GeneratedShopJokerItem("j_jolly", 1, 3, "Foil", 5, False),
+        GeneratedShopJokerItem("j_sly", 2, 3, None, 3, False),
+        GeneratedShopJokerItem("j_sly", 1, 4, None, 4, False),
+        GeneratedShopJokerItem("j_sly", 1, 3, "Foil", 5, False),
     ),
 )
 def test_env_r2_unsupported_generated_joker_materialization_fails_closed(item):

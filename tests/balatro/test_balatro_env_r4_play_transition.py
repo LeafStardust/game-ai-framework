@@ -461,6 +461,31 @@ def test_env_r4_ordinary_play_scores_exact_materialized_jolly():
     assert type(result.public.jokers[0]).__name__ == "JollyJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_sly():
+    baseline = None
+    run = None
+    pair_indices = None
+    for attempt in range(52):
+        candidate = _play_run(seed=f"R4-SLY-{attempt}")
+        pair = next((positions for positions in combinations(range(len(candidate.public.hand)), 2)
+                     if candidate.public.hand[positions[0]].rank
+                     == candidate.public.hand[positions[1]].rank), None)
+        if pair is not None:
+            baseline = candidate
+            run = _play_run(seed=f"R4-SLY-{attempt}")
+            pair_indices = tuple(pair)
+            break
+    assert baseline is not None and run is not None and pair_indices is not None
+    run.public.jokers = [materialize_generated_shop_joker_for_acquisition(
+        GeneratedShopJokerItem("j_sly", 1, 3, None, 3, False)
+    )]
+    baseline_result = apply_supported_ordinary_play(baseline, pair_indices)
+    result = apply_supported_ordinary_play(run, pair_indices)
+    assert result.public.last_played_hand == "PAIR"
+    assert result.public.score - baseline_result.public.score == 100
+    assert type(result.public.jokers[0]).__name__ == "SlyJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],
