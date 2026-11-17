@@ -584,6 +584,25 @@ def test_env_r4_ordinary_play_scores_exact_materialized_half():
     assert type(result.public.jokers[0]).__name__ == "HalfJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_mystic_summit():
+    baseline = _play_run(seed="R4-MYSTIC-SUMMIT")
+    run = _play_run(seed="R4-MYSTIC-SUMMIT")
+    baseline.public.discards_remaining = 0
+    run.public.discards_remaining = 0
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_mystic_summit", 1, 5, None, 5, False)
+        )
+    ]
+    baseline_result = apply_supported_ordinary_play(baseline, (0,))
+    result = apply_supported_ordinary_play(run, (0,))
+    assert result.public.last_played_hand == "HIGH_CARD"
+    assert result.public.score - baseline_result.public.score == (
+        baseline_result.public.score * 15
+    )
+    assert type(result.public.jokers[0]).__name__ == "MysticSummitJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

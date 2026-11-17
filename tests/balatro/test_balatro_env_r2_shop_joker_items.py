@@ -25,6 +25,7 @@ from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
+from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.scholar import ScholarJoker
@@ -754,6 +755,57 @@ def test_env_r2_exact_half_materialization_scores_and_sells():
     assert sold_run.public.jokers == []
 
 
+def test_env_r2_exact_mystic_summit_materialization_scores_and_sells():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_mystic_summit", base_cost=5, discovered=False)
+    )
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert action in ShopTransitionEngine().legal_actions(inserted)
+    next_run = ShopTransitionEngine().step(inserted, action)
+    assert inserted.generation_discovery == {"j_mystic_summit": False}
+    assert next_run.generation_discovery == {"j_mystic_summit": True}
+    assert next_run.tag_profile_state.discovered_center_keys == frozenset(
+        {"j_mystic_summit"}
+    )
+    assert next_run.public.money == 16
+    joker = next_run.public.jokers[0]
+    assert type(joker) is MysticSummitJoker
+    assert (
+        joker.center,
+        joker.label,
+        joker.rarity,
+        joker.base_cost,
+        joker.cost,
+        joker.sell_cost,
+        joker.discovered,
+    ) == ("j_mystic_summit", "Mystic Summit", 1, 5, 4, 2, True)
+    next_run.public.discards_remaining = 0
+    score = BalatroScorer().score(
+        PokerHand.HIGH_CARD,
+        state=next_run.public,
+        cards=[BalatroCard("2", "Hearts")],
+    )
+    assert (score.chips, score.mult, score.total) == (5, 16, 80)
+    sold_run = ShopTransitionEngine().step(
+        next_run, EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    )
+    assert sold_run.public.money == 18
+    assert sold_run.public.jokers == []
+
+
+def test_env_r2_exact_mystic_summit_purchase_is_masked_when_unaffordable():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_mystic_summit", base_cost=5, discovered=False)
+    )
+    run.public.money = 3
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert action not in ShopTransitionEngine().legal_actions(inserted)
+    with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
+        ShopTransitionEngine().step(inserted, action)
+
+
 @pytest.mark.parametrize(
     "item",
     (
@@ -799,6 +851,9 @@ def test_env_r2_exact_half_materialization_scores_and_sells():
         GeneratedShopJokerItem("j_half", 2, 5, None, 5, False),
         GeneratedShopJokerItem("j_half", 1, 4, None, 4, False),
         GeneratedShopJokerItem("j_half", 1, 5, "Foil", 7, False),
+        GeneratedShopJokerItem("j_mystic_summit", 2, 5, None, 5, False),
+        GeneratedShopJokerItem("j_mystic_summit", 1, 4, None, 4, False),
+        GeneratedShopJokerItem("j_mystic_summit", 1, 5, "Foil", 7, False),
     ),
 )
 def test_env_r2_unsupported_generated_joker_materialization_fails_closed(item):
