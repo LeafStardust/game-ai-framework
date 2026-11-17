@@ -2538,24 +2538,41 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the ninth exact generated-Joker acquisition bridge for only uneditioned
-`j_jolly`. The committed trace contains six exact uneditioned Jolly Joker
-copies, five of which are affordable at the observed boundary. Its +8 Mult when
-the played hand contains a Pair is already owned by `BalatroScorer` and
+Add the tenth exact generated-Joker acquisition bridge for only uneditioned
+`j_sly`. The committed trace contains six exact uneditioned Sly Joker copies,
+five of which are affordable at the observed boundary. Its +50 Chips when the
+played hand contains a Pair is already owned by `BalatroScorer` and
 `HandEvaluator`, and its discard callback is inert.
 
-Extend the canonical generated-item materializer with an explicit `j_jolly` to
-`JollyJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=3`, public
+Extend the canonical generated-item materializer with an explicit `j_sly` to
+`SlyJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=3`, public
 label, purchase price, discovery transition, and sale value). Extend the
 generated-Joker tactical capability only for its already-owned Pair scoring
 effect and inert discard callback. Add deterministic materialization, mask,
 purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep the first eight centers unchanged and every other
+rollout coverage. Keep the first nine centers unchanged and every other
 generated center/edition/malformed state fail-closed. Do not add a generic
 factory, batch multiple centers, open boosters, change PPO, rewards, or tactics,
 or request an operator run during this checkpoint. Keep Drunkard, 8 Ball,
 Hallucination, Dusk, and Faceless Joker fail-closed for their unowned callbacks,
-and do not batch the similarly narrow Sly Joker bridge into this checkpoint.
+and do not batch another hand-pattern Joker into this checkpoint.
+
+Exact generated Jolly Joker acquisition checkpoint:
+
+- Implementation commit `d33fb5ce9622991a42ac95d176af0bb7a3602aeb` adds only
+  exact uneditioned `j_jolly` (`rarity=1`, `base_cost=3`) as the audited
+  `JollyJoker`, with exact discovery, price/sale metadata, Pair scoring,
+  tactical continuation, and inverse sale lifecycle.
+- The generated-Joker tactical capability admits Jolly only through its
+  existing exact `BalatroScorer` / `HandEvaluator` owner and inert discard
+  callback. Other centers, mutations, and editions remain fail-closed.
+- Deterministic production-backend seed `23` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 33 / seed
+  `A801C474` locks the exact seven-action buy/sell lifecycle.
+- The combined shop/backend/tactical/complete-rollout local gate passed **163
+  tests in 102.34s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44039264402`, job `133889598652`, passed the authoritative
+  Balatro deterministic gate with **3482 passed, 1621 deselected in 274.40s**.
 
 Exact generated Blue Joker acquisition checkpoint:
 
