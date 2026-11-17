@@ -31,6 +31,7 @@ from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.photograph import PhotographJoker
+from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
@@ -135,6 +136,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 5
         label = "Photograph"
+    elif item.center_key == "j_raised_fist":
+        joker_type = RaisedFistJoker
+        expected_rarity = 1
+        expected_base_cost = 5
+        label = "Raised Fist"
     elif item.center_key == "j_scholar":
         joker_type = ScholarJoker
         expected_rarity = 1

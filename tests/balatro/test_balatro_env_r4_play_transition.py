@@ -678,6 +678,24 @@ def test_env_r4_ordinary_play_scores_exact_materialized_smiley_face():
     assert type(result.public.jokers[0]).__name__ == "SmileyFaceJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_raised_fist():
+    baseline = _play_run(seed="R4-RAISED-FIST")
+    run = _play_run(seed="R4-RAISED-FIST")
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_raised_fist", 1, 5, None, 5, False)
+        )
+    ]
+    baseline_result = apply_supported_ordinary_play(baseline, (0,))
+    held = run.public.hand[1:]
+    rank_values = {str(value): value for value in range(2, 11)}
+    rank_values.update({"J": 10, "Q": 10, "K": 10, "A": 11})
+    raised_mult = min(rank_values[card.rank] for card in held) * 2
+    result = apply_supported_ordinary_play(run, (0,))
+    assert result.public.score == baseline_result.public.score * (1 + raised_mult)
+    assert type(result.public.jokers[0]).__name__ == "RaisedFistJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

@@ -896,6 +896,48 @@ def test_env_ppo_rollout_crosses_exact_generated_smiley_face_lifecycle(
 
 
 @pytest.fixture(scope="module")
+def episode_62_with_raised_fist_lifecycle():
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(0),
+        PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
+        episode_index=62,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_raised_fist_lifecycle(
+    episode_62_with_raised_fist_lifecycle,
+):
+    episode = episode_62_with_raised_fist_lifecycle
+    assert episode.game_seed == "43F62C55"
+    assert episode.action_count == 15
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions[:4]
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+    ]
+    raised_fist_center = float(JOKER_CENTER_KEYS.index("j_raised_fist") + 1)
+    assert episode.decisions[1].action_mask.values[2] is True
+    assert _observation_feature(
+        episode.boundaries[1].observation, "shop.jokers.1.center"
+    ) == raised_fist_center
+    assert (episode.boundaries[1].money, episode.boundaries[2].money) == (10, 5)
+    assert _observation_feature(
+        episode.boundaries[2].observation, "jokers.0.center"
+    ) == raised_fist_center
+    assert episode.boundaries[3].money == 7
+    assert _observation_feature(
+        episode.boundaries[3].observation, "jokers.0.center"
+    ) == 0.0
+
+
+@pytest.fixture(scope="module")
 def episode_9_with_photograph_lifecycle():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
