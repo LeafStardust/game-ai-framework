@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`34cae679a8319f52a21e5d9a72a7d235b351baa3`.
+`3e7225f0cf017eed2b197cef3f28aa9637e1fe7c`.
 
 ## Objective
 
@@ -2538,25 +2538,40 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the thirteenth exact generated-Joker acquisition bridge for only uneditioned
-`j_photograph`. The committed trace contains five exact uneditioned, affordable
-Photograph copies; its two other visible observations are Holographic and must
-remain fail-closed. Its x2 Mult on the first scoring face card is already owned
-by `BalatroScorer`, and its discard callback is inert.
+Add the fourteenth exact generated-Joker acquisition bridge for only uneditioned
+`j_half`. The committed trace contains five exact uneditioned, affordable Half
+Joker copies and no edited copy. Its +20 Mult when the played hand contains at
+most three cards is already owned by `BalatroScorer`, but its canonical class
+must first return inertly when no scoring context exists so discard projection
+does not dereference a missing score.
 
-Extend the canonical generated-item materializer with an explicit
-`j_photograph` to `PhotographJoker` entry and exact vanilla identity
-(`rarity=1`, `base_cost=5`, public label, purchase price, discovery transition,
-and sale value). Extend the generated-Joker tactical capability only for its
-already-owned ordered scoring-card effect and inert discard callback. Add
-deterministic materialization, mask, purchase, scoring, sale, isolation, natural
-production-backend, and complete rollout coverage. Keep the first twelve
-centers unchanged and every other generated center/edition/malformed state
-fail-closed. Do not add a generic factory, batch multiple centers, open
-boosters, change PPO, rewards, or tactics, or request an operator run during
-this checkpoint. Keep Drunkard, 8 Ball, Hallucination, Dusk, Faceless Joker,
-Gros Michel, and Half Joker fail-closed for their unowned callbacks, and do not
-batch another Joker into this checkpoint.
+Fix that earliest callback owner, then extend the canonical generated-item
+materializer with an explicit `j_half` to `HalfJoker` entry and exact vanilla
+identity (`rarity=1`, `base_cost=5`, public label, purchase price, discovery
+transition, and sale value). Extend the generated-Joker tactical capability
+only after the scoring-only callback is exact and discard is inert. Add
+deterministic callback, materialization, mask, purchase, scoring, sale,
+isolation, natural production-backend, and complete rollout coverage. Keep the
+first thirteen centers unchanged and every other generated
+center/edition/malformed state fail-closed. Do not add a generic factory, batch
+multiple centers, open boosters, change PPO, rewards, or tactics, or request an
+operator run during this checkpoint. Keep Drunkard, 8 Ball, Hallucination,
+Dusk, Faceless Joker, and Gros Michel fail-closed for their unowned callbacks,
+and do not batch another Joker into this checkpoint.
+
+Exact generated Photograph acquisition checkpoint:
+
+- Implementation commit `3e7225f0cf017eed2b197cef3f28aa9637e1fe7c` adds only
+  exact uneditioned `j_photograph` (`rarity=1`, `base_cost=5`) as the audited
+  `PhotographJoker`, with exact discovery, price/sale metadata, ordered
+  first-scoring-face x2 Mult, tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `61` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 9 / seed
+  `4104A2D5` locks the exact eleven-action buy/sell lifecycle.
+- The combined shop/backend/tactical/complete-rollout local gate passed **195
+  tests in 70.51s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44086650320`, job `134050712971`, passed the authoritative
+  Balatro deterministic gate with **3514 passed, 1621 deselected in 388.71s**.
 
 Exact generated Abstract Joker acquisition checkpoint:
 
