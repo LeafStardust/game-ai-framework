@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`e7bbb5160681dd6b8e5983c074e9ea4e11764aec`.
+`1152e556537e5fcc665fda84edceaa97f548513b`.
 
 ## Objective
 
@@ -2538,25 +2538,40 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the fifteenth exact generated-Joker acquisition bridge for only uneditioned
-`j_mystic_summit`. The committed trace contains four exact uneditioned Mystic
-Summit observations: three are affordable and one is correctly unaffordable.
-Its +15 Mult at zero remaining discards is already owned by `BalatroScorer`, and
-its discard callback is inert.
+Add the sixteenth exact generated-Joker acquisition bridge for only uneditioned
+`j_banner`. The committed trace contains three exact uneditioned, affordable
+Banner observations and no edited copy. Its +30 Chips per remaining discard is
+already owned by `BalatroScorer`, and its discard callback is inert.
 
-Extend the canonical generated-item materializer with an explicit
-`j_mystic_summit` to `MysticSummitJoker` entry and exact vanilla identity
-(`rarity=1`, `base_cost=5`, public label, purchase price, discovery transition,
-and sale value). Extend the generated-Joker tactical capability only for its
-already-owned zero-discard scoring effect and inert discard callback. Add
-deterministic materialization, affordable and unaffordable masks, purchase,
-scoring, sale, isolation, natural production-backend, and complete rollout
-coverage. Keep the first fourteen centers unchanged and every other generated
-center/edition/malformed state fail-closed. Do not add a generic factory, batch
-multiple centers, open boosters, change PPO, rewards, or tactics, or request an
-operator run during this checkpoint. Keep Drunkard, 8 Ball, Hallucination,
-Dusk, Faceless Joker, Gros Michel, and Banner fail-closed for their unowned
-callbacks, and do not batch another Joker into this checkpoint.
+Extend the canonical generated-item materializer with an explicit `j_banner`
+to `BannerJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=5`,
+public label, purchase price, discovery transition, and sale value). Extend the
+generated-Joker tactical capability only for its already-owned remaining-
+discard scoring effect and inert discard callback. Add deterministic
+materialization, mask, purchase, scoring, sale, isolation, natural production-
+backend, and complete rollout coverage. Keep the first fifteen centers
+unchanged and every other generated center/edition/malformed state fail-closed.
+Do not add a generic factory, batch multiple centers, open boosters, change PPO,
+rewards, or tactics, or request an operator run during this checkpoint. Keep
+Drunkard, 8 Ball, Hallucination, Dusk, Faceless Joker, and Gros Michel
+fail-closed for their unowned callbacks, and do not batch another Joker into
+this checkpoint.
+
+Exact generated Mystic Summit acquisition checkpoint:
+
+- Implementation commit `1152e556537e5fcc665fda84edceaa97f548513b` adds only
+  exact uneditioned `j_mystic_summit` (`rarity=1`, `base_cost=5`) as the audited
+  `MysticSummitJoker`, with exact discovery, price/sale metadata, zero-discard
+  scoring, tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `11` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 59 / seed
+  `3293F37E` locks two exact Mystic Summit buy/sale lifecycles and their
+  thirteen-action money trajectory. A separate deterministic regression locks
+  the exact unaffordable mask and illegal transition.
+- The combined shop/backend/tactical/complete-rollout local gate passed **220
+  tests in 85.44s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44092481953`, job `134070911176`, passed the authoritative
+  Balatro deterministic gate with **3531 passed, 1621 deselected in 364.89s**.
 
 Exact generated Half Joker acquisition checkpoint:
 
