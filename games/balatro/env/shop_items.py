@@ -27,6 +27,7 @@ from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
+from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.wily_joker import WilyJoker
@@ -108,6 +109,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Odd Todd"
+    elif item.center_key == "j_photograph":
+        joker_type = PhotographJoker
+        expected_rarity = 1
+        expected_base_cost = 5
+        label = "Photograph"
     elif item.center_key == "j_scholar":
         joker_type = ScholarJoker
         expected_rarity = 1

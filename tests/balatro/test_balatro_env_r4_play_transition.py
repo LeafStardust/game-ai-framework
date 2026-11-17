@@ -535,6 +535,38 @@ def test_env_r4_ordinary_play_scores_exact_materialized_abstract():
     assert type(result.public.jokers[0]).__name__ == "AbstractJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_photograph():
+    baseline = None
+    run = None
+    face_index = None
+    for attempt in range(52):
+        candidate = _play_run(seed=f"R4-PHOTOGRAPH-{attempt}")
+        index = next(
+            (
+                card_index
+                for card_index, card in enumerate(candidate.public.hand)
+                if card.rank in {"J", "Q", "K"}
+            ),
+            None,
+        )
+        if index is not None:
+            baseline = candidate
+            run = _play_run(seed=f"R4-PHOTOGRAPH-{attempt}")
+            face_index = index
+            break
+    assert baseline is not None and run is not None and face_index is not None
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_photograph", 1, 5, None, 5, False)
+        )
+    ]
+    baseline_result = apply_supported_ordinary_play(baseline, (face_index,))
+    result = apply_supported_ordinary_play(run, (face_index,))
+    assert result.public.last_played_hand == "HIGH_CARD"
+    assert result.public.score == baseline_result.public.score * 2
+    assert type(result.public.jokers[0]).__name__ == "PhotographJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

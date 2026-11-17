@@ -13,6 +13,7 @@ from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
+from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.wily_joker import WilyJoker
@@ -41,6 +42,8 @@ def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
             expected_center = "j_jolly"
         elif type(joker) is OddToddJoker:
             expected_center = "j_odd_todd"
+        elif type(joker) is PhotographJoker:
+            expected_center = "j_photograph"
         elif type(joker) is ScholarJoker:
             expected_center = "j_scholar"
         elif type(joker) is SlyJoker:

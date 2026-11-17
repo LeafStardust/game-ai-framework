@@ -25,6 +25,7 @@ from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
+from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.wily_joker import WilyJoker
@@ -673,6 +674,49 @@ def test_env_r2_exact_abstract_materialization_scores_and_sells():
     assert sold_run.public.jokers == []
 
 
+def test_env_r2_exact_photograph_materialization_scores_and_sells():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_photograph", base_cost=5, discovered=False)
+    )
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert action in ShopTransitionEngine().legal_actions(inserted)
+    next_run = ShopTransitionEngine().step(inserted, action)
+    assert inserted.generation_discovery == {"j_photograph": False}
+    assert next_run.generation_discovery == {"j_photograph": True}
+    assert next_run.tag_profile_state.discovered_center_keys == frozenset(
+        {"j_photograph"}
+    )
+    assert next_run.public.money == 16
+    joker = next_run.public.jokers[0]
+    assert type(joker) is PhotographJoker
+    assert (
+        joker.center,
+        joker.label,
+        joker.rarity,
+        joker.base_cost,
+        joker.cost,
+        joker.sell_cost,
+        joker.discovered,
+    ) == ("j_photograph", "Photograph", 1, 5, 4, 2, True)
+    score = BalatroScorer().score(
+        PokerHand.HIGH_CARD,
+        state=next_run.public,
+        cards=[BalatroCard("K", "Hearts")],
+    )
+    assert (score.chips, score.mult, score.x_mult, score.total) == (
+        5,
+        2.0,
+        1.0,
+        10,
+    )
+    sold_run = ShopTransitionEngine().step(
+        next_run, EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    )
+    assert sold_run.public.money == 18
+    assert sold_run.public.jokers == []
+
+
 @pytest.mark.parametrize(
     "item",
     (
@@ -712,6 +756,9 @@ def test_env_r2_exact_abstract_materialization_scores_and_sells():
         GeneratedShopJokerItem("j_abstract", 2, 4, None, 4, False),
         GeneratedShopJokerItem("j_abstract", 1, 5, None, 5, False),
         GeneratedShopJokerItem("j_abstract", 1, 4, "Foil", 6, False),
+        GeneratedShopJokerItem("j_photograph", 2, 5, None, 5, False),
+        GeneratedShopJokerItem("j_photograph", 1, 4, None, 4, False),
+        GeneratedShopJokerItem("j_photograph", 1, 5, "Holographic", 8, False),
     ),
 )
 def test_env_r2_unsupported_generated_joker_materialization_fails_closed(item):
