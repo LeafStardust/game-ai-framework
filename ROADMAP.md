@@ -2538,24 +2538,41 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the tenth exact generated-Joker acquisition bridge for only uneditioned
-`j_sly`. The committed trace contains six exact uneditioned Sly Joker copies,
-five of which are affordable at the observed boundary. Its +50 Chips when the
-played hand contains a Pair is already owned by `BalatroScorer` and
+Add the eleventh exact generated-Joker acquisition bridge for only uneditioned
+`j_wily`. The committed trace contains six exact uneditioned Wily Joker copies,
+five of which are affordable at the observed boundary. Its +100 Chips when the
+played hand contains Three of a Kind is already owned by `BalatroScorer` and
 `HandEvaluator`, and its discard callback is inert.
 
-Extend the canonical generated-item materializer with an explicit `j_sly` to
-`SlyJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=3`, public
+Extend the canonical generated-item materializer with an explicit `j_wily` to
+`WilyJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`, public
 label, purchase price, discovery transition, and sale value). Extend the
-generated-Joker tactical capability only for its already-owned Pair scoring
-effect and inert discard callback. Add deterministic materialization, mask,
-purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep the first nine centers unchanged and every other
-generated center/edition/malformed state fail-closed. Do not add a generic
+generated-Joker tactical capability only for its already-owned Three-of-a-Kind
+scoring effect and inert discard callback. Add deterministic materialization,
+mask, purchase, scoring, sale, isolation, natural production-backend, and
+complete rollout coverage. Keep the first ten centers unchanged and every
+other generated center/edition/malformed state fail-closed. Do not add a generic
 factory, batch multiple centers, open boosters, change PPO, rewards, or tactics,
 or request an operator run during this checkpoint. Keep Drunkard, 8 Ball,
 Hallucination, Dusk, and Faceless Joker fail-closed for their unowned callbacks,
 and do not batch another hand-pattern Joker into this checkpoint.
+
+Exact generated Sly Joker acquisition checkpoint:
+
+- Implementation commit `89d8e825810a0cf222d29bb32e320ea9bf1da52e` adds only
+  exact uneditioned `j_sly` (`rarity=1`, `base_cost=3`) as the audited
+  `SlyJoker`, with exact discovery, price/sale metadata, Pair scoring, tactical
+  continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `29` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 35 / seed
+  `8E5CE4B5` locks the exact seven-action buy/sell lifecycle.
+- Frozen actor episode 41 naturally buys/sells Sly before acquiring Hone;
+  episode 50 buys and retains Sly through its terminal loss. Their complete
+  action, money, center, voucher, Ante, and terminal trajectories are locked.
+- The combined shop/backend/tactical/complete-rollout local gate passed **171
+  tests in 108.20s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44043143263`, job `133902310101`, passed the authoritative
+  Balatro deterministic gate with **3490 passed, 1621 deselected in 371.63s**.
 
 Exact generated Jolly Joker acquisition checkpoint:
 
