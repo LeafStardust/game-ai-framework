@@ -567,6 +567,23 @@ def test_env_r4_ordinary_play_scores_exact_materialized_photograph():
     assert type(result.public.jokers[0]).__name__ == "PhotographJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_half():
+    baseline = _play_run(seed="R4-HALF")
+    run = _play_run(seed="R4-HALF")
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_half", 1, 5, None, 5, False)
+        )
+    ]
+    baseline_result = apply_supported_ordinary_play(baseline, (0,))
+    result = apply_supported_ordinary_play(run, (0,))
+    assert result.public.last_played_hand == "HIGH_CARD"
+    assert result.public.score - baseline_result.public.score == (
+        baseline_result.public.score * 20
+    )
+    assert type(result.public.jokers[0]).__name__ == "HalfJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

@@ -854,6 +854,65 @@ def test_env_ppo_rollout_crosses_exact_generated_photograph_lifecycle(
 
 
 @pytest.fixture(scope="module")
+def episode_65_with_half_lifecycles():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(0),
+        run,
+        episode_index=65,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_two_exact_generated_half_lifecycles(
+    episode_65_with_half_lifecycles,
+):
+    episode = episode_65_with_half_lifecycles
+    assert episode.game_seed == "08718DA1"
+    assert episode.action_count == 9
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    half_center = float(JOKER_CENTER_KEYS.index("j_half") + 1)
+    for decision_index, before_index, after_index, sale_index in (
+        (1, 1, 2, 3),
+        (5, 5, 6, 7),
+    ):
+        before_buy = episode.boundaries[before_index]
+        after_buy = episode.boundaries[after_index]
+        after_sale = episode.boundaries[sale_index]
+        assert episode.decisions[decision_index].action_mask.values[1] is True
+        assert _observation_feature(
+            before_buy.observation, "shop.jokers.0.center"
+        ) == half_center
+        assert _observation_feature(
+            after_buy.observation, "jokers.0.center"
+        ) == half_center
+        assert _observation_feature(after_sale.observation, "jokers.0.center") == 0.0
+    assert [episode.boundaries[index].money for index in (1, 2, 3, 5, 6, 7)] == [
+        7,
+        2,
+        4,
+        9,
+        4,
+        6,
+    ]
+
+
+@pytest.fixture(scope="module")
 def episode_46_with_paint_brush():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
