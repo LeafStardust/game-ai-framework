@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`7c87ac4824669018d870b3f38d342b318130fefc`.
+`b3e0b6903e39a8bd6a715ecf6f0d48993d8c1023`.
 
 ## Objective
 
@@ -2538,25 +2538,40 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the eighteenth exact generated-Joker acquisition bridge for only
-uneditioned `j_walkie_talkie`. The committed trace contains one exact
-uneditioned, affordable Walkie Talkie observation and one Polychrome copy; the
-edited copy must remain fail-closed. Its +10 Chips and +4 Mult for each scored
-10 or 4 are already owned by `WalkieTalkieJoker`; non-scoring callbacks are
-inert.
+Add the nineteenth exact generated-Joker acquisition bridge for only
+uneditioned `j_smiley`. The committed trace contains one exact uneditioned,
+affordable Smiley Face observation and no edited copy. Its +5 Mult for each
+scored face card and exact face-card rules are already owned by
+`SmileyFaceJoker`; non-scoring callbacks are inert.
 
-Extend the canonical generated-item materializer with an explicit
-`j_walkie_talkie` to `WalkieTalkieJoker` entry and exact vanilla identity
+Extend the canonical generated-item materializer with an explicit `j_smiley`
+to `SmileyFaceJoker` entry and exact vanilla identity
 (`rarity=1`, `base_cost=4`, public label, purchase price, discovery transition,
 and sale value). Extend the generated-Joker tactical capability only for its
-already-owned scored-rank effect. Add deterministic materialization, mask,
+already-owned scored-face effect. Add deterministic materialization, mask,
 purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep the first seventeen centers unchanged and every other
+rollout coverage. Keep the first eighteen centers unchanged and every other
 generated center/edition/malformed state fail-closed. Do not add a generic
 factory, batch multiple centers, open boosters, change PPO, rewards, or tactics,
 or request an operator run during this checkpoint. Keep Drunkard, 8 Ball,
 Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
 unowned callbacks, and do not batch another Joker into this checkpoint.
+
+Exact generated Walkie Talkie acquisition checkpoint:
+
+- Implementation commit `b3e0b6903e39a8bd6a715ecf6f0d48993d8c1023` adds only
+  exact uneditioned `j_walkie_talkie` (`rarity=1`, `base_cost=4`) as the
+  audited `WalkieTalkieJoker`, with exact discovery, price/sale metadata,
+  scored-10/4 Chips and Mult, tactical continuation, and inverse sale
+  lifecycle. The observed Polychrome copy remains fail-closed.
+- Deterministic production-backend seed `77` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 12 / seed
+  `BAA636D2` locks Walkie Talkie followed by Even Steven buy/sale lifecycles and
+  the resulting thirteen-action trajectory.
+- The combined shop/backend/tactical/complete-rollout local gate passed **234
+  tests in 89.11s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44144356090`, job `134255304473`, passed the authoritative
+  Balatro deterministic gate with **3553 passed, 1621 deselected in 314.53s**.
 
 Exact generated Scary Face acquisition checkpoint:
 
