@@ -658,6 +658,26 @@ def test_env_r4_ordinary_play_scores_exact_materialized_walkie_talkie():
     assert type(result.public.jokers[0]).__name__ == "WalkieTalkieJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_smiley_face():
+    baseline = _play_run(seed="R4-SMILEY-FACE")
+    run = _play_run(seed="R4-SMILEY-FACE")
+    face_index = next(
+        index
+        for index, card in enumerate(run.public.hand)
+        if card.rank in {"J", "Q", "K"}
+    )
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_smiley", 1, 4, None, 4, False)
+        )
+    ]
+    baseline_result = apply_supported_ordinary_play(baseline, (face_index,))
+    result = apply_supported_ordinary_play(run, (face_index,))
+    assert result.public.last_played_hand == "HIGH_CARD"
+    assert result.public.score == baseline_result.public.score * 6
+    assert type(result.public.jokers[0]).__name__ == "SmileyFaceJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],
