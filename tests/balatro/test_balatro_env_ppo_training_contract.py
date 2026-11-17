@@ -764,7 +764,7 @@ def test_env_ppo_rollout_crosses_exact_generated_wily_lifecycle(
 
 
 @pytest.fixture(scope="module")
-def episode_27_with_abstract_lifecycle():
+def episode_27_with_abstract_and_scary_face_lifecycles():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(0),
@@ -774,12 +774,12 @@ def episode_27_with_abstract_lifecycle():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_generated_abstract_lifecycle(
-    episode_27_with_abstract_lifecycle,
+def test_env_ppo_rollout_crosses_exact_generated_abstract_and_scary_face_lifecycles(
+    episode_27_with_abstract_and_scary_face_lifecycles,
 ):
-    episode = episode_27_with_abstract_lifecycle
+    episode = episode_27_with_abstract_and_scary_face_lifecycles
     assert episode.game_seed == "68E835DA"
-    assert episode.action_count == 9
+    assert episode.action_count == 11
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [
@@ -788,6 +788,8 @@ def test_env_ppo_rollout_crosses_exact_generated_abstract_lifecycle(
     ] == [
         ("SELECT_BLIND", {}),
         ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("BUY_JOKER", {"slot": 0}),
         ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
@@ -811,6 +813,19 @@ def test_env_ppo_rollout_crosses_exact_generated_abstract_lifecycle(
     ) == abstract_center
     assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 6)
     assert _observation_feature(after_sale.observation, "jokers.0.center") == 0.0
+    scary_face_center = float(JOKER_CENTER_KEYS.index("j_scary_face") + 1)
+    assert episode.decisions[3].action_mask.values[1] is True
+    assert _observation_feature(
+        episode.boundaries[3].observation, "shop.jokers.0.center"
+    ) == scary_face_center
+    assert (episode.boundaries[4].ante, episode.boundaries[4].money) == (1, 2)
+    assert _observation_feature(
+        episode.boundaries[4].observation, "jokers.0.center"
+    ) == scary_face_center
+    assert (episode.boundaries[5].ante, episode.boundaries[5].money) == (1, 4)
+    assert _observation_feature(
+        episode.boundaries[5].observation, "jokers.0.center"
+    ) == 0.0
 
 
 @pytest.fixture(scope="module")

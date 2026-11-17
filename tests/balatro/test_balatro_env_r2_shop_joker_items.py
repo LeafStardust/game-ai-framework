@@ -30,6 +30,7 @@ from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.scholar import ScholarJoker
+from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.wily_joker import WilyJoker
 from games.balatro.scoring import BalatroScorer
@@ -844,6 +845,44 @@ def test_env_r2_exact_banner_materialization_scores_and_sells():
     assert sold_run.public.jokers == []
 
 
+def test_env_r2_exact_scary_face_materialization_scores_and_sells():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_scary_face", base_cost=4, discovered=False)
+    )
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert action in ShopTransitionEngine().legal_actions(inserted)
+    next_run = ShopTransitionEngine().step(inserted, action)
+    assert inserted.generation_discovery == {"j_scary_face": False}
+    assert next_run.generation_discovery == {"j_scary_face": True}
+    assert next_run.tag_profile_state.discovered_center_keys == frozenset(
+        {"j_scary_face"}
+    )
+    assert next_run.public.money == 16
+    joker = next_run.public.jokers[0]
+    assert type(joker) is ScaryFaceJoker
+    assert (
+        joker.center,
+        joker.label,
+        joker.rarity,
+        joker.base_cost,
+        joker.cost,
+        joker.sell_cost,
+        joker.discovered,
+    ) == ("j_scary_face", "Scary Face", 1, 4, 4, 2, True)
+    score = BalatroScorer().score(
+        PokerHand.HIGH_CARD,
+        state=next_run.public,
+        cards=[BalatroCard("K", "Hearts")],
+    )
+    assert (score.chips, score.mult, score.total) == (35, 1, 35)
+    sold_run = ShopTransitionEngine().step(
+        next_run, EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    )
+    assert sold_run.public.money == 18
+    assert sold_run.public.jokers == []
+
+
 @pytest.mark.parametrize(
     "item",
     (
@@ -895,6 +934,9 @@ def test_env_r2_exact_banner_materialization_scores_and_sells():
         GeneratedShopJokerItem("j_banner", 2, 5, None, 5, False),
         GeneratedShopJokerItem("j_banner", 1, 4, None, 4, False),
         GeneratedShopJokerItem("j_banner", 1, 5, "Foil", 7, False),
+        GeneratedShopJokerItem("j_scary_face", 2, 4, None, 4, False),
+        GeneratedShopJokerItem("j_scary_face", 1, 5, None, 5, False),
+        GeneratedShopJokerItem("j_scary_face", 1, 4, "Foil", 6, False),
     ),
 )
 def test_env_r2_unsupported_generated_joker_materialization_fails_closed(item):
