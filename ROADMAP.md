@@ -2538,24 +2538,41 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the eleventh exact generated-Joker acquisition bridge for only uneditioned
-`j_wily`. The committed trace contains six exact uneditioned Wily Joker copies,
-five of which are affordable at the observed boundary. Its +100 Chips when the
-played hand contains Three of a Kind is already owned by `BalatroScorer` and
-`HandEvaluator`, and its discard callback is inert.
+Add the twelfth exact generated-Joker acquisition bridge for only uneditioned
+`j_abstract`. The committed trace contains five exact uneditioned, affordable
+Abstract Joker copies; its sixth visible copy has an edition and must remain
+fail-closed. Its +3 Mult per owned Joker is already owned by `BalatroScorer`,
+and its discard callback is inert.
 
-Extend the canonical generated-item materializer with an explicit `j_wily` to
-`WilyJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`, public
-label, purchase price, discovery transition, and sale value). Extend the
-generated-Joker tactical capability only for its already-owned Three-of-a-Kind
+Extend the canonical generated-item materializer with an explicit `j_abstract`
+to `AbstractJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`,
+public label, purchase price, discovery transition, and sale value). Extend the
+generated-Joker tactical capability only for its already-owned inventory-count
 scoring effect and inert discard callback. Add deterministic materialization,
 mask, purchase, scoring, sale, isolation, natural production-backend, and
-complete rollout coverage. Keep the first ten centers unchanged and every
+complete rollout coverage. Keep the first eleven centers unchanged and every
 other generated center/edition/malformed state fail-closed. Do not add a generic
 factory, batch multiple centers, open boosters, change PPO, rewards, or tactics,
 or request an operator run during this checkpoint. Keep Drunkard, 8 Ball,
-Hallucination, Dusk, and Faceless Joker fail-closed for their unowned callbacks,
-and do not batch another hand-pattern Joker into this checkpoint.
+Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
+unowned callbacks, and do not batch another Joker into this checkpoint.
+
+Exact generated Wily Joker acquisition checkpoint:
+
+- Implementation commit `8086c714b47f1ad2aa9aa8ae09f3c5a8eacf9727` adds only
+  exact uneditioned `j_wily` (`rarity=1`, `base_cost=4`) as the audited
+  `WilyJoker`, with exact discovery, price/sale metadata, Three-of-a-Kind
+  scoring, tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `17` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 10 / seed
+  `435A60DF` locks the exact seven-action buy/sell lifecycle.
+- Lifecycle-policy episode 33 naturally adds a second-shop Wily buy/sale after
+  its existing Jolly lifecycle; the exact nine-action and money trajectory is
+  locked without weakening the original Jolly assertions.
+- The combined shop/backend/tactical/complete-rollout local gate passed **179
+  tests in 94.91s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44048538813`, job `133920208943`, passed the authoritative
+  Balatro deterministic gate with **3498 passed, 1621 deselected in 238.63s**.
 
 Exact generated Sly Joker acquisition checkpoint:
 
