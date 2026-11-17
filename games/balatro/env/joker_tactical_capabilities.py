@@ -14,6 +14,7 @@ from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.sly_joker import SlyJoker
+from games.balatro.jokers.wily_joker import WilyJoker
 
 
 def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
@@ -41,6 +42,8 @@ def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
             expected_center = "j_scholar"
         elif type(joker) is SlyJoker:
             expected_center = "j_sly"
+        elif type(joker) is WilyJoker:
+            expected_center = "j_wily"
         else:
             return False
         if getattr(joker, "center", None) != expected_center:

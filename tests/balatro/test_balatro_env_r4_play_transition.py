@@ -486,6 +486,38 @@ def test_env_r4_ordinary_play_scores_exact_materialized_sly():
     assert type(result.public.jokers[0]).__name__ == "SlyJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_wily():
+    baseline = None
+    run = None
+    triple_indices = None
+    for attempt in range(200):
+        candidate = _play_run(seed=f"R4-WILY-{attempt}")
+        triple = next(
+            (
+                positions
+                for positions in combinations(range(len(candidate.public.hand)), 3)
+                if len({candidate.public.hand[index].rank for index in positions}) == 1
+            ),
+            None,
+        )
+        if triple is not None:
+            baseline = candidate
+            run = _play_run(seed=f"R4-WILY-{attempt}")
+            triple_indices = tuple(triple)
+            break
+    assert baseline is not None and run is not None and triple_indices is not None
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_wily", 1, 4, None, 4, False)
+        )
+    ]
+    baseline_result = apply_supported_ordinary_play(baseline, triple_indices)
+    result = apply_supported_ordinary_play(run, triple_indices)
+    assert result.public.last_played_hand == "THREE_OF_A_KIND"
+    assert result.public.score - baseline_result.public.score == 300
+    assert type(result.public.jokers[0]).__name__ == "WilyJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

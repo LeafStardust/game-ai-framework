@@ -590,7 +590,7 @@ def test_env_ppo_rollout_crosses_exact_generated_jolly_lifecycle(
     episode = episode_33_with_jolly_lifecycle
 
     assert episode.game_seed == "A801C474"
-    assert episode.action_count == 7
+    assert episode.action_count == 9
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [
@@ -602,6 +602,8 @@ def test_env_ppo_rollout_crosses_exact_generated_jolly_lifecycle(
         ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
     ]
@@ -626,6 +628,16 @@ def test_env_ppo_rollout_crosses_exact_generated_jolly_lifecycle(
         after_sale.observation,
         "jokers.0.center",
     ) == 0.0
+    wily_center = float(JOKER_CENTER_KEYS.index("j_wily") + 1)
+    assert _observation_feature(
+        episode.boundaries[5].observation,
+        "shop.jokers.0.center",
+    ) == wily_center
+    assert _observation_feature(
+        episode.boundaries[6].observation,
+        "jokers.0.center",
+    ) == wily_center
+    assert (episode.boundaries[5].money, episode.boundaries[7].money) == (12, 10)
 
 
 @pytest.fixture(scope="module")
@@ -671,6 +683,52 @@ def test_env_ppo_rollout_crosses_exact_generated_sly_lifecycle(
     assert (after_buy.ante, after_buy.phase, after_buy.money) == (1, "SHOP", 5)
     assert _observation_feature(after_buy.observation, "jokers.0.center") == sly_center
     assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 6)
+    assert _observation_feature(after_sale.observation, "jokers.0.center") == 0.0
+
+
+@pytest.fixture(scope="module")
+def episode_10_with_wily_lifecycle():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(0),
+        run,
+        episode_index=10,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_wily_lifecycle(
+    episode_10_with_wily_lifecycle,
+):
+    episode = episode_10_with_wily_lifecycle
+    assert episode.game_seed == "435A60DF"
+    assert episode.action_count == 7
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    before_buy = episode.boundaries[1]
+    after_buy = episode.boundaries[2]
+    after_sale = episode.boundaries[3]
+    wily_center = float(JOKER_CENTER_KEYS.index("j_wily") + 1)
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 9)
+    assert episode.decisions[1].action_mask.values[1] is True
+    assert _observation_feature(
+        before_buy.observation, "shop.jokers.0.center"
+    ) == wily_center
+    assert (after_buy.ante, after_buy.phase, after_buy.money) == (1, "SHOP", 5)
+    assert _observation_feature(after_buy.observation, "jokers.0.center") == wily_center
+    assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 7)
     assert _observation_feature(after_sale.observation, "jokers.0.center") == 0.0
 
 
