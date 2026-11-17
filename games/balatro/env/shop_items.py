@@ -18,6 +18,7 @@ from games.balatro.env.shop_pricing import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import expected_main_shop_slots_for_vouchers
 from games.balatro.joker import Joker
+from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.droll_joker import DrollJoker
@@ -62,7 +63,12 @@ def materialize_generated_shop_joker_for_acquisition(
     """
     if type(item) is not GeneratedShopJokerItem:
         raise TypeError("item must be an exact GeneratedShopJokerItem")
-    if item.center_key == "j_joker":
+    if item.center_key == "j_abstract":
+        joker_type = AbstractJoker
+        expected_rarity = 1
+        expected_base_cost = 4
+        label = "Abstract Joker"
+    elif item.center_key == "j_joker":
         joker_type = FlatMultJoker
         expected_rarity = 1
         expected_base_cost = 2
