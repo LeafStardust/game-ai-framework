@@ -46,6 +46,7 @@ from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
+from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
 from games.balatro.scoring import BalatroScorer
 
@@ -702,6 +703,31 @@ def test_env_ppo_backend_acquires_generated_scary_face_and_discovers_its_center(
     assert backend.run.public.jokers[0].sell_cost == 2
     assert backend.run.generated_center_discovered("j_scary_face") is True
     assert "j_scary_face" in backend.run.tag_profile_state.discovered_center_keys
+    sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert sell in environment.legal_actions()
+    environment.step(sell)
+    assert backend.run.public.money == before_money - 2
+
+
+def test_env_ppo_backend_acquires_generated_walkie_talkie_and_discovers_its_center():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed=77)
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    before_money = backend.run.public.money
+    assert tuple(
+        (item.center_key, item.base_cost, item.price, item.discovered)
+        for item in backend.run.public.shop_jokers
+    ) == (("j_walkie_talkie", 4, 4, False),)
+    assert buy in environment.legal_actions()
+    environment.step(buy)
+    assert backend.run.public.money == before_money - 4
+    assert type(backend.run.public.jokers[0]) is WalkieTalkieJoker
+    assert backend.run.public.jokers[0].sell_cost == 2
+    assert backend.run.generated_center_discovered("j_walkie_talkie") is True
+    assert "j_walkie_talkie" in backend.run.tag_profile_state.discovered_center_keys
     sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
     assert sell in environment.legal_actions()
     environment.step(sell)

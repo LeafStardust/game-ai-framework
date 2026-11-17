@@ -293,7 +293,7 @@ def test_env_ppo_rollout_crosses_exact_generated_droll_and_odd_todd_lifecycles(
 
 
 @pytest.fixture(scope="module")
-def episode_12_with_even_steven_lifecycle():
+def episode_12_with_walkie_talkie_and_even_steven_lifecycles():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(4),
@@ -303,13 +303,13 @@ def episode_12_with_even_steven_lifecycle():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_generated_even_steven_lifecycle(
-    episode_12_with_even_steven_lifecycle,
+def test_env_ppo_rollout_crosses_exact_generated_walkie_talkie_and_even_steven_lifecycles(
+    episode_12_with_walkie_talkie_and_even_steven_lifecycles,
 ):
-    episode = episode_12_with_even_steven_lifecycle
+    episode = episode_12_with_walkie_talkie_and_even_steven_lifecycles
 
     assert episode.game_seed == "BAA636D2"
-    assert episode.action_count == 11
+    assert episode.action_count == 13
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [
@@ -317,6 +317,8 @@ def test_env_ppo_rollout_crosses_exact_generated_even_steven_lifecycle(
         for decision in episode.decisions
     ] == [
         ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
         ("END_SHOP", {}),
@@ -329,22 +331,36 @@ def test_env_ppo_rollout_crosses_exact_generated_even_steven_lifecycle(
         ("SELECT_BLIND", {}),
     ]
 
-    before_buy = episode.boundaries[7]
-    after_buy = episode.boundaries[8]
-    after_sale = episode.boundaries[9]
+    walkie_center = float(JOKER_CENTER_KEYS.index("j_walkie_talkie") + 1)
+    assert episode.decisions[1].action_mask.values[1] is True
+    assert _observation_feature(
+        episode.boundaries[1].observation, "shop.jokers.0.center"
+    ) == walkie_center
+    assert (episode.boundaries[2].ante, episode.boundaries[2].money) == (1, 5)
+    assert _observation_feature(
+        episode.boundaries[2].observation, "jokers.0.center"
+    ) == walkie_center
+    assert (episode.boundaries[3].ante, episode.boundaries[3].money) == (1, 7)
+    assert _observation_feature(
+        episode.boundaries[3].observation, "jokers.0.center"
+    ) == 0.0
+
+    before_buy = episode.boundaries[9]
+    after_buy = episode.boundaries[10]
+    after_sale = episode.boundaries[11]
     even_center = float(JOKER_CENTER_KEYS.index("j_even_steven") + 1)
-    assert (before_buy.ante, before_buy.phase, before_buy.money) == (2, "SHOP", 31)
-    assert episode.decisions[7].action_mask.values[1] is True
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (2, "SHOP", 28)
+    assert episode.decisions[9].action_mask.values[1] is True
     assert _observation_feature(
         before_buy.observation,
         "shop.jokers.0.center",
     ) == even_center
-    assert (after_buy.ante, after_buy.phase, after_buy.money) == (2, "SHOP", 27)
+    assert (after_buy.ante, after_buy.phase, after_buy.money) == (2, "SHOP", 24)
     assert _observation_feature(
         after_buy.observation,
         "jokers.0.center",
     ) == even_center
-    assert (after_sale.ante, after_sale.phase, after_sale.money) == (2, "SHOP", 29)
+    assert (after_sale.ante, after_sale.phase, after_sale.money) == (2, "SHOP", 26)
     assert _observation_feature(
         after_sale.observation,
         "jokers.0.center",

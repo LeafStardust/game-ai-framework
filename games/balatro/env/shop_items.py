@@ -34,6 +34,7 @@ from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
+from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
 
 
@@ -148,6 +149,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 3
         label = "Sly Joker"
+    elif item.center_key == "j_walkie_talkie":
+        joker_type = WalkieTalkieJoker
+        expected_rarity = 1
+        expected_base_cost = 4
+        label = "Walkie Talkie"
     elif item.center_key == "j_wily":
         joker_type = WilyJoker
         expected_rarity = 1

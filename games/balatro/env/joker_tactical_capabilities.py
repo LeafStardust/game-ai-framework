@@ -20,6 +20,7 @@ from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
+from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
 
 
@@ -60,6 +61,8 @@ def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
             expected_center = "j_scary_face"
         elif type(joker) is SlyJoker:
             expected_center = "j_sly"
+        elif type(joker) is WalkieTalkieJoker:
+            expected_center = "j_walkie_talkie"
         elif type(joker) is WilyJoker:
             expected_center = "j_wily"
         else:
