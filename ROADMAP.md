@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`61210b6d4f106eabe660a433854e7994ee849751`.
+`34cae679a8319f52a21e5d9a72a7d235b351baa3`.
 
 ## Objective
 
@@ -2538,24 +2538,42 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the twelfth exact generated-Joker acquisition bridge for only uneditioned
-`j_abstract`. The committed trace contains five exact uneditioned, affordable
-Abstract Joker copies; its sixth visible copy has an edition and must remain
-fail-closed. Its +3 Mult per owned Joker is already owned by `BalatroScorer`,
-and its discard callback is inert.
+Add the thirteenth exact generated-Joker acquisition bridge for only uneditioned
+`j_photograph`. The committed trace contains five exact uneditioned, affordable
+Photograph copies; its two other visible observations are Holographic and must
+remain fail-closed. Its x2 Mult on the first scoring face card is already owned
+by `BalatroScorer`, and its discard callback is inert.
 
-Extend the canonical generated-item materializer with an explicit `j_abstract`
-to `AbstractJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=4`,
-public label, purchase price, discovery transition, and sale value). Extend the
-generated-Joker tactical capability only for its already-owned inventory-count
-scoring effect and inert discard callback. Add deterministic materialization,
-mask, purchase, scoring, sale, isolation, natural production-backend, and
-complete rollout coverage. Keep the first eleven centers unchanged and every
-other generated center/edition/malformed state fail-closed. Do not add a generic
-factory, batch multiple centers, open boosters, change PPO, rewards, or tactics,
-or request an operator run during this checkpoint. Keep Drunkard, 8 Ball,
-Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
-unowned callbacks, and do not batch another Joker into this checkpoint.
+Extend the canonical generated-item materializer with an explicit
+`j_photograph` to `PhotographJoker` entry and exact vanilla identity
+(`rarity=1`, `base_cost=5`, public label, purchase price, discovery transition,
+and sale value). Extend the generated-Joker tactical capability only for its
+already-owned ordered scoring-card effect and inert discard callback. Add
+deterministic materialization, mask, purchase, scoring, sale, isolation, natural
+production-backend, and complete rollout coverage. Keep the first twelve
+centers unchanged and every other generated center/edition/malformed state
+fail-closed. Do not add a generic factory, batch multiple centers, open
+boosters, change PPO, rewards, or tactics, or request an operator run during
+this checkpoint. Keep Drunkard, 8 Ball, Hallucination, Dusk, Faceless Joker,
+Gros Michel, and Half Joker fail-closed for their unowned callbacks, and do not
+batch another Joker into this checkpoint.
+
+Exact generated Abstract Joker acquisition checkpoint:
+
+- Implementation commit `34cae679a8319f52a21e5d9a72a7d235b351baa3` adds only
+  exact uneditioned `j_abstract` (`rarity=1`, `base_cost=4`) as the audited
+  `AbstractJoker`, with exact discovery, price/sale metadata, inventory-count
+  scoring, tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `311` proves natural generation, legal
+  masking, purchase, discovery, and sale. Complete rollout episode 27 / seed
+  `68E835DA` locks the exact nine-action buy/sell lifecycle.
+- Lifecycle-policy episode 31 naturally adds a second-shop Abstract buy/sale
+  after its existing Gluttonous lifecycle; the exact eleven-action and money
+  trajectory is locked without weakening the original Gluttonous assertions.
+- The combined shop/backend/tactical/complete-rollout local gate passed **187
+  tests in 67.39s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44053167477`, job `133935747417`, passed the authoritative
+  Balatro deterministic gate with **3506 passed, 1621 deselected in 290.82s**.
 
 Exact generated Wily Joker acquisition checkpoint:
 
