@@ -17,6 +17,7 @@ from games.balatro.env.transition import (
 )
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.abstract_joker import AbstractJoker
+from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.droll_joker import DrollJoker
@@ -806,6 +807,43 @@ def test_env_r2_exact_mystic_summit_purchase_is_masked_when_unaffordable():
         ShopTransitionEngine().step(inserted, action)
 
 
+def test_env_r2_exact_banner_materialization_scores_and_sells():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_banner", base_cost=5, discovered=False)
+    )
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert action in ShopTransitionEngine().legal_actions(inserted)
+    next_run = ShopTransitionEngine().step(inserted, action)
+    assert inserted.generation_discovery == {"j_banner": False}
+    assert next_run.generation_discovery == {"j_banner": True}
+    assert next_run.tag_profile_state.discovered_center_keys == frozenset({"j_banner"})
+    assert next_run.public.money == 16
+    joker = next_run.public.jokers[0]
+    assert type(joker) is BannerJoker
+    assert (
+        joker.center,
+        joker.label,
+        joker.rarity,
+        joker.base_cost,
+        joker.cost,
+        joker.sell_cost,
+        joker.discovered,
+    ) == ("j_banner", "Banner", 1, 5, 4, 2, True)
+    next_run.public.discards_remaining = 3
+    score = BalatroScorer().score(
+        PokerHand.HIGH_CARD,
+        state=next_run.public,
+        cards=[BalatroCard("2", "Hearts")],
+    )
+    assert (score.chips, score.mult, score.total) == (95, 1, 95)
+    sold_run = ShopTransitionEngine().step(
+        next_run, EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    )
+    assert sold_run.public.money == 18
+    assert sold_run.public.jokers == []
+
+
 @pytest.mark.parametrize(
     "item",
     (
@@ -854,6 +892,9 @@ def test_env_r2_exact_mystic_summit_purchase_is_masked_when_unaffordable():
         GeneratedShopJokerItem("j_mystic_summit", 2, 5, None, 5, False),
         GeneratedShopJokerItem("j_mystic_summit", 1, 4, None, 4, False),
         GeneratedShopJokerItem("j_mystic_summit", 1, 5, "Foil", 7, False),
+        GeneratedShopJokerItem("j_banner", 2, 5, None, 5, False),
+        GeneratedShopJokerItem("j_banner", 1, 4, None, 4, False),
+        GeneratedShopJokerItem("j_banner", 1, 5, "Foil", 7, False),
     ),
 )
 def test_env_r2_unsupported_generated_joker_materialization_fails_closed(item):

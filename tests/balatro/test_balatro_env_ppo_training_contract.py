@@ -352,7 +352,7 @@ def test_env_ppo_rollout_crosses_exact_generated_even_steven_lifecycle(
 
 
 @pytest.fixture(scope="module")
-def episode_21_with_devious_lifecycle():
+def episode_21_with_banner_and_devious_lifecycles():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(5),
@@ -362,13 +362,13 @@ def episode_21_with_devious_lifecycle():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_generated_devious_lifecycle(
-    episode_21_with_devious_lifecycle,
+def test_env_ppo_rollout_crosses_exact_generated_banner_and_devious_lifecycles(
+    episode_21_with_banner_and_devious_lifecycles,
 ):
-    episode = episode_21_with_devious_lifecycle
+    episode = episode_21_with_banner_and_devious_lifecycles
 
     assert episode.game_seed == "1D88A8A1"
-    assert episode.action_count == 7
+    assert episode.action_count == 9
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [
@@ -376,6 +376,8 @@ def test_env_ppo_rollout_crosses_exact_generated_devious_lifecycle(
         for decision in episode.decisions
     ] == [
         ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
         ("BUY_JOKER", {"slot": 0}),
         ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
@@ -383,22 +385,33 @@ def test_env_ppo_rollout_crosses_exact_generated_devious_lifecycle(
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
     ]
-    before_buy = episode.boundaries[1]
-    after_buy = episode.boundaries[2]
-    after_sale = episode.boundaries[3]
+    banner_center = float(JOKER_CENTER_KEYS.index("j_banner") + 1)
+    assert episode.decisions[1].action_mask.values[2] is True
+    assert _observation_feature(
+        episode.boundaries[1].observation, "shop.jokers.1.center"
+    ) == banner_center
+    assert _observation_feature(
+        episode.boundaries[2].observation, "jokers.0.center"
+    ) == banner_center
+    assert _observation_feature(
+        episode.boundaries[3].observation, "jokers.0.center"
+    ) == 0.0
+    before_buy = episode.boundaries[3]
+    after_buy = episode.boundaries[4]
+    after_sale = episode.boundaries[5]
     devious_center = float(JOKER_CENTER_KEYS.index("j_devious") + 1)
-    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 7)
-    assert episode.decisions[1].action_mask.values[1] is True
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 4)
+    assert episode.decisions[3].action_mask.values[1] is True
     assert _observation_feature(
         before_buy.observation,
         "shop.jokers.0.center",
     ) == devious_center
-    assert (after_buy.ante, after_buy.phase, after_buy.money) == (1, "SHOP", 3)
+    assert (after_buy.ante, after_buy.phase, after_buy.money) == (1, "SHOP", 0)
     assert _observation_feature(
         after_buy.observation,
         "jokers.0.center",
     ) == devious_center
-    assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 5)
+    assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 2)
     assert _observation_feature(
         after_sale.observation,
         "jokers.0.center",
@@ -977,6 +990,52 @@ def test_env_ppo_rollout_crosses_two_exact_generated_mystic_summit_lifecycles(
 
 
 @pytest.fixture(scope="module")
+def episode_6_with_banner_lifecycle():
+    run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(0),
+        run,
+        episode_index=6,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_banner_lifecycle(
+    episode_6_with_banner_lifecycle,
+):
+    episode = episode_6_with_banner_lifecycle
+    assert episode.game_seed == "FE98D556"
+    assert episode.action_count == 7
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    before_buy = episode.boundaries[1]
+    after_buy = episode.boundaries[2]
+    after_sale = episode.boundaries[3]
+    banner_center = float(JOKER_CENTER_KEYS.index("j_banner") + 1)
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 9)
+    assert episode.decisions[1].action_mask.values[1] is True
+    assert _observation_feature(
+        before_buy.observation, "shop.jokers.0.center"
+    ) == banner_center
+    assert (after_buy.ante, after_buy.phase, after_buy.money) == (1, "SHOP", 4)
+    assert _observation_feature(
+        after_buy.observation, "jokers.0.center"
+    ) == banner_center
+    assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 6)
+    assert _observation_feature(after_sale.observation, "jokers.0.center") == 0.0
+@pytest.fixture(scope="module")
 def episode_46_with_paint_brush():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
@@ -1145,7 +1204,7 @@ def test_env_ppo_rollout_crosses_exact_hieroglyph_boss_cashout(
     episode = episode_50_with_hieroglyph
 
     assert episode.game_seed == "05B3FF62"
-    assert episode.action_count == 21
+    assert episode.action_count == 24
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
@@ -1155,19 +1214,22 @@ def test_env_ppo_rollout_crosses_exact_hieroglyph_boss_cashout(
         "BUY_VOUCHER",
         "END_SHOP",
         "SELECT_BLIND",
+        "BUY_JOKER",
+        "SELL_JOKER",
+        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
-        "BUY_VOUCHER",
-        "REROLL_SHOP",
         "END_SHOP",
         "SELECT_BLIND",
         "BUY_CONSUMABLE",
-        "REROLL_SHOP",
+        "BUY_JOKER",
+        "SELL_JOKER",
         "END_SHOP",
         "SELECT_BLIND",
         "BUY_JOKER",
         "END_SHOP",
         "SELECT_BLIND",
+        "BUY_CONSUMABLE",
         "END_SHOP",
         "SELECT_BLIND",
     ]
@@ -1187,13 +1249,31 @@ def test_env_ppo_rollout_crosses_exact_hieroglyph_boss_cashout(
         ) == 3.0
     sly_center = float(JOKER_CENTER_KEYS.index("j_sly") + 1)
     assert _observation_feature(
-        episode.boundaries[16].observation,
+        episode.boundaries[18].observation,
         "shop.jokers.0.center",
     ) == sly_center
     assert _observation_feature(
-        episode.boundaries[17].observation,
+        episode.boundaries[19].observation,
         "jokers.0.center",
     ) == sly_center
+    banner_center = float(JOKER_CENTER_KEYS.index("j_banner") + 1)
+    for decision_index, before_index, after_index, sale_index, shop_slot in (
+        (6, 6, 7, 8, 1),
+        (14, 14, 15, 16, 0),
+    ):
+        assert episode.decisions[decision_index].action_mask.values[
+            shop_slot + 1
+        ] is True
+        assert _observation_feature(
+            episode.boundaries[before_index].observation,
+            f"shop.jokers.{shop_slot}.center",
+        ) == banner_center
+        assert _observation_feature(
+            episode.boundaries[after_index].observation, "jokers.0.center"
+        ) == banner_center
+        assert _observation_feature(
+            episode.boundaries[sale_index].observation, "jokers.0.center"
+        ) == 0.0
     assert episode.boundaries[-1].score == 708
 
 
@@ -1356,7 +1436,7 @@ def test_env_ppo_rollout_admits_exact_observed_hieroglyph_ante_decrement(
     ]
 
     assert episode.game_seed == "05B3FF62"
-    assert episode.action_count == 21
+    assert episode.action_count == 24
     assert decreases == [(3, 1, 0, "BUY_VOUCHER")]
 
     after = episode.boundaries[4]
@@ -1394,7 +1474,7 @@ def test_env_ppo_rollout_admits_exact_observed_petroglyph_ante_decrement(
 
     assert replace(
         episode, boundaries=tuple(boundaries), decisions=tuple(decisions)
-    ).action_count == 21
+    ).action_count == 24
 
 
 @pytest.mark.parametrize(
