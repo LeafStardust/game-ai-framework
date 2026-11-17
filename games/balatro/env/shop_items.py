@@ -24,6 +24,7 @@ from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
+from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.scholar import ScholarJoker
 
@@ -89,6 +90,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 5
         label = "Gluttonous Joker"
+    elif item.center_key == "j_jolly":
+        joker_type = JollyJoker
+        expected_rarity = 1
+        expected_base_cost = 3
+        label = "Jolly Joker"
     elif item.center_key == "j_odd_todd":
         joker_type = OddToddJoker
         expected_rarity = 1
