@@ -724,6 +724,34 @@ def test_env_r4_ordinary_play_scores_exact_materialized_clever_joker():
     assert type(result.public.jokers[0]).__name__ == "CleverJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_mad_joker():
+    baseline = None
+    run = None
+    indices = None
+    for attempt in range(200):
+        candidate = _play_run(seed=f"R4-MAD-{attempt}")
+        by_rank = {}
+        for index, card in enumerate(candidate.public.hand):
+            by_rank.setdefault(card.rank, []).append(index)
+        pairs = [positions[:2] for positions in by_rank.values() if len(positions) >= 2]
+        if len(pairs) >= 2:
+            baseline = candidate
+            run = _play_run(seed=f"R4-MAD-{attempt}")
+            indices = tuple(pairs[0] + pairs[1])
+            break
+    assert baseline is not None and run is not None and indices is not None
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_mad", 1, 4, None, 4, False)
+        )
+    ]
+    baseline_result = apply_supported_ordinary_play(baseline, indices)
+    result = apply_supported_ordinary_play(run, indices)
+    assert result.public.last_played_hand == "TWO_PAIR"
+    assert result.public.score == baseline_result.public.score * 6
+    assert type(result.public.jokers[0]).__name__ == "MadJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

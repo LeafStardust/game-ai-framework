@@ -41,6 +41,7 @@ from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
+from games.balatro.jokers.mad_joker import MadJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.photograph import PhotographJoker
@@ -818,6 +819,31 @@ def test_env_ppo_backend_acquires_generated_clever_joker_and_discovers_its_cente
     assert backend.run.public.money == before_money - 2
 
 
+def test_env_ppo_backend_acquires_generated_mad_joker_and_discovers_its_center():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed=96)
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    before_money = backend.run.public.money
+    assert tuple(
+        (item.center_key, item.base_cost, item.price, item.discovered)
+        for item in backend.run.public.shop_jokers
+    ) == (("j_mad", 4, 4, False),)
+    assert buy in environment.legal_actions()
+    environment.step(buy)
+    assert backend.run.public.money == before_money - 4
+    assert type(backend.run.public.jokers[0]) is MadJoker
+    assert backend.run.public.jokers[0].sell_cost == 2
+    assert backend.run.generated_center_discovered("j_mad") is True
+    assert "j_mad" in backend.run.tag_profile_state.discovered_center_keys
+    sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert sell in environment.legal_actions()
+    environment.step(sell)
+    assert backend.run.public.money == before_money - 2
+
+
 def test_env_ppo_backend_exposes_and_executes_exact_paid_shop_reroll():
     backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
     environment = BalatroHeadlessEnvironment(backend)
@@ -1071,6 +1097,7 @@ def test_env_ppo_backend_resolves_supported_boss_into_exact_next_ante_shop():
     assert restored.frame.encoded_observation() == environment.frame.encoded_observation()
 
     expected_actions = (
+        EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
         EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 0}),
         EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}),
         EnvAction.from_alias("REROLL_SHOP"),

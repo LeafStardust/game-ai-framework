@@ -435,7 +435,7 @@ def test_env_ppo_rollout_crosses_exact_generated_banner_and_devious_lifecycles(
 
 
 @pytest.fixture(scope="module")
-def episode_31_with_gluttonous_and_abstract_lifecycles():
+def episode_31_with_gluttonous_abstract_and_mad_lifecycles():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(7),
@@ -445,13 +445,13 @@ def episode_31_with_gluttonous_and_abstract_lifecycles():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_generated_gluttonous_and_abstract_lifecycles(
-    episode_31_with_gluttonous_and_abstract_lifecycles,
+def test_env_ppo_rollout_crosses_exact_generated_gluttonous_abstract_and_mad_lifecycles(
+    episode_31_with_gluttonous_abstract_and_mad_lifecycles,
 ):
-    episode = episode_31_with_gluttonous_and_abstract_lifecycles
+    episode = episode_31_with_gluttonous_abstract_and_mad_lifecycles
 
     assert episode.game_seed == "19F511BC"
-    assert episode.action_count == 11
+    assert episode.action_count == 13
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [
@@ -467,6 +467,8 @@ def test_env_ppo_rollout_crosses_exact_generated_gluttonous_and_abstract_lifecyc
         ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
     ]
@@ -506,6 +508,23 @@ def test_env_ppo_rollout_crosses_exact_generated_gluttonous_and_abstract_lifecyc
     assert (episode.boundaries[7].ante, episode.boundaries[7].money) == (1, 6)
     assert _observation_feature(
         episode.boundaries[7].observation,
+        "jokers.0.center",
+    ) == 0.0
+    mad_center = float(JOKER_CENTER_KEYS.index("j_mad") + 1)
+    assert (episode.boundaries[9].ante, episode.boundaries[9].money) == (2, 12)
+    assert episode.decisions[9].action_mask.values[1] is True
+    assert _observation_feature(
+        episode.boundaries[9].observation,
+        "shop.jokers.0.center",
+    ) == mad_center
+    assert (episode.boundaries[10].ante, episode.boundaries[10].money) == (2, 8)
+    assert _observation_feature(
+        episode.boundaries[10].observation,
+        "jokers.0.center",
+    ) == mad_center
+    assert (episode.boundaries[11].ante, episode.boundaries[11].money) == (2, 10)
+    assert _observation_feature(
+        episode.boundaries[11].observation,
         "jokers.0.center",
     ) == 0.0
 
@@ -979,6 +998,63 @@ def test_env_ppo_rollout_crosses_exact_generated_clever_joker_lifecycle(
     assert episode.boundaries[3].money == 6
     assert _observation_feature(
         episode.boundaries[3].observation, "jokers.0.center"
+    ) == 0.0
+
+
+@pytest.fixture(scope="module")
+def episode_140_with_mad_joker_lifecycle():
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(0),
+        PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
+        episode_index=140,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_mad_joker_lifecycle(
+    episode_140_with_mad_joker_lifecycle,
+):
+    episode = episode_140_with_mad_joker_lifecycle
+    assert episode.game_seed == "7FBB953D"
+    assert episode.action_count == 15
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    mad_center = float(JOKER_CENTER_KEYS.index("j_mad") + 1)
+    before_buy = episode.boundaries[1]
+    after_buy = episode.boundaries[2]
+    after_sale = episode.boundaries[3]
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 8)
+    assert episode.decisions[1].action_mask.values[1] is False
+    assert episode.decisions[1].action_mask.values[2] is True
+    assert _observation_feature(
+        before_buy.observation, "shop.jokers.1.center"
+    ) == mad_center
+    assert (after_buy.money, after_sale.money) == (4, 6)
+    assert _observation_feature(
+        after_buy.observation, "jokers.0.center"
+    ) == mad_center
+    assert _observation_feature(
+        after_sale.observation, "jokers.0.center"
     ) == 0.0
 
 
