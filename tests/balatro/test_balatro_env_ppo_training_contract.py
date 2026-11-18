@@ -1303,6 +1303,58 @@ def test_env_ppo_rollout_crosses_exact_generated_greedy_joker_lifecycle(
 
 
 @pytest.fixture(scope="module")
+def episode_8_with_lusty_joker_lifecycle():
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(0),
+        PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
+        episode_index=8,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_lusty_joker_lifecycle(
+    episode_8_with_lusty_joker_lifecycle,
+):
+    episode = episode_8_with_lusty_joker_lifecycle
+    assert episode.game_seed == "E4205D09"
+    assert episode.action_count == 11
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    lusty_center = float(JOKER_CENTER_KEYS.index("j_lusty_joker") + 1)
+    before_buy = episode.boundaries[3]
+    after_buy = episode.boundaries[4]
+    after_sale = episode.boundaries[5]
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 6)
+    assert episode.decisions[3].action_mask.values[1] is True
+    assert _observation_feature(
+        before_buy.observation, "shop.jokers.0.center"
+    ) == lusty_center
+    assert (after_buy.money, after_sale.money) == (1, 3)
+    assert _observation_feature(
+        after_buy.observation, "jokers.0.center"
+    ) == lusty_center
+    assert _observation_feature(
+        after_sale.observation, "jokers.0.center"
+    ) == 0.0
+
+
+@pytest.fixture(scope="module")
 def episode_9_with_photograph_lifecycle():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(

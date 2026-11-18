@@ -873,6 +873,39 @@ def test_env_r4_ordinary_play_scores_exact_materialized_greedy_joker():
     assert type(result.public.jokers[0]).__name__ == "GreedyJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_lusty_joker():
+    baseline = None
+    run = None
+    heart_index = None
+    for attempt in range(52):
+        candidate = _play_run(seed=f"R4-LUSTY-{attempt}")
+        index = next(
+            (
+                index
+                for index, card in enumerate(candidate.public.hand)
+                if card.suit == "Hearts"
+            ),
+            None,
+        )
+        if index is not None:
+            baseline = candidate
+            run = _play_run(seed=f"R4-LUSTY-{attempt}")
+            heart_index = index
+            break
+    assert baseline is not None and run is not None and heart_index is not None
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_lusty_joker", 1, 5, None, 5, False)
+        )
+    ]
+    baseline_result = apply_supported_ordinary_play(baseline, (heart_index,))
+    result = apply_supported_ordinary_play(run, (heart_index,))
+    assert result.public.score - baseline_result.public.score == (
+        baseline_result.public.score * 3
+    )
+    assert type(result.public.jokers[0]).__name__ == "LustyJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

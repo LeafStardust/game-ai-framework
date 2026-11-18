@@ -18,6 +18,7 @@ from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
+from games.balatro.jokers.lusty_joker import LustyJoker
 from games.balatro.jokers.mad_joker import MadJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
@@ -65,6 +66,8 @@ def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
             expected_center = "j_half"
         elif type(joker) is JollyJoker:
             expected_center = "j_jolly"
+        elif type(joker) is LustyJoker:
+            expected_center = "j_lusty_joker"
         elif type(joker) is MadJoker:
             expected_center = "j_mad"
         elif type(joker) is MysticSummitJoker:
