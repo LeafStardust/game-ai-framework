@@ -2538,25 +2538,43 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the twenty-fifth exact generated-Joker acquisition bridge for only
-uneditioned `j_crazy`. The committed trace contains two exact uneditioned,
-affordable Crazy Joker observations across episodes 10 and 23 and no edited
-copy. Its +12 Mult when the played cards contain a Straight is already owned by
-`CrazyJoker` and the canonical hand evaluator; non-scoring callbacks are inert.
+Add the twenty-sixth exact generated-Joker acquisition bridge for only
+uneditioned `j_greedy_joker`. The committed trace contains three exact
+uneditioned, affordable Greedy Joker observations across episodes 10 and 24 and
+no edited copy. Its +3 Mult per scored Diamond is already owned by
+`GreedyJoker`, the canonical scoring-card projection, and canonical suit rules;
+non-scoring callbacks are inert.
 
 Extend the canonical generated-item materializer with an explicit
-`j_crazy` to `CrazyJoker` entry and exact vanilla identity
-(`rarity=1`, `base_cost=4`, public label, purchase price, discovery transition,
+`j_greedy_joker` to `GreedyJoker` entry and exact vanilla identity
+(`rarity=1`, `base_cost=5`, public label, purchase price, discovery transition,
 and sale value). Extend the generated-Joker tactical capability only for its
-already-owned Straight scoring effect. Add deterministic materialization, mask,
+already-owned scored-Diamond effect. Add deterministic materialization, mask,
 purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep the first twenty-four centers unchanged and every
+rollout coverage. Keep the first twenty-five centers unchanged and every
 other generated center/edition/malformed state fail-closed. Do not add a
 generic factory, batch multiple centers, open boosters, change PPO, rewards,
 or tactics, or request an operator run during this checkpoint. Keep Drunkard,
 8 Ball,
 Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
 unowned callbacks, and do not batch another Joker into this checkpoint.
+
+Exact generated Crazy Joker acquisition checkpoint:
+
+- Implementation commit `2201c9f409d5f83fe264de5607259dfa3740cf04` adds only
+  exact uneditioned `j_crazy` (`rarity=1`, `base_cost=4`) as the audited
+  `CrazyJoker`, with exact discovery, price/sale metadata, Straight Mult,
+  tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `164` proves unsupported Runner remains
+  masked while natural Crazy generation, legal masking, purchase, discovery,
+  and sale are exact. Complete rollout episode 12 / seed `BAA636D2` locks the
+  fifteen-action Crazy lifecycle between existing Walkie Talkie and Even Steven
+  coverage. Actor-critic episodes 50 and 86 lock Crazy's exact downstream
+  Hieroglyph, Zany, Photograph, Sly, Paint Brush, shop, and terminal boundaries.
+- The combined shop/backend/tactical/complete-rollout local gate passed **290
+  tests in 121.04s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44258638120`, job `134646301807`, passed the authoritative
+  Balatro deterministic gate with **3609 passed, 1621 deselected in 286.98s**.
 
 Exact generated Crafty Joker acquisition checkpoint:
 
