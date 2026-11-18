@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`4a86d7905371da9ab5d63bbeabaeb337f87b3cc9`.
+`c5c4d767e4fd8a0140818d836ad315abc302f66b`.
 
 ## Objective
 
@@ -2538,30 +2538,52 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the thirtieth exact generated-Joker acquisition bridge for only
-uneditioned `j_juggler`. The committed trace contains exact uneditioned,
-affordable Juggler observations in episode 17 / decisions 3 and 4 and episode
-33 / decision 1, all with `rarity=1`, `base_cost=4`, `price=4`, no edition, and
-no edited copy. Its +1 hand-size acquisition lifecycle is already owned by
-the canonical shop transition and round lifecycle; its scored-hand callbacks
-are inert. The canonical Joker-sale owner currently keeps Juggler fail-closed
-because its inverse hand-size lifecycle is not yet implemented.
+Add the thirty-first exact generated-Joker acquisition bridge for only
+uneditioned `j_drunkard`. The committed trace contains nine exact uneditioned
+Drunkard observations across episodes 4, 6, 9, 28, 36, and 62, all with
+`rarity=1`, `base_cost=4`, `price=4`, no edition, and no edited copy. Its +1
+discard-per-round acquisition lifecycle is already owned by the canonical
+shop transition when the persistent round-reset allowance is authoritative;
+round start, blind start, tactical scoring, and cash-out already treat the
+resulting state exactly. The canonical Joker-sale owner still keeps Drunkard
+fail-closed because its inverse persistent-discard lifecycle is not owned.
 
 Extend the canonical generated-item materializer with an explicit
-`j_juggler` to `JugglerJoker` entry and exact vanilla identity (`rarity=1`,
+`j_drunkard` to `DrunkardJoker` entry and exact vanilla identity (`rarity=1`,
 `base_cost=4`, public label, purchase price, discovery transition, and sale
 value). Extend the generated-Joker tactical capability only for its already-
 owned blind-neutral behavior. At the canonical sale owner, add the exact
-Juggler removal inverse that decrements hand size once and preserves every
-existing inventory/order/pool invariant. Add deterministic materialization,
-mask, purchase, hand-size, sale/inverse, isolation, natural production-
-backend, and complete rollout coverage. Keep the first twenty-nine centers
-unchanged and every other generated center/edition/malformed state fail-
-closed. Do not add a generic factory, batch multiple centers, open boosters,
-change PPO, rewards, or tactics, or request an operator run during this
-checkpoint. Keep Drunkard, 8 Ball, Hallucination, Dusk, Faceless Joker, and
-Gros Michel fail-closed for their unowned callbacks, and do not batch another
-Joker into this checkpoint.
+Drunkard removal inverse that decrements authoritative `round_reset_discards`
+once without changing the already-finished round's remaining discards, and
+preserve every existing inventory/order/pool invariant. Add deterministic
+materialization, mask, purchase, persistent-discard, sale/inverse, round-
+lifecycle, isolation, natural production-backend, and complete rollout
+coverage. Keep the first thirty centers unchanged and every other generated
+center/edition/malformed state fail-closed. Do not add a generic factory,
+batch multiple centers, open boosters, change PPO, rewards, or tactics, or
+request an operator run during this checkpoint. Keep 8 Ball, Hallucination,
+Dusk, Faceless Joker, and Gros Michel fail-closed for their unowned callbacks,
+and do not batch another Joker into this checkpoint.
+
+Exact generated Juggler acquisition checkpoint:
+
+- Implementation commits `5ec48de15d96b8db6f28958422fbb072ce3d7f48`
+  and `c5c4d767e4fd8a0140818d836ad315abc302f66b` add only exact
+  uneditioned `j_juggler` (`rarity=1`, `base_cost=4`) as the audited
+  `JugglerJoker`, including discovery, price/sale metadata, +1 hand-size
+  acquisition, exact -1 sale inverse, blind-neutral tactical continuation,
+  and live/simulator sale parity.
+- Deterministic production-backend seed `4` proves unsupported To the Moon
+  remains masked while natural Juggler generation, legal masking, purchase,
+  discovery, and sale are exact. Complete rollout episode 25 / seed `2C383F87`
+  locks the eleven-action Juggler and Scary Face lifecycle sequence.
+- Existing episode 50 deterministically gains only the newly legal Juggler
+  buy/sale before resuming its prior route; both it and episode 25 lock hand
+  size `8 -> 9 -> 8`. The expanded local shop/round/pack/tactical/parity/
+  complete-rollout gate passed **428 tests in 148.34s**; syntax compilation,
+  `git diff --check`, and cache cleanup are clean.
+- GitHub Actions run `44366305614`, job `135020830509`, passed the authoritative
+  Balatro deterministic gate with **3652 passed, 1621 deselected in 483.48s**.
 
 Exact generated Fibonacci acquisition checkpoint:
 
