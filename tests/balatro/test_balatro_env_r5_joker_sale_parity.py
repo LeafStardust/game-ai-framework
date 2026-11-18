@@ -33,7 +33,7 @@ def _joker(
     return value
 
 
-def _shop_state(*, sequence, money, jokers):
+def _shop_state(*, sequence, money, jokers, hand_limit=8):
     return {
         "sequence": sequence,
         "phase": "SHOP",
@@ -43,7 +43,7 @@ def _shop_state(*, sequence, money, jokers):
             "stake": "WHITE",
             "money": money,
             "round": {"hands_left": 4, "discards_left": 3, "chips": 300},
-            "hand": {"limit": 8, "cards": []},
+            "hand": {"limit": hand_limit, "cards": []},
             "cards": {"cards": []},
             "jokers": {"limit": 5, "cards": list(jokers)},
             "shop_jokers": {"cards": []},
@@ -51,14 +51,29 @@ def _shop_state(*, sequence, money, jokers):
     }
 
 
-def _rows(*, joker=None, action=None, result_action=None, success=True):
+def _rows(
+    *,
+    joker=None,
+    action=None,
+    result_action=None,
+    success=True,
+    before_hand_limit=8,
+    after_hand_limit=8,
+):
     joker = joker or _joker()
     action = action or {"name": "SELL_JOKER", "target": {"joker_index": 0}}
     result_action = action if result_action is None else result_action
     return [
         {
             "event": "observation",
-            "data": {"state": _shop_state(sequence=10, money=7, jokers=[joker])},
+            "data": {
+                "state": _shop_state(
+                    sequence=10,
+                    money=7,
+                    jokers=[joker],
+                    hand_limit=before_hand_limit,
+                )
+            },
         },
         {"event": "decision", "data": {"action": action}},
         {
@@ -66,7 +81,12 @@ def _rows(*, joker=None, action=None, result_action=None, success=True):
             "data": {
                 "action": result_action,
                 "success": success,
-                "state": _shop_state(sequence=11, money=8, jokers=[]),
+                "state": _shop_state(
+                    sequence=11,
+                    money=8,
+                    jokers=[],
+                    hand_limit=after_hand_limit,
+                ),
             },
         },
     ]
@@ -114,14 +134,37 @@ def test_env_r5_live_joker_sale_rejects_malformed_or_ambiguous_target(action, me
 @pytest.mark.parametrize(
     "joker",
     [
-        _joker(center="j_juggler", label="Juggler"),
         _joker(eternal=True),
         _joker(edition="FOIL"),
     ],
 )
 def test_env_r5_live_joker_sale_rejects_unsupported_inverse_or_metadata(joker):
-    with pytest.raises(ValueError, match="exact inventory-only sale subset"):
+    with pytest.raises(ValueError, match="exact owned sale subset"):
         successful_joker_sale_evidence_from_run_rows(_rows(joker=joker))
+
+
+def test_env_r5_live_juggler_sale_replays_exact_hand_size_inverse():
+    live_rows = _rows(
+        joker=_joker(center="j_juggler", label="Juggler"),
+        before_hand_limit=9,
+        after_hand_limit=8,
+    )
+    live = successful_joker_sale_evidence_from_run_rows(live_rows)
+    before = live[0].before
+    run = HeadlessRunState(public=before, seed="r5-juggler-sale-parity")
+
+    result, simulator = sell_joker_with_public_evidence(run, joker_index=0)
+
+    assert run.public.hand_size == 9
+    assert result.public.hand_size == 8
+    assert result.public.money == 8
+    assert result.public.jokers == []
+    comparison = compare_run_rows_to_simulator_joker_sale_evidence(
+        live_rows,
+        (simulator,),
+    )
+    assert comparison.matches is True
+    assert comparison.differences == ()
 
 
 def test_env_r5_live_joker_sale_rejects_failed_mismatched_or_non_shop_result():

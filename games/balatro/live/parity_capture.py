@@ -149,7 +149,7 @@ def _canonical_joker_sale_action(value: Any, state) -> EnvAction | None:
         ) from exc
     if not can_sell_joker_exact(run, joker_index):
         raise ValueError(
-            "SELL_JOKER target is not in the exact inventory-only sale subset"
+            "SELL_JOKER target is not in the exact owned sale subset"
         )
     return EnvAction.from_alias(
         "SELL_JOKER",
