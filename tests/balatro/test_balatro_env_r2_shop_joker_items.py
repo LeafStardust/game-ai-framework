@@ -25,6 +25,7 @@ from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
+from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
@@ -51,6 +52,7 @@ from games.balatro.state import BalatroState
 def _descriptor(
     *,
     edition: str | None = None,
+    rarity: int = 1,
     base_cost: int = 5,
     discovered: bool | None = None,
     center_key: str = "j_joker",
@@ -82,7 +84,7 @@ def _descriptor(
     return OrdinaryShopJokerDescriptor(
         run=run,
         center_key=center_key,
-        rarity=1,
+        rarity=rarity,
         base_cost=base_cost,
         edition=edition,
         resamples=0,
@@ -1275,6 +1277,44 @@ def test_env_r2_exact_wrathful_joker_materialization_scores_and_sells():
     assert sold_run.public.jokers == []
 
 
+def test_env_r2_exact_fibonacci_materialization_scores_and_sells():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(
+            center_key="j_fibonacci",
+            rarity=2,
+            base_cost=8,
+            discovered=False,
+        )
+    )
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert action in ShopTransitionEngine().legal_actions(inserted)
+    next_run = ShopTransitionEngine().step(inserted, action)
+    assert inserted.generation_discovery == {"j_fibonacci": False}
+    assert next_run.generation_discovery == {"j_fibonacci": True}
+    assert next_run.tag_profile_state.discovered_center_keys == frozenset(
+        {"j_fibonacci"}
+    )
+    assert next_run.public.money == 13
+    joker = next_run.public.jokers[0]
+    assert type(joker) is FibonacciJoker
+    assert (
+        joker.center, joker.label, joker.rarity, joker.base_cost,
+        joker.cost, joker.sell_cost, joker.discovered,
+    ) == ("j_fibonacci", "Fibonacci", 2, 8, 7, 3, True)
+    score = BalatroScorer().score(
+        PokerHand.PAIR,
+        state=next_run.public,
+        cards=[BalatroCard("A", "Spades"), BalatroCard("A", "Hearts")],
+    )
+    assert (score.chips, score.mult, score.total) == (10, 18, 180)
+    sold_run = ShopTransitionEngine().step(
+        next_run, EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    )
+    assert sold_run.public.money == 16
+    assert sold_run.public.jokers == []
+
+
 @pytest.mark.parametrize(
     "item",
     (
@@ -1287,6 +1327,9 @@ def test_env_r2_exact_wrathful_joker_materialization_scores_and_sells():
         GeneratedShopJokerItem("j_wrathful_joker", 2, 5, None, 5, False),
         GeneratedShopJokerItem("j_wrathful_joker", 1, 4, None, 4, False),
         GeneratedShopJokerItem("j_wrathful_joker", 1, 5, "Foil", 7, False),
+        GeneratedShopJokerItem("j_fibonacci", 1, 8, None, 8, False),
+        GeneratedShopJokerItem("j_fibonacci", 2, 7, None, 7, False),
+        GeneratedShopJokerItem("j_fibonacci", 2, 8, "Foil", 10, False),
         GeneratedShopJokerItem("j_joker", 2, 2, None, 2, True),
         GeneratedShopJokerItem("j_joker", 1, 3, None, 3, True),
         GeneratedShopJokerItem("j_joker", 1, 2, "Foil", 4, True),

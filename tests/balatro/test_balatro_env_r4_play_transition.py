@@ -939,6 +939,39 @@ def test_env_r4_ordinary_play_scores_exact_materialized_wrathful_joker():
     assert type(result.public.jokers[0]).__name__ == "WrathfulJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_fibonacci():
+    baseline = None
+    run = None
+    fibonacci_index = None
+    for attempt in range(52):
+        candidate = _play_run(seed=f"R4-FIBONACCI-{attempt}")
+        index = next(
+            (
+                index
+                for index, card in enumerate(candidate.public.hand)
+                if card.rank in {"A", "2", "3", "5", "8"}
+            ),
+            None,
+        )
+        if index is not None:
+            baseline = candidate
+            run = _play_run(seed=f"R4-FIBONACCI-{attempt}")
+            fibonacci_index = index
+            break
+    assert baseline is not None and run is not None and fibonacci_index is not None
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_fibonacci", 2, 8, None, 8, False)
+        )
+    ]
+    baseline_result = apply_supported_ordinary_play(baseline, (fibonacci_index,))
+    result = apply_supported_ordinary_play(run, (fibonacci_index,))
+    assert result.public.score - baseline_result.public.score == (
+        baseline_result.public.score * 8
+    )
+    assert type(result.public.jokers[0]).__name__ == "FibonacciJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

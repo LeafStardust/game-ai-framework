@@ -13,6 +13,7 @@ from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
+from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
@@ -59,6 +60,8 @@ def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
             expected_center = "j_droll"
         elif type(joker) is EvenStevenJoker:
             expected_center = "j_even_steven"
+        elif type(joker) is FibonacciJoker:
+            expected_center = "j_fibonacci"
         elif type(joker) is GluttonousJoker:
             expected_center = "j_gluttenous_joker"
         elif type(joker) is GreedyJoker:

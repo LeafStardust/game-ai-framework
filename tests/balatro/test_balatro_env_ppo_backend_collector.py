@@ -40,6 +40,7 @@ from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
+from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
@@ -1034,6 +1035,37 @@ def test_env_ppo_backend_acquires_generated_wrathful_joker_and_discovers_its_cen
     assert sell in environment.legal_actions()
     environment.step(sell)
     assert backend.run.public.money == before_money - 3
+
+
+def test_env_ppo_backend_acquires_generated_fibonacci_and_discovers_its_center():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed=122)
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    before_money = backend.run.public.money
+    assert tuple(
+        (item.center_key, item.rarity, item.base_cost, item.price, item.discovered)
+        for item in backend.run.public.shop_jokers
+    ) == (
+        ("j_fibonacci", 2, 8, 8, False),
+        ("j_delayed_grat", 1, 4, 4, False),
+    )
+    assert buy in environment.legal_actions()
+    assert EnvAction.from_alias("BUY_JOKER", {"slot": 1}) not in (
+        environment.legal_actions()
+    )
+    environment.step(buy)
+    assert backend.run.public.money == before_money - 8
+    assert type(backend.run.public.jokers[0]) is FibonacciJoker
+    assert backend.run.public.jokers[0].sell_cost == 4
+    assert backend.run.generated_center_discovered("j_fibonacci") is True
+    assert "j_fibonacci" in backend.run.tag_profile_state.discovered_center_keys
+    sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert sell in environment.legal_actions()
+    environment.step(sell)
+    assert backend.run.public.money == before_money - 4
 
 
 def test_env_ppo_backend_exposes_and_executes_exact_paid_shop_reroll():
