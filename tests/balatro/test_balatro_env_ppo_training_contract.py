@@ -177,7 +177,7 @@ def test_env_ppo_rollout_crosses_exact_overstock_boss_cashout(
 
 
 @pytest.fixture(scope="module")
-def episode_41_with_hone():
+def episode_41_with_tarot_merchant():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
         make_ppo_training_environment(1),
@@ -187,59 +187,53 @@ def episode_41_with_hone():
     )
 
 
-def test_env_ppo_rollout_acquires_exact_hone_after_boss_cashout(
-    episode_41_with_hone,
+def test_env_ppo_rollout_acquires_exact_tarot_merchant(
+    episode_41_with_tarot_merchant,
 ):
-    episode = episode_41_with_hone
+    episode = episode_41_with_tarot_merchant
 
     assert episode.game_seed == "20C74BCD"
-    assert episode.action_count == 15
+    assert episode.action_count == 12
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
         "SELECT_BLIND",
-        "REROLL_SHOP",
+        "BUY_CONSUMABLE",
         "END_SHOP",
         "SELECT_BLIND",
-        "BUY_CONSUMABLE",
-        "BUY_JOKER",
-        "SELL_JOKER",
-        "END_SHOP",
-        "SELECT_BLIND",
-        "BUY_CONSUMABLE",
         "BUY_VOUCHER",
+        "END_SHOP",
+        "SELECT_BLIND",
+        "BUY_CONSUMABLE",
         "END_SHOP",
         "SELECT_BLIND",
         "END_SHOP",
         "SELECT_BLIND",
     ]
 
-    before = episode.boundaries[10]
-    after = episode.boundaries[11]
-    assert (before.ante, before.phase, before.money) == (2, "SHOP", 10)
-    assert (after.ante, after.phase, after.money) == (2, "SHOP", 0)
+    before = episode.boundaries[4]
+    after = episode.boundaries[5]
+    assert (before.ante, before.phase, before.money) == (1, "SHOP", 13)
+    assert (after.ante, after.phase, after.money) == (1, "SHOP", 3)
     assert _observation_feature(
         before.observation,
-        "vouchers.owned.v_hone",
+        "vouchers.owned.v_tarot_merchant",
     ) == 0.0
     assert _observation_feature(
         after.observation,
-        "vouchers.owned.v_hone",
+        "vouchers.owned.v_tarot_merchant",
     ) == 1.0
     assert _observation_feature(
-        after.observation,
-        "state.joker_generation_edition_rate",
-    ) == 2.0
-    sly_center = float(JOKER_CENTER_KEYS.index("j_sly") + 1)
+        before.observation, "state.tarot_rate"
+    ) == 4.0
     assert _observation_feature(
-        episode.boundaries[5].observation,
-        "shop.jokers.0.center",
-    ) == sly_center
+        after.observation, "state.tarot_rate"
+    ) == 9.6
+    wrathful_center = float(JOKER_CENTER_KEYS.index("j_wrathful_joker") + 1)
+    assert episode.decisions[1].action_mask.values[1] is True
     assert _observation_feature(
-        episode.boundaries[6].observation,
-        "jokers.0.center",
-    ) == sly_center
-    assert (episode.boundaries[5].money, episode.boundaries[7].money) == (8, 6)
+        episode.boundaries[1].observation, "shop.jokers.0.center"
+    ) == wrathful_center
 
 
 @pytest.fixture(scope="module")
@@ -1349,6 +1343,60 @@ def test_env_ppo_rollout_crosses_exact_generated_lusty_joker_lifecycle(
     assert _observation_feature(
         after_buy.observation, "jokers.0.center"
     ) == lusty_center
+    assert _observation_feature(
+        after_sale.observation, "jokers.0.center"
+    ) == 0.0
+
+
+@pytest.fixture(scope="module")
+def episode_41_with_wrathful_joker_lifecycle():
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(1),
+        PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
+        episode_index=41,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_wrathful_joker_lifecycle(
+    episode_41_with_wrathful_joker_lifecycle,
+):
+    episode = episode_41_with_wrathful_joker_lifecycle
+    assert episode.game_seed == "20C74BCD"
+    assert episode.action_count == 13
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    wrathful_center = float(JOKER_CENTER_KEYS.index("j_wrathful_joker") + 1)
+    before_buy = episode.boundaries[1]
+    after_buy = episode.boundaries[2]
+    after_sale = episode.boundaries[3]
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 10)
+    assert episode.decisions[1].action_mask.values[1] is True
+    assert _observation_feature(
+        before_buy.observation, "shop.jokers.0.center"
+    ) == wrathful_center
+    assert (after_buy.money, after_sale.money) == (5, 7)
+    assert _observation_feature(
+        after_buy.observation, "jokers.0.center"
+    ) == wrathful_center
     assert _observation_feature(
         after_sale.observation, "jokers.0.center"
     ) == 0.0

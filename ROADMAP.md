@@ -2542,7 +2542,7 @@ Add the twenty-eighth exact generated-Joker acquisition bridge for only
 uneditioned `j_wrathful_joker`. The committed trace contains exact uneditioned,
 affordable Wrathful Joker observations in episode 6 / decision 3 and episode 9 /
 decision 1, both with `rarity=1`, `base_cost=5`, `price=5`, no edition, and no
-edited copy. Its +3 Mult per scored Club is already owned by `WrathfulJoker`, the
+edited copy. Its +3 Mult per scored Spade is already owned by `WrathfulJoker`, the
 canonical scoring-card projection, and canonical suit rules; non-scoring
 callbacks are inert.
 
@@ -2550,7 +2550,7 @@ Extend the canonical generated-item materializer with an explicit
 `j_wrathful_joker` to `WrathfulJoker` entry and exact vanilla identity
 (`rarity=1`, `base_cost=5`, public label, purchase price, discovery transition,
 and sale value). Extend the generated-Joker tactical capability only for its
-already-owned scored-Club effect. Add deterministic materialization, mask,
+already-owned scored-Spade effect. Add deterministic materialization, mask,
 purchase, scoring, sale, isolation, natural production-backend, and complete
 rollout coverage. Keep the first twenty-seven centers unchanged and every
 other generated center/edition/malformed state fail-closed. Do not add a

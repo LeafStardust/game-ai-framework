@@ -44,6 +44,7 @@ from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
+from games.balatro.jokers.wrathful_joker import WrathfulJoker
 from games.balatro.jokers.zany_joker import ZanyJoker
 
 
@@ -208,6 +209,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Wily Joker"
+    elif item.center_key == "j_wrathful_joker":
+        joker_type = WrathfulJoker
+        expected_rarity = 1
+        expected_base_cost = 5
+        label = "Wrathful Joker"
     elif item.center_key == "j_zany":
         joker_type = ZanyJoker
         expected_rarity = 1
