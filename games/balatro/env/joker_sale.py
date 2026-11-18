@@ -2,9 +2,10 @@
 
 Vanilla selling a Joker removes it from the Joker area, runs the card's
 ``remove_from_deck`` inverse lifecycle, credits ``sell_cost``, and disables
-Verdant Leaf.  The first headless slice deliberately permits only Jokers whose
-acquisition/removal is inventory-only; resource-sensitive and persistent-state
-Jokers remain fail-closed until their inverse lifecycle is owned.
+Verdant Leaf. The headless shop boundary permits inventory-only Jokers plus
+Juggler's explicitly owned hand-size inverse. Other resource-sensitive and
+persistent-state Jokers remain fail-closed until their inverse lifecycle is
+owned.
 """
 
 from __future__ import annotations
@@ -30,11 +31,13 @@ _STATIC_SELL_SAFE_TYPES = tuple(
 )
 
 
-def _validate_static_joker_identity(
+def _validate_owned_joker_identity(
     run: HeadlessRunState,
     joker_index: int,
+    *,
+    allow_juggler: bool = False,
 ) -> int:
-    """Validate an inventory-only Joker sale and return its exact sell value."""
+    """Validate an owned Joker sale and return its exact sell value."""
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
     state = run.public
@@ -46,9 +49,17 @@ def _validate_static_joker_identity(
         raise HeadlessTransitionError("Joker sale requires exact integer money")
 
     joker = state.jokers[joker_index]
-    if type(joker) not in _STATIC_SELL_SAFE_TYPES:
+    if type(joker) not in _STATIC_SELL_SAFE_TYPES and not (
+        allow_juggler and type(joker) is JugglerJoker
+    ):
         raise HeadlessTransitionError(
             "Joker sale inverse lifecycle is not exactly owned for this Joker"
+        )
+    if type(joker) is JugglerJoker and (
+        type(state.hand_size) is not int or state.hand_size < 1
+    ):
+        raise HeadlessTransitionError(
+            "Juggler sale requires exact positive hand size"
         )
     if getattr(joker, "eternal", False):
         raise HeadlessTransitionError("Eternal Joker cannot be sold")
@@ -63,12 +74,12 @@ def _validate_static_joker_identity(
     return sell_cost
 
 
-def _sell_static_joker(
+def _sell_owned_joker(
     run: HeadlessRunState,
     joker_index: int,
     sell_cost: int,
 ) -> HeadlessRunState:
-    """Apply the shared exact inventory and private-order removal."""
+    """Apply exact inverse state, inventory, and private-order removal."""
     next_run = run.copy()
     next_state = next_run.public
     sold = next_state.jokers[joker_index]
@@ -80,6 +91,8 @@ def _sell_static_joker(
                 "cannot retain exact Joker order after sale"
             ) from exc
     next_state.money += sell_cost
+    if type(sold) is JugglerJoker:
+        next_state.hand_size -= 1
     next_state.jokers.pop(joker_index)
     if next_state.joker_generation_pool_observed:
         # Card:remove clears the sold center from G.GAME.used_jokers once no
@@ -107,7 +120,7 @@ def validate_joker_sale_exact(run: HeadlessRunState, joker_index: int) -> None:
         raise TypeError("run must be HeadlessRunState")
     if run.public.phase != "SHOP" or not run.public.shop_active:
         raise HeadlessTransitionError("exact SELL_JOKER requires active SHOP")
-    _validate_static_joker_identity(run, joker_index)
+    _validate_owned_joker_identity(run, joker_index, allow_juggler=True)
 
 
 def can_sell_joker_exact(run: HeadlessRunState, joker_index: int) -> bool:
@@ -120,11 +133,13 @@ def can_sell_joker_exact(run: HeadlessRunState, joker_index: int) -> bool:
 
 
 def sell_joker_exact(run: HeadlessRunState, joker_index: int) -> HeadlessRunState:
-    """Sell one audited inventory-only Joker during the active main shop."""
+    """Sell one audited Joker with an owned inverse during the active shop."""
     validate_joker_sale_exact(run, joker_index)
-    sell_cost = _validate_static_joker_identity(run, joker_index)
+    sell_cost = _validate_owned_joker_identity(
+        run, joker_index, allow_juggler=True
+    )
 
-    return _sell_static_joker(run, joker_index, sell_cost)
+    return _sell_owned_joker(run, joker_index, sell_cost)
 
 
 def _permanent_cards(run: HeadlessRunState) -> list[BalatroCard]:
@@ -235,7 +250,7 @@ def sell_static_joker_during_verdant(
         raise HeadlessTransitionError("Verdant Joker sale requires active Verdant Leaf")
     if getattr(state.blind, "disabled", False):
         raise HeadlessTransitionError("Verdant Leaf is already disabled")
-    sell_cost = _validate_static_joker_identity(run, joker_index)
+    sell_cost = _validate_owned_joker_identity(run, joker_index)
 
     cards = _permanent_cards(run)
     if any(not card.debuffed for card in cards):
@@ -243,5 +258,5 @@ def sell_static_joker_during_verdant(
             "Verdant Joker sale requires active owned all-card debuff"
         )
 
-    next_run = _sell_static_joker(run, joker_index, sell_cost)
+    next_run = _sell_owned_joker(run, joker_index, sell_cost)
     return clear_verdant_leaf_debuff(next_run)

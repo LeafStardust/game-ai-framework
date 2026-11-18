@@ -11,6 +11,7 @@ from games.balatro.env.transition import (
     ShopTransitionEngine,
 )
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.state import BalatroState
 
@@ -60,7 +61,7 @@ def test_env_r3_exact_sale_fails_closed_outside_active_main_shop(phase):
 
 
 def test_env_r3_exact_sale_fails_closed_for_unowned_inverse_and_metadata():
-    run = _shop_run(JugglerJoker())
+    run = _shop_run(DrunkardJoker())
     assert not can_sell_joker_exact(run, 0)
     with pytest.raises(HeadlessTransitionError, match="inverse lifecycle"):
         sell_joker_exact(run, 0)
@@ -122,10 +123,36 @@ def test_env_r3_shop_backend_masks_and_executes_only_exact_joker_sales():
 
 
 def test_env_r3_shop_backend_masks_resource_sensitive_sale():
-    run = _shop_run(JugglerJoker())
+    run = _shop_run(DrunkardJoker())
     action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
     engine = ShopTransitionEngine()
 
     assert action not in engine.legal_actions(run)
     with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
         engine.step(run, action)
+
+
+def test_env_r3_exact_juggler_sale_applies_hand_size_inverse_once():
+    run = _shop_run(JugglerJoker())
+    run.public.hand_size = 9
+    action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    engine = ShopTransitionEngine()
+
+    assert action in engine.legal_actions(run)
+    result = engine.step(run, action)
+
+    assert run.public.hand_size == 9
+    assert len(run.public.jokers) == 1
+    assert result.public.hand_size == 8
+    assert result.public.jokers == []
+    assert result.public.money == 10
+
+
+@pytest.mark.parametrize("hand_size", [True, 0, -1])
+def test_env_r3_juggler_sale_requires_exact_positive_hand_size(hand_size):
+    run = _shop_run(JugglerJoker())
+    run.public.hand_size = hand_size
+
+    assert not can_sell_joker_exact(run, 0)
+    with pytest.raises(HeadlessTransitionError, match="positive hand size"):
+        sell_joker_exact(run, 0)

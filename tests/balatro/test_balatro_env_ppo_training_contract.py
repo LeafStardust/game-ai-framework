@@ -1092,8 +1092,6 @@ def test_env_ppo_rollout_crosses_exact_generated_mad_joker_lifecycle(
     assert _observation_feature(
         after_sale.observation, "jokers.0.center"
     ) == 0.0
-
-
 @pytest.fixture(scope="module")
 def episode_24_with_zany_joker_lifecycle():
     return collect_complete_ppo_episode(
@@ -1417,7 +1415,7 @@ def test_env_ppo_rollout_crosses_exact_generated_fibonacci_lifecycle(
 ):
     episode = episode_50_with_fibonacci_lifecycle
     assert episode.game_seed == "05B3FF62"
-    assert episode.action_count == 15
+    assert episode.action_count == 17
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [
@@ -1435,6 +1433,8 @@ def test_env_ppo_rollout_crosses_exact_generated_fibonacci_lifecycle(
         ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
         ("BUY_JOKER", {"slot": 0}),
         ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
@@ -1453,6 +1453,80 @@ def test_env_ppo_rollout_crosses_exact_generated_fibonacci_lifecycle(
     assert _observation_feature(
         after_buy.observation, "jokers.0.center"
     ) == fibonacci_center
+    assert _observation_feature(
+        after_sale.observation, "jokers.0.center"
+    ) == 0.0
+    juggler_center = float(JOKER_CENTER_KEYS.index("j_juggler") + 1)
+    before_juggler = episode.boundaries[11]
+    after_juggler = episode.boundaries[12]
+    after_juggler_sale = episode.boundaries[13]
+    assert _observation_feature(
+        before_juggler.observation, "shop.jokers.1.center"
+    ) == juggler_center
+    assert (
+        _observation_feature(before_juggler.observation, "state.hand_size"),
+        _observation_feature(after_juggler.observation, "state.hand_size"),
+        _observation_feature(after_juggler_sale.observation, "state.hand_size"),
+    ) == (8.0, 9.0, 8.0)
+    assert (before_juggler.money, after_juggler.money, after_juggler_sale.money) == (
+        16,
+        12,
+        14,
+    )
+
+
+@pytest.fixture(scope="module")
+def episode_25_with_juggler_lifecycle():
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(1),
+        PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
+        episode_index=25,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_juggler_lifecycle(
+    episode_25_with_juggler_lifecycle,
+):
+    episode = episode_25_with_juggler_lifecycle
+    assert episode.game_seed == "2C383F87"
+    assert episode.action_count == 11
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    juggler_center = float(JOKER_CENTER_KEYS.index("j_juggler") + 1)
+    before_buy = episode.boundaries[3]
+    after_buy = episode.boundaries[4]
+    after_sale = episode.boundaries[5]
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 13)
+    assert episode.decisions[3].action_mask.values[2] is True
+    assert _observation_feature(
+        before_buy.observation, "shop.jokers.1.center"
+    ) == juggler_center
+    assert (after_buy.money, after_sale.money) == (9, 11)
+    assert (
+        _observation_feature(before_buy.observation, "state.hand_size"),
+        _observation_feature(after_buy.observation, "state.hand_size"),
+        _observation_feature(after_sale.observation, "state.hand_size"),
+    ) == (8.0, 9.0, 8.0)
+    assert _observation_feature(
+        after_buy.observation, "jokers.0.center"
+    ) == juggler_center
     assert _observation_feature(
         after_sale.observation, "jokers.0.center"
     ) == 0.0

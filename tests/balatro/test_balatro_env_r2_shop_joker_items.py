@@ -31,6 +31,7 @@ from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
+from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.lusty_joker import LustyJoker
 from games.balatro.jokers.mad_joker import MadJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
@@ -1315,6 +1316,40 @@ def test_env_r2_exact_fibonacci_materialization_scores_and_sells():
     assert sold_run.public.jokers == []
 
 
+def test_env_r2_exact_juggler_materialization_updates_hand_size_and_sells():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_juggler", base_cost=4, discovered=False)
+    )
+    run.public.hand_size = 8
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+
+    assert action in ShopTransitionEngine().legal_actions(inserted)
+    next_run = ShopTransitionEngine().step(inserted, action)
+
+    assert inserted.generation_discovery == {"j_juggler": False}
+    assert next_run.generation_discovery == {"j_juggler": True}
+    assert next_run.tag_profile_state.discovered_center_keys == frozenset(
+        {"j_juggler"}
+    )
+    assert inserted.public.hand_size == 8
+    assert next_run.public.money == 16
+    assert next_run.public.hand_size == 9
+    joker = next_run.public.jokers[0]
+    assert type(joker) is JugglerJoker
+    assert (
+        joker.center, joker.label, joker.rarity, joker.base_cost,
+        joker.cost, joker.sell_cost, joker.discovered,
+    ) == ("j_juggler", "Juggler", 1, 4, 4, 2, True)
+
+    sold_run = ShopTransitionEngine().step(
+        next_run, EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    )
+    assert sold_run.public.money == 18
+    assert sold_run.public.hand_size == 8
+    assert sold_run.public.jokers == []
+
+
 @pytest.mark.parametrize(
     "item",
     (
@@ -1330,6 +1365,9 @@ def test_env_r2_exact_fibonacci_materialization_scores_and_sells():
         GeneratedShopJokerItem("j_fibonacci", 1, 8, None, 8, False),
         GeneratedShopJokerItem("j_fibonacci", 2, 7, None, 7, False),
         GeneratedShopJokerItem("j_fibonacci", 2, 8, "Foil", 10, False),
+        GeneratedShopJokerItem("j_juggler", 2, 4, None, 4, False),
+        GeneratedShopJokerItem("j_juggler", 1, 5, None, 5, False),
+        GeneratedShopJokerItem("j_juggler", 1, 4, "Foil", 6, False),
         GeneratedShopJokerItem("j_joker", 2, 2, None, 2, True),
         GeneratedShopJokerItem("j_joker", 1, 3, None, 3, True),
         GeneratedShopJokerItem("j_joker", 1, 2, "Foil", 4, True),
