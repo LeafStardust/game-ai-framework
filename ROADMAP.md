@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`4deec6283677ecccd2696a24ef47450cbaef44d9`.
+`e0014948a1c91a2b98efdd5e489a86e20d3485e6`.
 
 ## Objective
 
@@ -2538,24 +2538,40 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the twenty-first exact generated-Joker acquisition bridge for only
-uneditioned `j_clever`. The committed trace contains four exact uneditioned,
-affordable Clever Joker observations across two episodes and no edited copy.
-Its +80 Chips when the played cards contain Two Pair is already owned by
-`CleverJoker` and the canonical hand evaluator; non-scoring callbacks are inert.
+Add the twenty-second exact generated-Joker acquisition bridge for only
+uneditioned `j_mad`. The committed trace contains four exact uneditioned,
+affordable Mad Joker observations across episodes 21 and 44 and no edited copy.
+Its +10 Mult when the played cards contain Two Pair is already owned by
+`MadJoker` and the canonical hand evaluator; non-scoring callbacks are inert.
 
 Extend the canonical generated-item materializer with an explicit
-`j_clever` to `CleverJoker` entry and exact vanilla identity
+`j_mad` to `MadJoker` entry and exact vanilla identity
 (`rarity=1`, `base_cost=4`, public label, purchase price, discovery transition,
 and sale value). Extend the generated-Joker tactical capability only for its
 already-owned Two Pair scoring effect. Add deterministic materialization, mask,
 purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep the first twenty centers unchanged and every other
+rollout coverage. Keep the first twenty-one centers unchanged and every other
 generated center/edition/malformed state fail-closed. Do not add a generic
 factory, batch multiple centers, open boosters, change PPO, rewards, or tactics,
 or request an operator run during this checkpoint. Keep Drunkard, 8 Ball,
 Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
 unowned callbacks, and do not batch another Joker into this checkpoint.
+
+Exact generated Clever Joker acquisition checkpoint:
+
+- Implementation commit `e0014948a1c91a2b98efdd5e489a86e20d3485e6` adds only
+  exact uneditioned `j_clever` (`rarity=1`, `base_cost=4`) as the audited
+  `CleverJoker`, with exact discovery, price/sale metadata, Two Pair Chips,
+  tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `19` proves unsupported Drunkard
+  remains masked while natural Clever generation, legal masking, purchase,
+  discovery, and sale are exact. Complete rollout episode 5 / seed `59B15C34`
+  locks the seven-action Clever lifecycle; episode 9 / seed `4104A2D5` locks
+  Photograph followed by Clever buy/sale lifecycles in the same trajectory.
+- The combined shop/backend/tactical/complete-rollout local gate passed **258
+  tests in 116.52s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44246313281`, job `134606010935`, passed the authoritative
+  Balatro deterministic gate with **3577 passed, 1621 deselected in 233.26s**.
 
 Exact generated Raised Fist acquisition checkpoint:
 
