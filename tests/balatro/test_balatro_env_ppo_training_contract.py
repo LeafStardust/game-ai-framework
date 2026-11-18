@@ -938,6 +938,51 @@ def test_env_ppo_rollout_crosses_exact_generated_raised_fist_lifecycle(
 
 
 @pytest.fixture(scope="module")
+def episode_5_with_clever_joker_lifecycle():
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(0),
+        PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
+        episode_index=5,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_clever_joker_lifecycle(
+    episode_5_with_clever_joker_lifecycle,
+):
+    episode = episode_5_with_clever_joker_lifecycle
+    assert episode.game_seed == "59B15C34"
+    assert episode.action_count == 7
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    clever_center = float(JOKER_CENTER_KEYS.index("j_clever") + 1)
+    assert episode.decisions[1].action_mask.values[1] is True
+    assert _observation_feature(
+        episode.boundaries[1].observation, "shop.jokers.0.center"
+    ) == clever_center
+    assert (episode.boundaries[1].money, episode.boundaries[2].money) == (8, 4)
+    assert _observation_feature(
+        episode.boundaries[2].observation, "jokers.0.center"
+    ) == clever_center
+    assert episode.boundaries[3].money == 6
+    assert _observation_feature(
+        episode.boundaries[3].observation, "jokers.0.center"
+    ) == 0.0
+
+
+@pytest.fixture(scope="module")
 def episode_9_with_photograph_lifecycle():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(
@@ -953,7 +998,7 @@ def test_env_ppo_rollout_crosses_exact_generated_photograph_lifecycle(
 ):
     episode = episode_9_with_photograph_lifecycle
     assert episode.game_seed == "4104A2D5"
-    assert episode.action_count == 11
+    assert episode.action_count == 13
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [
@@ -969,6 +1014,8 @@ def test_env_ppo_rollout_crosses_exact_generated_photograph_lifecycle(
         ("SELECT_BLIND", {}),
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
     ]
@@ -987,6 +1034,26 @@ def test_env_ppo_rollout_crosses_exact_generated_photograph_lifecycle(
     ) == photograph_center
     assert (after_sale.ante, after_sale.phase, after_sale.money) == (1, "SHOP", 5)
     assert _observation_feature(after_sale.observation, "jokers.0.center") == 0.0
+    clever_center = float(JOKER_CENTER_KEYS.index("j_clever") + 1)
+    clever_before_buy = episode.boundaries[9]
+    clever_after_buy = episode.boundaries[10]
+    clever_after_sale = episode.boundaries[11]
+    assert (clever_before_buy.ante, clever_before_buy.phase) == (2, "SHOP")
+    assert episode.decisions[9].action_mask.values[2] is True
+    assert _observation_feature(
+        clever_before_buy.observation, "shop.jokers.1.center"
+    ) == clever_center
+    assert (
+        clever_before_buy.money,
+        clever_after_buy.money,
+        clever_after_sale.money,
+    ) == (25, 21, 23)
+    assert _observation_feature(
+        clever_after_buy.observation, "jokers.0.center"
+    ) == clever_center
+    assert _observation_feature(
+        clever_after_sale.observation, "jokers.0.center"
+    ) == 0.0
 
 
 @pytest.fixture(scope="module")
