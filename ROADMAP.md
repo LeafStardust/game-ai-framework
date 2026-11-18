@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`1b6500b35511582d86176a2df47b70c04da8402a`.
+`694fae1d9cb1e1d3777cdec0209eb8f10ca8b089`.
 
 ## Objective
 
@@ -2538,25 +2538,41 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the twenty-fourth exact generated-Joker acquisition bridge for only
-uneditioned `j_crafty`. The committed trace contains four exact uneditioned,
-affordable Crafty Joker observations across episodes 9 and 60 and no edited
-copy. Its +80 Chips when the played cards contain a Flush is already owned by
-`CraftyJoker` and the canonical hand evaluator; non-scoring callbacks are inert.
+Add the twenty-fifth exact generated-Joker acquisition bridge for only
+uneditioned `j_crazy`. The committed trace contains two exact uneditioned,
+affordable Crazy Joker observations across episodes 10 and 23 and no edited
+copy. Its +12 Mult when the played cards contain a Straight is already owned by
+`CrazyJoker` and the canonical hand evaluator; non-scoring callbacks are inert.
 
 Extend the canonical generated-item materializer with an explicit
-`j_crafty` to `CraftyJoker` entry and exact vanilla identity
+`j_crazy` to `CrazyJoker` entry and exact vanilla identity
 (`rarity=1`, `base_cost=4`, public label, purchase price, discovery transition,
 and sale value). Extend the generated-Joker tactical capability only for its
-already-owned Flush scoring effect. Add deterministic materialization, mask,
+already-owned Straight scoring effect. Add deterministic materialization, mask,
 purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep the first twenty-three centers unchanged and every
+rollout coverage. Keep the first twenty-four centers unchanged and every
 other generated center/edition/malformed state fail-closed. Do not add a
 generic factory, batch multiple centers, open boosters, change PPO, rewards,
-or tactics,
-or request an operator run during this checkpoint. Keep Drunkard, 8 Ball,
+or tactics, or request an operator run during this checkpoint. Keep Drunkard,
+8 Ball,
 Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
 unowned callbacks, and do not batch another Joker into this checkpoint.
+
+Exact generated Crafty Joker acquisition checkpoint:
+
+- Implementation commit `694fae1d9cb1e1d3777cdec0209eb8f10ca8b089` adds only
+  exact uneditioned `j_crafty` (`rarity=1`, `base_cost=4`) as the audited
+  `CraftyJoker`, with exact discovery, price/sale metadata, Flush Chips,
+  tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `5` proves unsupported To Do List
+  remains masked while natural Crafty generation, legal masking, purchase,
+  discovery, and sale are exact. Complete rollout episode 110 / seed
+  `6C803767` locks the seven-action Crafty lifecycle while unsupported Erosion
+  remains masked.
+- The combined shop/backend/tactical/complete-rollout local gate passed **282
+  tests in 115.52s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44253660682`, job `134630084472`, passed the authoritative
+  Balatro deterministic gate with **3601 passed, 1621 deselected in 337.00s**.
 
 Exact generated Zany Joker acquisition checkpoint:
 
