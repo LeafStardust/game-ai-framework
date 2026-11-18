@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`93d2dd19a3c76147f52891a0edda281794ab8a75`.
+`4a86d7905371da9ab5d63bbeabaeb337f87b3cc9`.
 
 ## Objective
 
@@ -2538,27 +2538,48 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the twenty-ninth exact generated-Joker acquisition bridge for only
-uneditioned `j_fibonacci`. The committed trace contains exact uneditioned,
-affordable Fibonacci observations in episode 6 / decision 1 and episode 24 /
-decision 1, both with `rarity=2`, `base_cost=8`, `price=8`, no edition, and no
-edited copy. Its +8 Mult per scored Ace, 2, 3, 5, or 8 is already owned by
-`FibonacciJoker` and the canonical scoring-card projection; non-scoring
-callbacks are inert.
+Add the thirtieth exact generated-Joker acquisition bridge for only
+uneditioned `j_juggler`. The committed trace contains exact uneditioned,
+affordable Juggler observations in episode 17 / decisions 3 and 4 and episode
+33 / decision 1, all with `rarity=1`, `base_cost=4`, `price=4`, no edition, and
+no edited copy. Its +1 hand-size acquisition lifecycle is already owned by
+the canonical shop transition and round lifecycle; its scored-hand callbacks
+are inert. The canonical Joker-sale owner currently keeps Juggler fail-closed
+because its inverse hand-size lifecycle is not yet implemented.
 
 Extend the canonical generated-item materializer with an explicit
-`j_fibonacci` to `FibonacciJoker` entry and exact vanilla identity
-(`rarity=2`, `base_cost=8`, public label, purchase price, discovery transition,
-and sale value). Extend the generated-Joker tactical capability only for its
-already-owned scored-rank effect. Add deterministic materialization, mask,
-purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep the first twenty-eight centers unchanged and every
-other generated center/edition/malformed state fail-closed. Do not add a
-generic factory, batch multiple centers, open boosters, change PPO, rewards,
-or tactics, or request an operator run during this checkpoint. Keep Drunkard,
-8 Ball,
-Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
-unowned callbacks, and do not batch another Joker into this checkpoint.
+`j_juggler` to `JugglerJoker` entry and exact vanilla identity (`rarity=1`,
+`base_cost=4`, public label, purchase price, discovery transition, and sale
+value). Extend the generated-Joker tactical capability only for its already-
+owned blind-neutral behavior. At the canonical sale owner, add the exact
+Juggler removal inverse that decrements hand size once and preserves every
+existing inventory/order/pool invariant. Add deterministic materialization,
+mask, purchase, hand-size, sale/inverse, isolation, natural production-
+backend, and complete rollout coverage. Keep the first twenty-nine centers
+unchanged and every other generated center/edition/malformed state fail-
+closed. Do not add a generic factory, batch multiple centers, open boosters,
+change PPO, rewards, or tactics, or request an operator run during this
+checkpoint. Keep Drunkard, 8 Ball, Hallucination, Dusk, Faceless Joker, and
+Gros Michel fail-closed for their unowned callbacks, and do not batch another
+Joker into this checkpoint.
+
+Exact generated Fibonacci acquisition checkpoint:
+
+- Implementation commit `4a86d7905371da9ab5d63bbeabaeb337f87b3cc9` adds
+  only exact uneditioned `j_fibonacci` (`rarity=2`, `base_cost=8`) as the
+  audited `FibonacciJoker`, with exact discovery, price/sale metadata, scored-
+  rank Mult, tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `122` proves unsupported Delayed
+  Gratification remains masked while natural Fibonacci generation, legal
+  masking, purchase, discovery, and sale are exact. Complete rollout episode
+  50 / seed `05B3FF62` locks the fifteen-action Fibonacci, Greedy, Crazy, and
+  Sly Joker lifecycle sequence.
+- Admitting Fibonacci leaves every pre-existing frozen actor and lifecycle
+  trajectory unchanged. The combined shop/backend/tactical/complete-rollout
+  local gate passed **321 tests in 130.29s**; syntax compilation and
+  `git diff --check` are clean.
+- GitHub Actions run `44357740300`, job `134990307744`, passed the authoritative
+  Balatro deterministic gate with **3640 passed, 1621 deselected in 486.11s**.
 
 Exact generated Wrathful Joker acquisition checkpoint:
 
