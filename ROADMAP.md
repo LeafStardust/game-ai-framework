@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`cfa56fa691e08bbc0112dc15fbb02cc7d561e5e4`.
+`93d2dd19a3c76147f52891a0edda281794ab8a75`.
 
 ## Objective
 
@@ -2538,27 +2538,45 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the twenty-eighth exact generated-Joker acquisition bridge for only
-uneditioned `j_wrathful_joker`. The committed trace contains exact uneditioned,
-affordable Wrathful Joker observations in episode 6 / decision 3 and episode 9 /
-decision 1, both with `rarity=1`, `base_cost=5`, `price=5`, no edition, and no
-edited copy. Its +3 Mult per scored Spade is already owned by `WrathfulJoker`, the
-canonical scoring-card projection, and canonical suit rules; non-scoring
+Add the twenty-ninth exact generated-Joker acquisition bridge for only
+uneditioned `j_fibonacci`. The committed trace contains exact uneditioned,
+affordable Fibonacci observations in episode 6 / decision 1 and episode 24 /
+decision 1, both with `rarity=2`, `base_cost=8`, `price=8`, no edition, and no
+edited copy. Its +8 Mult per scored Ace, 2, 3, 5, or 8 is already owned by
+`FibonacciJoker` and the canonical scoring-card projection; non-scoring
 callbacks are inert.
 
 Extend the canonical generated-item materializer with an explicit
-`j_wrathful_joker` to `WrathfulJoker` entry and exact vanilla identity
-(`rarity=1`, `base_cost=5`, public label, purchase price, discovery transition,
+`j_fibonacci` to `FibonacciJoker` entry and exact vanilla identity
+(`rarity=2`, `base_cost=8`, public label, purchase price, discovery transition,
 and sale value). Extend the generated-Joker tactical capability only for its
-already-owned scored-Spade effect. Add deterministic materialization, mask,
+already-owned scored-rank effect. Add deterministic materialization, mask,
 purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep the first twenty-seven centers unchanged and every
+rollout coverage. Keep the first twenty-eight centers unchanged and every
 other generated center/edition/malformed state fail-closed. Do not add a
 generic factory, batch multiple centers, open boosters, change PPO, rewards,
 or tactics, or request an operator run during this checkpoint. Keep Drunkard,
 8 Ball,
 Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
 unowned callbacks, and do not batch another Joker into this checkpoint.
+
+Exact generated Wrathful Joker acquisition checkpoint:
+
+- Implementation commit `93d2dd19a3c76147f52891a0edda281794ab8a75` adds
+  only exact uneditioned `j_wrathful_joker` (`rarity=1`, `base_cost=5`) as the
+  audited `WrathfulJoker`, with exact discovery, price/sale metadata, scored-
+  Spade Mult, tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `129` proves unsupported Baron remains
+  masked while natural Wrathful generation, legal masking, purchase,
+  discovery, and sale are exact. Complete rollout episode 41 / seed `20C74BCD`
+  locks the thirteen-action Wrathful and Blue Joker lifecycle sequence.
+- The actor-critic trajectory for the same episode now exactly locks its
+  twelve-action Tarot Merchant route, including the 4.0 to 9.6 Tarot-rate
+  transition and visible legal Wrathful purchase. The combined shop/backend/
+  tactical/complete-rollout local gate passed **313 tests in 126.45s**; syntax
+  compilation and `git diff --check` are clean.
+- GitHub Actions run `44308751353`, job `134817065071`, passed the authoritative
+  Balatro deterministic gate with **3632 passed, 1621 deselected in 269.67s**.
 
 Exact generated Lusty Joker acquisition checkpoint:
 
