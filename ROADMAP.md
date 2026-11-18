@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`4e49a4c82ee0c822b42e30c9cd93bc961cb0a332`.
+`1b6500b35511582d86176a2df47b70c04da8402a`.
 
 ## Objective
 
@@ -2538,24 +2538,42 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the twenty-third exact generated-Joker acquisition bridge for only
-uneditioned `j_zany`. The committed trace contains four exact uneditioned,
-affordable Zany Joker observations across episodes 4 and 8 and no edited copy.
-Its +12 Mult when the played cards contain Three of a Kind is already owned by
-`ZanyJoker` and the canonical hand evaluator; non-scoring callbacks are inert.
+Add the twenty-fourth exact generated-Joker acquisition bridge for only
+uneditioned `j_crafty`. The committed trace contains four exact uneditioned,
+affordable Crafty Joker observations across episodes 9 and 60 and no edited
+copy. Its +80 Chips when the played cards contain a Flush is already owned by
+`CraftyJoker` and the canonical hand evaluator; non-scoring callbacks are inert.
 
 Extend the canonical generated-item materializer with an explicit
-`j_zany` to `ZanyJoker` entry and exact vanilla identity
+`j_crafty` to `CraftyJoker` entry and exact vanilla identity
 (`rarity=1`, `base_cost=4`, public label, purchase price, discovery transition,
 and sale value). Extend the generated-Joker tactical capability only for its
-already-owned Three of a Kind scoring effect. Add deterministic materialization,
-mask, purchase, scoring, sale, isolation, natural production-backend, and
-complete rollout coverage. Keep the first twenty-two centers unchanged and
-every other generated center/edition/malformed state fail-closed. Do not add a
-generic factory, batch multiple centers, open boosters, change PPO, rewards, or tactics,
+already-owned Flush scoring effect. Add deterministic materialization, mask,
+purchase, scoring, sale, isolation, natural production-backend, and complete
+rollout coverage. Keep the first twenty-three centers unchanged and every
+other generated center/edition/malformed state fail-closed. Do not add a
+generic factory, batch multiple centers, open boosters, change PPO, rewards,
+or tactics,
 or request an operator run during this checkpoint. Keep Drunkard, 8 Ball,
 Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
 unowned callbacks, and do not batch another Joker into this checkpoint.
+
+Exact generated Zany Joker acquisition checkpoint:
+
+- Implementation commit `1b6500b35511582d86176a2df47b70c04da8402a` adds only
+  exact uneditioned `j_zany` (`rarity=1`, `base_cost=4`) as the audited
+  `ZanyJoker`, with exact discovery, price/sale metadata, Three of a Kind Mult,
+  tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `78` proves unsupported Ride the Bus
+  remains masked while natural Zany generation, legal masking, purchase,
+  discovery, and sale are exact. Complete rollout episode 24 / seed `66F36434`
+  locks the seven-action Zany lifecycle. Actor-critic episode 50 / seed
+  `05B3FF62` locks the added Zany lifecycle and its exact downstream Banner,
+  Photograph, Hieroglyph, shop, and terminal-score trajectory.
+- The combined shop/backend/tactical/complete-rollout local gate passed **274
+  tests in 116.14s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44251291173`, job `134622340504`, passed the authoritative
+  Balatro deterministic gate with **3593 passed, 1621 deselected in 280.90s**.
 
 Exact generated Mad Joker acquisition checkpoint:
 
