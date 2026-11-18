@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`694fae1d9cb1e1d3777cdec0209eb8f10ca8b089`.
+`e6912c99b0825a67c1e1cfbdbe16c94617296e20`.
 
 ## Objective
 
@@ -2538,26 +2538,51 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the twenty-sixth exact generated-Joker acquisition bridge for only
-uneditioned `j_greedy_joker`. The committed trace contains three exact
-uneditioned, affordable Greedy Joker observations across episodes 10 and 24 and
-no edited copy. Its +3 Mult per scored Diamond is already owned by
-`GreedyJoker`, the canonical scoring-card projection, and canonical suit rules;
-non-scoring callbacks are inert.
+Add the twenty-seventh exact generated-Joker acquisition bridge for only
+uneditioned `j_lusty_joker`. The committed trace contains exact uneditioned,
+affordable Lusty Joker observations in episode 28 / decision 1 and episode 29 /
+decision 8, both with `rarity=1`, `base_cost=5`, `price=5`, no edition, and no
+edited copy. Its +3 Mult per scored Heart is already owned by `LustyJoker`, the
+canonical scoring-card projection, and canonical suit rules; non-scoring
+callbacks are inert.
 
 Extend the canonical generated-item materializer with an explicit
-`j_greedy_joker` to `GreedyJoker` entry and exact vanilla identity
+`j_lusty_joker` to `LustyJoker` entry and exact vanilla identity
 (`rarity=1`, `base_cost=5`, public label, purchase price, discovery transition,
 and sale value). Extend the generated-Joker tactical capability only for its
-already-owned scored-Diamond effect. Add deterministic materialization, mask,
+already-owned scored-Heart effect. Add deterministic materialization, mask,
 purchase, scoring, sale, isolation, natural production-backend, and complete
-rollout coverage. Keep the first twenty-five centers unchanged and every
+rollout coverage. Keep the first twenty-six centers unchanged and every
 other generated center/edition/malformed state fail-closed. Do not add a
 generic factory, batch multiple centers, open boosters, change PPO, rewards,
 or tactics, or request an operator run during this checkpoint. Keep Drunkard,
 8 Ball,
 Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for their
 unowned callbacks, and do not batch another Joker into this checkpoint.
+
+Exact generated Greedy Joker acquisition checkpoint:
+
+- Implementation commit `e6912c99b0825a67c1e1cfbdbe16c94617296e20` adds
+  only exact uneditioned `j_greedy_joker` (`rarity=1`, `base_cost=5`) as the
+  audited `GreedyJoker`, with exact discovery, price/sale metadata, scored-
+  Diamond Mult, tactical continuation, and inverse sale lifecycle.
+- Deterministic production-backend seed `147` proves unsupported Baron remains
+  masked while natural Greedy generation, legal masking, purchase, discovery,
+  and sale are exact. Complete rollout episode 13 / seed `D691C2E4` locks the
+  seven-action Greedy lifecycle while a second unsupported shop item remains
+  masked.
+- Lifecycle-policy episodes 46 and 59 add exact Greedy ownership to their
+  existing Joker sequences. Actor-critic episodes 50 and 86 lock the resulting
+  exact shop, voucher, Joker, and terminal trajectories. Paint Brush coverage
+  remains independently locked by the deterministic voucher-priority episode
+  46 / seed `9AC8FAC6` trajectory across its boss boundary.
+- The combined shop/backend/tactical/complete-rollout local gate passed **297
+  tests in 125.23s**; syntax compilation and `git diff --check` are clean.
+- GitHub Actions run `44299688223`, job `134785952898`, passed the authoritative
+  Balatro deterministic gate with **3616 passed, 1621 deselected in 364.26s**.
+- Repository cleanup removed **95** generated pytest/Python cache directories
+  and left zero root pytest caches, `__pycache__` directories, or loose Python
+  bytecode files. No tracked or ambiguous project file was removed.
 
 Exact generated Crazy Joker acquisition checkpoint:
 
