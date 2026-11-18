@@ -808,6 +808,38 @@ def test_env_r4_ordinary_play_scores_exact_materialized_crafty_joker():
     assert type(result.public.jokers[0]).__name__ == "CraftyJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_crazy_joker():
+    baseline = None
+    run = None
+    indices = None
+    for attempt in range(200):
+        candidate = _play_run(seed=f"R4-CRAZY-{attempt}")
+        straights = [
+            positions
+            for positions in combinations(range(len(candidate.public.hand)), 5)
+            if HandEvaluator().contains(
+                [candidate.public.hand[index] for index in positions],
+                PokerHand.STRAIGHT,
+            )
+        ]
+        if straights:
+            baseline = candidate
+            run = _play_run(seed=f"R4-CRAZY-{attempt}")
+            indices = tuple(straights[0])
+            break
+    assert baseline is not None and run is not None and indices is not None
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_crazy", 1, 4, None, 4, False)
+        )
+    ]
+    baseline_result = apply_supported_ordinary_play(baseline, indices)
+    result = apply_supported_ordinary_play(run, indices)
+    assert result.public.last_played_hand == "STRAIGHT"
+    assert result.public.score == baseline_result.public.score * 4
+    assert type(result.public.jokers[0]).__name__ == "CrazyJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

@@ -22,6 +22,7 @@ from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.clever_joker import CleverJoker
+from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.droll_joker import DrollJoker
@@ -100,6 +101,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Clever Joker"
+    elif item.center_key == "j_crazy":
+        joker_type = CrazyJoker
+        expected_rarity = 1
+        expected_base_cost = 4
+        label = "Crazy Joker"
     elif item.center_key == "j_crafty":
         joker_type = CraftyJoker
         expected_rarity = 1
