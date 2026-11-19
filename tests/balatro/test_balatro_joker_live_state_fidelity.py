@@ -11,6 +11,7 @@ from games.balatro.jokers.glass_joker import GlassJoker
 from games.balatro.jokers.gros_michel import GrosMichelJoker
 from games.balatro.jokers.ice_cream import IceCreamJoker
 from games.balatro.jokers.runner import RunnerJoker
+from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.to_do_list import ToDoListJoker
 
 
@@ -22,6 +23,7 @@ def test_mutable_field_detection_ignores_constructor_only_configuration():
     assert auditor._mutable_instance_fields(IceCreamJoker) == frozenset({"chips"})
     assert auditor._mutable_instance_fields(GlassJoker) == frozenset({"x_mult"})
     assert auditor._mutable_instance_fields(ToDoListJoker) == frozenset({"target_hand"})
+    assert auditor._mutable_instance_fields(RocketJoker) == frozenset({"dollars"})
 
 
 def test_live_state_contract_covers_all_mutable_joker_model_fields():
@@ -32,6 +34,7 @@ def test_live_state_contract_covers_all_mutable_joker_model_fields():
     assert entries[("glass_joker", "GlassJoker")].status == HYDRATED
     assert entries[("ice_cream", "IceCreamJoker")].status == HYDRATED
     assert entries[("runner", "RunnerJoker")].status == HYDRATED
+    assert entries[("rocket", "RocketJoker")].hydrated_fields == ("dollars",)
     assert entries[("to_do_list", "ToDoListJoker")].status == HYDRATED
     assert entries[("to_do_list", "ToDoListJoker")].hydrated_fields == ("target_hand",)
 

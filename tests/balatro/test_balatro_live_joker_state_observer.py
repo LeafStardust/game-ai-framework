@@ -54,6 +54,24 @@ def test_declared_joker_state_reads_direct_and_nested_ability_counters():
     assert runner == {"chips": 45}
 
 
+def test_declared_rocket_state_reads_both_nested_cashout_fields():
+    extra = 101
+    decoder = _FakeDecoder(
+        {extra: {"dollars": _integer(7), "increase": _integer(2)}}
+    )
+
+    result = _normalize_public_item_state(
+        decoder,
+        "j_rocket",
+        "Rocket",
+        "Rocket",
+        {"extra": _table(extra)},
+        {},
+    )
+
+    assert result == {"dollars": 7, "increase": 2}
+
+
 def test_declared_joker_state_reads_scalar_extra_and_explicit_card_alias():
     decoder = _FakeDecoder()
 

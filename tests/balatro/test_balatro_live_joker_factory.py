@@ -6,6 +6,7 @@ from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.egg import EggJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.green_joker import GreenJoker
+from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.jokers.the_idol import TheIdolJoker
 from games.balatro.live.joker_factory import LiveJokerFactory
@@ -150,6 +151,20 @@ def test_live_joker_factory_hydrates_numeric_and_dynamic_string_state():
     assert ancient.suit == "Spades"
     assert isinstance(egg, EggJoker)
     assert egg.sell_value == 15
+
+
+def test_live_joker_factory_hydrates_rocket_cashout_state():
+    joker = LiveJokerFactory().create(
+        {
+            "center": "j_rocket",
+            "label": "Rocket",
+            "public_state": {"dollars": 7, "increase": 2},
+        }
+    )
+
+    assert isinstance(joker, RocketJoker)
+    assert joker.dollars == 7
+    assert joker.increase == 2
 
 
 def test_live_joker_factory_resolves_ceremonial_dagger_alias():

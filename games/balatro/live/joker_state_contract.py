@@ -71,6 +71,10 @@ PUBLIC_JOKER_STATE_SPECS_BY_CLASS: dict[str, tuple[JokerPublicFieldSpec, ...]] =
     "RamenJoker": (JokerPublicFieldSpec("x_mult", ("x_mult", "Xmult")),),
     "RedCardJoker": (JokerPublicFieldSpec("mult", ("mult",)),),
     "RideTheBusJoker": (JokerPublicFieldSpec("mult", ("mult",)),),
+    "RocketJoker": (
+        JokerPublicFieldSpec("dollars", ("dollars",)),
+        JokerPublicFieldSpec("increase", ("increase",)),
+    ),
     "RunnerJoker": (JokerPublicFieldSpec("chips", ("chips",)),),
     "SeltzerJoker": (
         JokerPublicFieldSpec(
