@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`6bf3c03cd70c2e7da77563a330faeb015e29014f`.
+`59bf6428c685b052103501982d1c355bd8f0f456`.
 
 ## Objective
 
@@ -75,7 +75,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | Frozen 1,024-batch schedule complete; promotion integration active |
+| PPO learner and training path | Observation v4 authorized; prior checkpoints are historical and fresh retraining is required |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -111,12 +111,18 @@ There is no `PLANNED` action in the frozen strategic contract. `BUY_CARD` and
 `REROLL_BOSS` require new canonical production capabilities before they can be
 considered; do not invent RL-only aliases.
 
-## Frozen PPO contract
+## Current PPO contract
 
-- Schemas: `balatro-red-white-ppo-training-v1`,
-  `balatro-red-white-ppo-run-v1`, `balatro-red-white-ppo-policy-output-v1`, and
-  `balatro-red-white-ppo-rollout-episode-v1`.
-- Observation: 2,444 values. Output: 27 canonical action slots.
+- Schemas: sparse training `balatro-red-white-ppo-training-v5`, progress
+  training `balatro-red-white-ppo-progress-reward-training-v6`, run
+  `balatro-red-white-ppo-run-v3`, policy output
+  `balatro-red-white-ppo-policy-output-v3`, sparse rollout
+  `balatro-red-white-ppo-rollout-episode-v4`, and progress rollout
+  `balatro-red-white-ppo-progress-reward-rollout-episode-v5`.
+- Public observation: `balatro-red-white-public-observation-v4`, **2,480**
+  values. Output: 27 canonical action slots.
+- Model/checkpoint owner: `balatro-red-white-ppo-actor-critic-v2`; campaign
+  owner: `balatro-red-white-ppo-campaign-v13`.
 - Model: `(512, 256)` tanh MLP.
 - Collection: 8 environments, 256 steps each, 2,048 transitions per batch.
 - Optimization: 256-transition minibatches, 10 epochs, 1,024 batches,
@@ -131,6 +137,10 @@ considered; do not invent RL-only aliases.
 - Illegal probability mass is exactly zero. There is no empty-mask rescue.
 - Incomplete/nonterminal evidence, illegal actions, schema/provenance drift,
   non-finite output, seed drift, and terminal contradictions fail closed.
+- The completed 2,456-feature training artifacts predate observation v4 and
+  cannot be loaded as v4 checkpoints. They remain historical evidence only.
+  Fresh training is explicitly authorized in the future after the remaining
+  development boundary is frozen; no old promotion result transfers to v4.
 
 ## Frozen evaluation and promotion contract
 
@@ -2538,24 +2548,41 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the thirty-fourth exact generated-Joker acquisition bridge for only
-uneditioned `j_rocket`. Its canonical lifecycle and public live-state owners
-are now repaired and green. The committed trace contains one exact uneditioned
-Rocket observation at episode 41 decision 3 / seed `57815055`, with `rarity=2`,
-`base_cost=6`, `price=6`, no edition, and no edited copy.
+Audit and repair the canonical `VampireJoker` mechanics/lifecycle boundary
+needed before adding the thirty-fifth exact generated-Joker acquisition bridge
+for only uneditioned `j_vampire`. The committed trace's next unsupported exact
+center after Rocket is episode 44 decision 9 / seed `4A3D2663`, with
+`rarity=2`, `base_cost=7`, `price=7`, and no edition.
 
-Add the explicit `j_rocket` generated materializer (`rarity=2`, `base_cost=6`,
-public label, dynamic price/sale, discovery), blind-neutral tactical admission,
-and inventory-only sale inverse.
-Add deterministic model, materialization, mask, purchase, ordinary/Boss/
-post-Boss cash-out, sale, isolation, natural production-backend, complete
-rollout, and live/simulator parity coverage. Keep the first thirty-three
-centers unchanged and every other generated center/edition/malformed state
-fail-closed. Do not add a generic factory, batch multiple centers, open
-boosters, change PPO, rewards, or tactics, or request an operator run during
-this checkpoint. Keep Diet Cola, Baseball Card, 8 Ball, Hallucination, Dusk,
-Faceless Joker, and Gros Michel fail-closed for their unowned callbacks, and
-do not batch another Joker into this checkpoint.
+Read the pinned vanilla source, current model, scoring/mutation projection,
+live hydration, tactical capability, shop materialization, and sale owners
+first. Repair only demonstrated canonical gaps with exact deterministic tests;
+keep `j_vampire` acquisition masked until its card-enhancement removal and
+X-mult growth semantics are fully owned. Do not add a generic factory, batch
+another center, approximate a callback, open boosters, alter rewards, start
+retraining, or request an operator run during this checkpoint.
+
+Rocket generated acquisition and observation-v4 checkpoint:
+
+- Implementation commit `59bf6428c685b052103501982d1c355bd8f0f456`
+  adds exact uneditioned `j_rocket` materialization (`rarity=2`,
+  `base_cost=6`), tactical admission, discovery/purchase, inventory-only sale,
+  natural generation, complete rollout, lifecycle, and live/simulator parity
+  coverage. Other centers, editions, and malformed state remain fail-closed.
+- Rocket's public `dollars` and `increase` fields are now encoded exactly.
+  Public observation v4 expands 2,456 -> 2,480 features; the sparse/progress
+  training contracts advance to v5/v6 and campaign serialization to v13.
+- Actor-critic v2 reconstructs the exact legacy deterministic first layer and
+  inserts the 24 new feature rows as trainable zeros. This preserves the
+  initial legacy-feature trajectory while old checkpoints fail closed on
+  shape/contract mismatch.
+- Focused local gates passed **360**, **113**, and **377** tests. GitHub Actions
+  run `44496935696`, job `135466443508`, passed the authoritative gate with
+  **3706 passed, 1621 deselected in 319.42s**.
+- The user explicitly authorized this observation-schema expansion and future
+  retraining on 2026-11-19. Retraining is required for observation v4 but is
+  deferred until a later roadmap checkpoint freezes the remaining development
+  surface and exact run contract.
 
 Rocket canonical lifecycle repair checkpoint:
 
