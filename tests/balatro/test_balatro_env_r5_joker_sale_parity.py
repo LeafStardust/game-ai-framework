@@ -33,7 +33,15 @@ def _joker(
     return value
 
 
-def _shop_state(*, sequence, money, jokers, hand_limit=8):
+def _shop_state(
+    *,
+    sequence,
+    money,
+    jokers,
+    hand_limit=8,
+    round_reset_discards_observed=False,
+    round_reset_discards=0,
+):
     return {
         "sequence": sequence,
         "phase": "SHOP",
@@ -42,6 +50,8 @@ def _shop_state(*, sequence, money, jokers, hand_limit=8):
             "deck": "RED",
             "stake": "WHITE",
             "money": money,
+            "round_reset_discards_observed": round_reset_discards_observed,
+            "round_reset_discards": round_reset_discards,
             "round": {"hands_left": 4, "discards_left": 3, "chips": 300},
             "hand": {"limit": hand_limit, "cards": []},
             "cards": {"cards": []},
@@ -59,6 +69,10 @@ def _rows(
     success=True,
     before_hand_limit=8,
     after_hand_limit=8,
+    before_round_reset_discards_observed=False,
+    after_round_reset_discards_observed=False,
+    before_round_reset_discards=0,
+    after_round_reset_discards=0,
 ):
     joker = joker or _joker()
     action = action or {"name": "SELL_JOKER", "target": {"joker_index": 0}}
@@ -72,6 +86,10 @@ def _rows(
                     money=7,
                     jokers=[joker],
                     hand_limit=before_hand_limit,
+                    round_reset_discards_observed=(
+                        before_round_reset_discards_observed
+                    ),
+                    round_reset_discards=before_round_reset_discards,
                 )
             },
         },
@@ -86,6 +104,10 @@ def _rows(
                     money=8,
                     jokers=[],
                     hand_limit=after_hand_limit,
+                    round_reset_discards_observed=(
+                        after_round_reset_discards_observed
+                    ),
+                    round_reset_discards=after_round_reset_discards,
                 ),
             },
         },
@@ -157,6 +179,33 @@ def test_env_r5_live_juggler_sale_replays_exact_hand_size_inverse():
 
     assert run.public.hand_size == 9
     assert result.public.hand_size == 8
+    assert result.public.money == 8
+    assert result.public.jokers == []
+    comparison = compare_run_rows_to_simulator_joker_sale_evidence(
+        live_rows,
+        (simulator,),
+    )
+    assert comparison.matches is True
+    assert comparison.differences == ()
+
+
+def test_env_r5_live_drunkard_sale_replays_exact_discard_reset_inverse():
+    live_rows = _rows(
+        joker=_joker(center="j_drunkard", label="Drunkard"),
+        before_round_reset_discards_observed=True,
+        after_round_reset_discards_observed=True,
+        before_round_reset_discards=4,
+        after_round_reset_discards=3,
+    )
+    live = successful_joker_sale_evidence_from_run_rows(live_rows)
+    before = live[0].before
+    run = HeadlessRunState(public=before, seed="r5-drunkard-sale-parity")
+
+    result, simulator = sell_joker_with_public_evidence(run, joker_index=0)
+
+    assert run.public.round_reset_discards == 4
+    assert result.public.round_reset_discards == 3
+    assert result.public.discards_remaining == 3
     assert result.public.money == 8
     assert result.public.jokers == []
     comparison = compare_run_rows_to_simulator_joker_sale_evidence(

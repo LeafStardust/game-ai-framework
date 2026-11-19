@@ -989,6 +989,23 @@ def test_env_r4_ordinary_play_admits_exact_materialized_juggler_noop_callback():
     assert type(result.public.jokers[0]).__name__ == "JugglerJoker"
 
 
+def test_env_r4_ordinary_play_admits_exact_materialized_drunkard_noop_callback():
+    baseline = _play_run(seed="R4-DRUNKARD-PLAY")
+    run = _play_run(seed="R4-DRUNKARD-PLAY")
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_drunkard", 1, 4, None, 4, False)
+        )
+    ]
+
+    baseline_result = apply_supported_ordinary_play(baseline, (0,))
+    result = apply_supported_ordinary_play(run, (0,))
+
+    assert result.public.score == baseline_result.public.score
+    assert result.public.discards_remaining == baseline_result.public.discards_remaining
+    assert type(result.public.jokers[0]).__name__ == "DrunkardJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

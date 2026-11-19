@@ -3,9 +3,9 @@
 Vanilla selling a Joker removes it from the Joker area, runs the card's
 ``remove_from_deck`` inverse lifecycle, credits ``sell_cost``, and disables
 Verdant Leaf. The headless shop boundary permits inventory-only Jokers plus
-Juggler's explicitly owned hand-size inverse. Other resource-sensitive and
-persistent-state Jokers remain fail-closed until their inverse lifecycle is
-owned.
+Juggler's explicitly owned hand-size inverse and Drunkard's persistent-discard
+inverse. Other resource-sensitive and persistent-state Jokers remain fail-
+closed until their inverse lifecycle is owned.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ from games.balatro.env.transition import (
     _OWNED_DECK_SCORING_TYPES,
 )
 from games.balatro.env.joker_order import JokerOrderError
+from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.juggler import JugglerJoker
 
 
@@ -36,6 +37,7 @@ def _validate_owned_joker_identity(
     joker_index: int,
     *,
     allow_juggler: bool = False,
+    allow_drunkard: bool = False,
 ) -> int:
     """Validate an owned Joker sale and return its exact sell value."""
     if not isinstance(run, HeadlessRunState):
@@ -49,9 +51,12 @@ def _validate_owned_joker_identity(
         raise HeadlessTransitionError("Joker sale requires exact integer money")
 
     joker = state.jokers[joker_index]
-    if type(joker) not in _STATIC_SELL_SAFE_TYPES and not (
-        allow_juggler and type(joker) is JugglerJoker
-    ):
+    owned_inverse = (
+        type(joker) in _STATIC_SELL_SAFE_TYPES
+        or (allow_juggler and type(joker) is JugglerJoker)
+        or (allow_drunkard and type(joker) is DrunkardJoker)
+    )
+    if not owned_inverse:
         raise HeadlessTransitionError(
             "Joker sale inverse lifecycle is not exactly owned for this Joker"
         )
@@ -61,6 +66,18 @@ def _validate_owned_joker_identity(
         raise HeadlessTransitionError(
             "Juggler sale requires exact positive hand size"
         )
+    if type(joker) is DrunkardJoker:
+        if state.round_reset_discards_observed is not True:
+            raise HeadlessTransitionError(
+                "Drunkard sale requires authoritative round-reset discards"
+            )
+        if (
+            type(state.round_reset_discards) is not int
+            or state.round_reset_discards < 1
+        ):
+            raise HeadlessTransitionError(
+                "Drunkard sale requires exact positive round-reset discards"
+            )
     if getattr(joker, "eternal", False):
         raise HeadlessTransitionError("Eternal Joker cannot be sold")
     if getattr(joker, "edition", None) is not None:
@@ -93,6 +110,8 @@ def _sell_owned_joker(
     next_state.money += sell_cost
     if type(sold) is JugglerJoker:
         next_state.hand_size -= 1
+    elif type(sold) is DrunkardJoker:
+        next_state.round_reset_discards -= 1
     next_state.jokers.pop(joker_index)
     if next_state.joker_generation_pool_observed:
         # Card:remove clears the sold center from G.GAME.used_jokers once no
@@ -120,7 +139,12 @@ def validate_joker_sale_exact(run: HeadlessRunState, joker_index: int) -> None:
         raise TypeError("run must be HeadlessRunState")
     if run.public.phase != "SHOP" or not run.public.shop_active:
         raise HeadlessTransitionError("exact SELL_JOKER requires active SHOP")
-    _validate_owned_joker_identity(run, joker_index, allow_juggler=True)
+    _validate_owned_joker_identity(
+        run,
+        joker_index,
+        allow_juggler=True,
+        allow_drunkard=True,
+    )
 
 
 def can_sell_joker_exact(run: HeadlessRunState, joker_index: int) -> bool:
@@ -136,7 +160,10 @@ def sell_joker_exact(run: HeadlessRunState, joker_index: int) -> HeadlessRunStat
     """Sell one audited Joker with an owned inverse during the active shop."""
     validate_joker_sale_exact(run, joker_index)
     sell_cost = _validate_owned_joker_identity(
-        run, joker_index, allow_juggler=True
+        run,
+        joker_index,
+        allow_juggler=True,
+        allow_drunkard=True,
     )
 
     return _sell_owned_joker(run, joker_index, sell_cost)

@@ -13,6 +13,7 @@ from games.balatro.env.transition import (
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.troubadour import TroubadourJoker
 from games.balatro.state import BalatroState
 
 
@@ -61,7 +62,7 @@ def test_env_r3_exact_sale_fails_closed_outside_active_main_shop(phase):
 
 
 def test_env_r3_exact_sale_fails_closed_for_unowned_inverse_and_metadata():
-    run = _shop_run(DrunkardJoker())
+    run = _shop_run(TroubadourJoker())
     assert not can_sell_joker_exact(run, 0)
     with pytest.raises(HeadlessTransitionError, match="inverse lifecycle"):
         sell_joker_exact(run, 0)
@@ -123,7 +124,7 @@ def test_env_r3_shop_backend_masks_and_executes_only_exact_joker_sales():
 
 
 def test_env_r3_shop_backend_masks_resource_sensitive_sale():
-    run = _shop_run(DrunkardJoker())
+    run = _shop_run(TroubadourJoker())
     action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
     engine = ShopTransitionEngine()
 
@@ -155,4 +156,46 @@ def test_env_r3_juggler_sale_requires_exact_positive_hand_size(hand_size):
 
     assert not can_sell_joker_exact(run, 0)
     with pytest.raises(HeadlessTransitionError, match="positive hand size"):
+        sell_joker_exact(run, 0)
+
+
+def test_env_r3_exact_drunkard_sale_applies_persistent_discard_inverse_once():
+    run = _shop_run(DrunkardJoker())
+    run.public.round_reset_discards_observed = True
+    run.public.round_reset_discards = 4
+    run.public.discards_remaining = 2
+    action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    engine = ShopTransitionEngine()
+
+    assert action in engine.legal_actions(run)
+    result = engine.step(run, action)
+
+    assert run.public.round_reset_discards == 4
+    assert run.public.discards_remaining == 2
+    assert result.public.round_reset_discards == 3
+    assert result.public.discards_remaining == 2
+    assert result.public.jokers == []
+    assert result.public.money == 10
+
+
+@pytest.mark.parametrize(
+    ("observed", "round_reset_discards", "message"),
+    [
+        (False, 4, "authoritative"),
+        (True, True, "positive"),
+        (True, 0, "positive"),
+        (True, -1, "positive"),
+    ],
+)
+def test_env_r3_drunkard_sale_requires_exact_persistent_discard_state(
+    observed,
+    round_reset_discards,
+    message,
+):
+    run = _shop_run(DrunkardJoker())
+    run.public.round_reset_discards_observed = observed
+    run.public.round_reset_discards = round_reset_discards
+
+    assert not can_sell_joker_exact(run, 0)
+    with pytest.raises(HeadlessTransitionError, match=message):
         sell_joker_exact(run, 0)

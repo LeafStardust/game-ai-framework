@@ -39,6 +39,7 @@ from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.droll_joker import DrollJoker
+from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
@@ -811,7 +812,7 @@ def test_env_ppo_backend_acquires_generated_clever_joker_and_discovers_its_cente
         ("j_drunkard", 4, 4, False),
         ("j_clever", 4, 4, False),
     )
-    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) not in (
+    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) in (
         environment.legal_actions()
     )
     assert buy in environment.legal_actions()
@@ -1105,6 +1106,47 @@ def test_env_ppo_backend_acquires_generated_juggler_and_applies_exact_inverse():
 
     assert backend.run.public.money == before_money - 2
     assert backend.run.public.hand_size == before_hand_size
+
+
+def test_env_ppo_backend_acquires_generated_drunkard_and_applies_exact_inverse():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed=135)
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 1})
+    before_money = backend.run.public.money
+    before_reset_discards = backend.run.public.round_reset_discards
+    before_remaining_discards = backend.run.public.discards_remaining
+    assert tuple(
+        (item.center_key, item.rarity, item.base_cost, item.price, item.discovered)
+        for item in backend.run.public.shop_jokers
+    ) == (
+        ("j_todo_list", 1, 4, 4, False),
+        ("j_drunkard", 1, 4, 4, False),
+    )
+    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) not in (
+        environment.legal_actions()
+    )
+    assert buy in environment.legal_actions()
+
+    environment.step(buy)
+
+    assert backend.run.public.money == before_money - 4
+    assert backend.run.public.round_reset_discards == before_reset_discards + 1
+    assert backend.run.public.discards_remaining == before_remaining_discards
+    assert type(backend.run.public.jokers[0]) is DrunkardJoker
+    assert backend.run.public.jokers[0].sell_cost == 2
+    assert backend.run.generated_center_discovered("j_drunkard") is True
+    assert "j_drunkard" in backend.run.tag_profile_state.discovered_center_keys
+    sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert sell in environment.legal_actions()
+
+    environment.step(sell)
+
+    assert backend.run.public.money == before_money - 2
+    assert backend.run.public.round_reset_discards == before_reset_discards
+    assert backend.run.public.discards_remaining == before_remaining_discards
 
 
 def test_env_ppo_backend_exposes_and_executes_exact_paid_shop_reroll():

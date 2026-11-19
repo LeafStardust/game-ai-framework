@@ -1533,6 +1533,72 @@ def test_env_ppo_rollout_crosses_exact_generated_juggler_lifecycle(
 
 
 @pytest.fixture(scope="module")
+def episode_54_with_drunkard_lifecycle():
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(6),
+        PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
+        episode_index=54,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_drunkard_lifecycle(
+    episode_54_with_drunkard_lifecycle,
+):
+    episode = episode_54_with_drunkard_lifecycle
+    assert episode.game_seed == "D26BD190"
+    assert episode.action_count == 15
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    drunkard_center = float(JOKER_CENTER_KEYS.index("j_drunkard") + 1)
+    before_buy = episode.boundaries[3]
+    after_buy = episode.boundaries[4]
+    after_sale = episode.boundaries[5]
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 12)
+    assert episode.decisions[3].action_mask.values[1] is True
+    assert _observation_feature(
+        before_buy.observation, "shop.jokers.0.center"
+    ) == drunkard_center
+    assert (after_buy.money, after_sale.money) == (8, 10)
+    assert (
+        _observation_feature(before_buy.observation, "state.round_reset_discards"),
+        _observation_feature(after_buy.observation, "state.round_reset_discards"),
+        _observation_feature(after_sale.observation, "state.round_reset_discards"),
+    ) == (3.0, 4.0, 3.0)
+    assert (
+        _observation_feature(before_buy.observation, "state.discards_remaining"),
+        _observation_feature(after_buy.observation, "state.discards_remaining"),
+        _observation_feature(after_sale.observation, "state.discards_remaining"),
+    ) == (3.0, 3.0, 3.0)
+    assert _observation_feature(
+        after_buy.observation, "jokers.0.center"
+    ) == drunkard_center
+    assert _observation_feature(
+        after_sale.observation, "jokers.0.center"
+    ) == 0.0
+
+
+@pytest.fixture(scope="module")
 def episode_9_with_photograph_lifecycle():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(

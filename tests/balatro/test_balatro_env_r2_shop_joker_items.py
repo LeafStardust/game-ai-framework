@@ -24,6 +24,7 @@ from games.balatro.jokers.clever_joker import CleverJoker
 from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.droll_joker import DrollJoker
+from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
@@ -1350,6 +1351,45 @@ def test_env_r2_exact_juggler_materialization_updates_hand_size_and_sells():
     assert sold_run.public.jokers == []
 
 
+def test_env_r2_exact_drunkard_materialization_updates_reset_discards_and_sells():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_drunkard", base_cost=4, discovered=False)
+    )
+    run.public.round_reset_discards_observed = True
+    run.public.round_reset_discards = 3
+    run.public.discards_remaining = 1
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+
+    assert action in ShopTransitionEngine().legal_actions(inserted)
+    next_run = ShopTransitionEngine().step(inserted, action)
+
+    assert inserted.generation_discovery == {"j_drunkard": False}
+    assert next_run.generation_discovery == {"j_drunkard": True}
+    assert next_run.tag_profile_state.discovered_center_keys == frozenset(
+        {"j_drunkard"}
+    )
+    assert inserted.public.round_reset_discards == 3
+    assert inserted.public.discards_remaining == 1
+    assert next_run.public.money == 16
+    assert next_run.public.round_reset_discards == 4
+    assert next_run.public.discards_remaining == 1
+    joker = next_run.public.jokers[0]
+    assert type(joker) is DrunkardJoker
+    assert (
+        joker.center, joker.label, joker.rarity, joker.base_cost,
+        joker.cost, joker.sell_cost, joker.discovered,
+    ) == ("j_drunkard", "Drunkard", 1, 4, 4, 2, True)
+
+    sold_run = ShopTransitionEngine().step(
+        next_run, EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    )
+    assert sold_run.public.money == 18
+    assert sold_run.public.round_reset_discards == 3
+    assert sold_run.public.discards_remaining == 1
+    assert sold_run.public.jokers == []
+
+
 @pytest.mark.parametrize(
     "item",
     (
@@ -1368,6 +1408,9 @@ def test_env_r2_exact_juggler_materialization_updates_hand_size_and_sells():
         GeneratedShopJokerItem("j_juggler", 2, 4, None, 4, False),
         GeneratedShopJokerItem("j_juggler", 1, 5, None, 5, False),
         GeneratedShopJokerItem("j_juggler", 1, 4, "Foil", 6, False),
+        GeneratedShopJokerItem("j_drunkard", 2, 4, None, 4, False),
+        GeneratedShopJokerItem("j_drunkard", 1, 5, None, 5, False),
+        GeneratedShopJokerItem("j_drunkard", 1, 4, "Foil", 6, False),
         GeneratedShopJokerItem("j_joker", 2, 2, None, 2, True),
         GeneratedShopJokerItem("j_joker", 1, 3, None, 3, True),
         GeneratedShopJokerItem("j_joker", 1, 2, "Foil", 4, True),
