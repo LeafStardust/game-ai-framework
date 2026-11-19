@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`9819d07cfcc400892b2c4df0a6285e5da5ac1c05`.
+`6bf3c03cd70c2e7da77563a330faeb015e29014f`.
 
 ## Objective
 
@@ -2539,24 +2539,14 @@ Completed progress-reward paired evaluation:
 ## Exact active task
 
 Add the thirty-fourth exact generated-Joker acquisition bridge for only
-uneditioned `j_rocket`, repairing its canonical lifecycle owner first. The
-committed trace contains one exact uneditioned Rocket observation at episode
-41 decision 3 / seed `57815055`, with `rarity=2`, `base_cost=6`, `price=6`, no
-edition, and no edited copy. At the pinned vanilla source commit, Rocket starts
-with `$1` round-end payout and `$2` Boss increase; its non-blueprint Boss end-
-of-round callback increments the persistent payout, while the dollar-bonus row
-returns that persistent value. The current Python Joker instead emits a
-stateless `$1` ordinary / `$3` Boss payment and loses the upgraded payout after
-the Boss, so generated acquisition must remain fail-closed until this owner is
-corrected.
+uneditioned `j_rocket`. Its canonical lifecycle and public live-state owners
+are now repaired and green. The committed trace contains one exact uneditioned
+Rocket observation at episode 41 decision 3 / seed `57815055`, with `rarity=2`,
+`base_cost=6`, `price=6`, no edition, and no edited copy.
 
-Repair `RocketJoker` at its canonical model to retain exact integer payout and
-increase state. Extend the canonical ordinary and Boss cash-out owners so an
-ordinary round pays the current value without mutation, a Boss round upgrades
-`1 -> 3` before the payout, the upgraded value persists into later rounds, and
-the input run/Joker remains isolated. Then add the explicit `j_rocket` generated
-materializer (`rarity=2`, `base_cost=6`, public label, dynamic price/sale,
-discovery), blind-neutral tactical admission, and inventory-only sale inverse.
+Add the explicit `j_rocket` generated materializer (`rarity=2`, `base_cost=6`,
+public label, dynamic price/sale, discovery), blind-neutral tactical admission,
+and inventory-only sale inverse.
 Add deterministic model, materialization, mask, purchase, ordinary/Boss/
 post-Boss cash-out, sale, isolation, natural production-backend, complete
 rollout, and live/simulator parity coverage. Keep the first thirty-three
@@ -2566,6 +2556,23 @@ boosters, change PPO, rewards, or tactics, or request an operator run during
 this checkpoint. Keep Diet Cola, Baseball Card, 8 Ball, Hallucination, Dusk,
 Faceless Joker, and Gros Michel fail-closed for their unowned callbacks, and
 do not batch another Joker into this checkpoint.
+
+Rocket canonical lifecycle repair checkpoint:
+
+- Commits `5f7723d8a7ad0aa0d231cf2c835770c9faf07b3c`,
+  `4878ea4006145c1dcc813728aec0cb165a4c09a2`, and
+  `6bf3c03cd70c2e7da77563a330faeb015e29014f` repair Rocket at its canonical
+  model, cash-out, live observation, hydration, and projection-contract owners.
+- Rocket starts at `$1` with a `$2` Boss increase. Ordinary cash-out pays the
+  current value without mutation; Boss cash-out upgrades `1 -> 3` before
+  payment; the upgraded value persists; and input runs/Jokers remain isolated.
+  Malformed integer state fails closed and generated acquisition remains
+  unsupported until the active materializer bridge is completed.
+- Focused lifecycle validation passed **104 tests in 5.01s**; the expanded
+  lifecycle/live-state/projection gate passed **123 tests in 6.28s**. Two
+  verified pytest cache directories were removed afterward.
+- GitHub Actions run `44490098611`, job `135443248276`, passed the authoritative
+  Balatro deterministic gate with **3695 passed, 1621 deselected in 260.35s**.
 
 Exact generated Bull acquisition checkpoint:
 
