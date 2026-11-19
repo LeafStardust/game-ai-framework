@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`b67d85fa87abd2d8f6eb9d305f3a68209e3f2041`.
+`029ee8bf3f20dcdf2f7f3e3a648346c0b262c496`.
 
 ## Objective
 
@@ -2538,29 +2538,47 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the thirty-second exact generated-Joker acquisition bridge for only
-uneditioned `j_golden`. The committed trace contains six exact uneditioned
-Golden Joker observations across episodes 3, 6, 8, 50, and 59, all with
-`rarity=1`, `base_cost=6`, `price=6`, no edition, and no edited copy. Its +$4
-round-end lifecycle is already owned by the canonical cash-out transition,
-and tactical scoring is blind-neutral. The canonical Joker-sale owner still
-keeps Golden Joker fail-closed because it is outside the exact generated
-acquisition subset even though its sale inverse is inventory-only.
+Add the thirty-third exact generated-Joker acquisition bridge for only
+uneditioned `j_bull`. The committed trace contains two exact uneditioned Bull
+observations at episode 17 decisions 6 and 7 / seed `D794B55B`, both with
+`rarity=2`, `base_cost=6`, `price=6`, no edition, and no edited copy. Its +2
+Chips per nonnegative dollar scoring behavior, money dependence, boss cash
+ordering, round-end inertness, and inventory-only sale inverse are already
+owned by the canonical scorer and transition owners. The generated-item
+materializer and tactical callback capability still keep Bull fail-closed.
 
-Extend the canonical generated-item materializer with an explicit `j_golden`
-to `GoldenJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=6`,
-public label, purchase price, discovery transition, and sale value). Extend
-the generated-Joker tactical capability only for its already-owned blind-
-neutral behavior. At the canonical sale owner, explicitly admit Golden
-Joker's inventory-only inverse without broadening support to unaudited types.
-Add deterministic materialization, mask, purchase, sale/inverse, round-end
-cash-out, isolation, natural production-backend, complete rollout, and live/
-simulator sale-parity coverage. Keep the first thirty-one centers unchanged
-and every other generated center/edition/malformed state fail-closed. Do not
-add a generic factory, batch multiple centers, open boosters, change PPO,
-rewards, or tactics, or request an operator run during this checkpoint. Keep
-8 Ball, Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for
-their unowned callbacks, and do not batch another Joker into this checkpoint.
+Extend the canonical generated-item materializer with an explicit `j_bull` to
+`BullJoker` entry and exact vanilla identity (`rarity=2`, `base_cost=6`, public
+label, purchase price, discovery transition, and sale value). Extend the
+generated-Joker tactical capability only for its already-owned money-to-Chips
+behavior. Add deterministic materialization, mask, purchase, money-sensitive
+scoring, sale/inverse, round-end, isolation, natural production-backend,
+complete rollout, and live/simulator sale-parity coverage. Keep the first
+thirty-two centers unchanged and every other generated center/edition/
+malformed state fail-closed. The trace's Foil and Polychrome Bull observations
+remain unsupported. Do not add a generic factory, batch multiple centers,
+open boosters, change PPO, rewards, or tactics, or request an operator run
+during this checkpoint. Keep Baseball Card, Diet Cola, 8 Ball, Hallucination,
+Dusk, Faceless Joker, and Gros Michel fail-closed for their unowned callbacks,
+and do not batch another Joker into this checkpoint.
+
+Exact generated Golden Joker acquisition checkpoint:
+
+- Implementation commit `029ee8bf3f20dcdf2f7f3e3a648346c0b262c496` adds
+  only exact uneditioned `j_golden` (`rarity=1`, `base_cost=6`) as the audited
+  `GoldenJoker`, including discovery, dynamic price/sale metadata, exact +$4
+  round-end cash-out, blind-neutral tactical continuation, explicit inventory-
+  only sale admission, and live/simulator sale parity.
+- Deterministic production-backend seed `191` proves unsupported Superposition
+  remains masked while natural Golden Joker generation, legal masking,
+  purchase, discovery, and sale are exact. Complete rollout episode 4 / seed
+  `A0370D8B` locks the seven-action Golden lifecycle with money `7 -> 1 -> 4`.
+- The exact focused gate passed **103 tests in 3.02s** and the expanded shop/
+  cash-out/tactical/parity/backend/complete-rollout gate passed **422 tests in
+  156.59s**. Syntax compilation and `git diff --check` are clean; the validated
+  cache cleanup removed 26 directories and left zero remaining.
+- GitHub Actions run `44449630419`, job `135310113249`, passed the authoritative
+  Balatro deterministic gate with **3677 passed, 1621 deselected in 498.66s**.
 
 Exact generated Drunkard acquisition checkpoint:
 
