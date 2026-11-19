@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`029ee8bf3f20dcdf2f7f3e3a648346c0b262c496`.
+`9819d07cfcc400892b2c4df0a6285e5da5ac1c05`.
 
 ## Objective
 
@@ -2538,29 +2538,54 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the thirty-third exact generated-Joker acquisition bridge for only
-uneditioned `j_bull`. The committed trace contains two exact uneditioned Bull
-observations at episode 17 decisions 6 and 7 / seed `D794B55B`, both with
-`rarity=2`, `base_cost=6`, `price=6`, no edition, and no edited copy. Its +2
-Chips per nonnegative dollar scoring behavior, money dependence, boss cash
-ordering, round-end inertness, and inventory-only sale inverse are already
-owned by the canonical scorer and transition owners. The generated-item
-materializer and tactical callback capability still keep Bull fail-closed.
+Add the thirty-fourth exact generated-Joker acquisition bridge for only
+uneditioned `j_rocket`, repairing its canonical lifecycle owner first. The
+committed trace contains one exact uneditioned Rocket observation at episode
+41 decision 3 / seed `57815055`, with `rarity=2`, `base_cost=6`, `price=6`, no
+edition, and no edited copy. At the pinned vanilla source commit, Rocket starts
+with `$1` round-end payout and `$2` Boss increase; its non-blueprint Boss end-
+of-round callback increments the persistent payout, while the dollar-bonus row
+returns that persistent value. The current Python Joker instead emits a
+stateless `$1` ordinary / `$3` Boss payment and loses the upgraded payout after
+the Boss, so generated acquisition must remain fail-closed until this owner is
+corrected.
 
-Extend the canonical generated-item materializer with an explicit `j_bull` to
-`BullJoker` entry and exact vanilla identity (`rarity=2`, `base_cost=6`, public
-label, purchase price, discovery transition, and sale value). Extend the
-generated-Joker tactical capability only for its already-owned money-to-Chips
-behavior. Add deterministic materialization, mask, purchase, money-sensitive
-scoring, sale/inverse, round-end, isolation, natural production-backend,
-complete rollout, and live/simulator sale-parity coverage. Keep the first
-thirty-two centers unchanged and every other generated center/edition/
-malformed state fail-closed. The trace's Foil and Polychrome Bull observations
-remain unsupported. Do not add a generic factory, batch multiple centers,
-open boosters, change PPO, rewards, or tactics, or request an operator run
-during this checkpoint. Keep Baseball Card, Diet Cola, 8 Ball, Hallucination,
-Dusk, Faceless Joker, and Gros Michel fail-closed for their unowned callbacks,
-and do not batch another Joker into this checkpoint.
+Repair `RocketJoker` at its canonical model to retain exact integer payout and
+increase state. Extend the canonical ordinary and Boss cash-out owners so an
+ordinary round pays the current value without mutation, a Boss round upgrades
+`1 -> 3` before the payout, the upgraded value persists into later rounds, and
+the input run/Joker remains isolated. Then add the explicit `j_rocket` generated
+materializer (`rarity=2`, `base_cost=6`, public label, dynamic price/sale,
+discovery), blind-neutral tactical admission, and inventory-only sale inverse.
+Add deterministic model, materialization, mask, purchase, ordinary/Boss/
+post-Boss cash-out, sale, isolation, natural production-backend, complete
+rollout, and live/simulator parity coverage. Keep the first thirty-three
+centers unchanged and every other generated center/edition/malformed state
+fail-closed. Do not add a generic factory, batch multiple centers, open
+boosters, change PPO, rewards, or tactics, or request an operator run during
+this checkpoint. Keep Diet Cola, Baseball Card, 8 Ball, Hallucination, Dusk,
+Faceless Joker, and Gros Michel fail-closed for their unowned callbacks, and
+do not batch another Joker into this checkpoint.
+
+Exact generated Bull acquisition checkpoint:
+
+- Implementation commit `9819d07cfcc400892b2c4df0a6285e5da5ac1c05` adds
+  only exact uneditioned `j_bull` (`rarity=2`, `base_cost=6`) as the audited
+  `BullJoker`, including discovery, dynamic price/sale metadata, exact +2 Chips
+  per nonnegative dollar scoring, tactical continuation, round-end inertness,
+  inventory-only sale, and live/simulator sale parity.
+- Deterministic production-backend seed `63` proves unsupported Spare Trousers
+  remains masked while natural Bull generation, legal masking, purchase,
+  discovery, and sale are exact. Complete rollout episode 78 / seed `2F061DB4`
+  locks the five-action Bull lifecycle with money `9 -> 3 -> 6`.
+- Existing Sly episode 35, Golden episode 4, and Raised Fist episode 62 each
+  deterministically gain only Bull's newly legal buy/sale pair; all three exact
+  revised trajectories are locked. The expanded shop/cash-out/money-scoring/
+  boss-order/tactical/parity/backend/complete-rollout gate passed **454 tests
+  in 168.09s**. Syntax compilation and `git diff --check` are clean; validated
+  cache cleanup removed 21 directories and left zero remaining.
+- GitHub Actions run `44453246365`, job `135322046542`, passed the authoritative
+  Balatro deterministic gate with **3688 passed, 1621 deselected in 379.05s**.
 
 Exact generated Golden Joker acquisition checkpoint:
 
