@@ -181,6 +181,34 @@ def test_env_r2_cashout_treats_exact_materialized_generated_bull_as_inert():
     assert type(result.public.jokers[0]) is BullJoker
 
 
+def test_env_r2_cashout_pays_rocket_current_value_without_mutating_input():
+    from games.balatro.jokers.rocket import RocketJoker
+
+    run = _cleared_run(money=14, hands_remaining=0, reward=3)
+    run.public.jokers = [RocketJoker()]
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    assert run.public.money == 14
+    assert run.public.jokers[0].dollars == 1
+    assert result.public.money == 20
+    assert result.public.jokers[0].dollars == 1
+    assert result.public.jokers[0] is not run.public.jokers[0]
+
+
+@pytest.mark.parametrize(("field", "value"), [("dollars", True), ("dollars", -1), ("increase", -1)])
+def test_env_r2_cashout_rejects_malformed_rocket_payout_state(field, value):
+    from games.balatro.jokers.rocket import RocketJoker
+
+    run = _cleared_run()
+    rocket = RocketJoker()
+    setattr(rocket, field, value)
+    run.public.jokers = [rocket]
+
+    with pytest.raises(HeadlessTransitionError, match="Rocket"):
+        cash_out_baseline_ordinary_blind(run)
+
+
 def test_env_r2_cashout_delayed_gratification_does_not_pay_after_any_discard_used():
     from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
     run = _cleared_run(money=14, hands_remaining=0, reward=3)

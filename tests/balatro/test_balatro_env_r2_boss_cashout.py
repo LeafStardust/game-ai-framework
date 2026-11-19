@@ -69,6 +69,22 @@ def test_env_r2_simple_boss_cashout_pays_and_enters_ungenerated_shop():
     assert run.require_playing_card_order()[0].played_this_ante is True
 
 
+def test_env_r2_boss_cashout_upgrades_rocket_before_payout_and_persists():
+    from games.balatro.jokers.rocket import RocketJoker
+
+    run = _finish(_boss_round("The Psychic", money=14, reward=5), hands=1)
+    run.public.jokers = [RocketJoker()]
+
+    result = cash_out_supported_boss(run)
+
+    assert run.public.money == 14
+    assert run.public.jokers[0].dollars == 1
+    assert result.public.money == 25
+    assert result.public.jokers[0].dollars == 3
+    assert result.public.jokers[0].increase == 2
+    assert result.public.jokers[0] is not run.public.jokers[0]
+
+
 def test_env_r2_boss_cashout_preserves_exact_crystal_ball_noop():
     run = _finish(_boss_round("The Psychic", money=14, reward=5), hands=1)
     run.public.vouchers = ["v_crystal_ball"]

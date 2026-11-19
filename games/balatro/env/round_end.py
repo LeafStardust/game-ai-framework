@@ -34,6 +34,7 @@ from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.merry_andy import MerryAndyJoker
+from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 
@@ -53,6 +54,7 @@ _ROUND_END_DOLLAR_JOKER_TYPES = (
     GoldenJoker,
     Cloud9Joker,
     DelayedGratificationJoker,
+    RocketJoker,
 )
 
 
@@ -101,6 +103,17 @@ def _round_end_joker_dollars(run: HeadlessRunState) -> int:
                 raise HeadlessTransitionError("discards_remaining cannot be negative")
             data["discards_used"] = discards_used
             data["discards_remaining"] = discards_remaining
+        elif type(joker) is RocketJoker:
+            dollars = _require_exact_int("Rocket dollars", joker.dollars)
+            increase = _require_exact_int("Rocket increase", joker.increase)
+            if dollars < 0 or increase < 0:
+                raise HeadlessTransitionError(
+                    "Rocket payout state must be exact and nonnegative"
+                )
+            data["boss_blind"] = (
+                state.blind is not None
+                and getattr(state.blind, "type", None) is BlindType.BOSS
+            )
         context = JokerContext(state=state, trigger="ROUND_ENDED", data=data)
         joker.apply(context)
         total += _require_exact_int("Joker cash-out dollars", context.data.get("money", 0))
@@ -232,7 +245,8 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
         )
 
     interest = baseline_interest_dollars(money, interest_cap)
-    joker_dollars = _round_end_joker_dollars(run)
+    round_end_run = run.copy()
+    joker_dollars = _round_end_joker_dollars(round_end_run)
     payout = blind_reward + hands_remaining + joker_dollars + interest
 
     if not state.round_reset_hands_observed or not state.round_reset_discards_observed:
@@ -246,7 +260,7 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     if reset_hands < 0 or reset_discards < 0:
         raise HeadlessTransitionError("round-reset resources cannot be negative")
 
-    next_run = repopulate_round_end_deck(run)
+    next_run = repopulate_round_end_deck(round_end_run)
     next_state = next_run.public
     creation_order = next_run.require_playing_card_order()
     creation_index = {id(card): index for index, card in enumerate(creation_order)}

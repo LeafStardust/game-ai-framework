@@ -141,10 +141,11 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
             "Boss cash-out does not own Voucher interest-cap semantics"
         )
     interest = baseline_interest_dollars(money, interest_cap)
-    joker_dollars = _round_end_joker_dollars(run)
+    round_end_run = run.copy()
+    joker_dollars = _round_end_joker_dollars(round_end_run)
     payout = reward + hands_remaining + joker_dollars + interest
 
-    defeated = defeat_supported_boss(run)
+    defeated = defeat_supported_boss(round_end_run)
     history_reset = clear_played_this_ante_for_new_ante(defeated)
     next_run = repopulate_round_end_deck(history_reset)
     next_state = next_run.public
