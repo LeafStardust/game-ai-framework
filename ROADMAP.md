@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`59bf6428c685b052103501982d1c355bd8f0f456`.
+`23caca35b6f43aa24e4a1eb03ed1044df3d8d82f`.
 
 ## Objective
 
@@ -2548,19 +2548,31 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit and repair the canonical `VampireJoker` mechanics/lifecycle boundary
-needed before adding the thirty-fifth exact generated-Joker acquisition bridge
-for only uneditioned `j_vampire`. The committed trace's next unsupported exact
-center after Rocket is episode 44 decision 9 / seed `4A3D2663`, with
-`rarity=2`, `base_cost=7`, `price=7`, and no edition.
+Add the thirty-fifth exact generated-Joker acquisition bridge for only
+uneditioned `j_vampire`. The canonical mechanics/lifecycle audit is repaired
+and green. The committed trace's exact observation is episode 44 decision 9 /
+seed `4A3D2663`, with `rarity=2`, `base_cost=7`, `price=7`, and no edition.
 
-Read the pinned vanilla source, current model, scoring/mutation projection,
-live hydration, tactical capability, shop materialization, and sale owners
-first. Repair only demonstrated canonical gaps with exact deterministic tests;
-keep `j_vampire` acquisition masked until its card-enhancement removal and
-X-mult growth semantics are fully owned. Do not add a generic factory, batch
-another center, approximate a callback, open boosters, alter rewards, start
-retraining, or request an operator run during this checkpoint.
+Add explicit `j_vampire` materialization, exact initial `x_mult=1.0`, tactical
+admission, discovery/purchase, inventory-only sale, natural generation,
+complete rollout, card-mutation isolation, and live/simulator parity coverage.
+Require finite canonical Vampire state and keep every other center, edition,
+malformed state, and unowned callback fail-closed. Do not add a generic factory,
+batch another center, approximate Blueprint copying, open boosters, alter
+rewards, start retraining, or request an operator run during this checkpoint.
+
+Vampire canonical lifecycle audit checkpoint:
+
+- Commit `23caca35b6f43aa24e4a1eb03ed1044df3d8d82f` aligns the canonical
+  `VampireJoker` owner with pinned vanilla by excluding debuffed enhanced
+  scoring cards from both enhancement removal and X-mult growth.
+- Existing source-order Midas/Vampire projection, scoring-card-only mutation,
+  persistent cloned-card synchronization, X-mult scoring, and public `x_mult`
+  hydration remain exact. Blueprint/Brainstorm copying remains fail-closed.
+- Deterministic owner, live hydration, isolated scoring, and Midas-order gates
+  passed **42 tests in 1.47s**. The exact generated pytest cache was removed.
+- GitHub Actions run `44533083220`, job `135591250322`, passed the
+  authoritative gate with **3709 passed, 1621 deselected in 500.15s**.
 
 Rocket generated acquisition and observation-v4 checkpoint:
 
