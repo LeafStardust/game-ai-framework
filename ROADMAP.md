@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`23caca35b6f43aa24e4a1eb03ed1044df3d8d82f`.
+`e885ca3015c4b0c33232dc6225f4a71e0de17987`.
 
 ## Objective
 
@@ -2548,18 +2548,39 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the thirty-fifth exact generated-Joker acquisition bridge for only
-uneditioned `j_vampire`. The canonical mechanics/lifecycle audit is repaired
-and green. The committed trace's exact observation is episode 44 decision 9 /
-seed `4A3D2663`, with `rarity=2`, `base_cost=7`, `price=7`, and no edition.
+Audit and repair the canonical `CastleJoker` mechanics/lifecycle boundary
+needed before adding the thirty-sixth exact generated-Joker acquisition bridge
+for only uneditioned `j_castle`. The committed trace's next unsupported exact
+center after Vampire is episode 46 decision 3 / seed `4A5D4662`, with
+`rarity=2`, `base_cost=6`, `price=6`, and no edition.
 
-Add explicit `j_vampire` materialization, exact initial `x_mult=1.0`, tactical
-admission, discovery/purchase, inventory-only sale, natural generation,
-complete rollout, card-mutation isolation, and live/simulator parity coverage.
-Require finite canonical Vampire state and keep every other center, edition,
-malformed state, and unowned callback fail-closed. Do not add a generic factory,
-batch another center, approximate Blueprint copying, open boosters, alter
-rewards, start retraining, or request an operator run during this checkpoint.
+Read the pinned vanilla source, current model, per-round suit state, discard
+growth, scoring projection, live hydration, tactical capability, shop
+materialization, and sale owners first. Repair only demonstrated canonical
+gaps with deterministic tests; keep `j_castle` acquisition masked until all
+mutable state and callbacks are fully owned. Do not add a generic factory,
+batch another center, approximate a callback, open boosters, alter rewards,
+start retraining, or request an operator run during this checkpoint.
+
+Vampire generated acquisition checkpoint:
+
+- Implementation commit `e885ca3015c4b0c33232dc6225f4a71e0de17987`
+  adds only exact uneditioned `j_vampire` (`rarity=2`, `base_cost=7`) with
+  initial `x_mult=1.0`, discovery/purchase, tactical admission,
+  inventory-only sale, and live/simulator sale parity.
+- Tactical admission requires finite `x_mult >= 1.0` on the canonical 0.1
+  growth lattice. Boolean, nonfinite, below-base, off-lattice, edited, debuffed,
+  wrong-center, and other generated states remain fail-closed.
+- Natural production seed `69` generates Vampire and Rocket in the first shop.
+  A complete ordinary production rollout from the same seed buys and sells
+  Vampire, reaches Ante 2, and terminates in `LOSS` after 11 strategic actions.
+  Observation v4 already encodes the exact public `x_mult`, so no schema or
+  contract version changes were needed.
+- Focused acquisition/backend/rollout validation passed **351 tests in
+  146.89s**; the schema/materialization/tactical/sale/parity subset passed
+  **253 tests in 1.72s**. GitHub Actions run `44537025902`, job
+  `135605045069`, passed the authoritative gate with **3725 passed, 1621
+  deselected in 498.55s**.
 
 Vampire canonical lifecycle audit checkpoint:
 
