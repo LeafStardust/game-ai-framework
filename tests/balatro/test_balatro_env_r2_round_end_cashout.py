@@ -160,6 +160,27 @@ def test_env_r2_cashout_pays_exact_materialized_generated_golden_joker():
     assert type(result.public.jokers[0]) is GoldenJoker
 
 
+def test_env_r2_cashout_treats_exact_materialized_generated_bull_as_inert():
+    from games.balatro.env.shop_items import (
+        GeneratedShopJokerItem,
+        materialize_generated_shop_joker_for_acquisition,
+    )
+    from games.balatro.jokers.bull import BullJoker
+
+    run = _cleared_run(money=14, hands_remaining=0, reward=3)
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_bull", 2, 6, None, 6, False)
+        )
+    ]
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    assert run.public.money == 14
+    assert result.public.money == 19
+    assert type(result.public.jokers[0]) is BullJoker
+
+
 def test_env_r2_cashout_delayed_gratification_does_not_pay_after_any_discard_used():
     from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
     run = _cleared_run(money=14, hands_remaining=0, reward=3)

@@ -1023,6 +1023,25 @@ def test_env_r4_ordinary_play_admits_exact_materialized_golden_noop_callback():
     assert type(result.public.jokers[0]).__name__ == "GoldenJoker"
 
 
+def test_env_r4_ordinary_play_scores_exact_materialized_bull_from_money():
+    baseline = _play_run(seed="R4-BULL-PLAY")
+    run = _play_run(seed="R4-BULL-PLAY")
+    run.public.money = 7
+    baseline.public.money = 7
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_bull", 2, 6, None, 6, False)
+        )
+    ]
+
+    baseline_result = apply_supported_ordinary_play(baseline, (0,))
+    result = apply_supported_ordinary_play(run, (0,))
+
+    assert result.public.score - baseline_result.public.score == 14
+    assert result.public.money == baseline_result.public.money == 7
+    assert type(result.public.jokers[0]).__name__ == "BullJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],
