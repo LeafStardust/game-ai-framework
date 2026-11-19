@@ -60,6 +60,7 @@ from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
+from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
 from games.balatro.jokers.wrathful_joker import WrathfulJoker
@@ -1255,6 +1256,40 @@ def test_env_ppo_backend_acquires_generated_rocket_from_natural_shop():
     environment.step(sell)
 
     assert backend.run.public.money == before_money - 3
+    assert backend.run.public.jokers == []
+
+
+def test_env_ppo_backend_acquires_generated_vampire_from_natural_shop():
+    backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    environment = BalatroHeadlessEnvironment(backend)
+    environment.reset(seed=69)
+    backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    before_money = backend.run.public.money
+    assert tuple(
+        (item.center_key, item.rarity, item.base_cost, item.price, item.discovered)
+        for item in backend.run.public.shop_jokers
+    ) == (
+        ("j_vampire", 2, 7, 7, False),
+        ("j_rocket", 2, 6, 6, False),
+    )
+    assert buy in environment.legal_actions()
+
+    environment.step(buy)
+
+    assert backend.run.public.money == before_money - 7
+    vampire = backend.run.public.jokers[0]
+    assert type(vampire) is VampireJoker
+    assert (vampire.x_mult, vampire.sell_cost) == (1.0, 3)
+    assert backend.run.generated_center_discovered("j_vampire") is True
+    assert "j_vampire" in backend.run.tag_profile_state.discovered_center_keys
+    sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert sell in environment.legal_actions()
+
+    environment.step(sell)
+
+    assert backend.run.public.money == before_money - 4
     assert backend.run.public.jokers == []
 
 

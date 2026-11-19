@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from games.balatro.jokers.abstract_joker import AbstractJoker
@@ -34,6 +35,7 @@ from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
+from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
 from games.balatro.jokers.wrathful_joker import WrathfulJoker
@@ -109,6 +111,23 @@ def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
             expected_center = "j_sly"
         elif type(joker) is SmileyFaceJoker:
             expected_center = "j_smiley"
+        elif type(joker) is VampireJoker:
+            if (
+                isinstance(joker.x_mult, bool)
+                or not isinstance(joker.x_mult, (int, float))
+                or not math.isfinite(float(joker.x_mult))
+                or float(joker.x_mult) < 1.0
+            ):
+                return False
+            growth_steps = (float(joker.x_mult) - 1.0) / 0.1
+            if not math.isclose(
+                growth_steps,
+                round(growth_steps),
+                rel_tol=0.0,
+                abs_tol=1e-9,
+            ):
+                return False
+            expected_center = "j_vampire"
         elif type(joker) is WalkieTalkieJoker:
             expected_center = "j_walkie_talkie"
         elif type(joker) is WilyJoker:

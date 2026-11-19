@@ -1818,6 +1818,63 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
 
 
+def test_env_ppo_fixed_seed_completes_exact_generated_vampire_lifecycle():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed=69)
+    actions = []
+    money = [environment.frame.state.money]
+
+    for _ in range(100):
+        if environment.frame.status.terminal:
+            break
+        legal = environment.legal_actions()
+        run = environment._backend.run
+        vampire_slot = next(
+            (
+                index
+                for index, item in enumerate(run.public.shop_jokers)
+                if getattr(item, "center_key", None) == "j_vampire"
+            ),
+            None,
+        )
+        candidates = []
+        if run.public.jokers:
+            candidates.append(
+                EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+            )
+        if vampire_slot is not None:
+            candidates.append(
+                EnvAction.from_alias("BUY_JOKER", {"slot": vampire_slot})
+            )
+        candidates.extend(
+            (
+                EnvAction.from_alias("END_SHOP"),
+                EnvAction.from_alias("SELECT_BLIND"),
+            )
+        )
+        action = next(candidate for candidate in candidates if candidate in legal)
+        environment.step(action)
+        actions.append((action.alias, action.payload()))
+        money.append(environment.frame.state.money)
+
+    assert environment.frame.status is RunStatus.LOSS
+    assert environment.frame.state.ante == 2
+    assert actions == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    assert money == [4, 8, 1, 4, 4, 8, 8, 15, 15, 21, 21, 21]
+
+
 @pytest.fixture(scope="module")
 def episode_9_with_photograph_lifecycle():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")

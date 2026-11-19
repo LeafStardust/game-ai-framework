@@ -16,6 +16,7 @@ from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.bull import BullJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.rocket import RocketJoker
+from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 from games.balatro.state import BalatroState
 
@@ -216,6 +217,22 @@ def test_env_r3_exact_rocket_sale_is_inventory_only():
     result = engine.step(run, action)
 
     assert run.public.jokers and type(run.public.jokers[0]) is RocketJoker
+    assert result.public.jokers == []
+    assert result.public.money == 10
+
+
+def test_env_r3_exact_vampire_sale_is_inventory_only():
+    vampire = VampireJoker()
+    vampire.x_mult = 1.7
+    run = _shop_run(vampire)
+    action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    engine = ShopTransitionEngine()
+
+    assert action in engine.legal_actions(run)
+    result = engine.step(run, action)
+
+    assert run.public.jokers and type(run.public.jokers[0]) is VampireJoker
+    assert run.public.jokers[0].x_mult == 1.7
     assert result.public.jokers == []
     assert result.public.money == 10
 

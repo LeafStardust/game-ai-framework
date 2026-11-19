@@ -605,6 +605,20 @@ def test_env_r4_baseline_discard_admits_exact_materialized_rocket_noop_callback(
     assert type(result.public.jokers[0]).__name__ == "RocketJoker"
 
 
+def test_env_r4_baseline_discard_admits_exact_materialized_vampire_noop_callback():
+    run = _dealt_run(seed="R4-VAMPIRE-DISCARD")
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_vampire", 2, 7, None, 7, False)
+        )
+    ]
+    before = _card_signature(run.public.hand[0])
+    result = apply_supported_tactical_discard(run, (0,))
+    assert _card_signature(result.public.discard_pile[-1]) == before
+    assert result.public.discards_remaining == 2
+    assert type(result.public.jokers[0]).__name__ == "VampireJoker"
+
+
 def test_env_r4_baseline_discard_requires_authoritative_private_draw_zone():
     run = _dealt_run()
     run.draw_pile.pop()
@@ -677,6 +691,34 @@ def test_env_r4_decision_engine_bridge_executes_supported_ordinary_play():
     assert result.public.hands_remaining == 3
     assert _card_signature(result.public.discard_pile[-1]) == selected
     assert decision_engine.observation is not run.public
+
+
+def test_env_r4_decision_engine_bridge_executes_materialized_vampire_play():
+    run = _ordinary_play_run(seed="PLAY-VAMPIRE")
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_vampire", 2, 7, None, 7, False)
+        )
+    ]
+
+    result = apply_planned_tactical_step(run, _PlayDecisionEngine())
+
+    assert result.public.score > 0
+    assert type(result.public.jokers[0]).__name__ == "VampireJoker"
+    assert result.public.jokers[0].x_mult == 1.0
+
+
+@pytest.mark.parametrize("x_mult", (True, float("nan"), float("inf"), 0.9, 1.05))
+def test_env_r4_vampire_tactical_state_fails_closed(x_mult):
+    run = _ordinary_play_run(seed="PLAY-VAMPIRE-MALFORMED")
+    vampire = materialize_generated_shop_joker_for_acquisition(
+        GeneratedShopJokerItem("j_vampire", 2, 7, None, 7, False)
+    )
+    vampire.x_mult = x_mult
+    run.public.jokers = [vampire]
+
+    with pytest.raises(HeadlessTransitionError, match="Joker callbacks"):
+        apply_planned_tactical_step(run, _PlayDecisionEngine())
 
 
 def test_env_r4_decision_engine_bridge_keeps_unsupported_play_effects_fail_closed():

@@ -23,6 +23,7 @@ from games.balatro.env.voucher_centers import VANILLA_VOUCHER_CENTER_KEYS
 from games.balatro.env.boss_selection import VANILLA_BOSS_NAMES
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.rocket import RocketJoker
+from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.state import BalatroState
 
 
@@ -70,6 +71,18 @@ def test_env_o_v4_encodes_exact_rocket_cashout_state():
     assert _at(encoded, "jokers.0.dollars") == 7.0
     assert _at(encoded, "jokers.0.increase.present") == 1.0
     assert _at(encoded, "jokers.0.increase") == 2.0
+
+
+def test_env_o_v4_encodes_exact_vampire_growth_state():
+    frame = _frame()
+    vampire = VampireJoker()
+    vampire.x_mult = 1.7
+    frame.state.jokers = [vampire]
+
+    encoded = encode_public_observation(frame)
+
+    assert _at(encoded, "jokers.0.x_mult.present") == 1.0
+    assert _at(encoded, "jokers.0.x_mult") == 1.7
 
 
 def test_env_o_v2_separates_all_voucher_identities_from_mechanics_support():

@@ -22,6 +22,7 @@ from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.rocket import RocketJoker
+from games.balatro.jokers.vampire import VampireJoker
 
 
 _STATIC_SELL_SAFE_TYPES = tuple(
@@ -31,6 +32,7 @@ _STATIC_SELL_SAFE_TYPES = tuple(
         *_OWNED_DECK_SCORING_TYPES,
         GoldenJoker,
         RocketJoker,
+        VampireJoker,
     )
     if joker_type is not JugglerJoker
 )

@@ -298,6 +298,32 @@ def test_env_r5_live_rocket_sale_replays_inventory_only_inverse():
     assert comparison.differences == ()
 
 
+def test_env_r5_live_vampire_sale_replays_inventory_only_inverse():
+    live_rows = _rows(
+        joker=_joker(
+            center="j_vampire",
+            label="Vampire",
+            cost=7,
+            base_cost=7,
+            sell_cost=3,
+        )
+    )
+    live_rows[2]["data"]["state"]["payload"]["money"] = 10
+    live = successful_joker_sale_evidence_from_run_rows(live_rows)
+    run = HeadlessRunState(public=live[0].before, seed="r5-vampire-sale-parity")
+
+    result, simulator = sell_joker_with_public_evidence(run, joker_index=0)
+
+    assert result.public.money == 10
+    assert result.public.jokers == []
+    comparison = compare_run_rows_to_simulator_joker_sale_evidence(
+        live_rows,
+        (simulator,),
+    )
+    assert comparison.matches is True
+    assert comparison.differences == ()
+
+
 def test_env_r5_live_joker_sale_rejects_failed_mismatched_or_non_shop_result():
     with pytest.raises(ValueError, match="requires a successful action_result"):
         successful_joker_sale_evidence_from_run_rows(_rows(success=False))
