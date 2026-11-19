@@ -29,6 +29,7 @@ class VampireJoker(Joker):
             card
             for card in scoring_cards
             if card.enhancement is not None
+            and not bool(getattr(card, "debuffed", False))
         ]
 
         for card in enhanced_cards:

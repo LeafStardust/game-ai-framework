@@ -387,6 +387,29 @@ def test_vampire_removes_only_scoring_enhancements_on_isolated_cards():
     assert transition.state_after_scoring.jokers[0].x_mult == 1.1
 
 
+def test_vampire_ignores_debuffed_enhanced_scoring_card():
+    ace = BalatroCard("A", "Spades", enhancement="Mult", debuffed=True)
+    state = _state([ace])
+    vampire = VampireJoker()
+    state.jokers = [vampire]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace],
+    )
+
+    assert transition.joker_projection_complete is True
+    assert transition.distribution.minimum == 5
+    assert transition.distribution.maximum == 5
+    assert ace.enhancement == "Mult"
+    projected_card = transition.state_after_scoring.hand[0]
+    assert projected_card is not ace
+    assert projected_card.enhancement == "Mult"
+    assert transition.state_after_scoring.jokers[0].x_mult == 1.0
+    assert vampire.x_mult == 1.0
+
+
 def test_bootstraps_projection_adds_only_mult_from_public_money():
     ace = BalatroCard("A", "Spades", live_id=0)
     state = _state([ace])

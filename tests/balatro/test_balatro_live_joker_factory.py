@@ -9,6 +9,7 @@ from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.jokers.the_idol import TheIdolJoker
+from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.live.joker_factory import LiveJokerFactory
 
 
@@ -165,6 +166,19 @@ def test_live_joker_factory_hydrates_rocket_cashout_state():
     assert isinstance(joker, RocketJoker)
     assert joker.dollars == 7
     assert joker.increase == 2
+
+
+def test_live_joker_factory_hydrates_vampire_growth_state():
+    joker = LiveJokerFactory().create(
+        {
+            "center": "j_vampire",
+            "label": "Vampire",
+            "public_state": {"x_mult": 1.7},
+        }
+    )
+
+    assert isinstance(joker, VampireJoker)
+    assert joker.x_mult == 1.7
 
 
 def test_live_joker_factory_resolves_ceremonial_dagger_alias():
