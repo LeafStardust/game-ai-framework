@@ -22,6 +22,7 @@ from games.balatro.env.voucher_capabilities import SHOP_BASE_GENERATION_VOUCHER_
 from games.balatro.env.voucher_centers import VANILLA_VOUCHER_CENTER_KEYS
 from games.balatro.env.boss_selection import VANILLA_BOSS_NAMES
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.state import BalatroState
 
 
@@ -47,7 +48,7 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
     assert PUBLIC_OBSERVATION_SCHEMA.version == PUBLIC_OBSERVATION_VERSION
     assert encoded.schema_version == PUBLIC_OBSERVATION_VERSION
     assert encoded.shape == PUBLIC_OBSERVATION_SCHEMA.shape
-    assert encoded.shape == (2456,)
+    assert encoded.shape == (2480,)
     assert PUBLIC_OBSERVATION_SCHEMA.feature_names[:5] == (
         "frame.status", "frame.owner", "state.phase", "state.money", "state.ante"
     )
@@ -55,6 +56,20 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
     assert _at(encoded, "state.blind.requirement") == 300.0
     assert _at(encoded, "hand.0.rank") == 13.0
     assert _at(encoded, "jokers.0.present") == 1.0
+
+
+def test_env_o_v4_encodes_exact_rocket_cashout_state():
+    frame = _frame()
+    rocket = RocketJoker()
+    rocket.dollars = 7
+    frame.state.jokers = [rocket]
+
+    encoded = encode_public_observation(frame)
+
+    assert _at(encoded, "jokers.0.dollars.present") == 1.0
+    assert _at(encoded, "jokers.0.dollars") == 7.0
+    assert _at(encoded, "jokers.0.increase.present") == 1.0
+    assert _at(encoded, "jokers.0.increase") == 2.0
 
 
 def test_env_o_v2_separates_all_voucher_identities_from_mechanics_support():

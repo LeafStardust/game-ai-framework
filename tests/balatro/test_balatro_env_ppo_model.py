@@ -5,6 +5,7 @@ import pytest
 
 from games.balatro.env.action_encoding import ActionMask, PUBLIC_ACTION_VERSION
 from games.balatro.env.observation_encoding import (
+    PUBLIC_OBSERVATION_SCHEMA,
     PUBLIC_OBSERVATION_VERSION,
     EncodedPublicObservation,
 )
@@ -63,13 +64,28 @@ def test_env_ppo_model_initialization_is_seeded_and_contract_shaped():
 
     assert first.parameter_sha256 == second.parameter_sha256
     assert first.parameter_sha256 != different.parameter_sha256
-    assert PPO_MODEL_VERSION == "balatro-red-white-ppo-actor-critic-v1"
+    assert PPO_MODEL_VERSION == "balatro-red-white-ppo-actor-critic-v2"
     assert PPO_OPTIMIZER_VERSION == "balatro-red-white-ppo-adam-v1"
     assert (ADAM_BETA1, ADAM_BETA2, ADAM_EPSILON) == (0.9, 0.999, 1e-8)
-    assert first.parameters["w1"].shape == (2456, 512)
+    assert first.parameters["w1"].shape == (2480, 512)
     assert first.parameters["w2"].shape == (512, 256)
     assert first.parameters["policy_w"].shape == (256, 27)
     assert first.parameters["value_w"].shape == (256, 1)
+
+
+def test_env_ppo_v4_initializer_preserves_v3_weights_and_trains_new_rows():
+    _, model = _model("V4-EXPANSION")
+    added = tuple(
+        index
+        for index, name in enumerate(PUBLIC_OBSERVATION_SCHEMA.feature_names)
+        if name.startswith("jokers.")
+        and name.endswith(
+            (".dollars.present", ".dollars", ".increase.present", ".increase")
+        )
+    )
+
+    assert len(added) == 24
+    assert np.count_nonzero(model.parameters["w1"][list(added)]) == 0
 
 
 def test_env_ppo_model_inference_masks_logits_and_returns_value_exactly():

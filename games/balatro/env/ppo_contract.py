@@ -34,9 +34,9 @@ from games.balatro.env.seeded_evaluation import (
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 
 
-PPO_TRAINING_CONTRACT_VERSION = "balatro-red-white-ppo-training-v4"
+PPO_TRAINING_CONTRACT_VERSION = "balatro-red-white-ppo-training-v5"
 PPO_PROGRESS_TRAINING_CONTRACT_VERSION = (
-    "balatro-red-white-ppo-progress-reward-training-v5"
+    "balatro-red-white-ppo-progress-reward-training-v6"
 )
 PPO_TRAINING_RUN_SCHEMA = "balatro-red-white-ppo-run-v3"
 PPO_POLICY_OUTPUT_SCHEMA = "balatro-red-white-ppo-policy-output-v3"

@@ -10,7 +10,11 @@ from typing import Iterator
 import numpy as np
 
 from games.balatro.env.action_encoding import ActionMask
-from games.balatro.env.observation_encoding import EncodedPublicObservation
+from games.balatro.env.observation_encoding import (
+    PUBLIC_OBSERVATION_SCHEMA,
+    PUBLIC_OBSERVATION_VERSION,
+    EncodedPublicObservation,
+)
 from games.balatro.env.ppo_contract import (
     PPO_POLICY_OUTPUT_SCHEMA,
     PPO_TRAINING_CONTRACT,
@@ -21,7 +25,7 @@ from games.balatro.env.ppo_contract import (
 
 
 _PARAMETER_ORDER = ("w1", "b1", "w2", "b2", "policy_w", "policy_b", "value_w", "value_b")
-PPO_MODEL_VERSION = "balatro-red-white-ppo-actor-critic-v1"
+PPO_MODEL_VERSION = "balatro-red-white-ppo-actor-critic-v2"
 PPO_OPTIMIZER_VERSION = "balatro-red-white-ppo-adam-v1"
 ADAM_BETA1 = 0.9
 ADAM_BETA2 = 0.999
@@ -147,7 +151,7 @@ class PPOActorCritic:
         rng = np.random.default_rng(_seed64(training_run.learner_seed_hex, "parameters"))
         sizes = (contract.observation_size, *contract.policy_hidden_sizes)
         self.parameters: dict[str, np.ndarray] = {
-            "w1": self._xavier(rng, sizes[0], sizes[1]),
+            "w1": self._initial_first_layer(rng, sizes[1]),
             "b1": np.zeros(sizes[1], dtype=np.float64),
             "w2": self._xavier(rng, sizes[1], sizes[2]),
             "b2": np.zeros(sizes[2], dtype=np.float64),
@@ -156,6 +160,46 @@ class PPOActorCritic:
             "value_w": self._xavier(rng, sizes[2], 1),
             "value_b": np.zeros(1, dtype=np.float64),
         }
+
+    @classmethod
+    def _initial_first_layer(
+        cls,
+        rng: np.random.Generator,
+        hidden_size: int,
+    ) -> np.ndarray:
+        """Extend the v3 initializer without perturbing existing feature weights.
+
+        Observation v4 adds two present/value pairs to each of six Joker slots.
+        Existing deterministic corpora retain their exact untrained policy while
+        the zero-initialized new rows remain trainable. Older checkpoints still
+        fail closed because their first-layer shape is smaller.
+        """
+        if PUBLIC_OBSERVATION_VERSION != "balatro-red-white-public-observation-v4":
+            raise PPOContractError("PPO model observation initializer is not versioned")
+        feature_names = PUBLIC_OBSERVATION_SCHEMA.feature_names
+        added_suffixes = (
+            ".dollars.present",
+            ".dollars",
+            ".increase.present",
+            ".increase",
+        )
+        added_indices = tuple(
+            index
+            for index, name in enumerate(feature_names)
+            if name.startswith("jokers.") and name.endswith(added_suffixes)
+        )
+        if len(added_indices) != 24:
+            raise PPOContractError("PPO v4 Joker observation expansion drifted")
+        legacy_indices = tuple(
+            index for index in range(len(feature_names)) if index not in added_indices
+        )
+        if len(legacy_indices) != 2456:
+            raise PPOContractError("PPO v3 observation width drifted")
+
+        legacy = cls._xavier(rng, len(legacy_indices), hidden_size)
+        result = np.zeros((len(feature_names), hidden_size), dtype=np.float64)
+        result[np.asarray(legacy_indices, dtype=np.int64)] = legacy
+        return result
 
     @staticmethod
     def _xavier(rng: np.random.Generator, fan_in: int, fan_out: int) -> np.ndarray:

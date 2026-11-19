@@ -105,7 +105,7 @@ def test_env_ppo_training_design_is_frozen_and_binds_every_input_contract():
 
     assert contract.version == PPO_TRAINING_CONTRACT_VERSION
     assert contract.algorithm == "clipped_ppo"
-    assert (contract.observation_size, contract.action_size) == (2456, 27)
+    assert (contract.observation_size, contract.action_size) == (2480, 27)
     assert contract.reward_contract == "balatro-red-white-sparse-terminal-reward-v1"
     assert contract.training_seed_policy == "derived_non_holdout_game_seeds"
     assert contract.rollout_episode_schema == PPO_ROLLOUT_EPISODE_SCHEMA
@@ -1575,12 +1575,12 @@ def episode_54_with_drunkard_lifecycle():
     )
 
 
-def test_env_ppo_rollout_crosses_exact_generated_drunkard_lifecycle(
+def test_env_ppo_rollout_crosses_exact_generated_drunkard_and_rocket_lifecycles(
     episode_54_with_drunkard_lifecycle,
 ):
     episode = episode_54_with_drunkard_lifecycle
     assert episode.game_seed == "D26BD190"
-    assert episode.action_count == 15
+    assert episode.action_count == 17
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [
@@ -1599,6 +1599,8 @@ def test_env_ppo_rollout_crosses_exact_generated_drunkard_lifecycle(
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
         ("BUY_JOKER", {"slot": 1}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("BUY_JOKER", {"slot": 0}),
         ("SELL_JOKER", {"joker_index": 0}),
         ("END_SHOP", {}),
         ("SELECT_BLIND", {}),
@@ -1628,6 +1630,30 @@ def test_env_ppo_rollout_crosses_exact_generated_drunkard_lifecycle(
     ) == drunkard_center
     assert _observation_feature(
         after_sale.observation, "jokers.0.center"
+    ) == 0.0
+    rocket_center = float(JOKER_CENTER_KEYS.index("j_rocket") + 1)
+    before_rocket = episode.boundaries[13]
+    after_rocket = episode.boundaries[14]
+    after_rocket_sale = episode.boundaries[15]
+    assert _observation_feature(
+        before_rocket.observation, "shop.jokers.0.center"
+    ) == rocket_center
+    assert (before_rocket.money, after_rocket.money, after_rocket_sale.money) == (
+        18,
+        12,
+        15,
+    )
+    assert _observation_feature(
+        after_rocket.observation, "jokers.0.center"
+    ) == rocket_center
+    assert _observation_feature(
+        after_rocket.observation, "jokers.0.dollars"
+    ) == 1.0
+    assert _observation_feature(
+        after_rocket.observation, "jokers.0.increase"
+    ) == 2.0
+    assert _observation_feature(
+        after_rocket_sale.observation, "jokers.0.center"
     ) == 0.0
 
 
@@ -1737,6 +1763,59 @@ def test_env_ppo_rollout_crosses_exact_generated_bull_lifecycle(
     assert _observation_feature(
         after_sale.observation, "jokers.0.center"
     ) == 0.0
+
+
+def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="57815055")
+    actions = []
+    money = [environment.frame.state.money]
+
+    for _ in range(100):
+        if environment.frame.status.terminal:
+            break
+        legal = environment.legal_actions()
+        run = environment._backend.run
+        rocket_slot = next(
+            (
+                index
+                for index, item in enumerate(run.public.shop_jokers)
+                if getattr(item, "center_key", None) == "j_rocket"
+            ),
+            None,
+        )
+        candidates = []
+        if run.public.jokers:
+            candidates.append(
+                EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+            )
+        if rocket_slot is not None:
+            candidates.append(
+                EnvAction.from_alias("BUY_JOKER", {"slot": rocket_slot})
+            )
+        candidates.extend(
+            (
+                EnvAction.from_alias("END_SHOP"),
+                EnvAction.from_alias("SELECT_BLIND"),
+            )
+        )
+        action = next(candidate for candidate in candidates if candidate in legal)
+        environment.step(action)
+        actions.append((action.alias, action.payload()))
+        money.append(environment.frame.state.money)
+
+    assert environment.frame.status is RunStatus.LOSS
+    assert environment.frame.state.ante == 1
+    assert actions == [
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    assert money == [4, 9, 9, 15, 9, 12, 12, 12]
 
 
 @pytest.fixture(scope="module")

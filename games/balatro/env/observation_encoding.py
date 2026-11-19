@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from games.balatro.env.state import EnvStateFrame
 
 
-PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v3"
+PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v4"
 
 PHASES = (
     "ROUND_START", "BLIND_SELECT", "DRAW_TO_HAND", "SELECTING_HAND", "SHOP",
@@ -65,9 +65,9 @@ MAX_SHOP_BOOSTERS = 2
 MAX_SHOP_VOUCHERS = 1
 
 _JOKER_STATE_FIELDS = (
-    "active", "chip_mod", "chips", "destroyed", "discarded_cards", "hand_size",
-    "hands", "mult", "rank", "rounds", "rounds_remaining", "sell_value", "suit",
-    "target_hand", "x_mult",
+    "active", "chip_mod", "chips", "destroyed", "discarded_cards", "dollars",
+    "hand_size", "hands", "increase", "mult", "rank", "rounds",
+    "rounds_remaining", "sell_value", "suit", "target_hand", "x_mult",
 )
 _JOKER_METADATA_FIELDS = (
     "center", "center_key", "label", "rarity", "edition", "base_cost", "cost",

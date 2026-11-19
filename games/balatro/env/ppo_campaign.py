@@ -38,7 +38,7 @@ from games.balatro.live.hand_action_policy import (
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
-PPO_CAMPAIGN_VERSION = "balatro-red-white-ppo-campaign-v12"
+PPO_CAMPAIGN_VERSION = "balatro-red-white-ppo-campaign-v13"
 PPO_TACTICAL_FACTORY_VERSION = "balatro-red-white-ppo-tactical-factory-v2"
 PPO_PARALLEL_COLLECTION_VERSION = "balatro-red-white-ppo-parallel-collection-v11"
 PPO_CAMPAIGN_PROGRESS_VERSION = "balatro-red-white-ppo-progress-v12"

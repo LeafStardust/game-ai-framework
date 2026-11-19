@@ -29,6 +29,7 @@ from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
+from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
@@ -94,6 +95,12 @@ def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
             expected_center = "j_photograph"
         elif type(joker) is RaisedFistJoker:
             expected_center = "j_raised_fist"
+        elif type(joker) is RocketJoker:
+            if type(joker.dollars) is not int or joker.dollars < 0:
+                return False
+            if type(joker.increase) is not int or joker.increase < 0:
+                return False
+            expected_center = "j_rocket"
         elif type(joker) is ScholarJoker:
             expected_center = "j_scholar"
         elif type(joker) is ScaryFaceJoker:
