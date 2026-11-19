@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`c5c4d767e4fd8a0140818d836ad315abc302f66b`.
+`b67d85fa87abd2d8f6eb9d305f3a68209e3f2041`.
 
 ## Objective
 
@@ -2538,32 +2538,49 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the thirty-first exact generated-Joker acquisition bridge for only
-uneditioned `j_drunkard`. The committed trace contains nine exact uneditioned
-Drunkard observations across episodes 4, 6, 9, 28, 36, and 62, all with
-`rarity=1`, `base_cost=4`, `price=4`, no edition, and no edited copy. Its +1
-discard-per-round acquisition lifecycle is already owned by the canonical
-shop transition when the persistent round-reset allowance is authoritative;
-round start, blind start, tactical scoring, and cash-out already treat the
-resulting state exactly. The canonical Joker-sale owner still keeps Drunkard
-fail-closed because its inverse persistent-discard lifecycle is not owned.
+Add the thirty-second exact generated-Joker acquisition bridge for only
+uneditioned `j_golden`. The committed trace contains six exact uneditioned
+Golden Joker observations across episodes 3, 6, 8, 50, and 59, all with
+`rarity=1`, `base_cost=6`, `price=6`, no edition, and no edited copy. Its +$4
+round-end lifecycle is already owned by the canonical cash-out transition,
+and tactical scoring is blind-neutral. The canonical Joker-sale owner still
+keeps Golden Joker fail-closed because it is outside the exact generated
+acquisition subset even though its sale inverse is inventory-only.
 
-Extend the canonical generated-item materializer with an explicit
-`j_drunkard` to `DrunkardJoker` entry and exact vanilla identity (`rarity=1`,
-`base_cost=4`, public label, purchase price, discovery transition, and sale
-value). Extend the generated-Joker tactical capability only for its already-
-owned blind-neutral behavior. At the canonical sale owner, add the exact
-Drunkard removal inverse that decrements authoritative `round_reset_discards`
-once without changing the already-finished round's remaining discards, and
-preserve every existing inventory/order/pool invariant. Add deterministic
-materialization, mask, purchase, persistent-discard, sale/inverse, round-
-lifecycle, isolation, natural production-backend, and complete rollout
-coverage. Keep the first thirty centers unchanged and every other generated
-center/edition/malformed state fail-closed. Do not add a generic factory,
-batch multiple centers, open boosters, change PPO, rewards, or tactics, or
-request an operator run during this checkpoint. Keep 8 Ball, Hallucination,
-Dusk, Faceless Joker, and Gros Michel fail-closed for their unowned callbacks,
-and do not batch another Joker into this checkpoint.
+Extend the canonical generated-item materializer with an explicit `j_golden`
+to `GoldenJoker` entry and exact vanilla identity (`rarity=1`, `base_cost=6`,
+public label, purchase price, discovery transition, and sale value). Extend
+the generated-Joker tactical capability only for its already-owned blind-
+neutral behavior. At the canonical sale owner, explicitly admit Golden
+Joker's inventory-only inverse without broadening support to unaudited types.
+Add deterministic materialization, mask, purchase, sale/inverse, round-end
+cash-out, isolation, natural production-backend, complete rollout, and live/
+simulator sale-parity coverage. Keep the first thirty-one centers unchanged
+and every other generated center/edition/malformed state fail-closed. Do not
+add a generic factory, batch multiple centers, open boosters, change PPO,
+rewards, or tactics, or request an operator run during this checkpoint. Keep
+8 Ball, Hallucination, Dusk, Faceless Joker, and Gros Michel fail-closed for
+their unowned callbacks, and do not batch another Joker into this checkpoint.
+
+Exact generated Drunkard acquisition checkpoint:
+
+- Implementation commit `b67d85fa87abd2d8f6eb9d305f3a68209e3f2041` adds
+  only exact uneditioned `j_drunkard` (`rarity=1`, `base_cost=4`) as the
+  audited `DrunkardJoker`, including discovery, price/sale metadata, +1
+  persistent round-reset discard acquisition, exact -1 sale inverse without
+  changing the current round's remaining discards, blind-neutral tactical
+  continuation, and live/simulator sale parity.
+- Deterministic production-backend seed `135` proves unsupported To Do List
+  remains masked while natural Drunkard generation, legal masking, purchase,
+  discovery, and sale are exact. Complete rollout episode 54 / seed `D26BD190`
+  locks the fifteen-action Drunkard lifecycle and reset-discard sequence
+  `3 -> 4 -> 3` while current remaining discards stay at 3.
+- Existing seed-19 Clever coverage now admits only the newly owned Drunkard
+  action beside Clever. The expanded local shop/round/tactical/parity/
+  complete-rollout gate passed **446 tests in 149.03s**; syntax compilation,
+  `git diff --check`, and cache cleanup are clean.
+- GitHub Actions run `44445848076`, job `135297657110`, passed the authoritative
+  Balatro deterministic gate with **3666 passed, 1621 deselected in 444.67s**.
 
 Exact generated Juggler acquisition checkpoint:
 
