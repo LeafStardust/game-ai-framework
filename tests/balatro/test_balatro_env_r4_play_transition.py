@@ -1006,6 +1006,23 @@ def test_env_r4_ordinary_play_admits_exact_materialized_drunkard_noop_callback()
     assert type(result.public.jokers[0]).__name__ == "DrunkardJoker"
 
 
+def test_env_r4_ordinary_play_admits_exact_materialized_golden_noop_callback():
+    baseline = _play_run(seed="R4-GOLDEN-PLAY")
+    run = _play_run(seed="R4-GOLDEN-PLAY")
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_golden", 1, 6, None, 6, False)
+        )
+    ]
+
+    baseline_result = apply_supported_ordinary_play(baseline, (0,))
+    result = apply_supported_ordinary_play(run, (0,))
+
+    assert result.public.score == baseline_result.public.score
+    assert result.public.money == baseline_result.public.money
+    assert type(result.public.jokers[0]).__name__ == "GoldenJoker"
+
+
 @pytest.mark.parametrize(
     "held_item",
     [PlanetCard("Mercury", "PAIR", 15, 1), Fool()],

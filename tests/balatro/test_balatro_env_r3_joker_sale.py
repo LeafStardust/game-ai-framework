@@ -12,6 +12,7 @@ from games.balatro.env.transition import (
 )
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
+from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 from games.balatro.state import BalatroState
@@ -174,6 +175,19 @@ def test_env_r3_exact_drunkard_sale_applies_persistent_discard_inverse_once():
     assert run.public.discards_remaining == 2
     assert result.public.round_reset_discards == 3
     assert result.public.discards_remaining == 2
+    assert result.public.jokers == []
+    assert result.public.money == 10
+
+
+def test_env_r3_exact_golden_joker_sale_is_inventory_only():
+    run = _shop_run(GoldenJoker())
+    action = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    engine = ShopTransitionEngine()
+
+    assert action in engine.legal_actions(run)
+    result = engine.step(run, action)
+
+    assert run.public.jokers and type(run.public.jokers[0]) is GoldenJoker
     assert result.public.jokers == []
     assert result.public.money == 10
 

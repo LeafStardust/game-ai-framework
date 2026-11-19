@@ -1599,6 +1599,55 @@ def test_env_ppo_rollout_crosses_exact_generated_drunkard_lifecycle(
 
 
 @pytest.fixture(scope="module")
+def episode_4_with_golden_lifecycle():
+    return collect_complete_ppo_episode(
+        make_ppo_training_environment(4),
+        PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
+        episode_index=4,
+        policy=_generated_joker_lifecycle_policy,
+    )
+
+
+def test_env_ppo_rollout_crosses_exact_generated_golden_lifecycle(
+    episode_4_with_golden_lifecycle,
+):
+    episode = episode_4_with_golden_lifecycle
+    assert episode.game_seed == "A0370D8B"
+    assert episode.action_count == 7
+    assert episode.rewards[-1] == -1.0
+    assert episode.boundaries[-1].status is RunStatus.LOSS
+    assert [
+        (decision.action.alias, decision.action.payload())
+        for decision in episode.decisions
+    ] == [
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("SELL_JOKER", {"joker_index": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ]
+    golden_center = float(JOKER_CENTER_KEYS.index("j_golden") + 1)
+    before_buy = episode.boundaries[1]
+    after_buy = episode.boundaries[2]
+    after_sale = episode.boundaries[3]
+    assert (before_buy.ante, before_buy.phase, before_buy.money) == (1, "SHOP", 7)
+    assert episode.decisions[1].action_mask.values[1] is True
+    assert episode.decisions[1].action_mask.values[2] is False
+    assert _observation_feature(
+        before_buy.observation, "shop.jokers.0.center"
+    ) == golden_center
+    assert (after_buy.money, after_sale.money) == (1, 4)
+    assert _observation_feature(
+        after_buy.observation, "jokers.0.center"
+    ) == golden_center
+    assert _observation_feature(
+        after_sale.observation, "jokers.0.center"
+    ) == 0.0
+
+
+@pytest.fixture(scope="module")
 def episode_9_with_photograph_lifecycle():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     return collect_complete_ppo_episode(

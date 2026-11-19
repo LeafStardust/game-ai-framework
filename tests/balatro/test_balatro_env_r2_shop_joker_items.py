@@ -29,6 +29,7 @@ from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
+from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
@@ -1390,6 +1391,36 @@ def test_env_r2_exact_drunkard_materialization_updates_reset_discards_and_sells(
     assert sold_run.public.jokers == []
 
 
+def test_env_r2_exact_golden_joker_materialization_acquires_and_sells():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_golden", base_cost=6, discovered=False)
+    )
+    inserted = insert_generated_shop_joker_item(run, item)
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+
+    assert action in ShopTransitionEngine().legal_actions(inserted)
+    next_run = ShopTransitionEngine().step(inserted, action)
+
+    assert inserted.generation_discovery == {"j_golden": False}
+    assert next_run.generation_discovery == {"j_golden": True}
+    assert next_run.tag_profile_state.discovered_center_keys == frozenset(
+        {"j_golden"}
+    )
+    assert next_run.public.money == 15
+    joker = next_run.public.jokers[0]
+    assert type(joker) is GoldenJoker
+    assert (
+        joker.center, joker.label, joker.rarity, joker.base_cost,
+        joker.cost, joker.sell_cost, joker.discovered,
+    ) == ("j_golden", "Golden Joker", 1, 6, 5, 2, True)
+
+    sold_run = ShopTransitionEngine().step(
+        next_run, EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    )
+    assert sold_run.public.money == 17
+    assert sold_run.public.jokers == []
+
+
 @pytest.mark.parametrize(
     "item",
     (
@@ -1411,6 +1442,9 @@ def test_env_r2_exact_drunkard_materialization_updates_reset_discards_and_sells(
         GeneratedShopJokerItem("j_drunkard", 2, 4, None, 4, False),
         GeneratedShopJokerItem("j_drunkard", 1, 5, None, 5, False),
         GeneratedShopJokerItem("j_drunkard", 1, 4, "Foil", 6, False),
+        GeneratedShopJokerItem("j_golden", 2, 6, None, 6, False),
+        GeneratedShopJokerItem("j_golden", 1, 5, None, 5, False),
+        GeneratedShopJokerItem("j_golden", 1, 6, "Foil", 8, False),
         GeneratedShopJokerItem("j_joker", 2, 2, None, 2, True),
         GeneratedShopJokerItem("j_joker", 1, 3, None, 3, True),
         GeneratedShopJokerItem("j_joker", 1, 2, "Foil", 4, True),

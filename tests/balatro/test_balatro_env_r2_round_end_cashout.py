@@ -139,6 +139,27 @@ def test_env_r2_cashout_pays_exact_golden_cloud9_and_delayed_gratification_rows(
     assert result.public.discards_remaining == 4
 
 
+def test_env_r2_cashout_pays_exact_materialized_generated_golden_joker():
+    from games.balatro.env.shop_items import (
+        GeneratedShopJokerItem,
+        materialize_generated_shop_joker_for_acquisition,
+    )
+    from games.balatro.jokers.golden_joker import GoldenJoker
+
+    run = _cleared_run(money=14, hands_remaining=0, reward=3)
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_golden", 1, 6, None, 6, False)
+        )
+    ]
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    assert run.public.money == 14
+    assert result.public.money == 23
+    assert type(result.public.jokers[0]) is GoldenJoker
+
+
 def test_env_r2_cashout_delayed_gratification_does_not_pay_after_any_discard_used():
     from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
     run = _cleared_run(money=14, hands_remaining=0, reward=3)

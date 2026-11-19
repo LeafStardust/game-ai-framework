@@ -2,8 +2,8 @@
 
 Vanilla selling a Joker removes it from the Joker area, runs the card's
 ``remove_from_deck`` inverse lifecycle, credits ``sell_cost``, and disables
-Verdant Leaf. The headless shop boundary permits inventory-only Jokers plus
-Juggler's explicitly owned hand-size inverse and Drunkard's persistent-discard
+Verdant Leaf. The headless shop boundary permits explicitly audited inventory-
+only Jokers plus Juggler's hand-size inverse and Drunkard's persistent-discard
 inverse. Other resource-sensitive and persistent-state Jokers remain fail-
 closed until their inverse lifecycle is owned.
 """
@@ -19,6 +19,7 @@ from games.balatro.env.transition import (
 )
 from games.balatro.env.joker_order import JokerOrderError
 from games.balatro.jokers.drunkard import DrunkardJoker
+from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.juggler import JugglerJoker
 
 
@@ -27,6 +28,7 @@ _STATIC_SELL_SAFE_TYPES = tuple(
     for joker_type in (
         *_EXACT_R1_JOKER_ACQUISITION_TYPES,
         *_OWNED_DECK_SCORING_TYPES,
+        GoldenJoker,
     )
     if joker_type is not JugglerJoker
 )

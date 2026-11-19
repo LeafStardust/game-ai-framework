@@ -31,6 +31,7 @@ from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
+from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
@@ -147,6 +148,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 5
         label = "Gluttonous Joker"
+    elif item.center_key == "j_golden":
+        joker_type = GoldenJoker
+        expected_rarity = 1
+        expected_base_cost = 6
+        label = "Golden Joker"
     elif item.center_key == "j_greedy_joker":
         joker_type = GreedyJoker
         expected_rarity = 1

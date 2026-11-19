@@ -15,6 +15,9 @@ def _joker(
     live_id="joker-1",
     eternal=False,
     edition=None,
+    cost=2,
+    base_cost=2,
+    sell_cost=1,
 ):
     value = {
         "ability_set": "JOKER",
@@ -23,9 +26,9 @@ def _joker(
         "center": center,
         "label": label,
         "rarity": "COMMON",
-        "cost": 2,
-        "base_cost": 2,
-        "sell_cost": 1,
+        "cost": cost,
+        "base_cost": base_cost,
+        "sell_cost": sell_cost,
         "eternal": eternal,
     }
     if edition is not None:
@@ -207,6 +210,33 @@ def test_env_r5_live_drunkard_sale_replays_exact_discard_reset_inverse():
     assert result.public.round_reset_discards == 3
     assert result.public.discards_remaining == 3
     assert result.public.money == 8
+    assert result.public.jokers == []
+    comparison = compare_run_rows_to_simulator_joker_sale_evidence(
+        live_rows,
+        (simulator,),
+    )
+    assert comparison.matches is True
+    assert comparison.differences == ()
+
+
+def test_env_r5_live_golden_joker_sale_replays_inventory_only_inverse():
+    live_rows = _rows(
+        joker=_joker(
+            center="j_golden",
+            label="Golden Joker",
+            cost=6,
+            base_cost=6,
+            sell_cost=3,
+        )
+    )
+    live_rows[2]["data"]["state"]["payload"]["money"] = 10
+    live = successful_joker_sale_evidence_from_run_rows(live_rows)
+    before = live[0].before
+    run = HeadlessRunState(public=before, seed="r5-golden-sale-parity")
+
+    result, simulator = sell_joker_with_public_evidence(run, joker_index=0)
+
+    assert result.public.money == 10
     assert result.public.jokers == []
     comparison = compare_run_rows_to_simulator_joker_sale_evidence(
         live_rows,
