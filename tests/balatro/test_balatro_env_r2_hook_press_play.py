@@ -6,6 +6,7 @@ from games.balatro.env.blind_start import start_supported_start_inert_boss
 from games.balatro.env.boss_play import apply_hook_press_play_discards
 from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.cloud_9 import Cloud9Joker
+from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
 
@@ -70,12 +71,15 @@ def test_env_r2_hook_forces_two_discards_from_remaining_not_played_cards():
     assert result.public.phase == "SELECTING_HAND"
 
 
-def test_env_r2_hook_with_cloud9_preserves_forced_discard_and_rng():
+@pytest.mark.parametrize(("joker_type", "center"), [
+    (Cloud9Joker, "j_cloud_9"), (SeanceJoker, "j_seance"),
+])
+def test_env_r2_hook_with_inert_joker_preserves_forced_discard_and_rng(joker_type, center):
     started = start_supported_start_inert_boss(_hook_run())
     action = BalatroAction(PLAY_CARDS, cards=started.public.hand[:5])
     baseline = apply_hook_press_play_discards(started, action)
-    joker = Cloud9Joker()
-    joker.center = "j_cloud_9"
+    joker = joker_type()
+    joker.center = center
     started.public.jokers = [joker]
 
     result = apply_hook_press_play_discards(started, action)
@@ -83,7 +87,7 @@ def test_env_r2_hook_with_cloud9_preserves_forced_discard_and_rng():
     assert result.rng_snapshot() == baseline.rng_snapshot()
     assert result.discard_pile == baseline.discard_pile
     assert result.public.money == started.public.money
-    assert result.public.jokers[0].center == "j_cloud_9"
+    assert result.public.jokers[0].center == center
 
 
 def test_env_r2_hook_forced_discard_grows_castle_without_using_a_discard():

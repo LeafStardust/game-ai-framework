@@ -66,6 +66,8 @@ from games.balatro.env.voucher_capabilities import (
     expected_red_deck_hand_size_for_vouchers,
 )
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
+from games.balatro.env.spectral_inventory import GeneratedHeldSpectral, generate_seance_held_spectral
+from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.consumable import PlanetCard, TarotCard
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.live.boss_score_transform import BossBaseScoreScorer
@@ -104,8 +106,6 @@ def _require_exact_int(name: str, value: object, *, minimum: int = 0) -> int:
 
 
 def _is_play_time_no_effect_consumable(item: object) -> bool:
-    from games.balatro.env.spectral_inventory import GeneratedHeldSpectral
-
     if type(item) is GeneratedHeldSpectral:
         return True
     if isinstance(item, (PlanetCard, TarotCard)):
@@ -509,6 +509,9 @@ def apply_supported_ordinary_play(
         hand_scores_zero = boss_hand.triggered
     if not hand_scores_zero:
         record_accepted_boss_hand(next_state, poker_hand)
+        generated: list[str] | None = (
+            [] if any(type(joker) is SeanceJoker for joker in next_state.jokers) else None
+        )
         scorer = (
             BossBaseScoreScorer()
             if _boss_name(next_state) == "The Flint"
@@ -520,8 +523,13 @@ def apply_supported_ordinary_play(
             cards=selected,
             include_card_chips=True,
             resolve_random_effects=False,
+            joker_data={"created_consumables": generated} if generated is not None else None,
         )
         next_state.score += hand_score.total
+        for category in generated or ():
+            if category != "Spectral":
+                raise HeadlessTransitionError("Play generated an unsupported consumable category")
+            generate_seance_held_spectral(next_run)
 
     # The admitted slice has no destruction or after-scoring callbacks, so every
     # played card survives and moves from G.play to the discard tail in play order.

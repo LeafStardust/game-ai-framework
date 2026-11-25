@@ -33,6 +33,7 @@ from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.castle import CASTLE_SUITS, CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
+from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
@@ -111,6 +112,8 @@ def generated_joker_tactical_callbacks_are_exact(
             expected_center = "j_rocket"
         elif type(joker) is ScholarJoker:
             expected_center = "j_scholar"
+        elif type(joker) is SeanceJoker:
+            expected_center = "j_seance"
         elif type(joker) is ScaryFaceJoker:
             expected_center = "j_scary_face"
         elif type(joker) is SlyJoker:
