@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`da932141c44e52f4dcf02f257bb9626ea5c7802a`.
+`0a5730ae779b08b7a3e41505cd22fa966ea684f8`.
 
 ## Objective
 
@@ -2548,16 +2548,27 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add Cloud 9 as the thirty-seventh exact generated-Joker acquisition. The
-committed trace offers uneditioned `j_cloud_9` at episode 46
-decision 9 / seed `4A5D4662`, with `rarity=2`, `base_cost=7`, and `price=7`.
-The preceding Hallucination offer depends on boosters and remains deferred.
+Audit Séance as the candidate for the thirty-eighth exact generated-Joker
+acquisition. The committed trace offers uneditioned `j_seance` at episode 47
+decision 1 / seed `D040C703`, with rarity 2, base cost 6, and price 6.
 
-Admit only the exact generated metadata, blind-start and tactical no-ops, and
-inventory-only sale. Reuse the canonical permanent-deck cash-out owner and
-existing observation identity. Verify the natural offer and complete seed 48
-rollout with a payout after retaining Cloud 9 through the next blind. Booster
-work, other centers, rewards, and retraining are out of scope.
+Compare the pinned source with the existing Séance model, live generated-
+consumable projection, and headless tactical generation owners. Verify the
+Straight Flush trigger, Spectral generation and pool/RNG authority, slot
+capacity, and interaction with the currently admitted action surface. Keep
+acquisition masked until the production callback is exact. Hallucination,
+booster work, other centers, rewards, and retraining remain deferred.
+
+Cloud 9 generated acquisition checkpoint:
+
+- Commit `0a5730ae779b08b7a3e41505cd22fa966ea684f8` admits uneditioned
+  `j_cloud_9` with rarity 2 and base cost 7, including discovery/purchase,
+  tactical and Hook no-ops, blind-start continuation, inventory-only sale,
+  and the existing observation identity.
+- Complete production seed 48 buys Cloud 9, retains it for $4 payouts
+  after both Big Blind and The Head, sells for $3, and ends in an Ante-2 loss.
+- GitHub Actions run `45615403747`, job `139209375822` logged
+  **3755 passed, 1621 deselected in 528.46s**.
 
 Cloud 9 payout checkpoint:
 
@@ -2567,7 +2578,7 @@ Cloud 9 payout checkpoint:
   suppress a nine. A debuffed Cloud 9 contributes no payout.
 - Tests cover ordinary and Boss cash-outs. GitHub Actions run
   `45613507338`, job `139202848400` logged **3747 passed, 1621 deselected in
-  513.06s**. The purchase remains masked pending the acquisition bridge.
+  513.06s**.
 
 Castle generated acquisition checkpoint:
 
