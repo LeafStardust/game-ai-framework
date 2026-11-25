@@ -139,6 +139,24 @@ def test_env_r2_cashout_pays_exact_golden_cloud9_and_delayed_gratification_rows(
     assert result.public.discards_remaining == 4
 
 
+@pytest.mark.parametrize(("debuffed", "payout"), [(False, 3), (True, 0)])
+def test_env_r2_cloud9_counts_permanent_nonstone_nines_and_respects_debuff(debuffed, payout):
+    from games.balatro.jokers.cloud_9 import Cloud9Joker
+
+    run = _cleared_run(money=14, hands_remaining=0, reward=3)
+    nines = [card for card in run.public.owned_deck if card.rank == "9"]
+    nines[0].enhancement = "Stone"
+    nines[1].debuffed = True
+    joker = Cloud9Joker()
+    joker.debuffed = debuffed
+    run.public.jokers = [joker]
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    assert result.public.money == 19 + payout
+    assert run.public.money == 14
+
+
 def test_env_r2_cashout_pays_exact_materialized_generated_golden_joker():
     from games.balatro.env.shop_items import (
         GeneratedShopJokerItem,

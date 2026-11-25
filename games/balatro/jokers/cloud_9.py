@@ -10,7 +10,7 @@ class Cloud9Joker(Joker):
         deck = context.data.get("deck", [])
 
         nines = sum(
-            card.rank == "9"
+            card.has_rank("9")
             for card in deck
         )
 

@@ -69,6 +69,24 @@ def test_env_r2_simple_boss_cashout_pays_and_enters_ungenerated_shop():
     assert run.require_playing_card_order()[0].played_this_ante is True
 
 
+@pytest.mark.parametrize(("debuffed", "payout"), [(False, 3), (True, 0)])
+def test_env_r2_boss_cashout_applies_cloud9_nonstone_count_and_debuff(debuffed, payout):
+    from games.balatro.jokers.cloud_9 import Cloud9Joker
+
+    run = _finish(_boss_round("The Psychic"))
+    nines = [card for card in run.public.owned_deck if card.rank == "9"]
+    nines[0].enhancement = "Stone"
+    nines[1].debuffed = True
+    joker = Cloud9Joker()
+    joker.debuffed = debuffed
+    run.public.jokers = [joker]
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 22 + payout
+    assert run.public.money == 14
+
+
 def test_env_r2_boss_cashout_upgrades_rocket_before_payout_and_persists():
     from games.balatro.jokers.rocket import RocketJoker
 
