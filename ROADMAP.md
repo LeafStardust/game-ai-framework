@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`71ee0a7278fe5552e9f8231c7706b1419f153697`.
+`a02dd0dfe3b236c265f7fa388c63889a53d62b8e`.
 
 ## Objective
 
@@ -2548,17 +2548,31 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add the thirty-sixth exact generated-Joker acquisition bridge for uneditioned
-`j_castle`. The committed trace's next unsupported exact
-center after Vampire is episode 46 decision 3 / seed `4A5D4662`, with
-`rarity=2`, `base_cost=6`, `price=6`, and no edition.
+Audit Cloud 9 as the candidate for the thirty-seventh exact generated-Joker
+acquisition. The committed trace offers uneditioned `j_cloud_9` at episode 46
+decision 9 / seed `4A5D4662`, with `rarity=2`, `base_cost=7`, and `price=7`.
+The preceding Hallucination offer depends on boosters and remains deferred.
 
-Require the exact retained round suit when materializing Castle for both the
-purchase mask and transition. Validate its tactical state, inventory-only
-sale, and existing observation fields. Cover natural shop purchase and a
-complete production rollout, including retaining Castle through a round win.
-Keep missing target authority, unsupported editions, and malformed state
-masked. Keep other centers, booster work, rewards, and retraining out of scope.
+Compare the pinned source with the canonical Cloud 9 payout model and ordinary
+and Boss cash-out owners, including the permanent-deck count and debuff
+behavior. Audit blind-start, tactical, shop, sale, and observation boundaries.
+Keep acquisition masked until the payout lifecycle is exact and covered by
+deterministic tests. Booster work, other centers, rewards, and retraining are
+out of scope.
+
+Castle generated acquisition checkpoint:
+
+- Commit `a02dd0dfe3b236c265f7fa388c63889a53d62b8e` adds the thirty-sixth
+  exact generated Joker for uneditioned `j_castle` (rarity 2, base cost 6).
+  Purchase requires a retained suit, assigns that suit, and starts at 0 Chips
+  with growth of 3. Tactical callbacks fail closed on malformed state.
+- The ordinary discard and Castle-only Hook paths apply growth before moving
+  discarded cards. Hook preserves the discard allowance and keyed draws.
+- Complete production seed 51 buys Castle with Spades, earns 6 Chips, wins
+  the next round and receives Clubs, sells for $3, then reaches a terminal loss.
+  Existing observation fields encode suit, Chips, and growth.
+- GitHub Actions run `45610950970`, job `139193994363` logged
+  **3743 passed, 1621 deselected in 524.67s**.
 
 Castle round suit checkpoint:
 
@@ -2580,7 +2594,6 @@ Castle discard growth checkpoint:
   observed rate, exclusion of debuffed matching cards, and eventual scoring.
 - GitHub Actions run `45599957976`, job `139155948043` logged
   **3725 passed, 1621 deselected in 526.06s**.
-- The acquisition remains masked pending the purchase bridge.
 
 Vampire generated acquisition checkpoint:
 
