@@ -104,6 +104,10 @@ def _require_exact_int(name: str, value: object, *, minimum: int = 0) -> int:
 
 
 def _is_play_time_no_effect_consumable(item: object) -> bool:
+    from games.balatro.env.spectral_inventory import GeneratedHeldSpectral
+
+    if type(item) is GeneratedHeldSpectral:
+        return True
     if isinstance(item, (PlanetCard, TarotCard)):
         return True
     if type(item) is not GeneratedShopConsumableItem:

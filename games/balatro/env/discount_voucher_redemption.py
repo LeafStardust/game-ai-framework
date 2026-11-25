@@ -121,7 +121,7 @@ def redeem_exact_discount_voucher(
     state.shop_vouchers.pop(slot)
     state.vouchers.append(key)
 
-    # Reprice only the remaining visible shop after the purchased Voucher leaves
-    # its area.  This consumes no RNG and also installs authoritative discount
+    # Reprice the supported inventory after the purchased Voucher leaves
+    # its area. This consumes no RNG and also installs authoritative discount
     # state matching the newly recorded ownership.
     return reprice_exact_generated_shop(next_run, discount_percent=target)

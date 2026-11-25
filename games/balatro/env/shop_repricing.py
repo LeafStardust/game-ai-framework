@@ -2,10 +2,9 @@
 
 Clearance Sale and Liquidation assign ``G.GAME.discount_percent`` and then call
 ``Card:set_cost`` for existing cards.  This owner is deliberately narrower than
-that engine-wide loop: it reprices only headless-generated shop metadata whose
-immutable base cost (and Joker edition, when relevant) is still authoritative.
-Anything else fails closed instead of reverse-engineering base price from the
-currently displayed discounted price.
+that engine-wide loop: it reprices exact generated shop metadata and held
+Spectrals. Their immutable base cost (and Joker edition, when relevant) is
+authoritative, so neither price needs to be reverse-engineered.
 """
 
 from __future__ import annotations
@@ -34,6 +33,7 @@ def reprice_exact_generated_shop(
     from games.balatro.env.shop_items import GeneratedShopJokerItem
     from games.balatro.env.shop_pricing import vanilla_card_cost
     from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
+    from games.balatro.env.spectral_inventory import GeneratedHeldSpectral, reprice_held_spectral
     from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
     if not isinstance(run, HeadlessRunState):
@@ -121,4 +121,10 @@ def reprice_exact_generated_shop(
     ]
     next_state.shop_discount_percent_observed = True
     next_state.shop_discount_percent = discount_percent
+    next_state.consumables = [
+        reprice_held_spectral(
+            item, inflation=next_state.shop_inflation, discount_percent=discount_percent
+        ) if type(item) is GeneratedHeldSpectral else item
+        for item in next_state.consumables
+    ]
     return next_run

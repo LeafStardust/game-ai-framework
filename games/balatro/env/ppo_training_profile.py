@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from games.balatro.env.boss_selection import BossSelectionState, select_normal_boss
 from games.balatro.env.consumable_centers import (
+    REGULAR_SPECTRAL_CENTER_KEYS,
     VANILLA_PLANET_CENTER_ORDER,
     VANILLA_TAROT_CENTER_ORDER,
 )
@@ -62,25 +63,25 @@ _INITIAL_INELIGIBLE_UNLOCKED_JOKERS = frozenset(
     }
 )
 
-_PROFILE_SHOP_CENTER_KEYS = frozenset(
+_PROFILE_GENERATED_CENTER_KEYS = frozenset(
     tuple(center.key for center in VANILLA_JOKER_CENTERS)
     + VANILLA_TAROT_CENTER_ORDER
     + VANILLA_PLANET_CENTER_ORDER
     + tuple(center.key for center in VANILLA_VOUCHER_CENTERS)
     + tuple(center.center_key for center in VANILLA_BOOSTER_CENTERS)
-)
+) | REGULAR_SPECTRAL_CENTER_KEYS
 
 
 def pristine_profile_discovery(center_key: str) -> bool:
     """Return pinned new-profile discovery without affecting eligibility.
 
-    Vanilla's base Joker starts discovered. Every other generated shop center
+    Vanilla's base Joker starts discovered. Every other tracked generated center
     starts undiscovered, while shop construction still bypasses discovery for
     visible identity. Unknown keys fail closed instead of inheriting a default.
     """
     if (
         not isinstance(center_key, str)
-        or center_key not in _PROFILE_SHOP_CENTER_KEYS
+        or center_key not in _PROFILE_GENERATED_CENTER_KEYS
     ):
         raise HeadlessTransitionError("center is outside the PPO training profile")
     return center_key == "j_joker"
@@ -195,7 +196,7 @@ def initialize_pristine_ppo_generation_authority(
     next_run.public.voucher_generation_pool = _voucher_pool()
     next_run.generation_discovery = {
         key: pristine_profile_discovery(key)
-        for key in _PROFILE_SHOP_CENTER_KEYS
+        for key in _PROFILE_GENERATED_CENTER_KEYS
     }
     next_run.tag_profile_state = TagProfileState(
         frozenset(

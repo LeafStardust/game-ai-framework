@@ -14,6 +14,8 @@ from games.balatro.env.shop_items import (
     materialize_generated_shop_joker_for_acquisition,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.spectral_inventory import GeneratedHeldSpectral
+from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.state import BalatroState
 
 
@@ -603,6 +605,19 @@ def test_env_r4_baseline_discard_admits_exact_materialized_rocket_noop_callback(
     assert _card_signature(result.public.discard_pile[-1]) == before
     assert result.public.discards_remaining == 2
     assert type(result.public.jokers[0]).__name__ == "RocketJoker"
+
+
+def test_env_r4_exact_held_spectral_is_inert_during_play():
+    run = _ordinary_play_run()
+    baseline = apply_supported_ordinary_play(run, (0,))
+    spectral = GeneratedHeldSpectral("c_cryptid", 4)
+    run.public.consumables = [spectral]
+
+    result = apply_supported_ordinary_play(run, (0,))
+
+    assert result.public.consumables == [spectral]
+    assert result.public.score == baseline.public.score
+    assert result.rng_snapshot() == baseline.rng_snapshot()
 
 
 def test_env_r4_cloud9_is_inert_during_player_discard():
