@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`cf4271e0efbfc80dd310bf5b980244049f865b6f`.
+`b48ecca987257b3cfe4ab86c252ec712461258b7`.
 
 ## Objective
 
@@ -75,7 +75,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | Observation v4 authorized; prior checkpoints are historical and fresh retraining is required |
+| PPO learner and training path | Observation v5; prior checkpoints are historical and fresh retraining is required |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -119,7 +119,7 @@ considered; do not invent RL-only aliases.
   `balatro-red-white-ppo-policy-output-v3`, sparse rollout
   `balatro-red-white-ppo-rollout-episode-v4`, and progress rollout
   `balatro-red-white-ppo-progress-reward-rollout-episode-v5`.
-- Public observation: `balatro-red-white-public-observation-v4`, **2,480**
+- Public observation: `balatro-red-white-public-observation-v5`, **2,480**
   values. Output: 27 canonical action slots.
 - Model/checkpoint owner: `balatro-red-white-ppo-actor-critic-v2`; campaign
   owner: `balatro-red-white-ppo-campaign-v13`.
@@ -137,8 +137,9 @@ considered; do not invent RL-only aliases.
 - Illegal probability mass is exactly zero. There is no empty-mask rescue.
 - Incomplete/nonterminal evidence, illegal actions, schema/provenance drift,
   non-finite output, seed drift, and terminal contradictions fail closed.
-- The completed 2,456-feature training artifacts predate observation v4 and
-  cannot be loaded as v4 checkpoints. They remain historical evidence only.
+- Earlier training artifacts predate observation v5 and remain historical
+  evidence. The registered training contract digest includes observation
+  version, even when the feature width is unchanged.
   Fresh training is explicitly authorized in the future after the remaining
   development boundary is frozen; no old promotion result transfers to v4.
 
@@ -2555,11 +2556,21 @@ decision 1 / seed `D040C703`, with rarity 2, base cost 6, and price 6.
 Next, establish canonical Spectral eligibility in the pristine training profile
 and exact held-card materialization. Audit duplicate suppression from the
 current inventory, hidden positions, and discovery. Verify public observation
-of the exact held center and inert continuation without exposing unsupported
-Spectral use. Then connect the seeded draw to the production Straight Flush
+of materialized cards using v5 and inert continuation with Spectral use
+masked. Then connect the seeded draw to the production Straight Flush
 callback with exact slot capacity, order, and no-draw cases. Keep acquisition
 masked until this path passes deterministic tests. Hallucination, booster work,
 other centers, rewards, and retraining remain deferred.
+
+Séance held-Spectral observation checkpoint:
+
+- Commit `b48ecca987257b3cfe4ab86c252ec712461258b7` adds exact Spectral
+  center and category values to the existing held-consumable fields.
+  Observation v5 keeps 2,480 values and preserves the existing Tarot/Planet
+  encodings, shop/pool features, and model initialization.
+- GitHub Actions run `45654551427`, job `139347610920` logged
+  **3766 passed, 1621 deselected in 314.24s**.
+- The production callback and acquisition remain masked.
 
 Séance Spectral identity checkpoint:
 
