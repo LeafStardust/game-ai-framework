@@ -1,4 +1,4 @@
-"""Pinned vanilla Tarot/Planet center order for exact shop identity RNG.
+"""Pinned vanilla consumable center order for exact identity RNG.
 
 Balatro's ``get_current_pool`` preserves every center position and replaces
 ineligible centers with the literal string ``UNAVAILABLE``.  Identity selection
@@ -52,15 +52,39 @@ VANILLA_PLANET_CENTER_ORDER: tuple[str, ...] = (
     "c_eris",
 )
 
+VANILLA_SPECTRAL_CENTER_ORDER: tuple[str, ...] = (
+    "c_familiar",
+    "c_grim",
+    "c_incantation",
+    "c_talisman",
+    "c_aura",
+    "c_wraith",
+    "c_sigil",
+    "c_ouija",
+    "c_ectoplasm",
+    "c_immolate",
+    "c_ankh",
+    "c_deja_vu",
+    "c_hex",
+    "c_trance",
+    "c_medium",
+    "c_cryptid",
+    "c_soul",
+    "c_black_hole",
+)
+
+_SPECTRAL_HIDDEN_KEYS = frozenset({"c_soul", "c_black_hole"})
 
 _CENTER_ORDER_BY_TYPE = {
     "Tarot": VANILLA_TAROT_CENTER_ORDER,
     "Planet": VANILLA_PLANET_CENTER_ORDER,
+    "Spectral": VANILLA_SPECTRAL_CENTER_ORDER,
 }
 
 _FALLBACK_BY_TYPE = {
     "Tarot": "c_strength",
     "Planet": "c_pluto",
+    "Spectral": "c_incantation",
 }
 
 
@@ -68,7 +92,7 @@ def vanilla_consumable_center_order(card_type: str) -> tuple[str, ...]:
     try:
         return _CENTER_ORDER_BY_TYPE[card_type]
     except KeyError as exc:
-        raise ValueError("card_type must be Tarot or Planet") from exc
+        raise ValueError("card_type must be Tarot, Planet, or Spectral") from exc
 
 
 def current_consumable_pool_from_eligible_keys(
@@ -93,6 +117,8 @@ def current_consumable_pool_from_eligible_keys(
             "eligible consumable pool contains unknown vanilla center keys: "
             + ", ".join(sorted(unknown))
         )
+    if card_type == "Spectral" and eligible & _SPECTRAL_HIDDEN_KEYS:
+        raise ValueError("hidden Spectrals cannot be eligible for an ordinary pool poll")
 
     if not eligible:
         return (_FALLBACK_BY_TYPE[card_type],)

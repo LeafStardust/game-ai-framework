@@ -12,6 +12,7 @@ from collections.abc import Collection
 from dataclasses import dataclass
 
 from games.balatro.env.consumable_centers import current_consumable_pool_from_eligible_keys
+from games.balatro.env.consumable_generation import poll_consumable_center
 from games.balatro.env.shop_generation import require_exact_normal_shop_ante
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import shop_generation_vouchers_are_exact
@@ -59,19 +60,7 @@ def poll_base_shop_consumable_center(
         raise HeadlessTransitionError("invalid authoritative consumable generation pool") from exc
 
     next_run = run.copy()
-    pool_key = f"{card_type}sho{state.ante}"
-    index = next_run.rng.pseudorandom_element_index(len(pool), pool_key)
-    center = pool[index]
-    source_it = 1
-    resamples = 0
-    while center == "UNAVAILABLE":
-        source_it += 1
-        resamples += 1
-        index = next_run.rng.pseudorandom_element_index(
-            len(pool),
-            f"{pool_key}_resample{source_it}",
-        )
-        center = pool[index]
+    center, resamples = poll_consumable_center(next_run.rng, pool, f"{card_type}sho{state.ante}")
 
     return ShopConsumableCenterPoll(
         run=next_run,
