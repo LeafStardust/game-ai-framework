@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`0a5730ae779b08b7a3e41505cd22fa966ea684f8`.
+`cf4271e0efbfc80dd310bf5b980244049f865b6f`.
 
 ## Objective
 
@@ -2552,12 +2552,27 @@ Audit Séance as the candidate for the thirty-eighth exact generated-Joker
 acquisition. The committed trace offers uneditioned `j_seance` at episode 47
 decision 1 / seed `D040C703`, with rarity 2, base cost 6, and price 6.
 
-Compare the pinned source with the existing Séance model, live generated-
-consumable projection, and headless tactical generation owners. Verify the
-Straight Flush trigger, Spectral generation and pool/RNG authority, slot
-capacity, and interaction with the currently admitted action surface. Keep
-acquisition masked until the production callback is exact. Hallucination,
-booster work, other centers, rewards, and retraining remain deferred.
+Next, establish canonical Spectral eligibility in the pristine training profile
+and exact held-card materialization. Audit duplicate suppression from the
+current inventory, hidden positions, and discovery. Verify public observation
+of the exact held center and inert continuation without exposing unsupported
+Spectral use. Then connect the seeded draw to the production Straight Flush
+callback with exact slot capacity, order, and no-draw cases. Keep acquisition
+masked until this path passes deterministic tests. Hallucination, booster work,
+other centers, rewards, and retraining remain deferred.
+
+Séance Spectral identity checkpoint:
+
+- Commit `cf4271e0efbfc80dd310bf5b980244049f865b6f` pins the 18 source pool
+  positions and reuses the consumable poll algorithm for `Spectralsea<ante>`.
+  The Soul and Black Hole occupy permanently unavailable positions because
+  Séance's call is non-soulable. An empty eligible set polls Incantation.
+- Tests pin pool positions, fallback, hidden-center rejection before RNG,
+  and the base draw plus five retries for seed 48 with only Cryptid eligible.
+  The shared poll preserves ordinary Tarot/Planet behavior.
+- GitHub Actions run `45652239169`, job `139339513998` logged
+  **3760 passed, 1621 deselected in 504.42s**. No production callback or
+  acquisition change is active yet.
 
 Cloud 9 generated acquisition checkpoint:
 
