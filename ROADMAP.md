@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`b48ecca987257b3cfe4ab86c252ec712461258b7`.
+`7c169a4f4ecbe4f56a215b0cdd7b3721a311570d`.
 
 ## Objective
 
@@ -2553,14 +2553,22 @@ Audit Séance as the candidate for the thirty-eighth exact generated-Joker
 acquisition. The committed trace offers uneditioned `j_seance` at episode 47
 decision 1 / seed `D040C703`, with rarity 2, base cost 6, and price 6.
 
-Next, establish canonical Spectral eligibility in the pristine training profile
-and exact held-card materialization. Audit duplicate suppression from the
-current inventory, hidden positions, and discovery. Verify public observation
-of materialized cards using v5 and inert continuation with Spectral use
-masked. Then connect the seeded draw to the production Straight Flush
-callback with exact slot capacity, order, and no-draw cases. Keep acquisition
-masked until this path passes deterministic tests. Hallucination, booster work,
-other centers, rewards, and retraining remain deferred.
+Next, connect the existing Séance scoring marker to the exact Spectral
+inventory owner in production Play. Verify Straight Flush, capacity, score
+debuff, and no-draw cases. Keep acquisition masked until the callback passes
+deterministic tests. Hallucination, booster work, other centers, rewards, and
+retraining remain deferred.
+
+Séance held-Spectral inventory checkpoint:
+
+- Commit `7c169a4f4ecbe4f56a215b0cdd7b3721a311570d` supplies the pristine
+  profile's regular Spectral discovery authority, exact held metadata,
+  duplicate suppression, discovery, capacity, and discount repricing.
+- Seed 15 draws Cryptid, retries its held duplicate and draws Medium, then
+  consumes no further RNG at capacity. Exact held Spectrals are visible in
+  observation v5 and inert during Play. Spectral use remains masked.
+- GitHub Actions run `45656553036`, job `139354683558` logged
+  **3770 passed, 1621 deselected in 398.71s**.
 
 Séance held-Spectral observation checkpoint:
 
