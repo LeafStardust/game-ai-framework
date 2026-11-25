@@ -7,6 +7,7 @@ from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker import JokerContext
 from games.balatro.jokers.mime import MimeJoker
+from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.events import BalatroEvent, BalatroEventType
 
 
@@ -341,9 +342,10 @@ class BalatroScorer:
         extra_retriggers: int = 0,
     ) -> None:
         """Resolve public held-card scoring effects in Balatro activation order."""
+        held_cards = list(cards or [])
         active_cards = [
             card
-            for card in list(cards or [])
+            for card in held_cards
             if not self.is_card_debuffed(card)
         ]
         jokers = getattr(state, "jokers", None)
@@ -361,22 +363,16 @@ class BalatroScorer:
                     self._fold_x_mult(score)
             return
 
-        ranked_cards = [
-            card
-            for card in active_cards
-            if getattr(card, "enhancement", None) != "Stone"
-            and str(getattr(card, "rank", "")) in self.RANK_CHIPS
-        ]
-        lowest = min(
-            ranked_cards,
-            key=lambda card: self.RANK_CHIPS[str(card.rank)],
-            default=None,
-        )
         held_jokers = [
             joker
             for joker in jokers
             if type(joker).__name__ in self.ON_HELD_JOKER_CLASS_NAMES
         ]
+        lowest = (
+            RaisedFistJoker.lowest_held_target(held_cards)
+            if any(type(joker).__name__ == "RaisedFistJoker" for joker in held_jokers)
+            else None
+        )
 
         for card in active_cards:
             trigger_count = self._held_card_trigger_count(

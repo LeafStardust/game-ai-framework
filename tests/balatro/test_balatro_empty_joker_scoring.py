@@ -95,6 +95,22 @@ def test_joker_scoring_applies_mime_to_raised_fist_on_a_plain_held_card(debuffed
     assert score.mult == mult
 
 
+@pytest.mark.parametrize(("left", "right", "expected_mult"), [
+    (BalatroCard("2", "Hearts", debuffed=True), BalatroCard("3", "Clubs"), 1.0),
+    (BalatroCard("2", "Hearts", enhancement="Steel"), BalatroCard("2", "Clubs"), 5.5),
+    (BalatroCard("K", "Hearts"), BalatroCard("J", "Clubs", enhancement="Steel"), 21.5),
+])
+def test_joker_scoring_raised_fist_selects_target_before_debuff_and_uses_rank_order(
+    left, right, expected_mult
+):
+    state, played = _state([RaisedFistJoker()])
+    state.hand = [played, left, right]
+
+    score = BalatroScorer().score(PokerHand.HIGH_CARD, state, [played], include_card_chips=True)
+
+    assert score.mult == expected_mult
+
+
 def test_empty_joker_plain_held_cards_skip_held_trigger_context(monkeypatch):
     state, played = _state([])
     state.hand[1].enhancement = None
