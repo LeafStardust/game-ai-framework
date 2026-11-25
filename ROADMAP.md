@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`8d3d9756987ff5f6fa7ca41aedea99f97cd32fe9`.
+`71ee0a7278fe5552e9f8231c7706b1419f153697`.
 
 ## Objective
 
@@ -2548,25 +2548,30 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit and repair the canonical `CastleJoker` mechanics/lifecycle boundary
-needed before adding the thirty-sixth exact generated-Joker acquisition bridge
-for only uneditioned `j_castle`. The committed trace's next unsupported exact
+Add the thirty-sixth exact generated-Joker acquisition bridge for uneditioned
+`j_castle`. The committed trace's next unsupported exact
 center after Vampire is episode 46 decision 3 / seed `4A5D4662`, with
 `rarity=2`, `base_cost=6`, `price=6`, and no edition.
 
-Next, trace the run initialization and successful-round transition owners for
-Castle's public suit. The pinned source resets it in both places, drawing from
-non-Stone cards in permanent creation order via the keyed `cas<ante>` stream.
-If no eligible cards remain, it uses Spades without a draw. Verify ordinary
-and Boss round ordering and skipped-Blind behavior before admitting acquisition.
+Require the exact retained round suit when materializing Castle for both the
+purchase mask and transition. Validate its tactical state, inventory-only
+sale, and existing observation fields. Cover natural shop purchase and a
+complete production rollout, including retaining Castle through a round win.
+Keep missing target authority, unsupported editions, and malformed state
+masked. Keep other centers, booster work, rewards, and retraining out of scope.
 
-Read the pinned vanilla source, current model, per-round suit state, discard
-growth, scoring projection, live hydration, tactical capability, shop
-materialization, and sale owners first. Repair only demonstrated canonical
-gaps with deterministic tests; keep `j_castle` acquisition masked until all
-mutable state and callbacks are fully owned. Do not add a generic factory,
-batch another center, approximate a callback, open boosters, alter rewards,
-start retraining, or request an operator run during this checkpoint.
+Castle round suit checkpoint:
+
+- Commit `71ee0a7278fe5552e9f8231c7706b1419f153697` retains the target
+  privately at run initialization and resets it after successful ordinary and
+  Boss rounds, using the post-advance Ante for Boss wins. Draws use permanent
+  creation order and exclude Stone cards. With no eligible cards the target
+  is Spades without a draw. Skipped blinds preserve the target and RNG.
+- Owned Castle models receive the new suit while preserving accumulated chips.
+  Exact snapshots round-trip the retained suit. Legacy snapshots lacking it
+  restore without Castle target authority.
+- GitHub Actions run `45608762365`, job `139186452176` logged
+  **3730 passed, 1621 deselected in 429.57s**.
 
 Castle discard growth checkpoint:
 
@@ -2575,7 +2580,7 @@ Castle discard growth checkpoint:
   observed rate, exclusion of debuffed matching cards, and eventual scoring.
 - GitHub Actions run `45599957976`, job `139155948043` logged
   **3725 passed, 1621 deselected in 526.06s**.
-- The acquisition remains masked pending exact suit lifecycle ownership.
+- The acquisition remains masked pending the purchase bridge.
 
 Vampire generated acquisition checkpoint:
 
