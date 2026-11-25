@@ -33,6 +33,7 @@ from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.castle import CASTLE_SUITS, CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
+from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
@@ -98,6 +99,8 @@ def generated_joker_tactical_callbacks_are_exact(
             expected_center = "j_mad"
         elif type(joker) is MysticSummitJoker:
             expected_center = "j_mystic_summit"
+        elif type(joker) is MimeJoker:
+            expected_center = "j_mime"
         elif type(joker) is OddToddJoker:
             expected_center = "j_odd_todd"
         elif type(joker) is PhotographJoker:

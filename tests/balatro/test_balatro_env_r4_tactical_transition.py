@@ -607,6 +607,29 @@ def test_env_r4_baseline_discard_admits_exact_materialized_rocket_noop_callback(
     assert type(result.public.jokers[0]).__name__ == "RocketJoker"
 
 
+def test_env_r4_generated_mime_retriggers_raised_fist_during_play():
+    run = _ordinary_play_run(seed=9)
+    unmodified = apply_supported_ordinary_play(run, (0,))
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_raised_fist", 1, 5, None, 5, False)
+        )
+    ]
+    once = apply_supported_ordinary_play(run, (0,))
+    run.public.jokers.append(
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_mime", 2, 5, None, 5, False)
+        )
+    )
+
+    twice = apply_supported_ordinary_play(run, (0,))
+
+    fist_contribution = once.public.score - unmodified.public.score
+    assert fist_contribution > 0
+    assert twice.public.score - once.public.score == fist_contribution
+    assert twice.rng_snapshot() == once.rng_snapshot()
+
+
 def test_env_r4_exact_held_spectral_is_inert_during_play():
     run = _ordinary_play_run()
     baseline = apply_supported_ordinary_play(run, (0,))

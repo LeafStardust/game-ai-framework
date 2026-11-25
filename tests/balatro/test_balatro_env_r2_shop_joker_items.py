@@ -1489,6 +1489,13 @@ def test_env_r2_exact_rocket_materialization_acquires_and_sells():
     assert sold_run.public.jokers == []
 
 
+@pytest.mark.parametrize(("rarity", "base_cost", "edition"), [(1, 5, None), (2, 4, None), (2, 5, "Foil")])
+def test_env_r2_mime_materialization_rejects_unsupported_metadata(rarity, base_cost, edition):
+    item = GeneratedShopJokerItem("j_mime", rarity, base_cost, edition, 5, False)
+    with pytest.raises(HeadlessTransitionError):
+        materialize_generated_shop_joker_for_acquisition(item)
+
+
 def test_env_r2_seance_purchase_is_masked_without_exact_spectral_authority():
     run, item = materialize_shop_joker_descriptor(
         _descriptor(center_key="j_seance", rarity=2, base_cost=6, discovered=False)
