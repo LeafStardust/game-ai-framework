@@ -14,6 +14,7 @@ from games.balatro.jokers.ice_cream import IceCreamJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.loyalty_card import LoyaltyCardJoker
 from games.balatro.jokers.lucky_cat import LuckyCatJoker
+from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.obelisk import ObeliskJoker
 from games.balatro.jokers.red_card import RedCardJoker
 from games.balatro.jokers.ride_the_bus import RideTheBusJoker
@@ -46,6 +47,21 @@ def _state(hand, deck=None, *, target=1000, hands=2, discards=0):
     state.discards_remaining = discards
     state.blind = Blind(BlindType.BIG, target)
     return state
+
+
+def test_mime_projection_combines_two_mimes_and_red_seal_without_double_counting():
+    played = BalatroCard("A", "Spades", live_id=1)
+    held = BalatroCard("K", "Hearts", enhancement="Steel", seal="Red", live_id=2)
+    state = _state([played, held])
+    state.jokers = [MimeJoker(), MimeJoker()]
+
+    result = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD, state, [played]
+    )
+
+    # Steel activates once normally, once from the Red Seal, and once per Mime.
+    assert result.joker_projection_complete is True
+    assert result.distribution.minimum == 81
 
 
 def test_ice_cream_projection_scores_and_decays_only_copied_joker():

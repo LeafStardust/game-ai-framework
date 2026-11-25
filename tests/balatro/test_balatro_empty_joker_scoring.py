@@ -3,6 +3,8 @@ import pytest
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.abstract_joker import AbstractJoker
+from games.balatro.jokers.mime import MimeJoker
+from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
@@ -79,6 +81,18 @@ def test_empty_joker_held_phase_preserves_steel_retriggers(empty_jokers):
 
     assert score.mult == pytest.approx(5.0625)
     assert score.x_mult == 1.0
+
+
+@pytest.mark.parametrize(("debuffed", "mult"), [(False, 9), (True, 5)])
+def test_joker_scoring_applies_mime_to_raised_fist_on_a_plain_held_card(debuffed, mult):
+    mime = MimeJoker()
+    mime.debuffed = debuffed
+    state, played = _state([mime, RaisedFistJoker()])
+    state.hand[1] = BalatroCard("2", "Hearts")
+
+    score = BalatroScorer().score(PokerHand.HIGH_CARD, state, [played], include_card_chips=True)
+
+    assert score.mult == mult
 
 
 def test_empty_joker_plain_held_cards_skip_held_trigger_context(monkeypatch):

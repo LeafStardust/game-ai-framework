@@ -6,6 +6,7 @@ from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker import JokerContext
+from games.balatro.jokers.mime import MimeJoker
 from games.balatro.events import BalatroEvent, BalatroEventType
 
 
@@ -462,10 +463,6 @@ class BalatroScorer:
             0,
             int(context_data.get("retrigger_played_cards", 0) or 0),
         )
-        held_card_retriggers = max(
-            0,
-            int(context_data.get("retrigger_held_abilities", 0) or 0),
-        )
 
         if include_card_chips:
             self._apply_scoring_card_phase(
@@ -495,18 +492,27 @@ class BalatroScorer:
                     if id(card) not in played_identity
                 ]
 
+            jokers = getattr(state, "jokers", None)
+            mime_jokers = [joker for joker in jokers if type(joker) is MimeJoker] if jokers else ()
+            if mime_jokers:
+                context = JokerContext(state=state, trigger="HAND_PLAYED", data=context_data)
+                for joker in mime_jokers:
+                    context = joker.apply(context)
+                context_data = context.data
+
             self._fold_x_mult(score)
             self._apply_held_phase(
                 score,
                 held_cards,
                 state,
-                extra_retriggers=held_card_retriggers,
+                extra_retriggers=max(
+                    0, int(context_data.get("retrigger_held_abilities", 0) or 0)
+                ),
             )
 
             # The remaining context exists only for owned Joker evaluation.
             # An exact empty inventory can return after card and held-card
             # scoring without rebuilding hand-history context for an empty loop.
-            jokers = getattr(state, "jokers", None)
             if isinstance(jokers, (list, tuple)) and not jokers:
                 return score
 

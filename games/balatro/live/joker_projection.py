@@ -184,7 +184,6 @@ class LiveJokerScoreProjector:
             "HangingChadJoker",
             "LoyaltyCardJoker",
             "MidasMaskJoker",
-            "MimeJoker",
             "SockAndBuskinJoker",
             "VampireJoker",
         }
