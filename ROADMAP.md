@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`e885ca3015c4b0c33232dc6225f4a71e0de17987`.
+`8d3d9756987ff5f6fa7ca41aedea99f97cd32fe9`.
 
 ## Objective
 
@@ -2554,6 +2554,12 @@ for only uneditioned `j_castle`. The committed trace's next unsupported exact
 center after Vampire is episode 46 decision 3 / seed `4A5D4662`, with
 `rarity=2`, `base_cost=6`, `price=6`, and no edition.
 
+Next, trace the run initialization and successful-round transition owners for
+Castle's public suit. The pinned source resets it in both places, drawing from
+non-Stone cards in permanent creation order via the keyed `cas<ante>` stream.
+If no eligible cards remain, it uses Spades without a draw. Verify ordinary
+and Boss round ordering and skipped-Blind behavior before admitting acquisition.
+
 Read the pinned vanilla source, current model, per-round suit state, discard
 growth, scoring projection, live hydration, tactical capability, shop
 materialization, and sale owners first. Repair only demonstrated canonical
@@ -2561,6 +2567,15 @@ gaps with deterministic tests; keep `j_castle` acquisition masked until all
 mutable state and callbacks are fully owned. Do not add a generic factory,
 batch another center, approximate a callback, open boosters, alter rewards,
 start retraining, or request an operator run during this checkpoint.
+
+Castle discard growth checkpoint:
+
+- Commit `8d3d9756987ff5f6fa7ca41aedea99f97cd32fe9` uses Castle's
+  live-hydrated `chip_mod` (default 3). Regressions cover growth using the
+  observed rate, exclusion of debuffed matching cards, and eventual scoring.
+- GitHub Actions run `45599957976`, job `139155948043` logged
+  **3725 passed, 1621 deselected in 526.06s**.
+- The acquisition remains masked pending exact suit lifecycle ownership.
 
 Vampire generated acquisition checkpoint:
 
