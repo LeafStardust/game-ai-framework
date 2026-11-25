@@ -1489,6 +1489,27 @@ def test_env_r2_exact_rocket_materialization_acquires_and_sells():
     assert sold_run.public.jokers == []
 
 
+def test_env_r2_seance_purchase_is_masked_without_exact_spectral_authority():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_seance", rarity=2, base_cost=6, discovered=False)
+    )
+    inserted = insert_generated_shop_joker_item(run, item)
+    engine = ShopTransitionEngine()
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+
+    assert action not in engine.legal_actions(inserted)
+    with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
+        engine.step(inserted, action)
+    assert inserted.public.jokers == []
+
+
+@pytest.mark.parametrize(("rarity", "base_cost", "edition"), [(1, 6, None), (2, 5, None), (2, 6, "Foil")])
+def test_env_r2_seance_materialization_rejects_unsupported_metadata(rarity, base_cost, edition):
+    item = GeneratedShopJokerItem("j_seance", rarity, base_cost, edition, 6, False)
+    with pytest.raises(HeadlessTransitionError):
+        materialize_generated_shop_joker_for_acquisition(item)
+
+
 @pytest.mark.parametrize(("rarity", "base_cost", "edition"), [(1, 7, None), (2, 6, None), (2, 7, "Foil")])
 def test_env_r2_cloud9_materialization_rejects_unsupported_metadata(rarity, base_cost, edition):
     item = GeneratedShopJokerItem("j_cloud_9", rarity, base_cost, edition, 7, False)

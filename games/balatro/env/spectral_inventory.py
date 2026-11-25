@@ -37,14 +37,8 @@ def reprice_held_spectral(
     ))
 
 
-def generate_seance_held_spectral(run: HeadlessRunState) -> None:
-    """Generate and publish one Spectral on the caller's isolated play state."""
-    state = run.public
-    if type(state.consumable_slots) is not int or state.consumable_slots < 0:
-        raise HeadlessTransitionError("Séance requires exact consumable capacity")
-    if len(state.consumables) >= state.consumable_slots:
-        return
-
+def require_seance_spectral_authority(run: HeadlessRunState) -> None:
+    """Require the pinned Spectral profile and absence of unowned modifiers."""
     discovery = run.generation_discovery
     profile = run.tag_profile_state
     if discovery is None or profile is None or any(
@@ -53,8 +47,19 @@ def generate_seance_held_spectral(run: HeadlessRunState) -> None:
         for key in REGULAR_SPECTRAL_CENTER_KEYS
     ):
         raise HeadlessTransitionError("Séance requires pristine-profile Spectral authority")
-    if run.tags or any(type(joker).__name__ == "ShowmanJoker" for joker in state.jokers):
+    if run.tags or any(type(joker).__name__ == "ShowmanJoker" for joker in run.public.jokers):
         raise HeadlessTransitionError("Séance pool modifiers are not owned")
+
+
+def generate_seance_held_spectral(run: HeadlessRunState) -> None:
+    """Generate and publish one Spectral on the caller's isolated play state."""
+    state = run.public
+    if type(state.consumable_slots) is not int or state.consumable_slots < 0:
+        raise HeadlessTransitionError("Séance requires exact consumable capacity")
+    if len(state.consumables) >= state.consumable_slots:
+        return
+
+    require_seance_spectral_authority(run)
     held = set()
     for item in state.consumables:
         if type(item) is GeneratedHeldSpectral:
@@ -81,5 +86,5 @@ def generate_seance_held_spectral(run: HeadlessRunState) -> None:
     )
     center, _ = poll_seance_spectral_center(run.rng, state.ante, REGULAR_SPECTRAL_CENTER_KEYS - held)
     state.consumables.append(GeneratedHeldSpectral(center, price))
-    discovery[center] = True
-    run.tag_profile_state = TagProfileState(profile.discovered_center_keys | {center})
+    run.generation_discovery[center] = True
+    run.tag_profile_state = TagProfileState(run.tag_profile_state.discovered_center_keys | {center})

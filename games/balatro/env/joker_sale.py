@@ -24,6 +24,7 @@ from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.rocket import RocketJoker
+from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.vampire import VampireJoker
 
 
@@ -36,6 +37,7 @@ _STATIC_SELL_SAFE_TYPES = tuple(
         CastleJoker,
         Cloud9Joker,
         RocketJoker,
+        SeanceJoker,
         VampireJoker,
     )
     if joker_type is not JugglerJoker
