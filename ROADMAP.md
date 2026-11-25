@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`7c169a4f4ecbe4f56a215b0cdd7b3721a311570d`.
+`9bb397c0e76131da0acbb72cc4ad652615a0836f`.
 
 ## Objective
 
@@ -2549,15 +2549,26 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Séance as the candidate for the thirty-eighth exact generated-Joker
-acquisition. The committed trace offers uneditioned `j_seance` at episode 47
+Add Séance as the thirty-eighth exact generated-Joker acquisition. The
+committed trace offers uneditioned `j_seance` at episode 47
 decision 1 / seed `D040C703`, with rarity 2, base cost 6, and price 6.
 
-Next, connect the existing Séance scoring marker to the exact Spectral
-inventory owner in production Play. Verify Straight Flush, capacity, score
-debuff, and no-draw cases. Keep acquisition masked until the callback passes
-deterministic tests. Hallucination, booster work, other centers, rewards, and
-retraining remain deferred.
+Next, admit exact uneditioned Séance purchase and discovery, blind-start and
+cash-out continuation, and inventory-only sale. Verify a natural offer and
+complete seeded rollout. Require the Spectral generation authority for purchase
+and preserve the held Spectral use mask. Hallucination, booster work, other
+centers, rewards, and retraining remain deferred.
+
+Séance production Play checkpoint:
+
+- Commit `9bb397c0e76131da0acbb72cc4ad652615a0836f` resolves Séance's
+  canonical scoring marker through the held Spectral owner. Seed 9 scores
+  a natural Straight Flush and resolves two ordered requests. High Card,
+  full capacity, and a hand rejected by The Mouth consume no Spectral RNG.
+  Séance is inert during Hook's forced discard.
+- GitHub Actions run `45658296034`, job `139360852098` logged
+  **3775 passed, 1621 deselected in 520.58s**. Acquisition remains masked
+  pending the final bridge.
 
 Séance held-Spectral inventory checkpoint:
 
