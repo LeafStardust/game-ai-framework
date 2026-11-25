@@ -298,11 +298,14 @@ def test_env_r5_live_rocket_sale_replays_inventory_only_inverse():
     assert comparison.differences == ()
 
 
-def test_env_r5_live_vampire_sale_replays_inventory_only_inverse():
+@pytest.mark.parametrize(
+    ("center", "label"), [("j_vampire", "Vampire"), ("j_cloud_9", "Cloud 9")]
+)
+def test_env_r5_live_vampire_and_cloud9_sale_replays_inventory_only_inverse(center, label):
     live_rows = _rows(
         joker=_joker(
-            center="j_vampire",
-            label="Vampire",
+            center=center,
+            label=label,
             cost=7,
             base_cost=7,
             sell_cost=3,
@@ -310,7 +313,7 @@ def test_env_r5_live_vampire_sale_replays_inventory_only_inverse():
     )
     live_rows[2]["data"]["state"]["payload"]["money"] = 10
     live = successful_joker_sale_evidence_from_run_rows(live_rows)
-    run = HeadlessRunState(public=live[0].before, seed="r5-vampire-sale-parity")
+    run = HeadlessRunState(public=live[0].before, seed="r5-inventory-only-sale-parity")
 
     result, simulator = sell_joker_with_public_evidence(run, joker_index=0)
 

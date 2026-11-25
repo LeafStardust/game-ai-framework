@@ -8,6 +8,7 @@ from games.balatro.env.observation_encoding import (
     PUBLIC_OBSERVATION_SCHEMA,
     PUBLIC_OBSERVATION_VERSION,
     BOSS_NAMES,
+    JOKER_CENTER_KEYS,
     PublicObservationEncodingError,
     VOUCHER_KEYS,
     encode_public_observation,
@@ -23,6 +24,7 @@ from games.balatro.env.voucher_centers import VANILLA_VOUCHER_CENTER_KEYS
 from games.balatro.env.boss_selection import VANILLA_BOSS_NAMES
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.castle import CastleJoker
+from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.state import BalatroState
@@ -72,6 +74,17 @@ def test_env_o_v4_encodes_exact_rocket_cashout_state():
     assert _at(encoded, "jokers.0.dollars") == 7.0
     assert _at(encoded, "jokers.0.increase.present") == 1.0
     assert _at(encoded, "jokers.0.increase") == 2.0
+
+
+def test_env_o_v4_encodes_cloud9_identity():
+    frame = _frame()
+    cloud9 = Cloud9Joker()
+    cloud9.center = "j_cloud_9"
+    frame.state.jokers = [cloud9]
+
+    encoded = encode_public_observation(frame)
+
+    assert _at(encoded, "jokers.0.center") == JOKER_CENTER_KEYS.index("j_cloud_9") + 1
 
 
 def test_env_o_v4_encodes_castle_suit_and_chip_state():

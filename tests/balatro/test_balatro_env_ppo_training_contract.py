@@ -1818,6 +1818,36 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
 
 
+def test_env_ppo_fixed_seed_completes_cloud9_purchase_payouts_and_sale():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed=48)
+    replay = (
+        ("SELECT_BLIND", {}, 7, 0),
+        ("BUY_JOKER", {"slot": 1}, 0, 1),
+        ("END_SHOP", {}, 0, 1),
+        ("SELECT_BLIND", {}, 10, 1),
+        ("END_SHOP", {}, 10, 1),
+        ("SELECT_BLIND", {}, 22, 1),
+        ("SELL_JOKER", {"joker_index": 0}, 25, 0),
+        ("END_SHOP", {}, 25, 0),
+        ("SELECT_BLIND", {}, 33, 0),
+        ("END_SHOP", {}, 33, 0),
+        ("SELECT_BLIND", {}, 33, 0),
+    )
+    for alias, params, money, owned_count in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert [joker.center for joker in run.public.jokers] == ["j_cloud_9"] * owned_count
+        if alias == "BUY_JOKER":
+            assert run.generated_center_discovered("j_cloud_9") is True
+
+    assert environment.frame.state.ante == 2
+    assert environment.frame.status is RunStatus.LOSS
+
+
 def test_env_ppo_fixed_seed_completes_castle_purchase_round_win_and_sale():
     environment = make_ppo_training_environment(0)
     environment.reset(seed=51)

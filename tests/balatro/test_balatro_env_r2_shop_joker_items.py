@@ -1489,6 +1489,13 @@ def test_env_r2_exact_rocket_materialization_acquires_and_sells():
     assert sold_run.public.jokers == []
 
 
+@pytest.mark.parametrize(("rarity", "base_cost", "edition"), [(1, 7, None), (2, 6, None), (2, 7, "Foil")])
+def test_env_r2_cloud9_materialization_rejects_unsupported_metadata(rarity, base_cost, edition):
+    item = GeneratedShopJokerItem("j_cloud_9", rarity, base_cost, edition, 7, False)
+    with pytest.raises(HeadlessTransitionError):
+        materialize_generated_shop_joker_for_acquisition(item)
+
+
 @pytest.mark.parametrize("suit", [None, "Unknown", "Hearts"])
 def test_env_r2_castle_purchase_requires_the_retained_round_suit(suit):
     run, item = materialize_shop_joker_descriptor(

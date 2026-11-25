@@ -605,6 +605,23 @@ def test_env_r4_baseline_discard_admits_exact_materialized_rocket_noop_callback(
     assert type(result.public.jokers[0]).__name__ == "RocketJoker"
 
 
+def test_env_r4_cloud9_is_inert_during_player_discard():
+    run = _dealt_run(seed="CLOUD9-DISCARD")
+    baseline = apply_supported_tactical_discard(run, (0,))
+    run.public.jokers = [
+        materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem("j_cloud_9", 2, 7, None, 7, False)
+        )
+    ]
+
+    result = apply_supported_tactical_discard(run, (0,))
+
+    assert result.public.discard_pile == baseline.public.discard_pile
+    assert result.public.hand == baseline.public.hand
+    assert result.public.money == baseline.public.money
+    assert result.rng_snapshot() == baseline.rng_snapshot()
+
+
 @pytest.mark.parametrize("initial_chips", [0, True, -3, 2])
 def test_env_r4_castle_discard_growth_requires_exact_state(initial_chips):
     run = _dealt_run(seed="CASTLE-DISCARD")

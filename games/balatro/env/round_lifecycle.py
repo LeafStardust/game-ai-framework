@@ -21,6 +21,7 @@ from games.balatro.joker import JokerContext
 from games.balatro.jokers.burglar import BurglarJoker
 from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.chicot import ChicotJoker
+from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
@@ -31,6 +32,7 @@ _BLIND_START_INERT_JOKER_TYPES = (
     *_EXACT_R1_JOKER_ACQUISITION_TYPES,
     *_OWNED_DECK_SCORING_TYPES,
     CastleJoker,
+    Cloud9Joker,
     StuntmanJoker,
     DrunkardJoker,
     TroubadourJoker,

@@ -10,6 +10,7 @@ from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.bull import BullJoker
 from games.balatro.jokers.clever_joker import CleverJoker
+from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
@@ -58,6 +59,8 @@ def generated_joker_tactical_callbacks_are_exact(
             expected_center = "j_bull"
         elif type(joker) is CleverJoker:
             expected_center = "j_clever"
+        elif type(joker) is Cloud9Joker:
+            expected_center = "j_cloud_9"
         elif type(joker) is CrazyJoker:
             expected_center = "j_crazy"
         elif type(joker) is CraftyJoker:

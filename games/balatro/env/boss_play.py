@@ -124,8 +124,9 @@ def _apply_hook_forced_discards(
             generated_joker_tactical_callbacks_are_exact,
         )
         from games.balatro.jokers.castle import CastleJoker
+        from games.balatro.jokers.cloud_9 import Cloud9Joker
 
-        if any(type(joker) is not CastleJoker for joker in state.jokers) or (
+        if any(type(joker) not in {CastleJoker, Cloud9Joker} for joker in state.jokers) or (
             not generated_joker_tactical_callbacks_are_exact(
                 state.jokers, castle_suit=run.castle_suit
             )
