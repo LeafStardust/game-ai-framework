@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`79294d2fe69e8828e27b83b8d2be45e94ad0a85a`.
+`85226c1f3788d5e862b98ba3dddadc796868b9fa`.
 
 ## Objective
 
@@ -2553,11 +2553,24 @@ Audit Mime as the candidate for the thirty-ninth exact generated-Joker
 acquisition. The committed trace offers uneditioned `j_mime` at episode 48
 decision 8 / seed `B1887C22`, with rarity 2, base cost 5, and price 5.
 
-Compare the pinned source with the existing held-card scoring and end-of-round
-payout owners. Verify Mime's trigger order, Red Seal composition, debuffs, and
-supported held-card abilities. Keep acquisition masked until its reachable
-callbacks are exact. Hallucination, booster work, other centers, rewards,
-and retraining remain deferred.
+Next, correct Raised Fist's held target selection before admitting Mime.
+The pinned source compares base rank IDs and selects the rightmost lowest
+non-Stone card before checking its debuff. The current scorer filters out
+debuffed cards and resolves tied chip values in the opposite order. Keep
+modified-card and copy interactions outside the admitted headless surface
+until owned. Hallucination, booster work, other centers, rewards, and
+retraining remain deferred.
+
+Mime shared held-scoring checkpoint:
+
+- Commit `85226c1f3788d5e862b98ba3dddadc796868b9fa` moves the Mime model's
+  scoring retrigger contribution into the canonical scorer and removes the
+  duplicate projection-only registration. Regressions verify an active and
+  debuffed Mime on a plain held Raised Fist target, and two Mimes plus Red
+  Seal on a held Steel card in live projection.
+- GitHub Actions run `45662253598`, job `139374892073` logged
+  **3783 passed, 1621 deselected in 320.09s**.
+- Generated Mime acquisition remains masked.
 
 Séance generated acquisition checkpoint:
 
