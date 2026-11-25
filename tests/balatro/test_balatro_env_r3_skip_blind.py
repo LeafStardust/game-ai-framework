@@ -63,10 +63,12 @@ def test_env_r3_small_economy_skip_applies_exact_transition(money, expected):
 
 def test_env_r3_small_economy_skip_isolates_input_and_consumes_no_rng():
     run = _run()
+    run.castle_suit = "Diamonds"
     before_rng = run.rng_snapshot()
 
     assert can_skip_blind_exact(run)
     result = skip_blind_exact(run)
+    assert result.castle_suit == "Diamonds"
 
     assert run.public.money == 17
     assert run.skips == 0

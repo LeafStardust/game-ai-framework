@@ -46,6 +46,7 @@ from games.balatro.jokers.blackboard import BlackboardJoker
 from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.bull import BullJoker
+from games.balatro.jokers.castle import CASTLE_SUITS
 from games.balatro.jokers.clever_joker import CleverJoker
 from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.crazy_joker import CrazyJoker
@@ -230,8 +231,13 @@ class HeadlessRunState:
     consumable_usage_counts: dict[str, int] = field(default_factory=dict)
     consumable_usage_totals: dict[str, int] = field(default_factory=dict)
     generation_discovery: dict[str, bool] | None = None
+    castle_suit: str | None = None
 
     def __post_init__(self) -> None:
+        if self.castle_suit is not None and (
+            not isinstance(self.castle_suit, str) or self.castle_suit not in CASTLE_SUITS
+        ):
+            raise HeadlessTransitionError("invalid retained Castle suit")
         if str(self.public.deck_name).upper() != "RED":
             raise HeadlessTransitionError("R1 headless state currently supports Red Deck only")
         if str(self.public.stake_name).upper() != "WHITE":

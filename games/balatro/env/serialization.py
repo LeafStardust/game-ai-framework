@@ -296,6 +296,9 @@ def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
         if run.blind_progression_state is None
         else _plain_value(asdict(run.blind_progression_state))
     )
+    private = {name: _plain_value(getattr(run, name)) for name in _PRIVATE_SCALARS}
+    if run.castle_suit is not None:
+        private["castle_suit"] = run.castle_suit
     return {
         "schema": HEADLESS_RUN_STATE_SCHEMA,
         "seed": run.seed,
@@ -310,7 +313,7 @@ def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
         "blind_progression": progression,
         "boss_selection": _boss_selection_payload(run.boss_selection_state),
         "tag_profile": _tag_profile_payload(run.tag_profile_state),
-        "private": {name: _plain_value(getattr(run, name)) for name in _PRIVATE_SCALARS},
+        "private": private,
     }
 
 
@@ -387,8 +390,10 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
     }:
         raise HeadlessTransitionError("invalid private zones in headless snapshot")
     private = payload["private"]
-    if not isinstance(private, Mapping) or set(private) != set(_PRIVATE_SCALARS):
+    if not isinstance(private, Mapping) or set(private) - {"castle_suit"} != set(_PRIVATE_SCALARS):
         raise HeadlessTransitionError("invalid private fields in headless snapshot")
+    if "castle_suit" in private and private["castle_suit"] is None:
+        raise HeadlessTransitionError("invalid retained Castle suit in headless snapshot")
     progression_payload = payload["blind_progression"]
     progression = None
     if progression_payload is not None:

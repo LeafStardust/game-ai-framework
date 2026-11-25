@@ -1,6 +1,8 @@
 from games.balatro.hand_rules import card_matches_suit
 from games.balatro.joker import Joker, JokerContext
 
+CASTLE_SUITS = frozenset({"Hearts", "Diamonds", "Clubs", "Spades"})
+
 
 class CastleJoker(Joker):
 

@@ -162,6 +162,11 @@ def finalize_won_round_progression(
         next_run.round_bonus_hands = 0
         next_run.round_bonus_discards = 0
 
+    if next_run.castle_suit is not None:
+        from games.balatro.env.castle_round import reset_castle_round_suit
+
+        reset_castle_round_suit(next_run)
+
     next_run.blind_progression_state = deepcopy(next_progression)
     return next_run, next_progression
 
