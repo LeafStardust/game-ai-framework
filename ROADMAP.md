@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`9bb397c0e76131da0acbb72cc4ad652615a0836f`.
+`79294d2fe69e8828e27b83b8d2be45e94ad0a85a`.
 
 ## Objective
 
@@ -2549,15 +2549,26 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add Séance as the thirty-eighth exact generated-Joker acquisition. The
-committed trace offers uneditioned `j_seance` at episode 47
-decision 1 / seed `D040C703`, with rarity 2, base cost 6, and price 6.
+Audit Mime as the candidate for the thirty-ninth exact generated-Joker
+acquisition. The committed trace offers uneditioned `j_mime` at episode 48
+decision 8 / seed `B1887C22`, with rarity 2, base cost 5, and price 5.
 
-Next, admit exact uneditioned Séance purchase and discovery, blind-start and
-cash-out continuation, and inventory-only sale. Verify a natural offer and
-complete seeded rollout. Require the Spectral generation authority for purchase
-and preserve the held Spectral use mask. Hallucination, booster work, other
-centers, rewards, and retraining remain deferred.
+Compare the pinned source with the existing held-card scoring and end-of-round
+payout owners. Verify Mime's trigger order, Red Seal composition, debuffs, and
+supported held-card abilities. Keep acquisition masked until its reachable
+callbacks are exact. Hallucination, booster work, other centers, rewards,
+and retraining remain deferred.
+
+Séance generated acquisition checkpoint:
+
+- Commit `79294d2fe69e8828e27b83b8d2be45e94ad0a85a` admits exact uneditioned
+  `j_seance` with rarity 2 and base cost 6. Purchase requires retained
+  Spectral generation authority. Blind start, cash-out, and inventory-only
+  sale are exact. Held Spectral use remains masked.
+- Complete production seed 145 buys for $6, retains Séance through a Big
+  Blind win, sells for $3, and ends in a loss after seven strategic decisions.
+- GitHub Actions run `45660348773`, job `139368190875` logged
+  **3780 passed, 1621 deselected in 310.36s**.
 
 Séance production Play checkpoint:
 
@@ -2567,8 +2578,7 @@ Séance production Play checkpoint:
   full capacity, and a hand rejected by The Mouth consume no Spectral RNG.
   Séance is inert during Hook's forced discard.
 - GitHub Actions run `45658296034`, job `139360852098` logged
-  **3775 passed, 1621 deselected in 520.58s**. Acquisition remains masked
-  pending the final bridge.
+  **3775 passed, 1621 deselected in 520.58s**.
 
 Séance held-Spectral inventory checkpoint:
 
