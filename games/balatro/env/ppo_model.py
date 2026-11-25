@@ -174,7 +174,7 @@ class PPOActorCritic:
         the zero-initialized new rows remain trainable. Older checkpoints still
         fail closed because their first-layer shape is smaller.
         """
-        if PUBLIC_OBSERVATION_VERSION != "balatro-red-white-public-observation-v4":
+        if PUBLIC_OBSERVATION_VERSION != "balatro-red-white-public-observation-v5":
             raise PPOContractError("PPO model observation initializer is not versioned")
         feature_names = PUBLIC_OBSERVATION_SCHEMA.feature_names
         added_suffixes = (

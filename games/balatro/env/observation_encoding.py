@@ -9,6 +9,7 @@ from typing import Any, Iterable, TYPE_CHECKING
 from games.balatro.card import EDITIONS, ENHANCEMENTS, SEALS, BalatroCard
 from games.balatro.env.consumable_centers import (
     VANILLA_PLANET_CENTER_ORDER,
+    VANILLA_SPECTRAL_CENTER_ORDER,
     VANILLA_TAROT_CENTER_ORDER,
 )
 from games.balatro.env.boss_selection import VANILLA_BOSS_NAMES
@@ -19,7 +20,6 @@ from games.balatro.env.voucher_centers import VANILLA_VOUCHER_CENTER_KEYS
 from games.balatro.hand import PokerHand
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.planets import PLANET_CARDS
-from games.balatro.spectrals import SPECTRAL_CARDS
 from games.balatro.tarots import TAROT_CARDS
 from games.balatro.state import BalatroState
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from games.balatro.env.state import EnvStateFrame
 
 
-PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v4"
+PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v5"
 
 PHASES = (
     "ROUND_START", "BLIND_SELECT", "DRAW_TO_HAND", "SELECTING_HAND", "SHOP",
@@ -312,7 +312,6 @@ def _consumable_center(item: Any, field: str) -> str:
         if value.name == name:
             return f"c_{key.lower()}"
     names = {key: getattr(value, "name", None) for key, value in TAROT_CARDS.items()}
-    names.update({key: getattr(value, "name", None) for key, value in SPECTRAL_CARDS.items()})
     for key, candidate in names.items():
         if candidate == name:
             center = "c_" + str(key).lower().replace(" ", "_")
@@ -325,9 +324,17 @@ def _consumable_values(item: Any | None, field: str) -> list[float]:
     if item is None:
         return [0.0] * len(_CONSUMABLE_FIELDS)
     category = str(getattr(item, "category", getattr(item, "card_type", ""))).upper()
-    category_id = _index(category, ("TAROT", "PLANET"), f"{field}.category")
+    category_id = _index(category, ("TAROT", "PLANET", "SPECTRAL"), f"{field}.category")
+    if category == "SPECTRAL":
+        center = getattr(item, "center_key", None) or getattr(item, "center", None)
+        center_id = len(CONSUMABLE_CENTER_KEYS) + _index(
+            center, VANILLA_SPECTRAL_CENTER_ORDER, f"{field}.center"
+        )
+    else:
+        center = _consumable_center(item, field)
+        center_id = _index(center, CONSUMABLE_CENTER_KEYS, f"{field}.center")
     hand_type = getattr(item, "hand_type", None)
-    return [1.0, _index(_consumable_center(item, field), CONSUMABLE_CENTER_KEYS, f"{field}.center"), category_id,
+    return [1.0, center_id, category_id,
             _index(hand_type, HAND_KEYS, f"{field}.hand_type", optional=True),
             _number(getattr(item, "chips", 0), f"{field}.chips"), _number(getattr(item, "mult", 0), f"{field}.mult"),
             _number(getattr(item, "price", 3), f"{field}.price"),

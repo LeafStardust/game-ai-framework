@@ -4,6 +4,7 @@ import pytest
 
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
+from games.balatro.env.consumable_centers import VANILLA_SPECTRAL_CENTER_ORDER
 from games.balatro.env.observation_encoding import (
     PUBLIC_OBSERVATION_SCHEMA,
     PUBLIC_OBSERVATION_VERSION,
@@ -17,6 +18,7 @@ from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.env.shop_items import GeneratedShopJokerItem
+from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
 from games.balatro.env.transition import HeadlessRunState, ShopTransitionEngine
 from games.balatro.env.voucher_capabilities import SHOP_BASE_GENERATION_VOUCHER_KEYS
@@ -27,6 +29,7 @@ from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.vampire import VampireJoker
+from games.balatro.spectrals import create_spectral
 from games.balatro.state import BalatroState
 
 
@@ -60,6 +63,45 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
     assert _at(encoded, "state.blind.requirement") == 300.0
     assert _at(encoded, "hand.0.rank") == 13.0
     assert _at(encoded, "jokers.0.present") == 1.0
+
+
+def test_env_o_v5_encodes_held_spectral_identity_in_existing_slots():
+    frame = _frame()
+    spectral = create_spectral("Cryptid")
+    spectral.center_key = "c_cryptid"
+    frame.state.consumables = [spectral]
+
+    encoded = encode_public_observation(frame)
+
+    assert encoded.shape == (2480,)
+    assert encoded.schema_version == "balatro-red-white-public-observation-v5"
+    assert _at(encoded, "consumables.0.category") == 3.0
+    assert _at(encoded, "consumables.0.center") == 35 + VANILLA_SPECTRAL_CENTER_ORDER.index("c_cryptid")
+
+
+@pytest.mark.parametrize("center", [None, "c_fool", "c_unknown"])
+def test_env_o_v5_rejects_spectral_without_exact_center(center):
+    frame = _frame()
+    spectral = create_spectral("Cryptid")
+    spectral.center_key = center
+    frame.state.consumables = [spectral]
+
+    with pytest.raises(PublicObservationEncodingError, match=r"consumables\[0\]\.center"):
+        encode_public_observation(frame)
+
+
+@pytest.mark.parametrize(("kind", "center", "category_id", "center_id"), [
+    ("Tarot", "c_fool", 1.0, 1.0),
+    ("Planet", "c_mercury", 2.0, 23.0),
+])
+def test_env_o_v5_preserves_legacy_held_center_codes(kind, center, category_id, center_id):
+    frame = _frame()
+    frame.state.consumables = [GeneratedShopConsumableItem(kind, center, 3, 3)]
+
+    encoded = encode_public_observation(frame)
+
+    assert _at(encoded, "consumables.0.category") == category_id
+    assert _at(encoded, "consumables.0.center") == center_id
 
 
 def test_env_o_v4_encodes_exact_rocket_cashout_state():
