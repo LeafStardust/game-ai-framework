@@ -43,6 +43,7 @@ from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
+from games.balatro.jokers.castle import CASTLE_SUITS, CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
@@ -77,6 +78,8 @@ class GeneratedShopJokerItem:
 
 def materialize_generated_shop_joker_for_acquisition(
     item: GeneratedShopJokerItem,
+    *,
+    castle_suit: str | None = None,
 ) -> Joker:
     """Construct the first exactly owned generated gameplay Joker.
 
@@ -236,6 +239,13 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Smiley Face"
+    elif item.center_key == "j_castle":
+        if not isinstance(castle_suit, str) or castle_suit not in CASTLE_SUITS:
+            raise HeadlessTransitionError("generated Castle requires the exact round suit")
+        joker_type = CastleJoker
+        expected_rarity = 2
+        expected_base_cost = 6
+        label = "Castle"
     elif item.center_key == "j_vampire":
         joker_type = VampireJoker
         expected_rarity = 2
@@ -274,7 +284,7 @@ def materialize_generated_shop_joker_for_acquisition(
     if not isinstance(item.discovered, bool):
         raise HeadlessTransitionError("generated Joker discovery state must be exact")
 
-    joker = joker_type()
+    joker = CastleJoker(castle_suit) if joker_type is CastleJoker else joker_type()
     joker.center = item.center_key
     joker.label = label
     joker.rarity = item.rarity

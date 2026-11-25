@@ -120,9 +120,19 @@ def _apply_hook_forced_discards(
     if str(getattr(state, "boss_name", "") or "") != "The Hook":
         raise HeadlessTransitionError("Hook press-play discard requires The Hook")
     if state.jokers:
-        raise HeadlessTransitionError(
-            "Hook press-play with Joker discard triggers is not yet owned"
+        from games.balatro.env.joker_tactical_capabilities import (
+            generated_joker_tactical_callbacks_are_exact,
         )
+        from games.balatro.jokers.castle import CastleJoker
+
+        if any(type(joker) is not CastleJoker for joker in state.jokers) or (
+            not generated_joker_tactical_callbacks_are_exact(
+                state.jokers, castle_suit=run.castle_suit
+            )
+        ):
+            raise HeadlessTransitionError(
+                "Hook press-play with Joker discard triggers is not yet owned"
+            )
 
     if any(
         isinstance(index, bool)
@@ -173,6 +183,10 @@ def _apply_hook_forced_discards(
     # boundary, so retain that relative order for the physical discard area.
     visible_rank = {id(card): index for index, card in enumerate(next_state.hand)}
     forced.sort(key=lambda card: visible_rank[id(card)])
+    if next_state.jokers:
+        from games.balatro.env.castle_round import apply_castle_discard_callbacks
+
+        apply_castle_discard_callbacks(next_run, forced)
     forced_ids = {id(card) for card in forced}
     next_state.hand = [card for card in next_state.hand if id(card) not in forced_ids]
     next_state.discard_pile.extend(forced)

@@ -1818,6 +1818,29 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
 
 
+def test_env_ppo_fixed_seed_completes_castle_purchase_round_win_and_sale():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed=51)
+    replay = (
+        ("SELECT_BLIND", {}, 9, "Spades", ()),
+        ("BUY_JOKER", {"slot": 0}, 3, "Spades", (("j_castle", "Spades", 0),)),
+        ("END_SHOP", {}, 3, "Spades", (("j_castle", "Spades", 0),)),
+        ("SELECT_BLIND", {}, 7, "Clubs", (("j_castle", "Clubs", 6),)),
+        ("SELL_JOKER", {"joker_index": 0}, 10, "Clubs", ()),
+        ("END_SHOP", {}, 10, "Clubs", ()),
+        ("SELECT_BLIND", {}, 10, "Clubs", ()),
+    )
+    for alias, params, money, suit, jokers in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert (run.public.money, run.castle_suit) == (money, suit)
+        assert tuple((joker.center, joker.suit, joker.chips) for joker in run.public.jokers) == jokers
+
+    assert environment.frame.status is RunStatus.LOSS
+
+
 def test_env_ppo_fixed_seed_completes_exact_generated_vampire_lifecycle():
     environment = make_ppo_training_environment(0)
     environment.reset(seed=69)

@@ -264,7 +264,9 @@ def _require_baseline_discard_callbacks_exact(run: HeadlessRunState) -> None:
             generated_joker_tactical_callbacks_are_exact,
         )
 
-        if generated_joker_tactical_callbacks_are_exact(state.jokers):
+        if generated_joker_tactical_callbacks_are_exact(
+            state.jokers, castle_suit=run.castle_suit
+        ):
             return
         raise HeadlessTransitionError(
             "R4 baseline discard does not yet own Joker discard callbacks"
@@ -282,7 +284,7 @@ def apply_supported_tactical_discard(
     Boss redraw behavior, Fish's explicit face-up post-discard draw, Wheel's
     keyed per-card facing draw, Mark's deterministic face-card draw, The
     Psychic, and The Manacle's exact active hand-size reduction. It rejects
-    unowned Boss redraws, every Joker discard callback, and Purple-seal
+    unowned Boss redraws, unsupported Joker discard callbacks, and Purple-seal
     generation.
     """
     if not isinstance(run, HeadlessRunState):
@@ -317,9 +319,12 @@ def apply_supported_tactical_discard(
     next_selected = [next_state.hand[index] for index in indices]
     selected_ids = {id(card) for card in next_selected}
 
-    # Vanilla discard callbacks fire before movement. All callback-producing
-    # identities admitted above are absent, so the exact remaining movement is
-    # hand-area order -> discard tail.
+    if next_state.jokers:
+        from games.balatro.env.castle_round import apply_castle_discard_callbacks
+
+        apply_castle_discard_callbacks(next_run, next_selected)
+
+    # Vanilla moves cards in hand-area order to the discard tail.
     next_state.hand = [card for card in next_state.hand if id(card) not in selected_ids]
     next_run.discard_pile.extend(next_selected)
     next_state.discard_pile.extend(next_selected)

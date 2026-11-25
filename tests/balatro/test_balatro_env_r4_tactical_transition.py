@@ -605,6 +605,26 @@ def test_env_r4_baseline_discard_admits_exact_materialized_rocket_noop_callback(
     assert type(result.public.jokers[0]).__name__ == "RocketJoker"
 
 
+@pytest.mark.parametrize("initial_chips", [0, True, -3, 2])
+def test_env_r4_castle_discard_growth_requires_exact_state(initial_chips):
+    run = _dealt_run(seed="CASTLE-DISCARD")
+    run.castle_suit = run.public.hand[0].suit
+    joker = materialize_generated_shop_joker_for_acquisition(
+        GeneratedShopJokerItem("j_castle", 2, 6, None, 6, False),
+        castle_suit=run.castle_suit,
+    )
+    joker.chips = initial_chips
+    run.public.jokers = [joker]
+
+    if type(initial_chips) is int and initial_chips == 0:
+        result = apply_supported_tactical_discard(run, (0,))
+        assert result.public.jokers[0].chips == 3
+    else:
+        with pytest.raises(HeadlessTransitionError, match="Joker discard callbacks"):
+            apply_supported_tactical_discard(run, (0,))
+    assert joker.chips is initial_chips
+
+
 def test_env_r4_baseline_discard_admits_exact_materialized_vampire_noop_callback():
     run = _dealt_run(seed="R4-VAMPIRE-DISCARD")
     run.public.jokers = [

@@ -316,7 +316,9 @@ def _require_supported_context(run: HeadlessRunState) -> None:
 
         if (
             boss_name == "Verdant Leaf"
-            or not generated_joker_tactical_callbacks_are_exact(state.jokers)
+            or not generated_joker_tactical_callbacks_are_exact(
+                state.jokers, castle_suit=run.castle_suit
+            )
         ):
             raise HeadlessTransitionError(
                 "R4 baseline Play does not yet own Joker callbacks"

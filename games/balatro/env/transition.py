@@ -639,7 +639,7 @@ class ShopTransitionEngine:
 
             if type(source_item) is GeneratedShopJokerItem:
                 purchased = materialize_generated_shop_joker_for_acquisition(
-                    source_item
+                    source_item, castle_suit=next_run.castle_suit
                 )
                 discovered = next_run.generated_center_discovered(
                     source_item.center_key
@@ -724,7 +724,9 @@ class ShopTransitionEngine:
 
         if type(item) is GeneratedShopJokerItem:
             try:
-                materialize_generated_shop_joker_for_acquisition(item)
+                materialize_generated_shop_joker_for_acquisition(
+                    item, castle_suit=run.castle_suit
+                )
             except (TypeError, HeadlessTransitionError):
                 return False
             try:

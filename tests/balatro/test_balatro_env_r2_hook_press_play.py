@@ -4,6 +4,7 @@ from games.balatro.actions import BalatroAction, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.blind_start import start_supported_start_inert_boss
 from games.balatro.env.boss_play import apply_hook_press_play_discards
+from games.balatro.jokers.castle import CastleJoker
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
 
@@ -66,6 +67,27 @@ def test_env_r2_hook_forces_two_discards_from_remaining_not_played_cards():
     assert [_identity(card) for card in result.draw_pile] == before_draw
     assert [_identity(card) for card in result.public.deck] == before_deck
     assert result.public.phase == "SELECTING_HAND"
+
+
+def test_env_r2_hook_forced_discard_grows_castle_without_using_a_discard():
+    started = start_supported_start_inert_boss(_hook_run())
+    action = BalatroAction(PLAY_CARDS, cards=started.public.hand[:5])
+    baseline = apply_hook_press_play_discards(started, action)
+    started.castle_suit = baseline.discard_pile[0].suit
+    joker = CastleJoker(started.castle_suit)
+    joker.center = "j_castle"
+    started.public.jokers = [joker]
+
+    result = apply_hook_press_play_discards(started, action)
+
+    assert [_identity(card) for card in result.discard_pile] == [
+        _identity(card) for card in baseline.discard_pile
+    ]
+    matches = sum(card.suit == started.castle_suit for card in baseline.discard_pile)
+    assert result.public.jokers[0].chips == 3 * matches
+    assert result.public.discards_remaining == started.public.discards_remaining
+    assert result.rng_snapshot() == baseline.rng_snapshot()
+    assert joker.chips == 0
 
 
 def test_env_r2_hook_consumes_two_keyed_draws_and_is_replay_deterministic():

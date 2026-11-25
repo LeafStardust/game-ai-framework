@@ -30,6 +30,7 @@ from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
+from games.balatro.jokers.castle import CASTLE_SUITS, CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
@@ -42,7 +43,9 @@ from games.balatro.jokers.wrathful_joker import WrathfulJoker
 from games.balatro.jokers.zany_joker import ZanyJoker
 
 
-def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
+def generated_joker_tactical_callbacks_are_exact(
+    jokers: list[Any], *, castle_suit: str | None = None
+) -> bool:
     """Return whether every owned Joker has only the currently owned callbacks."""
     for joker in jokers:
         if type(joker) is AbstractJoker:
@@ -111,6 +114,19 @@ def generated_joker_tactical_callbacks_are_exact(jokers: list[Any]) -> bool:
             expected_center = "j_sly"
         elif type(joker) is SmileyFaceJoker:
             expected_center = "j_smiley"
+        elif type(joker) is CastleJoker:
+            if (
+                not isinstance(castle_suit, str)
+                or castle_suit not in CASTLE_SUITS
+                or joker.suit != castle_suit
+                or type(joker.chip_mod) is not int
+                or joker.chip_mod != 3
+                or type(joker.chips) is not int
+                or joker.chips < 0
+                or joker.chips % 3
+            ):
+                return False
+            expected_center = "j_castle"
         elif type(joker) is VampireJoker:
             if (
                 isinstance(joker.x_mult, bool)

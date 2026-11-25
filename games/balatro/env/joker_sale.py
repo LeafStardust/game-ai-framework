@@ -21,6 +21,7 @@ from games.balatro.env.joker_order import JokerOrderError
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.vampire import VampireJoker
 
@@ -31,6 +32,7 @@ _STATIC_SELL_SAFE_TYPES = tuple(
         *_EXACT_R1_JOKER_ACQUISITION_TYPES,
         *_OWNED_DECK_SCORING_TYPES,
         GoldenJoker,
+        CastleJoker,
         RocketJoker,
         VampireJoker,
     )

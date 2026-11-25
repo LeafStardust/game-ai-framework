@@ -1489,6 +1489,37 @@ def test_env_r2_exact_rocket_materialization_acquires_and_sells():
     assert sold_run.public.jokers == []
 
 
+@pytest.mark.parametrize("suit", [None, "Unknown", "Hearts"])
+def test_env_r2_castle_purchase_requires_the_retained_round_suit(suit):
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_castle", rarity=2, base_cost=6, discovered=False)
+    )
+    run.castle_suit = suit
+    inserted = insert_generated_shop_joker_item(run, item)
+    engine = ShopTransitionEngine()
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+
+    assert (action in engine.legal_actions(inserted)) == (suit == "Hearts")
+    if suit == "Hearts":
+        purchased = engine.step(inserted, action)
+        joker = purchased.public.jokers[0]
+        assert (joker.center, joker.suit, joker.chips, joker.chip_mod) == (
+            "j_castle", "Hearts", 0, 3,
+        )
+        assert purchased.generated_center_discovered("j_castle") is True
+    else:
+        with pytest.raises(HeadlessTransitionError):
+            engine.step(inserted, action)
+        assert inserted.public.jokers == []
+
+
+@pytest.mark.parametrize("rarity,base_cost,edition", [(1, 6, None), (2, 5, None), (2, 6, "Foil")])
+def test_env_r2_castle_materialization_rejects_unsupported_metadata(rarity, base_cost, edition):
+    item = GeneratedShopJokerItem("j_castle", rarity, base_cost, edition, 6, False)
+    with pytest.raises(HeadlessTransitionError):
+        materialize_generated_shop_joker_for_acquisition(item, castle_suit="Hearts")
+
+
 def test_env_r2_exact_vampire_materialization_acquires_and_sells():
     run, item = materialize_shop_joker_descriptor(
         _descriptor(center_key="j_vampire", rarity=2, base_cost=7, discovered=False)
