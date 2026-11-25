@@ -31,13 +31,16 @@ def test_supernova_uses_public_count_for_current_scored_hand():
     assert score.mult == 6
 
 
-def test_castle_accumulates_only_its_current_public_suit():
+def test_castle_accumulates_only_eligible_cards_at_its_current_growth_rate():
     joker = CastleJoker("Hearts")
+    assert joker.chip_mod == 3
+    joker.chip_mod = 5
     state = BalatroState()
     discarded = [
         BalatroCard("A", "Hearts"),
         BalatroCard("K", "Spades"),
         BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Hearts", debuffed=True),
     ]
     joker.apply(
         JokerContext(
@@ -54,8 +57,8 @@ def test_castle_accumulates_only_its_current_public_suit():
         )
     )
 
-    assert joker.chips == 6
-    assert scored.score.chips == 106
+    assert joker.chips == 10
+    assert scored.score.chips == 110
 
 
 def test_the_idol_scores_only_its_current_public_rank_and_suit():

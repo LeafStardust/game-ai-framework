@@ -7,6 +7,7 @@ class CastleJoker(Joker):
     def __init__(self, suit: str):
         self.suit = suit
         self.chips = 0
+        self.chip_mod = 3
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.event is not None:
@@ -20,7 +21,7 @@ class CastleJoker(Joker):
                     for card in cards
                 )
 
-                self.chips += matching_cards * 3
+                self.chips += matching_cards * self.chip_mod
                 return context
 
         if context.score is not None:

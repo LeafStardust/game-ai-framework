@@ -67,7 +67,7 @@ def test_live_joker_factory_maps_base_joker_to_plus_four_mult_model():
     assert joker.mult == 4
 
 
-def test_live_joker_factory_requires_public_castle_suit_and_hydrates_chips():
+def test_live_joker_factory_requires_castle_suit_and_hydrates_chip_state():
     factory = LiveJokerFactory()
 
     assert factory.create({"center": "j_castle", "label": "Castle"}) is None
@@ -79,7 +79,7 @@ def test_live_joker_factory_requires_public_castle_suit_and_hydrates_chips():
             "public_state": {
                 "suit": "Hearts",
                 "chips": 18,
-                "chip_mod": 3,
+                "chip_mod": 5,
             },
         }
     )
@@ -87,6 +87,7 @@ def test_live_joker_factory_requires_public_castle_suit_and_hydrates_chips():
     assert isinstance(joker, CastleJoker)
     assert joker.suit == "Hearts"
     assert joker.chips == 18
+    assert joker.chip_mod == 5
 
 
 def test_live_joker_factory_requires_and_normalizes_public_idol_target():
