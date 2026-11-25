@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`a02dd0dfe3b236c265f7fa388c63889a53d62b8e`.
+`da932141c44e52f4dcf02f257bb9626ea5c7802a`.
 
 ## Objective
 
@@ -2548,17 +2548,26 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Cloud 9 as the candidate for the thirty-seventh exact generated-Joker
-acquisition. The committed trace offers uneditioned `j_cloud_9` at episode 46
+Add Cloud 9 as the thirty-seventh exact generated-Joker acquisition. The
+committed trace offers uneditioned `j_cloud_9` at episode 46
 decision 9 / seed `4A5D4662`, with `rarity=2`, `base_cost=7`, and `price=7`.
 The preceding Hallucination offer depends on boosters and remains deferred.
 
-Compare the pinned source with the canonical Cloud 9 payout model and ordinary
-and Boss cash-out owners, including the permanent-deck count and debuff
-behavior. Audit blind-start, tactical, shop, sale, and observation boundaries.
-Keep acquisition masked until the payout lifecycle is exact and covered by
-deterministic tests. Booster work, other centers, rewards, and retraining are
-out of scope.
+Admit only the exact generated metadata, blind-start and tactical no-ops, and
+inventory-only sale. Reuse the canonical permanent-deck cash-out owner and
+existing observation identity. Verify the natural offer and complete seed 48
+rollout with a payout after retaining Cloud 9 through the next blind. Booster
+work, other centers, rewards, and retraining are out of scope.
+
+Cloud 9 payout checkpoint:
+
+- Commit `da932141c44e52f4dcf02f257bb9626ea5c7802a` uses the canonical card
+  rank predicate. Vanilla counts rank-ID nines in the permanent deck at $1
+  each. Stone cards contribute nothing, and a playing-card debuff does not
+  suppress a nine. A debuffed Cloud 9 contributes no payout.
+- Tests cover ordinary and Boss cash-outs. GitHub Actions run
+  `45613507338`, job `139202848400` logged **3747 passed, 1621 deselected in
+  513.06s**. The purchase remains masked pending the acquisition bridge.
 
 Castle generated acquisition checkpoint:
 
