@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`85226c1f3788d5e862b98ba3dddadc796868b9fa`.
+`7e2727544b8bdc3bf82ca6daeebb58c197911bb2`.
 
 ## Objective
 
@@ -2549,17 +2549,25 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Mime as the candidate for the thirty-ninth exact generated-Joker
-acquisition. The committed trace offers uneditioned `j_mime` at episode 48
+Add Mime as the thirty-ninth exact generated-Joker acquisition. The committed
+trace offers uneditioned `j_mime` at episode 48
 decision 8 / seed `B1887C22`, with rarity 2, base cost 5, and price 5.
 
-Next, correct Raised Fist's held target selection before admitting Mime.
-The pinned source compares base rank IDs and selects the rightmost lowest
-non-Stone card before checking its debuff. The current scorer filters out
-debuffed cards and resolves tied chip values in the opposite order. Keep
-modified-card and copy interactions outside the admitted headless surface
-until owned. Hallucination, booster work, other centers, rewards, and
-retraining remain deferred.
+Next, admit only exact uneditioned Mime purchase, base-card tactical
+continuation including Raised Fist and Hook, and inventory-only sale. Existing
+base-card guards keep Gold, Blue Seal, and modified-card Play outside the
+admitted surface. Keep copy interactions masked. Verify seed 107's natural
+offer and a complete rollout. Hallucination, booster work, other centers,
+rewards, and retraining remain deferred.
+
+Raised Fist target checkpoint:
+
+- Commit `7e2727544b8bdc3bf82ca6daeebb58c197911bb2` gives the model and
+  shared scorer one target selector. It picks by base rank ID, excludes
+  Stone, resolves ties to the rightmost card, and checks debuff only after
+  selecting the target.
+- GitHub Actions run `45663595671`, job `139379665733` logged
+  **3786 passed, 1621 deselected in 513.03s**.
 
 Mime shared held-scoring checkpoint:
 
