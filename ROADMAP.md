@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`feb5972d244e7ca357198a22663b9b6bb5a9dd22`.
+`b28e901d2deddbfe04bfe636a3140627cb58bff3`.
 
 ## Objective
 
@@ -2549,16 +2549,31 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Green Joker as the candidate for the forty-seventh exact generated
+Audit Sixth Sense as the candidate for the forty-eighth exact generated
 Joker acquisition. The committed strategic/shop trace offers uneditioned
-`j_green_joker` at episode 53 decision 1 / seed `243A32A8`, with rarity 1,
-base cost 4, and price 4.
+`j_sixth_sense` at episode 54 decision 1 / seed `4C8AAC2C`, with rarity 2,
+base cost 6, and price 6.
 
-Next, audit the pinned before-score growth and discard loss callbacks.
-Verify the zero floor, persistence across rounds, Boss-debuffed Play,
-The Hook's forced discard, and the existing public Mult field before
-admitting purchase or sale. Hallucination, booster work, rewards, and
-retraining remain deferred.
+First audit the pinned first-hand callback, held Spectral capacity and
+generation authority, and deferred destruction of the played six.
+Identify the canonical permanent-deck and creation-order owners for
+destruction, including redraw and Boss behavior and interaction with DNA
+copies. Keep acquisition masked until the supported slice passes CI.
+Hallucination, booster work, rewards, and retraining remain deferred.
+
+Green Joker acquisition checkpoint:
+
+- Commit `b28e901d2deddbfe04bfe636a3140627cb58bff3` admits exact uneditioned
+  Green Joker. It grows by +1 Mult before scoring an accepted hand and
+  loses 1 Mult per discard, floored at zero. The Hook applies the loss
+  before Play growth and leaves the discard budget intact. Boss-blocked
+  hands do not grow it. Mult persists in the existing observation field.
+- Trace seed `243A32A8` buys Green Joker for $4, grows to +2 on the Big
+  Blind and +4 through the Boss, sells for $2, and clears the next Small
+  Blind. The Zany replay now pins its intended actions after the new
+  purchase became legal.
+- GitHub Actions run `45838890269`, job `139974965730` logged
+  **3895 passed, 1621 deselected in 313.72s**.
 
 Supernova acquisition checkpoint:
 
