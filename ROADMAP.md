@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`1f937e480c2ec8ddce490dc3cf507a6b7b752adc`.
+`26ba41d72e39b2c070448560bf657c4805b6a2c6`.
 
 ## Objective
 
@@ -2549,17 +2549,29 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Sixth Sense as the candidate for the forty-eighth exact generated
+Audit Mail-In Rebate as the candidate for the forty-ninth exact generated
 Joker acquisition. The committed strategic/shop trace offers uneditioned
-`j_sixth_sense` at episode 54 decision 1 / seed `4C8AAC2C`, with rarity 2,
-base cost 6, and price 6.
+`j_mail` at episode 57 decision 1 / seed `FADDC372`, with rarity 1, base
+cost 4, and price 4.
 
-Next, admit exact uneditioned Sixth Sense to the generated shop and
-inventory-only sale. Require retained ordinary-deck order and exact
-held-Spectral generation authority at purchase. Audit blind start and
-round-end continuation, then pin a seeded production replay covering
-purchase, destruction, generation, sale, and continued play. Hallucination,
-booster work, rewards, and retraining remain deferred.
+First audit the pinned target-rank reset, RNG stream, retained deck order,
+and initial target. Verify the per-card discard payout, including debuffs
+and The Hook, and the public target observation before admitting purchase
+or sale. Hallucination, booster work, rewards, and retraining remain
+deferred.
+
+Sixth Sense acquisition checkpoint:
+
+- Commit `26ba41d72e39b2c070448560bf657c4805b6a2c6` admits exact uneditioned
+  Sixth Sense, with retained deck order and Spectral authority required at
+  purchase. Trace seed `4C8AAC2C` pays $6, discards to reach an opening
+  single Six of Hearts, scores and destroys it, and generates Ouija.
+  The replay sells Sixth Sense for $3, keeps 51 cards, and clears the Boss.
+  Generated Spectral use remains masked. The existing reroll/cash-out
+  fixture pins its intended actions after the new purchase became legal.
+- GitHub Actions run `45847320880` first exceeded the job timeout after
+  logging **3912 passed, 1621 deselected in 593.36s**. The green rerun,
+  job `140010934036`, logged **3912 passed, 1621 deselected in 534.77s**.
 
 Sixth Sense Play checkpoint:
 
