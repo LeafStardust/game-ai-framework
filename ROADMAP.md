@@ -2554,12 +2554,30 @@ Joker acquisition. The committed strategic/shop trace offers uneditioned
 `j_sixth_sense` at episode 54 decision 1 / seed `4C8AAC2C`, with rarity 2,
 base cost 6, and price 6.
 
-First audit the pinned first-hand callback, held Spectral capacity and
-generation authority, and deferred destruction of the played six.
-Identify the canonical permanent-deck and creation-order owners for
-destruction, including redraw and Boss behavior and interaction with DNA
-copies. Keep acquisition masked until the supported slice passes CI.
-Hallucination, booster work, rewards, and retraining remain deferred.
+Next, establish exact permanent-deck removal for one played six. Preserve
+retained creation order and object identity, including DNA copies of the
+same card. Update deal/redraw and Boss validation only for proven six
+removals, and retain The Pillar's debuff authority for all surviving cards.
+Keep Sixth Sense purchase masked. Hallucination, booster work, rewards,
+and retraining remain deferred.
+
+Sixth Sense source audit:
+
+- Pinned `card.lua:2507` and `functions/state_events.lua:886` place the
+  trigger in accepted-hand destruction after scoring. It requires the
+  first played hand of the round to contain exactly one six. The six is
+  destroyed even with a full consumable area. Available capacity controls
+  only whether a Spectral is generated. The current live projection couples
+  destruction to available room and needs correction before admission.
+- Generation uses the regular non-soulable Spectral pool with RNG domain
+  `Spectralsixth{ante}`, using the same eligibility and unavailable-position
+  retries as the existing Spectral owner. Full inventory consumes no
+  generation RNG.
+- Current headless deal, redraw, Play, and Boss checks require all 52
+  original card identities, with bounded DNA copies. The Pillar's retained
+  debuff groups are positional. Preserve each surviving object's identity
+  and corresponding debuff when removing the played six. Audit DNA's
+  pre-score copy before applying Sixth Sense's post-score destruction.
 
 Green Joker acquisition checkpoint:
 
