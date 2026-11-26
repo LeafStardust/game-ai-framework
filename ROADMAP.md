@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`a76000cd04c38f9405fa74331d886ea342fb7d1d`.
+`c6fb54bf623541ba0559bcdd66f8592008312c9e`.
 
 ## Objective
 
@@ -2554,12 +2554,23 @@ acquisition. The committed strategic/shop trace offers uneditioned
 `j_runner` at episode 52 decision 3 / seed `EB851E5F`, with rarity 1,
 base cost 5, and price 5.
 
-Next, audit the pinned before-score callback for recognizing a Straight
-inside another hand type, growth on the triggering hand, and persistent
-chips across rounds. Verify the score and Boss boundaries and the public
-observation of accumulated chips before admitting purchase or sale.
-Supernova, Hallucination, booster work, rewards, and retraining remain
-deferred.
+Next, admit exact uneditioned Runner to the generated shop and inventory-only
+sale. Pin a headless replay for purchase, Straight growth, chip persistence,
+sale, and continued play. Supernova, Hallucination, booster work, rewards,
+and retraining remain deferred.
+
+Runner scoring checkpoint:
+
+- Commit `d96ab8f8a78453f5d4db759343c486d6af1d8638` resolves the Straight
+  component before card mutations. Runner gains 15 chips before scoring
+  and contributes them immediately. The Mouth's blocked hand grants no
+  growth. Chips persist across rounds in the existing observation field.
+  The Hook remains inert for Runner, and invalid chip states fail closed.
+- Initial run `45810164570` logged **1 failed, 3875 passed, 1621 deselected
+  in 450.13s**. Commit `c6fb54bf623541ba0559bcdd66f8592008312c9e` routes
+  the lifecycle probe through the shared before-score callback.
+  GitHub Actions run `45811696015`, job `139880901256` logged **3876
+  passed, 1621 deselected in 431.64s**.
 
 Splash acquisition checkpoint:
 
