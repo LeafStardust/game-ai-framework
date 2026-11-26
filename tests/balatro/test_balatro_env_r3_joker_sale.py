@@ -1,10 +1,17 @@
 import pytest
 
+from games.balatro.env.episode_backend import pristine_red_white_reset
+from games.balatro.env.joker_removal import destroy_inventory_only_joker_exact
 from games.balatro.env.joker_sale import (
     can_sell_joker_exact,
     sell_joker_exact,
 )
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.shop_generation_state import suppress_visible_shop_jokers_from_generation_pool
+from games.balatro.env.shop_items import (
+    GeneratedShopJokerItem,
+    materialize_generated_shop_joker_for_acquisition,
+)
 from games.balatro.env.transition import (
     HeadlessRunState,
     HeadlessTransitionError,
@@ -32,6 +39,48 @@ def _shop_run(joker=None) -> HeadlessRunState:
     selected.sell_cost = 3
     state.jokers = [selected]
     return HeadlessRunState(public=state, seed="SELL-JOKER")
+
+
+@pytest.mark.parametrize("duplicate", [False, True])
+def test_env_r3_joker_destruction_removes_order_without_proceeds_and_updates_pool(duplicate):
+    run = pristine_red_white_reset("DESTROY-JOKER")
+    other_center = "j_joker" if duplicate else "j_jolly"
+    for center, cost in (("j_joker", 2), (other_center, 2 if duplicate else 3)):
+        joker = materialize_generated_shop_joker_for_acquisition(
+            GeneratedShopJokerItem(center, 1, cost, None, cost, center == "j_joker")
+        )
+        run.require_joker_order_state().acquire(joker, run.public.jokers)
+        run.public.jokers.append(joker)
+    run = suppress_visible_shop_jokers_from_generation_pool(run, run.public.jokers)
+    before = run.rng_snapshot()
+    # Destruction does not depend on observed resale value.
+    run.public.jokers[0].sell_cost = None
+
+    result = destroy_inventory_only_joker_exact(run, 0)
+
+    assert result.public.money == run.public.money == 4
+    assert [joker.center for joker in result.public.jokers] == [other_center]
+    assert result.require_joker_order_state().creation_order == result.public.jokers
+    keys = {record["key"] for record in result.public.joker_generation_pools["1"]}
+    assert ("j_joker" in keys) is not duplicate
+    assert result.rng_snapshot() == run.rng_snapshot() == before
+    assert len(run.public.jokers) == 2
+
+
+@pytest.mark.parametrize("boundary", ["resource", "eternal", "edition"])
+def test_env_r3_joker_destruction_fails_closed_while_inverse_is_unowned(boundary):
+    run = _shop_run(JugglerJoker() if boundary == "resource" else FlatMultJoker())
+    joker = run.public.jokers[0]
+    if boundary == "eternal":
+        joker.eternal = True
+    if boundary == "edition":
+        joker.edition = "Negative"
+
+    with pytest.raises(HeadlessTransitionError):
+        destroy_inventory_only_joker_exact(run, 0)
+
+    assert run.public.jokers == [joker]
+    assert run.public.money == 7
 
 
 def test_env_r3_exact_shop_joker_sale_credits_and_removes_inventory_only_joker():

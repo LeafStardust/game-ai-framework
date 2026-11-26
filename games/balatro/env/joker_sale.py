@@ -11,37 +11,13 @@ closed until their inverse lifecycle is owned.
 from __future__ import annotations
 
 from games.balatro.card import BalatroCard
-from games.balatro.env.transition import (
-    HeadlessRunState,
-    HeadlessTransitionError,
-    _EXACT_R1_JOKER_ACQUISITION_TYPES,
-    _OWNED_DECK_SCORING_TYPES,
+from games.balatro.env.joker_removal import (
+    INVENTORY_ONLY_JOKER_REMOVAL_TYPES,
+    remove_validated_owned_joker,
 )
-from games.balatro.env.joker_order import JokerOrderError
+from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.drunkard import DrunkardJoker
-from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.juggler import JugglerJoker
-from games.balatro.jokers.castle import CastleJoker
-from games.balatro.jokers.cloud_9 import Cloud9Joker
-from games.balatro.jokers.rocket import RocketJoker
-from games.balatro.jokers.seance import SeanceJoker
-from games.balatro.jokers.vampire import VampireJoker
-
-
-_STATIC_SELL_SAFE_TYPES = tuple(
-    joker_type
-    for joker_type in (
-        *_EXACT_R1_JOKER_ACQUISITION_TYPES,
-        *_OWNED_DECK_SCORING_TYPES,
-        GoldenJoker,
-        CastleJoker,
-        Cloud9Joker,
-        RocketJoker,
-        SeanceJoker,
-        VampireJoker,
-    )
-    if joker_type is not JugglerJoker
-)
 
 
 def _validate_owned_joker_identity(
@@ -64,7 +40,7 @@ def _validate_owned_joker_identity(
 
     joker = state.jokers[joker_index]
     owned_inverse = (
-        type(joker) in _STATIC_SELL_SAFE_TYPES
+        type(joker) in INVENTORY_ONLY_JOKER_REMOVAL_TYPES
         or (allow_juggler and type(joker) is JugglerJoker)
         or (allow_drunkard and type(joker) is DrunkardJoker)
     )
@@ -108,35 +84,9 @@ def _sell_owned_joker(
     joker_index: int,
     sell_cost: int,
 ) -> HeadlessRunState:
-    """Apply exact inverse state, inventory, and private-order removal."""
-    next_run = run.copy()
-    next_state = next_run.public
-    sold = next_state.jokers[joker_index]
-    if next_run.joker_order_state is not None:
-        try:
-            next_run.joker_order_state.remove(sold, next_state.jokers)
-        except JokerOrderError as exc:
-            raise HeadlessTransitionError(
-                "cannot retain exact Joker order after sale"
-            ) from exc
-    next_state.money += sell_cost
-    if type(sold) is JugglerJoker:
-        next_state.hand_size -= 1
-    elif type(sold) is DrunkardJoker:
-        next_state.round_reset_discards -= 1
-    next_state.jokers.pop(joker_index)
-    if next_state.joker_generation_pool_observed:
-        # Card:remove clears the sold center from G.GAME.used_jokers once no
-        # copy remains in G.jokers. Reuse the canonical ordered-pool owner so
-        # exact shop generation sees that center again after the sale.
-        from games.balatro.env.shop_generation_state import (
-            restore_removed_shop_jokers_to_generation_pool,
-        )
-
-        next_run = restore_removed_shop_jokers_to_generation_pool(
-            next_run,
-            (sold,),
-        )
+    """Credit sale proceeds after the shared exact inverse succeeds."""
+    next_run = remove_validated_owned_joker(run, joker_index)
+    next_run.public.money += sell_cost
     return next_run
 
 
