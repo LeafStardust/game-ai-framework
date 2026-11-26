@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`0d7e774201c4912b01d8bdf96cf9785f77a2bab5`.
+`09fc0f633a2c9fe4fae7f73d1b6556dffeb64567`.
 
 ## Objective
 
@@ -2549,18 +2549,31 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Madness as the candidate for the fortieth exact generated-Joker
-acquisition. The committed trace offers uneditioned `j_madness` at episode 49
-decision 1 / seed `382C0AB9`, with rarity 2, base cost 7, and price 7.
+Audit Midas Mask as the candidate for the forty-first exact generated-Joker
+acquisition. The committed trace offers uneditioned `j_midas_mask` at episode
+50 decision 1 / seed `0B58B2B9`, with rarity 2, base cost 7, and price 7.
 
-Next, admit uneditioned generated Madness through the existing exact shop,
-tactical, cash-out, and inventory-only sale owners. Require exact retained
-target order and valid XMult. Verify the roadmap seed's natural offer, growth
-and scoring after purchase, and a complete rollout. The existing
-resource-changing generated targets are Juggler and Drunkard. Keep
-unowned inverse lifecycles and editions fail-closed.
+Compare vanilla before-score conversion with the model, live projection, and
+headless Play. Trace permanent Gold identity, score-order interaction with
+Vampire, redraw and subsequent Play, and held Gold cash-out. The current
+headless Play guard rejects enhanced cards. Keep acquisition masked until
+the Gold lifecycle is owned through ordinary and Boss rounds.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
+
+Madness generated acquisition checkpoint:
+
+- Commit `09fc0f633a2c9fe4fae7f73d1b6556dffeb64567` admits uneditioned
+  `j_madness` with rarity 2 and base cost 7. Purchase requires retained
+  Joker order. Tactical admission validates half-step XMult, and ordinary
+  and Boss cash-out and inventory-only sale are supported.
+- Complete production seed `382C0AB9` buys for $7, grows to 1.5× on the
+  Big Blind without a target draw, retains the multiplier through the Boss,
+  sells for $3, and ends in an Ante-2 loss. A separate tactical regression
+  scores after Juggler destruction, preserving the nine-card opening
+  draw and avoiding an extra redraw at the settled limit of eight.
+- GitHub Actions run `45749252314`, job `139672806333` logged
+  **3820 passed, 1621 deselected in 535.82s**.
 
 Madness resource destruction checkpoint:
 
