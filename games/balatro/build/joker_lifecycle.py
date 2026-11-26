@@ -8,7 +8,8 @@ from games.balatro.card import BalatroCard
 from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.hand import PokerHand
 from games.balatro.joker import Joker, JokerContext
-from games.balatro.scoring import HandScore
+from games.balatro.jokers.runner import RunnerJoker
+from games.balatro.scoring import BalatroScorer, HandScore, apply_before_score_jokers
 from games.balatro.state import BalatroState
 
 from .effects import (
@@ -432,6 +433,11 @@ class LifecycleJokerBehaviorAnalyzer(SemanticJokerBehaviorAnalyzer):
             data=self._context_data(state),
         )
         try:
+            if type(joker) is RunnerJoker:
+                apply_before_score_jokers(
+                    BalatroScorer(), poker_hand, state, context.cards, [joker],
+                    hand_rules={},
+                )
             joker.apply(context)
         except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
             return
