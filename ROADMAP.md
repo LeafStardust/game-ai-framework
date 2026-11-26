@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`c0f8a7a7859f458b17c9a22757fc22ab2796b00f`.
+`feb5972d244e7ca357198a22663b9b6bb5a9dd22`.
 
 ## Objective
 
@@ -2549,17 +2549,28 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Supernova as the candidate for the forty-sixth exact generated Joker
-acquisition. The committed strategic/shop trace offers uneditioned
-`j_supernova` at episode 52 decision 3 / seed `EB851E5F`, with rarity 1,
-base cost 5, and price 5.
+Audit Green Joker as the candidate for the forty-seventh exact generated
+Joker acquisition. The committed strategic/shop trace offers uneditioned
+`j_green_joker` at episode 53 decision 1 / seed `243A32A8`, with rarity 1,
+base cost 4, and price 4.
 
-Next, audit the pinned Joker main callback and the canonical hand history.
-Verify that Supernova uses the run-wide count of the classified hand and
-that the triggering hand is included exactly once. Check ordinary Play,
-Boss-debuffed hand history, and live tactical score projection before
+Next, audit the pinned before-score growth and discard loss callbacks.
+Verify the zero floor, persistence across rounds, Boss-debuffed Play,
+The Hook's forced discard, and the existing public Mult field before
 admitting purchase or sale. Hallucination, booster work, rewards, and
 retraining remain deferred.
+
+Supernova acquisition checkpoint:
+
+- Commit `feb5972d244e7ca357198a22663b9b6bb5a9dd22` admits exact uneditioned
+  Supernova. Committed Play supplies the run-wide count after recording the
+  hand. Tactical projection includes the candidate once from its prior
+  history. Boss-blocked plays score zero and remain in the run history.
+- Trace seed `EB851E5F` buys Supernova for $5. Against The Manacle the
+  sixth Two Pair earns 480 points using +6 Mult. The run clears the Boss,
+  sells Supernova for $2, and reaches the next Small Blind.
+- GitHub Actions run `45836075270`, job `139965170849` logged
+  **3887 passed, 1621 deselected in 452.29s**.
 
 Runner acquisition checkpoint:
 
