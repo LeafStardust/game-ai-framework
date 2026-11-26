@@ -6,6 +6,7 @@ from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker import JokerContext
+from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.runner import RunnerJoker
@@ -492,6 +493,12 @@ class BalatroScorer:
             played_cards,
             rules=rules,
         )
+        jokers = getattr(state, "jokers", None)
+        if jokers:
+            green_jokers = [joker for joker in jokers if type(joker) is GreenJoker]
+            apply_before_score_jokers(
+                self, hand, state, played_cards, green_jokers, hand_rules=rules
+            )
         played_card_retriggers = max(
             0,
             int(context_data.get("retrigger_played_cards", 0) or 0),
@@ -525,7 +532,6 @@ class BalatroScorer:
                     if id(card) not in played_identity
                 ]
 
-            jokers = getattr(state, "jokers", None)
             mime_jokers = [joker for joker in jokers if type(joker) is MimeJoker] if jokers else ()
             if mime_jokers:
                 context = JokerContext(state=state, trigger="HAND_PLAYED", data=context_data)

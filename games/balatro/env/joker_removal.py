@@ -15,6 +15,7 @@ from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.runner import RunnerJoker
@@ -34,6 +35,7 @@ INVENTORY_ONLY_JOKER_REMOVAL_TYPES = tuple(
         MadnessJoker,
         DNAJoker,
         FacelessJoker,
+        GreenJoker,
         MidasMaskJoker,
         RocketJoker,
         RunnerJoker,

@@ -7,6 +7,7 @@ from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.tactical_transition import apply_planned_tactical_step
 from games.balatro.env.transition import HeadlessRunState
+from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.state import BalatroState
 
 
@@ -186,3 +187,22 @@ def test_env_r4_decision_engine_bridge_executes_exact_hook_play():
     assert result.rng_snapshot() == expected_rng
     assert decision_engine.observation is not run.public
     assert decision_engine.observation.boss_name == "The Hook"
+
+
+def test_env_r4_hook_decreases_green_once_before_scoring_growth():
+    run = _hook_play_run()
+    joker = GreenJoker()
+    joker.center = "j_green_joker"
+    joker.mult = 4
+    run.public.jokers = [joker]
+    card = run.public.hand[0]
+    baseline = run.copy()
+    baseline.public.jokers = []
+
+    result = apply_supported_ordinary_play(run, (0,))
+
+    assert len(result.discard_pile) == 3
+    assert result.public.discards_remaining == run.public.discards_remaining
+    assert result.public.jokers[0].mult == 4
+    assert result.public.score == 5 * apply_supported_ordinary_play(baseline, (0,)).public.score
+    assert _card_signature(result.discard_pile[-1]) == _card_signature(card)

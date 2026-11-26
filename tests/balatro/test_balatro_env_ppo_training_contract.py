@@ -37,6 +37,7 @@ from games.balatro.env.seeded_evaluation import FIXED_SEEDED_EPISODES
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.jokers.supernova import SupernovaJoker
@@ -1173,11 +1174,20 @@ def test_env_ppo_rollout_crosses_exact_generated_mad_joker_lifecycle(
     ) == 0.0
 @pytest.fixture(scope="module")
 def episode_24_with_zany_joker_lifecycle():
+    actions = (
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+    )
     return collect_complete_ppo_episode(
         make_ppo_training_environment(0),
         PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
         episode_index=24,
-        policy=_generated_joker_lifecycle_policy,
+        policy=_fixed_action_policy(actions),
     )
 
 
@@ -1877,6 +1887,38 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
         ("SELECT_BLIND", {}),
     ]
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
+
+
+def test_env_ppo_trace_seed_completes_green_purchase_growth_and_sale():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="243A32A8")
+    replay = (
+        ("SELECT_BLIND", {}, 8, ()),
+        ("BUY_JOKER", {"slot": 0}, 4, (0,)),
+        ("END_SHOP", {}, 4, (0,)),
+        ("SELECT_BLIND", {}, 10, (2,)),
+        ("END_SHOP", {}, 10, (2,)),
+        ("SELECT_BLIND", {}, 19, (4,)),
+        ("SELL_JOKER", {"joker_index": 0}, 21, ()),
+        ("END_SHOP", {}, 21, ()),
+        ("SELECT_BLIND", {}, 28, ()),
+    )
+    for alias, params, money, mult in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert all(type(joker) is GreenJoker for joker in run.public.jokers)
+        assert tuple(joker.mult for joker in run.public.jokers) == mult
+        if mult:
+            assert run.generated_center_discovered("j_green_joker") is True
+            assert _observation_feature(
+                environment.frame.encoded_observation(), "jokers.0.mult"
+            ) == float(mult[0])
+
+    assert environment.frame.state.round == 4
+    assert environment.frame.state.phase == "SHOP"
 
 
 def test_env_ppo_trace_seed_completes_supernova_purchase_scoring_and_sale():

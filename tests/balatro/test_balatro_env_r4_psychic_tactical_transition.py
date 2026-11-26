@@ -7,6 +7,7 @@ from games.balatro.env.tactical_transition import apply_supported_tactical_disca
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.jokers.supernova import SupernovaJoker
+from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.state import BalatroState
 
 
@@ -131,4 +132,22 @@ def test_env_r4_supernova_counts_a_prior_boss_debuffed_play():
     assert accepted.public.last_played_hand == "HIGH_CARD"
     assert accepted.public.hand_play_counts["HIGH_CARD"] == 5
     assert accepted.public.round_hand_play_counts["HIGH_CARD"] == 2
+    assert accepted.public.score == 90
+
+
+def test_env_r4_green_grows_only_on_boss_accepted_play():
+    from games.balatro.env.play_transition import apply_supported_ordinary_play
+
+    run = _psychic_run()
+    joker = GreenJoker()
+    joker.center = "j_green_joker"
+    joker.mult = 4
+    run.public.jokers = [joker]
+
+    blocked = apply_supported_ordinary_play(run, (0, 1, 2, 3))
+    assert blocked.public.score == 0
+    assert blocked.public.jokers[0].mult == 4
+
+    accepted = apply_supported_ordinary_play(blocked, (0, 1, 2, 3, 5))
+    assert accepted.public.jokers[0].mult == 5
     assert accepted.public.score == 90

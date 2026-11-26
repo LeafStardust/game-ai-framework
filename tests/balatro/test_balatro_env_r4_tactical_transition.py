@@ -20,6 +20,7 @@ from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.jokers.supernova import SupernovaJoker
+from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.state import BalatroState
 
 
@@ -953,3 +954,23 @@ def test_env_r4_supernova_reads_the_committed_run_count_once():
     assert result.public.round_hand_play_counts["PAIR"] == 1
     assert result.public.hand_play_counts["HIGH_CARD"] == 8
     assert run.public.hand_play_counts["PAIR"] == 3
+
+
+def test_env_r4_green_grows_on_play_and_loses_once_per_discard_with_zero_floor():
+    run = _ordinary_play_run()
+    joker = GreenJoker()
+    joker.center = "j_green_joker"
+    run.public.jokers = [joker]
+
+    at_floor = apply_supported_tactical_discard(run, (1, 2))
+    assert at_floor.public.jokers[0].mult == 0
+
+    assert run.public.hand[0].rank == "K"
+    first = apply_supported_ordinary_play(run, (0,))
+    assert first.public.score == 30
+    assert first.public.jokers[0].mult == 1
+
+    discarded = apply_supported_tactical_discard(first, (0, 1, 2))
+    assert discarded.public.jokers[0].mult == 0
+    assert first.public.jokers[0].mult == 1
+    assert run.public.jokers[0].mult == 0

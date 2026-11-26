@@ -21,6 +21,7 @@ from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
+from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
@@ -95,6 +96,10 @@ def generated_joker_tactical_callbacks_are_exact(
             expected_center = "j_gluttenous_joker"
         elif type(joker) is GoldenJoker:
             expected_center = "j_golden"
+        elif type(joker) is GreenJoker:
+            if type(joker.mult) is not int or joker.mult < 0:
+                return False
+            expected_center = "j_green_joker"
         elif type(joker) is GreedyJoker:
             expected_center = "j_greedy_joker"
         elif type(joker) is HalfJoker:

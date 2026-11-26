@@ -22,6 +22,7 @@ from games.balatro.env.shop_inventory_generation import (
 from games.balatro.env.state import EnvStateFrame
 from games.balatro.env.tactical_transition import apply_planned_tactical_step
 from games.balatro.env.transition import HeadlessTransitionError, ShopTransitionEngine
+from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.runner import RunnerJoker
 
 
@@ -154,3 +155,25 @@ def test_env_ppo_runner_grows_before_scoring_and_persists_through_next_blind():
 
     assert result.public.score == 31
     assert result.public.jokers[0].chips == 15
+
+
+def test_env_ppo_green_keeps_mult_visible_across_rounds():
+    run = pristine_red_white_reset("ORDINARY-ROUND")
+    joker = GreenJoker()
+    joker.center = "j_green_joker"
+    joker.mult = 3
+    run.public.jokers = [joker]
+    run.public.hand_levels["HIGH_CARD"] = 1000
+    dealt = select_blind_exact(activate_selected_blind_progression(run))
+    cleared = apply_supported_ordinary_play(dealt, (0,))
+    shop = resolve_supported_ordinary_round(
+        cleared, cleared.require_blind_progression_state()
+    ).run
+
+    observation = EnvStateFrame(shop.public).encoded_observation()
+    mult_index = PUBLIC_OBSERVATION_SCHEMA.feature_names.index("jokers.0.mult")
+    assert observation.values[mult_index] == 4.0
+    next_blind = ShopTransitionEngine().step(shop, EnvAction.from_alias("END_SHOP"))
+    dealt = select_blind_exact(activate_selected_blind_progression(next_blind))
+    assert dealt.public.jokers[0].mult == 4
+    assert apply_supported_ordinary_play(dealt, (0,)).public.jokers[0].mult == 5
