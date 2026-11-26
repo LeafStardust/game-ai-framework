@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`b28e901d2deddbfe04bfe636a3140627cb58bff3`.
+`f1d8e46db972a88acfbbd4ef096d6d7cd1dc5a79`.
 
 ## Objective
 
@@ -2554,12 +2554,24 @@ Joker acquisition. The committed strategic/shop trace offers uneditioned
 `j_sixth_sense` at episode 54 decision 1 / seed `4C8AAC2C`, with rarity 2,
 base cost 6, and price 6.
 
-Next, establish exact permanent-deck removal for one played six. Preserve
-retained creation order and object identity, including DNA copies of the
-same card. Update deal/redraw and Boss validation only for proven six
-removals, and retain The Pillar's debuff authority for all surviving cards.
-Keep Sixth Sense purchase masked. Hallucination, booster work, rewards,
-and retraining remain deferred.
+Next, wire the exact Sixth Sense destruction callback after accepted Play
+scoring and add the `sixth` RNG domain to the existing held-Spectral
+generation owner. Use the first-hand authority from before counter
+increment. A full consumable area still destroys the six and advances no
+Spectral RNG. Verify DNA's earlier copy, Boss-blocked hands, and the live
+projection's corresponding destruction behavior. Keep purchase masked
+until this path passes CI.
+
+Sixth Sense removal checkpoint:
+
+- Commit `f1d8e46db972a88acfbbd4ef096d6d7cd1dc5a79` removes the exact played
+  six from permanent inventory and retained creation order. Private
+  provenance records a removed original by suit while retaining same-value
+  DNA copies. Redraw, next-blind deal, and Boss validators accept the proven
+  survivors. The Pillar removes only the destroyed object's positional
+  debuff. Snapshot tests reject mismatched provenance.
+- GitHub Actions run `45842494364`, job `139987525640` logged
+  **3899 passed, 1621 deselected in 574.53s**.
 
 Sixth Sense source audit:
 
