@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`7e2727544b8bdc3bf82ca6daeebb58c197911bb2`.
+`e5d16c311904aea16f0c406bd4b72a75343c0e14`.
 
 ## Objective
 
@@ -2549,16 +2549,33 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add Mime as the thirty-ninth exact generated-Joker acquisition. The committed
-trace offers uneditioned `j_mime` at episode 48
-decision 8 / seed `B1887C22`, with rarity 2, base cost 5, and price 5.
+Audit Madness as the candidate for the fortieth exact generated-Joker
+acquisition. The committed trace offers uneditioned `j_madness` at episode 49
+decision 1 / seed `382C0AB9`, with rarity 2, base cost 7, and price 7.
 
-Next, admit only exact uneditioned Mime purchase, base-card tactical
-continuation including Raised Fist and Hook, and inventory-only sale. Existing
-base-card guards keep Gold, Blue Seal, and modified-card Play outside the
-admitted surface. Keep copy interactions masked. Verify seed 107's natural
-offer and a complete rollout. Hallucination, booster work, other centers,
-rewards, and retraining remain deferred.
+The existing model uses Python `random.choice`. The pinned source grows
+Madness on a non-Boss blind and draws from the ordered eligible Joker area
+using the keyed `madness` stream only when a target exists, then schedules
+removal. Audit blind-start ordering, target exclusion, destruction without
+sale proceeds, order/pool bookkeeping, and inverse resource effects. Keep
+acquisition masked until those lifecycle boundaries are exact.
+Hallucination, booster work, other centers, rewards, and retraining remain
+deferred.
+
+Mime generated acquisition checkpoint:
+
+- Commit `001fdd56760a5df4370382e846a3810c369367dc` admits uneditioned
+  `j_mime` with rarity 2 and base cost 5. A headless Play regression
+  verifies exactly one extra Raised Fist activation. Hook discard is inert.
+  Existing card guards continue to exclude unsupported modified-card Play.
+- Complete production seed 107 buys for $5, retains Mime through Big Blind
+  and Boss wins, sells for $2, and ends in an Ante-2 loss.
+- The widened mask changed the sampled route in the episode-89 Blue Joker
+  mechanics fixture. Commit `e5d16c311904aea16f0c406bd4b72a75343c0e14`
+  pins the intended replay actions and verifies each against the full mask,
+  preserving the reroll and Blue Joker assertions.
+- GitHub Actions run `45743534658`, job `139654017663` logged
+  **3792 passed, 1621 deselected in 538.91s**.
 
 Raised Fist target checkpoint:
 
