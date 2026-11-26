@@ -11,7 +11,10 @@ from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.events import BalatroEvent, BalatroEventType
 
 
-def apply_before_score_jokers(scorer, hand, state, cards, active_jokers, *, hand_rules):
+def apply_before_score_jokers(
+    scorer, hand, state, cards, active_jokers, *, hand_rules,
+    first_hand=None, append_dna_copy=None,
+):
     """Apply ordered HAND_PLAYED callbacks on the caller's branch-owned cards."""
     if not active_jokers:
         return {}
@@ -29,8 +32,13 @@ def apply_before_score_jokers(scorer, hand, state, cards, active_jokers, *, hand
             "hand_rules": hand_rules,
         },
     )
+    if first_hand is not None:
+        context.data["first_hand"] = first_hand
     for joker in active_jokers:
         context = joker.apply(context)
+        if append_dna_copy is not None:
+            for source in context.data.pop("dna_copy_sources", ()):
+                append_dna_copy(source)
     return context.data
 
 

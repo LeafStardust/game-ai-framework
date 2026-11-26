@@ -6,6 +6,7 @@ from games.balatro.env.blind_start import (
     start_supported_pillar,
 )
 from games.balatro.env.boss_debuffs import clear_pillar_history_debuff
+from dataclasses import replace
 from games.balatro.env.dna_copy import append_dna_copy
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
@@ -205,6 +206,24 @@ def test_env_r2_pillar_dna_copy_preserves_inherited_debuff_and_new_identity(debu
     restored.public.hand[-1].debuffed = not debuffed
     with pytest.raises(HeadlessTransitionError, match="retained authority"):
         clear_pillar_history_debuff(restored)
+
+
+def test_env_r2_pillar_predeal_applies_history_to_copies_from_earlier_rounds():
+    run = _run()
+    order = run.require_playing_card_order()
+    copy = replace(order[0], played_this_ante=True)
+    run.playing_card_order.append(copy)
+    run.public.deck.append(copy)
+    if run.public.owned_deck is not None:
+        run.public.owned_deck.append(copy)
+
+    dealt = start_supported_pillar(run)
+
+    retained_copy = dealt.require_playing_card_order()[-1]
+    assert retained_copy.debuffed
+    assert len(dealt.public.owned_deck) == 53
+    assert any(card is retained_copy for card in dealt.public.hand + dealt.draw_pile)
+    assert dealt.pillar_debuff_snapshot[1] == ()
 
 
 def test_env_r2_pillar_cleanup_rejects_clean_active_prior_history():

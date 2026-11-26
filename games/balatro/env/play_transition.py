@@ -69,6 +69,9 @@ from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.env.spectral_inventory import GeneratedHeldSpectral, generate_seance_held_spectral
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
+from games.balatro.jokers.dna import DNAJoker
+from games.balatro.env.dna_copy import append_dna_copy
+from games.balatro.env.card_order import has_bounded_base_copy_order
 from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.consumable import PlanetCard, TarotCard
@@ -77,13 +80,6 @@ from games.balatro.live.boss_score_transform import BossBaseScoreScorer
 from games.balatro.scoring import BalatroScorer, apply_before_score_jokers
 
 
-_VANILLA_RANKS = frozenset({"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"})
-_VANILLA_SUITS = frozenset({"Clubs", "Diamonds", "Hearts", "Spades"})
-_VANILLA_IDENTITIES = frozenset(
-    (rank, suit)
-    for rank in _VANILLA_RANKS
-    for suit in _VANILLA_SUITS
-)
 _PLAY_TIME_NO_EFFECT_VOUCHERS = (
     EXACT_RESOURCE_VOUCHER_KEYS
     | EXACT_EDITION_RATE_VOUCHER_KEYS
@@ -138,12 +134,7 @@ def _require_plain_base_cards(
     allow_verdant_leaf_debuffs: bool,
 ) -> None:
     order = run.require_playing_card_order()
-    identities = [(card.rank, card.suit) for card in order]
-    if (
-        len(identities) != 52
-        or len(set(identities)) != 52
-        or set(identities) != _VANILLA_IDENTITIES
-    ):
+    if not has_bounded_base_copy_order(order):
         raise HeadlessTransitionError(
             "R4 baseline Play currently requires the unmodified base-card composition"
         )
@@ -464,6 +455,14 @@ def apply_supported_ordinary_play(
 
     poker_hand = HandEvaluator().evaluate(selected)
     hand_name = poker_hand.value
+    first_hand = None
+    if any(type(joker) is DNAJoker for joker in next_state.jokers):
+        counts = next_state.round_hand_play_counts
+        if not isinstance(counts, dict) or any(
+            type(count) is not int or count < 0 for count in counts.values()
+        ):
+            raise HeadlessTransitionError("DNA requires exact round hand history")
+        first_hand = not any(counts.values())
     _increment_hand_counter(
         next_state.hand_play_counts,
         hand_name,
@@ -522,12 +521,14 @@ def apply_supported_ordinary_play(
         )
         before_score = [
             joker for joker in next_state.jokers
-            if type(joker) in (MidasMaskJoker, VampireJoker)
+            if type(joker) in (DNAJoker, MidasMaskJoker, VampireJoker)
         ]
         joker_data = (
             apply_before_score_jokers(
                 scorer, poker_hand, next_state, selected, before_score,
                 hand_rules=hand_rules_for_state(next_state),
+                first_hand=first_hand,
+                append_dna_copy=lambda source: append_dna_copy(next_run, source),
             )
             if before_score else {}
         )

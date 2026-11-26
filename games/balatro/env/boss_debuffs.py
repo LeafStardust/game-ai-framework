@@ -31,9 +31,6 @@ _STATIC_SUIT_BOSS_TO_SUIT = {
     "The Club": "Clubs",
 }
 _FACE_RANKS = frozenset({"J", "Q", "K"})
-_RANKS = frozenset({"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"})
-_SUITS = frozenset({"Spades", "Hearts", "Diamonds", "Clubs"})
-_BASE_IDENTITIES = frozenset((rank, suit) for rank in _RANKS for suit in _SUITS)
 
 
 def _require_exact_base_permanent_cards(
@@ -43,12 +40,7 @@ def _require_exact_base_permanent_cards(
 ) -> list[BalatroCard]:
     state = run.public
     cards = run.require_playing_card_order()
-    if len(cards) != 52:
-        raise HeadlessTransitionError(
-            f"{label} requires exact base 52-card composition"
-        )
-    identities = [(card.rank, card.suit) for card in cards]
-    if len(set(identities)) != 52 or set(identities) != _BASE_IDENTITIES:
+    if not has_bounded_base_copy_order(cards):
         raise HeadlessTransitionError(
             f"{label} requires exact base 52-card composition"
         )
@@ -73,7 +65,7 @@ def _require_exact_base_permanent_cards(
     # Before the initial deal the public deck must still be the complete physical
     # playing-card collection. Require object identity so we never mutate a
     # detached semantic copy while the shuffle consumes another card set.
-    if len(state.deck) != 52 or {id(card) for card in state.deck} != {id(card) for card in cards}:
+    if len(state.deck) != len(cards) or {id(card) for card in state.deck} != {id(card) for card in cards}:
         raise HeadlessTransitionError(
             f"{label} requires complete authoritative pre-deal deck"
         )
@@ -110,12 +102,7 @@ def require_static_suit_boss_debuff_state(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("boss has no audited static suit debuff")
 
     cards = run.require_playing_card_order()
-    identities = [(card.rank, card.suit) for card in cards]
-    if (
-        len(cards) != 52
-        or len(set(identities)) != 52
-        or set(identities) != _BASE_IDENTITIES
-    ):
+    if not has_bounded_base_copy_order(cards):
         raise HeadlessTransitionError(
             "static suit Boss state requires exact base permanent-card set"
         )
@@ -154,14 +141,12 @@ def clear_plant_face_debuff(run: HeadlessRunState) -> HeadlessRunState:
         raise HeadlessTransitionError("Plant cleanup requires The Plant boss")
 
     cards = run.require_playing_card_order()
-    if len(cards) != 52:
+    if not has_bounded_base_copy_order(cards):
         raise HeadlessTransitionError(
             "Plant cleanup requires exact base permanent-card set"
         )
     all_face = _pareidolia_active(run)
     expected = [card for card in cards if all_face or card.rank in _FACE_RANKS]
-    if len(expected) not in {12, 52}:
-        raise HeadlessTransitionError("Plant cleanup cannot prove owned face debuffs")
     if any(not card.debuffed for card in expected):
         raise HeadlessTransitionError(
             "Plant cleanup requires active owned face-card debuffs"

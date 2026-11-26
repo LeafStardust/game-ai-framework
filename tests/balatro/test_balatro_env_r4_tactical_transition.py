@@ -17,6 +17,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.env.spectral_inventory import GeneratedHeldSpectral
 from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.jokers.midas_mask import MidasMaskJoker
+from games.balatro.jokers.dna import DNAJoker
 from games.balatro.state import BalatroState
 
 
@@ -795,6 +796,59 @@ def test_env_r4_vampire_tactical_state_fails_closed(x_mult):
 
     with pytest.raises(HeadlessTransitionError, match="Joker callbacks"):
         apply_planned_tactical_step(run, _PlayDecisionEngine())
+
+
+@pytest.mark.parametrize("dna_before_vampire", [True, False])
+def test_env_r4_dna_copies_once_at_its_joker_position(dna_before_vampire):
+    run = _ordinary_play_run(seed=9)
+    dna = DNAJoker()
+    dna.center = "j_dna"
+    midas = MidasMaskJoker()
+    midas.center = "j_midas_mask"
+    vampire = materialize_generated_shop_joker_for_acquisition(
+        GeneratedShopJokerItem("j_vampire", 2, 7, None, 7, False)
+    )
+    run.public.jokers = [midas, dna, vampire] if dna_before_vampire else [midas, vampire, dna]
+    assert run.public.hand[1].rank == "K"
+
+    result = apply_supported_ordinary_play(run, (1,))
+
+    source = result.discard_pile[-1]
+    copied = result.require_playing_card_order()[-1]
+    assert result.public.hand[-1] is copied and copied is not source
+    assert copied.rank == source.rank == "K"
+    assert source.enhancement is None
+    assert copied.enhancement == ("Gold" if dna_before_vampire else None)
+    assert len(result.draw_pile) == len(run.draw_pile)
+    assert len(result.public.owned_deck) == 53
+    assert len(run.public.owned_deck) == 52
+    assert result.rng_snapshot() == run.rng_snapshot()
+
+    later = apply_supported_ordinary_play(result, (0,))
+    assert len(later.public.owned_deck) == 53
+    assert len(later.draw_pile) == len(result.draw_pile) - 1
+
+
+def test_env_r4_dna_does_not_copy_multi_card_first_hand():
+    run = _ordinary_play_run(seed=9)
+    dna = DNAJoker()
+    dna.center = "j_dna"
+    run.public.jokers = [dna]
+
+    result = apply_supported_ordinary_play(run, (0, 1))
+
+    assert len(result.public.owned_deck) == 52
+    assert len(result.draw_pile) == len(run.draw_pile) - 2
+
+
+def test_env_r4_dna_does_not_admit_multiple_copy_callbacks():
+    run = _ordinary_play_run(seed=9)
+    run.public.jokers = [DNAJoker(), DNAJoker()]
+    for joker in run.public.jokers:
+        joker.center = "j_dna"
+
+    with pytest.raises(HeadlessTransitionError, match="Joker callbacks"):
+        apply_supported_ordinary_play(run, (0,))
 
 
 @pytest.mark.parametrize("midas_first", [True, False])

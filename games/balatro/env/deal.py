@@ -17,6 +17,7 @@ fails closed before RNG advances.
 from __future__ import annotations
 
 from games.balatro.card import BalatroCard
+from games.balatro.env.card_order import has_bounded_base_copy_order
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
@@ -52,13 +53,6 @@ _SUIT_NOMINAL = {
 
 _ORIGINAL_SUIT_NOMINAL = frozenset({0.001, 0.002, 0.003, 0.004})
 
-_VANILLA_BASE_IDENTITIES = frozenset(
-    (rank, suit)
-    for rank in _RANK_NOMINAL
-    for suit in _SUIT_NOMINAL
-)
-
-
 def _can_infer_base_original_suit_nominals(
     cards: list[BalatroCard],
     *,
@@ -69,10 +63,7 @@ def _can_infer_base_original_suit_nominals(
     Blind debuffs and Midas's Gold conversion leave original suits and base
     identities intact. A pristine check continues to exclude Gold.
     """
-    if len(cards) != 52:
-        return False
-    identities = [(card.rank, card.suit) for card in cards]
-    if len(set(identities)) != 52 or set(identities) != _VANILLA_BASE_IDENTITIES:
+    if not has_bounded_base_copy_order(cards) or (not allow_gold and len(cards) != 52):
         return False
     return all(
         (card.enhancement is None or (allow_gold and card.enhancement == "Gold"))

@@ -11,8 +11,13 @@ class DNAJoker(Joker):
         if len(cards) != 1:
             return context
 
-        round_counts = getattr(context.state, "round_hand_play_counts", {})
-        if any(int(value or 0) > 0 for value in getattr(round_counts, "values", lambda: [])()):
+        first_hand = context.data.get("first_hand")
+        if first_hand is None:
+            round_counts = getattr(context.state, "round_hand_play_counts", {})
+            first_hand = not any(
+                int(value or 0) > 0 for value in getattr(round_counts, "values", lambda: [])()
+            )
+        if first_hand is not True:
             return context
 
         context.data.setdefault("dna_copy_sources", []).append(cards[0])

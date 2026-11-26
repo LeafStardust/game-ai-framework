@@ -5,6 +5,7 @@ from games.balatro.env.blind_start import start_supported_pillar
 from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.serialization import serialize_headless_run_state
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.jokers.dna import DNAJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
@@ -43,6 +44,23 @@ def test_env_r4_pillar_play_scores_hand_base_but_not_debuffed_card_chips():
     assert result.rng_snapshot() == rng_before
     assert run.public.score == 0
     assert run.public.hands_remaining == 4
+
+
+def test_env_r4_pillar_dna_copy_and_subsequent_play_keep_original_debuff_authority():
+    run = _pillar_run()
+    dna = DNAJoker()
+    dna.center = "j_dna"
+    run.public.jokers = [dna]
+    first = apply_supported_ordinary_play(run, (0,))
+    copied = first.public.hand[-1]
+    assert copied.played_this_ante and not copied.debuffed
+    assert copied is first.require_playing_card_order()[-1]
+
+    later = apply_supported_ordinary_play(first, (len(first.public.hand) - 1,))
+
+    assert len(later.public.owned_deck) == 53
+    assert later.public.discard_pile[-1].played_this_ante
+    assert not later.public.discard_pile[-1].debuffed
 
 
 def test_env_r4_pillar_accepts_newly_played_clean_history_only_after_discard_movement():
