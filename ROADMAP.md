@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`51faecd8d6c90dd3fb70b839fed1913287b72ab8`.
+`1d7de1fa306362c0592d762a65e52ecf279ae469`.
 
 ## Objective
 
@@ -2549,16 +2549,32 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Faceless Joker as the candidate for the forty-third exact generated
-Joker acquisition. The committed strategic/shop trace offers uneditioned
-`j_faceless` at episode 51 decision 3 / seed `64FD54A0`, with rarity 1,
-base cost 4, and price 4.
+Audit Splash as the candidate for the forty-fourth exact generated Joker
+acquisition. The committed strategic/shop trace offers uneditioned
+`j_splash` at episode 52 decision 1 / seed `EB851E5F`, with rarity 1,
+base cost 3, and price 3.
 
-Next, admit exact uneditioned Faceless Joker to the generated shop and
-inventory-only sale. Audit blind-start and round-end continuation, then
-pin purchase, payout, sale, and subsequent play in the production headless
+Next, audit Splash's existing passive hand-rule and scoring owners, including
+the distinction between cards played and cards that score. Verify the exact
+Play and Boss boundaries before admitting the generated shop offer, and pin
+purchase, scoring, sale, and continued play in the production headless
 environment. Keep Hallucination, booster work, other centers, rewards, and
 retraining deferred.
+
+Faceless Joker acquisition checkpoint:
+
+- Commit `c5f55f728af7d6272fee48e94c8ded8704a38a87` admits exact uneditioned
+  Faceless Joker through generated purchase, blind start, cash-out, and
+  inventory-only sale. Trace seed `FF526426` buys it for $4. The replay
+  forces one three-face Boss discard and observes $5 before the next tactical
+  action. It then sells the Joker for $2 and clears the following blind.
+- The first two CI runs exposed three action-priority fixtures and two
+  shop-mask assertions affected by the newly legal purchase. Commits
+  `ab54c3795b3dd9a392356d9470a1a3b7aa1a6460` and
+  `1d7de1fa306362c0592d762a65e52ecf279ae469` preserve the intended replays
+  and verify the expanded masks.
+- GitHub Actions run `45805228454`, job `139858583641` logged
+  **3860 passed, 1621 deselected in 558.75s**.
 
 Faceless Joker discard checkpoint:
 
