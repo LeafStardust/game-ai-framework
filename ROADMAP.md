@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`f1d8e46db972a88acfbbd4ef096d6d7cd1dc5a79`.
+`1f937e480c2ec8ddce490dc3cf507a6b7b752adc`.
 
 ## Objective
 
@@ -2554,13 +2554,25 @@ Joker acquisition. The committed strategic/shop trace offers uneditioned
 `j_sixth_sense` at episode 54 decision 1 / seed `4C8AAC2C`, with rarity 2,
 base cost 6, and price 6.
 
-Next, wire the exact Sixth Sense destruction callback after accepted Play
-scoring and add the `sixth` RNG domain to the existing held-Spectral
-generation owner. Use the first-hand authority from before counter
-increment. A full consumable area still destroys the six and advances no
-Spectral RNG. Verify DNA's earlier copy, Boss-blocked hands, and the live
-projection's corresponding destruction behavior. Keep purchase masked
-until this path passes CI.
+Next, admit exact uneditioned Sixth Sense to the generated shop and
+inventory-only sale. Require retained ordinary-deck order and exact
+held-Spectral generation authority at purchase. Audit blind start and
+round-end continuation, then pin a seeded production replay covering
+purchase, destruction, generation, sale, and continued play. Hallucination,
+booster work, rewards, and retraining remain deferred.
+
+Sixth Sense Play checkpoint:
+
+- Commit `1f937e480c2ec8ddce490dc3cf507a6b7b752adc` resolves first-hand
+  eligibility before incrementing counters and destruction after accepted
+  scoring. DNA's copy survives. Boss-blocked, later, and multi-card plays
+  keep the six. A full consumable area still destroys it without any new
+  Spectral RNG, including in live score projection.
+- A free slot uses the existing held-Spectral generation owner with
+  the `Spectralsixth{ante}` domain and its own unavailable-position retries.
+  Generated Spectrals remain outside the use mask.
+- GitHub Actions run `45845006306`, job `139996269252` logged
+  **3906 passed, 1621 deselected in 346.04s**.
 
 Sixth Sense removal checkpoint:
 
@@ -2579,8 +2591,8 @@ Sixth Sense source audit:
   trigger in accepted-hand destruction after scoring. It requires the
   first played hand of the round to contain exactly one six. The six is
   destroyed even with a full consumable area. Available capacity controls
-  only whether a Spectral is generated. The current live projection couples
-  destruction to available room and needs correction before admission.
+  only whether a Spectral is generated. This corrected the previous live
+  projection's coupling of destruction to available room.
 - Generation uses the regular non-soulable Spectral pool with RNG domain
   `Spectralsixth{ante}`, using the same eligibility and unavailable-position
   retries as the existing Spectral owner. Full inventory consumes no
