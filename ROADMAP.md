@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`e5d16c311904aea16f0c406bd4b72a75343c0e14`.
+`c6295589d4e7defe422879b5d00a8d9505d9485a`.
 
 ## Objective
 
@@ -2553,14 +2553,23 @@ Audit Madness as the candidate for the fortieth exact generated-Joker
 acquisition. The committed trace offers uneditioned `j_madness` at episode 49
 decision 1 / seed `382C0AB9`, with rarity 2, base cost 7, and price 7.
 
-The existing model uses Python `random.choice`. The pinned source grows
-Madness on a non-Boss blind and draws from the ordered eligible Joker area
-using the keyed `madness` stream only when a target exists, then schedules
-removal. Audit blind-start ordering, target exclusion, destruction without
-sale proceeds, order/pool bookkeeping, and inverse resource effects. Keep
-acquisition masked until those lifecycle boundaries are exact.
+Next, replace Python randomness with the seeded `madness` draw at the
+blind-start boundary. Verify growth, Boss inertness, physical target order,
+Eternal and queued-target exclusion, the no-target RNG boundary, and removal
+through the canonical inventory-only inverse. Resource-sensitive destruction
+remains fail-closed until dissolve timing and its resource effects are exact.
+Keep acquisition masked until its reachable lifecycle paths are owned.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
+
+Madness shared Joker removal checkpoint:
+
+- Commit `c6295589d4e7defe422879b5d00a8d9505d9485a` moves inverse lifecycle,
+  order retention, and pool restoration to a shared removal owner. Sale
+  credits proceeds separately. Inventory-only destruction preserves money
+  and RNG and fails closed on Eternal, editioned, or resource-changing targets.
+- GitHub Actions run `45745078432`, job `139659036064` logged
+  **3797 passed, 1621 deselected in 517.28s**.
 
 Mime generated acquisition checkpoint:
 
