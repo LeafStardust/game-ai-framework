@@ -59,16 +59,15 @@ _VANILLA_BASE_IDENTITIES = frozenset(
 )
 
 
-def _is_provably_base_order_allowing_transient_debuff(
+def _can_infer_base_original_suit_nominals(
     cards: list[BalatroCard],
+    *,
+    allow_gold: bool = True,
 ) -> bool:
-    """Return whether only transient ``debuffed`` state may differ from base.
+    """Prove original-suit nominals from the exact base identities.
 
-    Debuff is applied by ``Blind:set_blind`` after card creation and never changes
-    the card's base rank/suit or original-suit nominal.  This narrow structural
-    proof therefore lets static debuff Bosses reach the exact shuffle/deal path
-    without pretending other mutations (enhancements, conversions, editions,
-    seals, permanent bonuses, forced selection, or live-created cards) are base.
+    Blind debuffs and Midas's Gold conversion leave original suits and base
+    identities intact. A pristine check continues to exclude Gold.
     """
     if len(cards) != 52:
         return False
@@ -76,7 +75,7 @@ def _is_provably_base_order_allowing_transient_debuff(
     if len(set(identities)) != 52 or set(identities) != _VANILLA_BASE_IDENTITIES:
         return False
     return all(
-        card.enhancement is None
+        (card.enhancement is None or (allow_gold and card.enhancement == "Gold"))
         and card.edition is None
         and card.seal is None
         and card.permanent_bonus == 0
@@ -87,7 +86,7 @@ def _is_provably_base_order_allowing_transient_debuff(
 
 
 def _is_provably_pristine_base_order(cards: list[BalatroCard]) -> bool:
-    return _is_provably_base_order_allowing_transient_debuff(cards) and all(
+    return _can_infer_base_original_suit_nominals(cards, allow_gold=False) and all(
         not card.debuffed for card in cards
     )
 
@@ -210,7 +209,7 @@ def deal_supported_round_start(run: HeadlessRunState) -> HeadlessRunState:
     _require_empty_round_start_zones(run)
 
     order = run.require_playing_card_order()
-    infer_base_original_suit = _is_provably_base_order_allowing_transient_debuff(order)
+    infer_base_original_suit = _can_infer_base_original_suit_nominals(order)
     if not infer_base_original_suit:
         order = _modified_complete_owned_order(run)
 
@@ -282,7 +281,7 @@ def draw_one_supported_card_to_hand(run: HeadlessRunState) -> HeadlessRunState:
         return run.copy()
 
     order = run.require_playing_card_order()
-    infer_base_original_suit = _is_provably_base_order_allowing_transient_debuff(order)
+    infer_base_original_suit = _can_infer_base_original_suit_nominals(order)
     if not infer_base_original_suit:
         for card in order:
             _vanilla_hand_primary_nominal(card, pristine=False)

@@ -68,10 +68,13 @@ from games.balatro.env.voucher_capabilities import (
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
 from games.balatro.env.spectral_inventory import GeneratedHeldSpectral, generate_seance_held_spectral
 from games.balatro.jokers.seance import SeanceJoker
+from games.balatro.jokers.midas_mask import MidasMaskJoker
+from games.balatro.jokers.vampire import VampireJoker
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.consumable import PlanetCard, TarotCard
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.live.boss_score_transform import BossBaseScoreScorer
-from games.balatro.scoring import BalatroScorer
+from games.balatro.scoring import BalatroScorer, apply_before_score_jokers
 
 
 _VANILLA_RANKS = frozenset({"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"})
@@ -147,7 +150,7 @@ def _require_plain_base_cards(
 
     for card in order:
         if (
-            card.enhancement is not None
+            card.enhancement not in (None, "Gold")
             or card.edition is not None
             or card.seal is not None
             or card.permanent_bonus != 0
@@ -517,13 +520,26 @@ def apply_supported_ordinary_play(
             if _boss_name(next_state) == "The Flint"
             else BalatroScorer()
         )
+        before_score = [
+            joker for joker in next_state.jokers
+            if type(joker) in (MidasMaskJoker, VampireJoker)
+        ]
+        joker_data = (
+            apply_before_score_jokers(
+                scorer, poker_hand, next_state, selected, before_score,
+                hand_rules=hand_rules_for_state(next_state),
+            )
+            if before_score else {}
+        )
+        if generated is not None:
+            joker_data["created_consumables"] = generated
         hand_score = scorer.score(
             poker_hand,
             state=next_state,
             cards=selected,
             include_card_chips=True,
             resolve_random_effects=False,
-            joker_data={"created_consumables": generated} if generated is not None else None,
+            joker_data=joker_data,
         )
         next_state.score += hand_score.total
         for category in generated or ():

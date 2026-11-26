@@ -126,10 +126,13 @@ def _apply_hook_forced_discards(
         from games.balatro.jokers.castle import CastleJoker
         from games.balatro.jokers.cloud_9 import Cloud9Joker
         from games.balatro.jokers.madness import MadnessJoker
+        from games.balatro.jokers.midas_mask import MidasMaskJoker
         from games.balatro.jokers.mime import MimeJoker
         from games.balatro.jokers.seance import SeanceJoker
 
-        owned_hook_joker_types = {CastleJoker, Cloud9Joker, MadnessJoker, MimeJoker, SeanceJoker}
+        owned_hook_joker_types = {
+            CastleJoker, Cloud9Joker, MadnessJoker, MidasMaskJoker, MimeJoker, SeanceJoker,
+        }
         if (
             any(type(joker) not in owned_hook_joker_types for joker in state.jokers)
             or not generated_joker_tactical_callbacks_are_exact(

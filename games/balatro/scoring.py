@@ -11,6 +11,29 @@ from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.events import BalatroEvent, BalatroEventType
 
 
+def apply_before_score_jokers(scorer, hand, state, cards, active_jokers, *, hand_rules):
+    """Apply ordered HAND_PLAYED callbacks on the caller's branch-owned cards."""
+    if not active_jokers:
+        return {}
+    context = JokerContext(
+        state=state,
+        poker_hand=hand,
+        cards=list(cards or []),
+        trigger="HAND_PLAYED",
+        data={
+            "scoring_cards": [
+                card for card in scorer.scoring_cards(hand, cards, rules=hand_rules)
+                if not scorer.is_card_debuffed(card)
+            ],
+            "final_hand": int(getattr(state, "hands_remaining", 0) or 0) <= 1,
+            "hand_rules": hand_rules,
+        },
+    )
+    for joker in active_jokers:
+        context = joker.apply(context)
+    return context.data
+
+
 @dataclass
 class HandScore:
 

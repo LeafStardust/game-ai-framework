@@ -14,7 +14,7 @@ from __future__ import annotations
 from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.env.deal import (
     _hand_sort_key,
-    _is_provably_base_order_allowing_transient_debuff,
+    _can_infer_base_original_suit_nominals,
     _public_card_sort_key,
     _vanilla_hand_primary_nominal,
 )
@@ -88,7 +88,7 @@ def draw_serpent_post_action_cards(run: HeadlessRunState) -> HeadlessRunState:
         )
 
     order = run.require_playing_card_order()
-    infer_base_original_suit = _is_provably_base_order_allowing_transient_debuff(order)
+    infer_base_original_suit = _can_infer_base_original_suit_nominals(order)
     if not infer_base_original_suit:
         for card in order:
             _vanilla_hand_primary_nominal(card, pristine=False)

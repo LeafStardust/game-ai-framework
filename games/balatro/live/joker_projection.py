@@ -12,7 +12,7 @@ from games.balatro.live.copy_projection import (
     project_independent_copy_jokers,
     resolve_copy_target,
 )
-from games.balatro.scoring import BalatroScorer, HandScore
+from games.balatro.scoring import BalatroScorer, HandScore, apply_before_score_jokers
 from games.balatro.state import BalatroState
 
 
@@ -423,32 +423,9 @@ class LiveJokerScoreProjector:
             if type(joker).__name__ in self.HAND_PLAYED_CLASS_NAMES
             and not bool(getattr(joker, "debuffed", False))
         ]
-        if not active:
-            return {}
-
-        scoring_cards = [
-            card
-            for card in self.scorer.scoring_cards(
-                hand,
-                cards,
-                rules=hand_rules,
-            )
-            if not self.scorer.is_card_debuffed(card)
-        ]
-        context = JokerContext(
-            state=state,
-            poker_hand=hand,
-            cards=list(cards or []),
-            trigger="HAND_PLAYED",
-            data={
-                "scoring_cards": scoring_cards,
-                "final_hand": int(getattr(state, "hands_remaining", 0) or 0) <= 1,
-                "hand_rules": hand_rules,
-            },
+        return apply_before_score_jokers(
+            self.scorer, hand, state, cards, active, hand_rules=hand_rules
         )
-        for joker in active:
-            context = joker.apply(context)
-        return context.data
 
     @staticmethod
     def _apply_per_card_retriggers(joker_data: dict, cards) -> None:

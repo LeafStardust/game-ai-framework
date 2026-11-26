@@ -34,6 +34,7 @@ from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.castle import CASTLE_SUITS, CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.mime import MimeJoker
+from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.madness import MadnessJoker, madness_x_mult_is_exact
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.scholar import ScholarJoker
@@ -102,6 +103,8 @@ def generated_joker_tactical_callbacks_are_exact(
             expected_center = "j_mystic_summit"
         elif type(joker) is MimeJoker:
             expected_center = "j_mime"
+        elif type(joker) is MidasMaskJoker:
+            expected_center = "j_midas_mask"
         elif type(joker) is MadnessJoker:
             if not madness_x_mult_is_exact(joker.x_mult):
                 return False

@@ -16,6 +16,7 @@ from games.balatro.env.shop_items import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.spectral_inventory import GeneratedHeldSpectral
 from games.balatro.env.play_transition import apply_supported_ordinary_play
+from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.state import BalatroState
 
 
@@ -794,6 +795,33 @@ def test_env_r4_vampire_tactical_state_fails_closed(x_mult):
 
     with pytest.raises(HeadlessTransitionError, match="Joker callbacks"):
         apply_planned_tactical_step(run, _PlayDecisionEngine())
+
+
+@pytest.mark.parametrize("midas_first", [True, False])
+def test_env_r4_midas_and_vampire_preserve_card_identity_and_before_score_order(midas_first):
+    run = _ordinary_play_run(seed=9)
+    midas = MidasMaskJoker()
+    midas.center = "j_midas_mask"
+    vampire = materialize_generated_shop_joker_for_acquisition(
+        GeneratedShopJokerItem("j_vampire", 2, 7, None, 7, False)
+    )
+    run.public.jokers = [midas, vampire] if midas_first else [vampire, midas]
+    indices = (0, 1, 2, 4, 5)
+    assert [run.public.hand[i].rank for i in indices] == ["A", "K", "Q", "J", "10"]
+
+    result = apply_supported_ordinary_play(run, indices)
+
+    assert result.public.last_played_hand == "STRAIGHT_FLUSH"
+    actual_vampire = next(joker for joker in result.public.jokers if joker.center == "j_vampire")
+    assert actual_vampire.x_mult == pytest.approx(1.3 if midas_first else 1)
+    gold_ranks = [card.rank for card in result.discard_pile if card.enhancement == "Gold"]
+    assert gold_ranks == ([] if midas_first else ["K", "Q", "J"])
+    assert {id(card) for card in result.discard_pile} <= {
+        id(card) for card in result.public.owned_deck
+    }
+    assert vampire.x_mult == 1
+    assert all(card.enhancement is None for card in run.public.owned_deck)
+    assert apply_supported_ordinary_play(result, (0,)).public.score > result.public.score
 
 
 def test_env_r4_decision_engine_bridge_keeps_unsupported_play_effects_fail_closed():

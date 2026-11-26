@@ -52,7 +52,7 @@ def _require_exact_base_permanent_cards(
         )
     if any(
         card.live_id is not None
-        or card.enhancement is not None
+        or card.enhancement not in (None, "Gold")
         or card.edition is not None
         or card.seal is not None
         or card.permanent_bonus != 0

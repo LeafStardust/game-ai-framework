@@ -2,7 +2,7 @@ import pytest
 
 from games.balatro.env.deal import (
     _hand_sort_key,
-    _is_provably_base_order_allowing_transient_debuff,
+    _can_infer_base_original_suit_nominals,
     _public_card_sort_key,
     deal_supported_round_start,
 )
@@ -76,7 +76,7 @@ def test_env_r2_serpent_resorts_hand_with_exact_vanilla_owned_card_order():
 
     order = result.require_playing_card_order()
     creation_index = {id(card): index for index, card in enumerate(order)}
-    pristine = _is_provably_base_order_allowing_transient_debuff(order)
+    pristine = _can_infer_base_original_suit_nominals(order)
     assert result.public.hand == sorted(
         result.public.hand,
         key=lambda card: _hand_sort_key(

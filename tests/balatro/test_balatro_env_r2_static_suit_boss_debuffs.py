@@ -55,6 +55,19 @@ def test_env_r2_static_suit_boss_predeal_debuffs_exactly_thirteen_cards(boss_nam
     )
 
 
+def test_env_r2_static_suit_boss_start_preserves_a_gold_card_and_its_debuff():
+    run = _run(boss_name="The Goad")
+    original = next(card for card in run.require_playing_card_order() if card.suit == "Spades")
+    original.enhancement = "Gold"
+
+    result = start_supported_static_suit_debuff_boss(run)
+
+    gold = next(card for card in result.public.owned_deck if card.enhancement == "Gold")
+    assert (gold.rank, gold.suit, gold.debuffed) == (original.rank, "Spades", True)
+    assert any(card is gold for card in result.public.hand + result.draw_pile)
+    assert original.debuffed is False
+
+
 @pytest.mark.parametrize(("boss_name", "suit"), _BOSSES)
 def test_env_r2_static_suit_boss_full_start_preserves_debuffs_through_shuffle_and_deal(
     boss_name,
