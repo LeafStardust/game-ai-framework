@@ -2568,6 +2568,14 @@ headless Play currently increments its round hand count before the shared
 before-score callbacks. Capture that boundary explicitly and verify a
 single-card first hand, later hands, and retained order. Keep acquisition
 masked until all boundaries and the new observation provenance are exact.
+Audit the active Pillar guard before admitting copies: vanilla marks the
+source played before the callback, and `copy_card` inherits both the played
+history and the current debuff. An un-debuffed copy can therefore enter the
+hand with played history during The Pillar. The current guard rejects that
+combination in active zones. Preserve the pre-deal debuff authority while
+distinguishing cards created after it. Materialize DNA at its own position
+in the before-score callbacks so later Midas or Vampire effects cannot
+retroactively change what was copied.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
 
