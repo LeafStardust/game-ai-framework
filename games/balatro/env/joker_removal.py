@@ -61,20 +61,57 @@ def remove_validated_owned_joker(
     return next_run
 
 
-def destroy_inventory_only_joker_exact(
-    run: HeadlessRunState, joker_index: int
-) -> HeadlessRunState:
-    """Resolve an already selected destruction with an exact inventory inverse."""
+def _require_destructible_joker(run: HeadlessRunState, joker_index: int):
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
     if type(joker_index) is not int or not 0 <= joker_index < len(run.public.jokers):
         raise HeadlessTransitionError("destroyed Joker index must reference an owned Joker")
     joker = run.public.jokers[joker_index]
-    if type(joker) not in INVENTORY_ONLY_JOKER_REMOVAL_TYPES:
-        raise HeadlessTransitionError("Joker destruction inverse lifecycle is not exactly owned")
     if getattr(joker, "eternal", False) is not False:
         raise HeadlessTransitionError("Eternal Joker destruction is unavailable")
     if getattr(joker, "edition", None) is not None:
         raise HeadlessTransitionError("Joker editions remain fail-closed for destruction")
     run.require_joker_order_state()
+    return joker
+
+
+def destroy_inventory_only_joker_exact(
+    run: HeadlessRunState, joker_index: int
+) -> HeadlessRunState:
+    """Resolve an already selected destruction with an exact inventory inverse."""
+    joker = _require_destructible_joker(run, joker_index)
+    if type(joker) not in INVENTORY_ONLY_JOKER_REMOVAL_TYPES:
+        raise HeadlessTransitionError("Joker destruction inverse lifecycle is not exactly owned")
+    return remove_validated_owned_joker(run, joker_index)
+
+
+def destroy_joker_at_round_start_exact(
+    run: HeadlessRunState, joker_index: int
+) -> HeadlessRunState:
+    """Resolve destruction and retain the opening draw's earlier capacity read."""
+    joker = _require_destructible_joker(run, joker_index)
+    state = run.public
+    if type(joker) is JugglerJoker:
+        if type(state.hand_size) is not int or state.hand_size < 2:
+            raise HeadlessTransitionError("Juggler destruction requires exact opening capacity")
+        result = remove_validated_owned_joker(run, joker_index)
+        if result.opening_draw_capacity is None:
+            # CardArea:change_size queues its delta behind the opening draw.
+            result.opening_draw_capacity = state.hand_size
+        return result
+    if type(joker) is DrunkardJoker:
+        if (
+            state.round_reset_discards_observed is not True
+            or type(state.round_reset_discards) is not int
+            or state.round_reset_discards < 1
+            or type(state.discards_remaining) is not int
+            or state.discards_remaining < 0
+        ):
+            raise HeadlessTransitionError("Drunkard destruction requires exact discard allowances")
+        result = remove_validated_owned_joker(run, joker_index)
+        # The baseline already includes Drunkard. The queued ease clamps at zero.
+        result.public.discards_remaining = max(0, state.discards_remaining - 1)
+        return result
+    if type(joker) not in INVENTORY_ONLY_JOKER_REMOVAL_TYPES:
+        raise HeadlessTransitionError("Joker destruction inverse lifecycle is not exactly owned")
     return remove_validated_owned_joker(run, joker_index)

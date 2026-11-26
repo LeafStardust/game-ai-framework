@@ -232,6 +232,7 @@ class HeadlessRunState:
     consumable_usage_totals: dict[str, int] = field(default_factory=dict)
     generation_discovery: dict[str, bool] | None = None
     castle_suit: str | None = None
+    opening_draw_capacity: int | None = None
 
     def __post_init__(self) -> None:
         if self.castle_suit is not None and (
@@ -261,6 +262,12 @@ class HeadlessRunState:
 
         self._require_int("money", self.public.money)
         self._require_nonnegative_int("hand_size", self.public.hand_size)
+        if self.opening_draw_capacity is not None and (
+            type(self.opening_draw_capacity) is not int
+            or self.public.phase != "DRAW_TO_HAND"
+            or self.opening_draw_capacity <= self.public.hand_size
+        ):
+            raise HeadlessTransitionError("invalid queued opening-draw capacity")
         self._require_nonnegative_int("hands_remaining", self.public.hands_remaining)
         if not isinstance(self.public.round_reset_hands_observed, bool):
             raise HeadlessTransitionError("round_reset_hands_observed must be a boolean")

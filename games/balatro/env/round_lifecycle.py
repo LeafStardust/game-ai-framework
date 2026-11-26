@@ -203,12 +203,12 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
         next_run = disable_supported_boss(next_run, pre_deal=True)
 
     if queued_destructions:
-        from games.balatro.env.joker_removal import destroy_inventory_only_joker_exact
+        from games.balatro.env.joker_removal import destroy_joker_at_round_start_exact
 
         remaining = list(next_state.jokers)
         for target in queued_destructions:
             index = next(index for index, joker in enumerate(remaining) if joker is target)
-            next_run = destroy_inventory_only_joker_exact(next_run, index)
+            next_run = destroy_joker_at_round_start_exact(next_run, index)
             remaining.pop(index)
 
     return next_run

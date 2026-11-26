@@ -225,7 +225,13 @@ def deal_supported_round_start(run: HeadlessRunState) -> HeadlessRunState:
     next_run.rng.shuffle_in_place(draw_pile, f"nr{next_state.ante}")
 
     # Vanilla draw_from_deck_to_hand uses min(#G.deck.cards, hand space).
-    deal_count = min(len(draw_pile), next_state.hand_size)
+    draw_capacity = next_run.opening_draw_capacity
+    if draw_capacity is None:
+        draw_capacity = next_state.hand_size
+    elif type(draw_capacity) is not int or draw_capacity <= next_state.hand_size:
+        raise HeadlessTransitionError("invalid queued opening-draw capacity")
+    deal_count = min(len(draw_pile), draw_capacity)
+    next_run.opening_draw_capacity = None
     dealt = [draw_pile.pop() for _ in range(deal_count)]
     for card in dealt:
         _mark_drawn_card_face_up(card)
