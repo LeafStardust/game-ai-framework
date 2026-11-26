@@ -1,5 +1,3 @@
-import random
-
 from games.balatro.joker import Joker, JokerContext
 
 
@@ -9,20 +7,25 @@ class MadnessJoker(Joker):
         self.x_mult = 1.0
 
     def apply(self, context: JokerContext) -> JokerContext:
-        if context.trigger in {
+        nonboss_start = context.trigger in {
             "SMALL_BLIND_SELECTED",
             "BIG_BLIND_SELECTED",
-        }:
+        } or (context.trigger == "BLIND_SELECTED" and context.data.get("boss_blind") is False)
+        if nonboss_start and not context.data.get("blueprint", False):
             self.x_mult += 0.5
 
-            jokers = [
+            queued = context.data.get("queued_joker_destructions", ())
+            candidates = tuple(
                 joker
                 for joker in getattr(context.state, "jokers", [])
                 if joker is not self
-            ]
+                and not getattr(joker, "eternal", False)
+                and not getattr(joker, "getting_sliced", False)
+                and all(joker is not pending for pending in queued)
+            )
 
-            if jokers:
-                context.data["destroy_joker"] = random.choice(jokers)
+            if candidates:
+                context.data["destroy_joker_candidates"] = candidates
             return context
 
         if context.score is not None:

@@ -9,6 +9,8 @@ bonus that vanilla has already consumed.
 
 from __future__ import annotations
 
+from math import isfinite
+
 from games.balatro.blinds.blind import BlindType
 from games.balatro.env.boss_disable import disable_supported_boss
 from games.balatro.env.transition import (
@@ -23,6 +25,7 @@ from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.chicot import ChicotJoker
 from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.drunkard import DrunkardJoker
+from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
@@ -101,6 +104,7 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
         *_BLIND_START_INERT_JOKER_TYPES,
         BurglarJoker,
         ChicotJoker,
+        MadnessJoker,
     )
     if any(type(joker) not in supported_types for joker in state.jokers):
         raise HeadlessTransitionError(
@@ -109,10 +113,8 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
 
     next_run = run.copy()
     next_state = next_run.public
-    is_boss = (
-        next_state.blind is not None
-        and getattr(next_state.blind, "type", None) is BlindType.BOSS
-    )
+    blind_type = getattr(next_state.blind, "type", None)
+    is_boss = blind_type is BlindType.BOSS
     data = {
         "hands_gained": 0,
         "discards_remaining": next_state.discards_remaining,
@@ -120,7 +122,43 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
         "boss_disable_requests": 0,
     }
 
+    queued_destructions = []
     for joker in next_state.jokers:
+        if type(joker) is MadnessJoker:
+            if not is_boss and not getattr(joker, "debuffed", False):
+                if blind_type not in {BlindType.SMALL, BlindType.BIG}:
+                    raise HeadlessTransitionError("Madness requires an exact selected Blind")
+                next_run.require_joker_order_state()
+                if any(
+                    type(getattr(owned, field, False)) is not bool
+                    for owned in next_state.jokers
+                    for field in ("eternal", "getting_sliced")
+                ):
+                    raise HeadlessTransitionError("Madness target flags are not exact")
+                x_mult = joker.x_mult
+                if (
+                    type(x_mult) not in (int, float)
+                    or not isfinite(x_mult)
+                    or x_mult < 1
+                    or x_mult % 0.5
+                ):
+                    raise HeadlessTransitionError("Madness requires exact XMult")
+                context = JokerContext(
+                    state=next_state,
+                    trigger="BLIND_SELECTED",
+                    data={
+                        "boss_blind": False,
+                        "queued_joker_destructions": queued_destructions,
+                    },
+                )
+                candidates = joker.apply(context).data.get("destroy_joker_candidates", ())
+                if candidates:
+                    index = next_run.rng.pseudorandom_element_index(len(candidates), "madness")
+                    if not getattr(joker, "getting_sliced", False) and all(
+                        joker is not target for target in queued_destructions
+                    ):
+                        queued_destructions.append(candidates[index])
+            continue
         if type(joker) not in {BurglarJoker, ChicotJoker}:
             continue
         context = JokerContext(
@@ -163,6 +201,15 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
         # Chicot's event was queued from the setting_blind calculation and runs
         # before new_round's later DRAW_TO_HAND/nr{ante} shuffle event.
         next_run = disable_supported_boss(next_run, pre_deal=True)
+
+    if queued_destructions:
+        from games.balatro.env.joker_removal import destroy_inventory_only_joker_exact
+
+        remaining = list(next_state.jokers)
+        for target in queued_destructions:
+            index = next(index for index, joker in enumerate(remaining) if joker is target)
+            next_run = destroy_inventory_only_joker_exact(next_run, index)
+            remaining.pop(index)
 
     return next_run
 

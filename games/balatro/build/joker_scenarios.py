@@ -122,6 +122,7 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
     _SIGNAL_PENALTIES = {
         "destroy_self": SELF_DESTRUCT,
         "destroy_joker": JOKER_DESTROY,
+        "destroy_joker_candidates": JOKER_DESTROY,
     }
     _EVIDENCE_ONLY_SIGNALS = {
         "raised_fist_card",
