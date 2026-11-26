@@ -21,13 +21,17 @@ def poll_consumable_center(
     return center, resamples
 
 
-def poll_seance_spectral_center(
+def poll_held_spectral_center(
     rng: BalatroRNG,
     ante: int,
     eligible_keys: Collection[str],
+    *,
+    key_append: str = "sea",
 ) -> tuple[str, int]:
-    """Poll Séance's non-soulable Spectral identity from authoritative eligibility."""
+    """Poll a held non-soulable Spectral from authoritative eligibility."""
     if type(ante) is not int:
-        raise TypeError("Séance Spectral generation requires an exact integer Ante")
+        raise TypeError("held Spectral generation requires an exact integer Ante")
+    if key_append not in ("sea", "sixth"):
+        raise ValueError("unsupported held Spectral RNG domain")
     pool = current_consumable_pool_from_eligible_keys("Spectral", eligible_keys)
-    return poll_consumable_center(rng, pool, f"Spectralsea{ante}")
+    return poll_consumable_center(rng, pool, f"Spectral{key_append}{ante}")

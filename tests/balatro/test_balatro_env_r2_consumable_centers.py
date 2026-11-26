@@ -6,7 +6,7 @@ from games.balatro.env.consumable_centers import (
     VANILLA_TAROT_CENTER_ORDER,
     current_consumable_pool_from_eligible_keys,
 )
-from games.balatro.env.consumable_generation import poll_seance_spectral_center
+from games.balatro.env.consumable_generation import poll_held_spectral_center
 from games.balatro.env.rng import BalatroRNG
 
 
@@ -88,7 +88,7 @@ def test_env_r2_spectral_pool_keeps_hidden_center_positions_unavailable():
 def test_env_r2_seance_polls_seeded_spectral_positions_and_ordered_retries():
     rng = BalatroRNG(48)
 
-    assert poll_seance_spectral_center(rng, 2, {"c_cryptid"}) == ("c_cryptid", 5)
+    assert poll_held_spectral_center(rng, 2, {"c_cryptid"}) == ("c_cryptid", 5)
     assert list(rng.nodes) == [
         "Spectralsea2",
         *(f"Spectralsea2_resample{i}" for i in range(2, 7)),
@@ -98,7 +98,7 @@ def test_env_r2_seance_polls_seeded_spectral_positions_and_ordered_retries():
 def test_env_r2_seance_all_unavailable_polls_incantation_and_advances_base_node():
     rng = BalatroRNG(48)
 
-    assert poll_seance_spectral_center(rng, 0, ()) == ("c_incantation", 0)
+    assert poll_held_spectral_center(rng, 0, ()) == ("c_incantation", 0)
     assert list(rng.nodes) == ["Spectralsea0"]
 
 
@@ -107,5 +107,5 @@ def test_env_r2_seance_rejects_hidden_eligibility_before_rng(hidden):
     rng = BalatroRNG(48)
 
     with pytest.raises(ValueError, match="hidden Spectrals"):
-        poll_seance_spectral_center(rng, 2, {hidden})
+        poll_held_spectral_center(rng, 2, {hidden})
     assert rng.nodes == {}

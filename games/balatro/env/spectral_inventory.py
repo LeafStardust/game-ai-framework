@@ -1,9 +1,9 @@
-"""Exact held Spectral generation for Séance's admitted game profile."""
+"""Exact held Spectral generation for the admitted game profile."""
 
 from dataclasses import dataclass, replace
 
 from games.balatro.env.consumable_centers import REGULAR_SPECTRAL_CENTER_KEYS
-from games.balatro.env.consumable_generation import poll_seance_spectral_center
+from games.balatro.env.consumable_generation import poll_held_spectral_center
 from games.balatro.env.shop_pricing import vanilla_card_cost
 from games.balatro.env.tag_selection import TagProfileState
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
@@ -37,7 +37,7 @@ def reprice_held_spectral(
     ))
 
 
-def require_seance_spectral_authority(run: HeadlessRunState) -> None:
+def require_held_spectral_authority(run: HeadlessRunState) -> None:
     """Require the pinned Spectral profile and absence of unowned modifiers."""
     discovery = run.generation_discovery
     profile = run.tag_profile_state
@@ -46,20 +46,20 @@ def require_seance_spectral_authority(run: HeadlessRunState) -> None:
         or discovery[key] != (key in profile.discovered_center_keys)
         for key in REGULAR_SPECTRAL_CENTER_KEYS
     ):
-        raise HeadlessTransitionError("Séance requires pristine-profile Spectral authority")
+        raise HeadlessTransitionError("Held Spectral generation requires pristine-profile Spectral authority")
     if run.tags or any(type(joker).__name__ == "ShowmanJoker" for joker in run.public.jokers):
-        raise HeadlessTransitionError("Séance pool modifiers are not owned")
+        raise HeadlessTransitionError("Held Spectral pool modifiers are not owned")
 
 
-def generate_seance_held_spectral(run: HeadlessRunState) -> None:
+def generate_held_spectral(run: HeadlessRunState, *, key_append: str = "sea") -> None:
     """Generate and publish one Spectral on the caller's isolated play state."""
     state = run.public
     if type(state.consumable_slots) is not int or state.consumable_slots < 0:
-        raise HeadlessTransitionError("Séance requires exact consumable capacity")
+        raise HeadlessTransitionError("Held Spectral generation requires exact consumable capacity")
     if len(state.consumables) >= state.consumable_slots:
         return
 
-    require_seance_spectral_authority(run)
+    require_held_spectral_authority(run)
     held = set()
     for item in state.consumables:
         if type(item) is GeneratedHeldSpectral:
@@ -67,7 +67,7 @@ def generate_seance_held_spectral(run: HeadlessRunState) -> None:
         elif str(getattr(item, "category", getattr(item, "card_type", ""))).upper() not in {
             "TAROT", "PLANET",
         }:
-            raise HeadlessTransitionError("Séance requires exact held consumable identities")
+            raise HeadlessTransitionError("Held Spectral generation requires exact held consumable identities")
 
     discount = expected_shop_discount_percent_for_vouchers(state)
     if (
@@ -77,14 +77,16 @@ def generate_seance_held_spectral(run: HeadlessRunState) -> None:
         or state.shop_discount_percent != discount
         or state.shop_inflation_observed is not True
     ):
-        raise HeadlessTransitionError("Séance requires exact Spectral price inputs")
+        raise HeadlessTransitionError("Held Spectral generation requires exact Spectral price inputs")
     price = vanilla_card_cost(
         GeneratedHeldSpectral.base_cost,
         edition=None,
         inflation=state.shop_inflation,
         discount_percent=discount,
     )
-    center, _ = poll_seance_spectral_center(run.rng, state.ante, REGULAR_SPECTRAL_CENTER_KEYS - held)
+    center, _ = poll_held_spectral_center(
+        run.rng, state.ante, REGULAR_SPECTRAL_CENTER_KEYS - held, key_append=key_append
+    )
     state.consumables.append(GeneratedHeldSpectral(center, price))
     run.generation_discovery[center] = True
     run.tag_profile_state = TagProfileState(run.tag_profile_state.discovered_center_keys | {center})

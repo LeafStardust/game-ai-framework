@@ -5,6 +5,7 @@ from games.balatro.env.blind_start import start_supported_start_inert_boss
 from games.balatro.env.serialization import serialize_headless_run_state
 from games.balatro.env.tactical_transition import apply_supported_tactical_discard
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.jokers.sixth_sense import SixthSenseJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.jokers.green_joker import GreenJoker
@@ -151,3 +152,22 @@ def test_env_r4_green_grows_only_on_boss_accepted_play():
     accepted = apply_supported_ordinary_play(blocked, (0, 1, 2, 3, 5))
     assert accepted.public.jokers[0].mult == 5
     assert accepted.public.score == 90
+
+
+def test_env_r4_psychic_blocked_first_six_is_not_destroyed_or_used_for_generation():
+    from games.balatro.env.play_transition import apply_supported_ordinary_play
+
+    run = _psychic_run()
+    assert run.public.hand[5].rank == "6"
+    joker = SixthSenseJoker()
+    joker.center = "j_sixth_sense"
+    run.public.jokers = [joker]
+
+    blocked = apply_supported_ordinary_play(run, (5,))
+
+    assert blocked.public.score == 0
+    assert blocked.public.hand_play_counts["HIGH_CARD"] == 1
+    assert blocked.discard_pile[0].rank == "6"
+    assert blocked.removed_base_six_suits == ()
+    assert blocked.public.consumables == []
+    assert blocked.rng_snapshot() == run.rng_snapshot()

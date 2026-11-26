@@ -66,14 +66,17 @@ from games.balatro.env.voucher_capabilities import (
     expected_red_deck_hand_size_for_vouchers,
 )
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
-from games.balatro.env.spectral_inventory import GeneratedHeldSpectral, generate_seance_held_spectral
+from games.balatro.env.spectral_inventory import GeneratedHeldSpectral, generate_held_spectral
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.sixth_sense import SixthSenseJoker, sixth_sense_destroys
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.env.dna_copy import append_dna_copy
 from games.balatro.env.card_order import has_bounded_base_copy_order
+from games.balatro.env.card_removal import remove_played_six
 from games.balatro.jokers.vampire import VampireJoker
+from games.balatro.hand import PokerHand
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.consumable import PlanetCard, TarotCard
 from games.balatro.hand_evaluator import HandEvaluator
@@ -457,12 +460,14 @@ def apply_supported_ordinary_play(
     poker_hand = HandEvaluator().evaluate(selected)
     hand_name = poker_hand.value
     first_hand = None
-    if any(type(joker) is DNAJoker for joker in next_state.jokers):
+    if any(type(joker) in (DNAJoker, SixthSenseJoker) for joker in next_state.jokers):
         counts = next_state.round_hand_play_counts
-        if not isinstance(counts, dict) or any(
-            type(count) is not int or count < 0 for count in counts.values()
+        if (
+            not isinstance(counts, dict)
+            or counts.keys() != {hand.value for hand in PokerHand}
+            or any(type(count) is not int or count < 0 for count in counts.values())
         ):
-            raise HeadlessTransitionError("DNA requires exact round hand history")
+            raise HeadlessTransitionError("first-hand callback requires exact round hand history")
         first_hand = not any(counts.values())
     _increment_hand_counter(
         next_state.hand_play_counts,
@@ -548,10 +553,12 @@ def apply_supported_ordinary_play(
         for category in generated or ():
             if category != "Spectral":
                 raise HeadlessTransitionError("Play generated an unsupported consumable category")
-            generate_seance_held_spectral(next_run)
+            generate_held_spectral(next_run)
+        if sixth_sense_destroys(next_state.jokers, selected, first_hand=first_hand):
+            remove_played_six(next_run, selected[0])
+            generate_held_spectral(next_run, key_append="sixth")
 
-    # The admitted slice has no destruction or after-scoring callbacks, so every
-    # played card survives and moves from G.play to the discard tail in play order.
+    # Surviving played cards move from G.play to the discard tail in play order.
     next_run.discard_pile.extend(next_run.played_pile)
     next_state.discard_pile.extend(next_run.played_pile)
     next_run.played_pile.clear()

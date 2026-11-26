@@ -10,7 +10,7 @@ from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.brainstorm import BrainstormJoker
 from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.seance import SeanceJoker
-from games.balatro.jokers.sixth_sense import SixthSenseJoker
+from games.balatro.jokers.sixth_sense import SixthSenseJoker, sixth_sense_destroys
 from games.balatro.jokers.superposition import SuperpositionJoker
 from games.balatro.jokers.vagabond import VagabondJoker
 from games.balatro.live.card_destruction import project_destroyed_playing_cards
@@ -214,14 +214,10 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
         first_hand = self._is_first_hand(state)
         superposition_eligible = self._superposition_eligible(state, played_cards)
 
-        # A qualifying Glass 6 is deterministically destroyed by Sixth Sense.
-        # Suppress the independent natural Glass-shatter RNG branch only when a
-        # consumable slot will still remain after earlier joker-main generators.
-        suppress_glass_break = self._sixth_sense_will_destroy_glass(
-            state,
-            played_cards,
-            first_hand=first_hand,
-            money_at_hand_play=money_at_hand_play,
+        # Sixth Sense determines the Glass six's outcome regardless of slots.
+        suppress_glass_break = (
+            sixth_sense_destroys(state.jokers, played_cards, first_hand=first_hand)
+            and played_cards[0].enhancement == "Glass"
         )
 
         # Probe once on an isolated projector branch to recover exact scoring-card
@@ -454,60 +450,17 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
         return tarot_created, spectral_created
 
     def _apply_sixth_sense(self, state, played_cards, *, first_hand: bool) -> bool:
-        if not first_hand or len(played_cards) != 1:
-            return False
-        if str(getattr(played_cards[0], "rank", "")) != "6":
-            return False
-        if self._consumable_room(state) <= 0:
-            return False
-        if not any(
-            type(joker).__name__ == "SixthSenseJoker" and self._joker_active(joker)
-            for joker in getattr(state, "jokers", []) or []
-        ):
+        if not sixth_sense_destroys(state.jokers, played_cards, first_hand=first_hand):
             return False
 
         branch_card = self._matching_owned_card(state, played_cards[0])
-        if branch_card is None:
+        if branch_card is None or not project_destroyed_playing_cards(state, [branch_card]):
+            return False
+        if self._consumable_room(state) <= 0:
             return False
 
-        destroyed = project_destroyed_playing_cards(state, [branch_card])
-        if not destroyed:
-            return False
         self._add_abstract_consumables(state, category="SPECTRAL", count=1)
         return True
-
-    def _sixth_sense_will_destroy_glass(
-        self,
-        state,
-        played_cards,
-        *,
-        first_hand: bool,
-        money_at_hand_play: int,
-    ) -> bool:
-        if not first_hand or len(played_cards) != 1:
-            return False
-        card = played_cards[0]
-        if (
-            str(getattr(card, "rank", "")) != "6"
-            or getattr(card, "enhancement", None) != "Glass"
-        ):
-            return False
-        if not any(
-            type(joker).__name__ == "SixthSenseJoker" and self._joker_active(joker)
-            for joker in getattr(state, "jokers", []) or []
-        ):
-            return False
-
-        room = self._consumable_room(state)
-        if room <= 0:
-            return False
-
-        # On a single 6, Vagabond is the only supported earlier joker-main
-        # consumable generator that can claim capacity before Sixth Sense's
-        # destroying-card context. Its trigger uses money from hand-play time.
-        if money_at_hand_play <= 4:
-            room -= min(room, self._activation_count(state, "VagabondJoker"))
-        return room > 0
 
     def _effective_main_abilities(self, state) -> tuple[str, ...]:
         result = []

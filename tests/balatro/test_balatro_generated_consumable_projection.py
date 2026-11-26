@@ -1,4 +1,6 @@
 import games.balatro.state as state_module
+import pytest
+
 from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
@@ -485,7 +487,7 @@ def test_sixth_sense_does_not_trigger_after_an_earlier_hand():
     assert len(outcome_state.owned_deck) == 1
 
 
-def test_sixth_sense_full_slots_prevent_both_creation_and_destruction():
+def test_sixth_sense_full_slots_prevent_only_creation():
     six = BalatroCard("6", "Hearts", live_id=600)
     held = "held-consumable"
     state = _state(
@@ -499,7 +501,9 @@ def test_sixth_sense_full_slots_prevent_both_creation_and_destruction():
 
     outcome_state = transition.distribution.outcomes[0].state_after_scoring
     assert outcome_state.consumables == [held]
-    assert len(outcome_state.owned_deck) == 1
+    assert outcome_state.owned_deck == []
+    assert state.owned_deck == [six]
+    assert "generated Spectral identity (abstracted)" not in transition.distribution.random_sources
 
 
 def test_duplicate_sixth_sense_only_destroys_the_six_once():
@@ -539,17 +543,21 @@ def test_dna_copy_survives_sixth_sense_destruction_of_original():
     assert outcome_state.owned_deck[0].live_id is None
 
 
-def test_glass_six_is_destroyed_by_sixth_sense_without_glass_break_rng():
+@pytest.mark.parametrize("full", [False, True])
+def test_glass_six_is_destroyed_by_sixth_sense_without_glass_break_rng(full):
     six = BalatroCard("6", "Hearts", enhancement="Glass", live_id=600)
     glass_joker = GlassJoker()
-    state = _state([six], [glass_joker, SixthSenseJoker()])
+    state = _state(
+        [six], [glass_joker, SixthSenseJoker()],
+        consumables=["held"] if full else [], consumable_slots=1,
+    )
 
     transition = _project(state, PokerHand.HIGH_CARD, [six])
 
     assert transition.distribution.deterministic is True
     assert "Glass break x1" not in transition.distribution.random_sources
     outcome = transition.distribution.outcomes[0]
-    assert _generated_categories(outcome) == ["SPECTRAL"]
+    assert _generated_categories(outcome) == ([] if full else ["SPECTRAL"])
     assert outcome.state_after_scoring.owned_deck == []
     projected_glass = next(
         joker
