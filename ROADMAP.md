@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`532b4089a845a6fc687780dd8aa0cbbe583937d5`.
+`427483661d79884451580936c726bb89ee6744d3`.
 
 ## Objective
 
@@ -2549,17 +2549,28 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Midas Mask as the candidate for the forty-first exact generated-Joker
-acquisition. The committed trace offers uneditioned `j_midas_mask` at episode
+Add Midas Mask as the forty-first exact generated-Joker acquisition. The
+committed trace offers uneditioned `j_midas_mask` at episode
 50 decision 1 / seed `0B58B2B9`, with rarity 2, base cost 7, and price 7.
 
-Next, share the existing before-score model callbacks between live projection
-and production Play for Midas Mask and Vampire. Admit only exact Gold card
-continuation, retaining physical card identity through scoring, redraw, and
-repopulation. Verify source order and debuffs. Keep acquisition masked until
-the Gold lifecycle is owned.
+Next, admit exact uneditioned purchase, blind-start and cash-out
+continuation, and inventory-only sale. Verify the roadmap seed's natural
+offer and a complete rollout that carries Gold across rounds. Keep other
+enhancements and unsupported editions masked.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
+
+Midas Mask before-score and Gold continuation checkpoint:
+
+- Commit `427483661d79884451580936c726bb89ee6744d3` shares the ordered
+  before-score callback path between live projection and headless Play.
+  Midas and Vampire mutate the same retained permanent card objects in
+  Joker order. Exact base cards with Gold retain original-suit sort
+  authority across subsequent Play, redraw, and Boss deal.
+- Regressions cover Midas/Vampire order, parent isolation, static suit
+  debuffs with Gold, and Hook's inert discard path.
+- GitHub Actions run `45751689060`, job `139680728799` logged
+  **3826 passed, 1621 deselected in 416.45s**.
 
 Midas Mask held Gold checkpoint:
 
