@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`c6fb54bf623541ba0559bcdd66f8592008312c9e`.
+`c0f8a7a7859f458b17c9a22757fc22ab2796b00f`.
 
 ## Objective
 
@@ -2549,15 +2549,26 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Runner as the candidate for the forty-fifth exact generated Joker
+Audit Supernova as the candidate for the forty-sixth exact generated Joker
 acquisition. The committed strategic/shop trace offers uneditioned
-`j_runner` at episode 52 decision 3 / seed `EB851E5F`, with rarity 1,
+`j_supernova` at episode 52 decision 3 / seed `EB851E5F`, with rarity 1,
 base cost 5, and price 5.
 
-Next, admit exact uneditioned Runner to the generated shop and inventory-only
-sale. Pin a headless replay for purchase, Straight growth, chip persistence,
-sale, and continued play. Supernova, Hallucination, booster work, rewards,
-and retraining remain deferred.
+Next, audit the pinned Joker main callback and the canonical hand history.
+Verify that Supernova uses the run-wide count of the classified hand and
+that the triggering hand is included exactly once. Check ordinary Play,
+Boss-debuffed hand history, and live tactical score projection before
+admitting purchase or sale. Hallucination, booster work, rewards, and
+retraining remain deferred.
+
+Runner acquisition checkpoint:
+
+- Commit `c0f8a7a7859f458b17c9a22757fc22ab2796b00f` admits exact uneditioned
+  Runner and inventory-only sale. Seed 164 buys it for $5, grows from 0
+  to 15 chips on the Big Blind, retains them through the Boss, sells it
+  for $2, and clears the next Small Blind using production tactics.
+- GitHub Actions run `45831640902`, job `139949633821` logged
+  **3880 passed, 1621 deselected in 366.57s**.
 
 Runner scoring checkpoint:
 
