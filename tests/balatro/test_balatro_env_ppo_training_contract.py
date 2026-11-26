@@ -4,7 +4,7 @@ import json
 import pytest
 
 from games.balatro.blinds.blind import create_small_blind
-from games.balatro.env.action_encoding import legal_action_mask
+from games.balatro.env.action_encoding import action_index, legal_action_mask
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.observation_encoding import (
     JOKER_CENTER_KEYS,
@@ -2525,11 +2525,36 @@ def test_env_ppo_rollout_crosses_exact_flint_play_boundary(
 @pytest.fixture(scope="module")
 def episode_89_with_reroll():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    # Keep the mechanics replay on its intended actions as new offers become legal.
+    actions = iter((
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("REROLL_SHOP"),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("REROLL_SHOP"),
+        EnvAction.from_alias("REROLL_SHOP"),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+    ))
+
+    def replay(_observation, mask):
+        action = next(actions)
+        selected = action_index(action)
+        assert mask.values[selected], action
+        return replace(_policy_output(), probabilities=tuple(
+            float(index == selected) for index in range(PPO_TRAINING_CONTRACT.action_size)
+        ))
+
     return collect_complete_ppo_episode(
         make_ppo_training_environment(1),
         run,
         episode_index=89,
-        policy=PPOActorCritic(run).infer,
+        policy=replay,
     )
 
 
