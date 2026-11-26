@@ -935,7 +935,7 @@ def test_env_ppo_backend_acquires_generated_crazy_joker_and_discovers_its_center
         ("j_runner", 5, 5, False),
     )
     assert buy in environment.legal_actions()
-    assert EnvAction.from_alias("BUY_JOKER", {"slot": 1}) not in (
+    assert EnvAction.from_alias("BUY_JOKER", {"slot": 1}) in (
         environment.legal_actions()
     )
     environment.step(buy)

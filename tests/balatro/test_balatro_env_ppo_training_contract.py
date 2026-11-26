@@ -37,6 +37,7 @@ from games.balatro.env.seeded_evaluation import FIXED_SEEDED_EPISODES
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.state import BalatroState
 
@@ -1875,6 +1876,38 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
         ("SELECT_BLIND", {}),
     ]
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
+
+
+def test_env_ppo_seed_completes_runner_purchase_growth_and_sale():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed=164)
+    replay = (
+        ("SELECT_BLIND", {}, 9, ()),
+        ("BUY_JOKER", {"slot": 1}, 4, (0,)),
+        ("END_SHOP", {}, 4, (0,)),
+        ("SELECT_BLIND", {}, 9, (15,)),
+        ("END_SHOP", {}, 9, (15,)),
+        ("SELECT_BLIND", {}, 16, (15,)),
+        ("SELL_JOKER", {"joker_index": 0}, 18, ()),
+        ("END_SHOP", {}, 18, ()),
+        ("SELECT_BLIND", {}, 24, ()),
+    )
+    for alias, params, money, chips in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert all(type(joker) is RunnerJoker for joker in run.public.jokers)
+        assert tuple(joker.chips for joker in run.public.jokers) == chips
+        if chips:
+            assert run.generated_center_discovered("j_runner") is True
+            assert _observation_feature(
+                environment.frame.encoded_observation(), "jokers.0.chips"
+            ) == float(chips[0])
+
+    assert environment.frame.state.round == 4
+    assert environment.frame.state.phase == "SHOP"
 
 
 def test_env_ppo_trace_seed_completes_splash_purchase_scoring_and_sale():

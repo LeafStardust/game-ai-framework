@@ -46,6 +46,7 @@ from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.castle import CASTLE_SUITS, CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
+from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
@@ -257,6 +258,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 2
         expected_base_cost = 6
         label = "Rocket"
+    elif item.center_key == "j_runner":
+        joker_type = RunnerJoker
+        expected_rarity = 1
+        expected_base_cost = 5
+        label = "Runner"
     elif item.center_key == "j_scholar":
         joker_type = ScholarJoker
         expected_rarity = 1
