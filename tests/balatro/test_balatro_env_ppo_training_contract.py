@@ -66,6 +66,20 @@ def _policy_output(value=1.0):
     )
 
 
+def _fixed_action_policy(actions):
+    actions = iter(actions)
+
+    def replay(_observation, mask):
+        action = next(actions)
+        selected = action_index(action)
+        assert mask.values[selected], action
+        return replace(_policy_output(), probabilities=tuple(
+            float(index == selected) for index in range(PPO_TRAINING_CONTRACT.action_size)
+        ))
+
+    return replay
+
+
 def _generated_joker_lifecycle_policy(observation, mask):
     del observation
     priorities = (*range(11, 17), 2, 1, 3, 0, 26, 25)
@@ -564,11 +578,20 @@ def test_env_ppo_rollout_crosses_exact_generated_gluttonous_abstract_and_mad_lif
 @pytest.fixture(scope="module")
 def episode_115_with_scholar_lifecycle():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    actions = (
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 1}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+    )
     return collect_complete_ppo_episode(
         make_ppo_training_environment(0),
         run,
         episode_index=115,
-        policy=_generated_joker_lifecycle_policy,
+        policy=_fixed_action_policy(actions),
     )
 
 
@@ -2642,7 +2665,7 @@ def test_env_ppo_rollout_crosses_exact_flint_play_boundary(
 def episode_89_with_reroll():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
     # Keep the mechanics replay on its intended actions as new offers become legal.
-    actions = iter((
+    actions = (
         EnvAction.from_alias("SELECT_BLIND"),
         EnvAction.from_alias("REROLL_SHOP"),
         EnvAction.from_alias("END_SHOP"),
@@ -2656,21 +2679,13 @@ def episode_89_with_reroll():
         EnvAction.from_alias("REROLL_SHOP"),
         EnvAction.from_alias("END_SHOP"),
         EnvAction.from_alias("SELECT_BLIND"),
-    ))
-
-    def replay(_observation, mask):
-        action = next(actions)
-        selected = action_index(action)
-        assert mask.values[selected], action
-        return replace(_policy_output(), probabilities=tuple(
-            float(index == selected) for index in range(PPO_TRAINING_CONTRACT.action_size)
-        ))
+    )
 
     return collect_complete_ppo_episode(
         make_ppo_training_environment(1),
         run,
         episode_index=89,
-        policy=replay,
+        policy=_fixed_action_policy(actions),
     )
 
 
