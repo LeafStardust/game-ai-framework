@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`9e29738b1f584c8184e4da90f491562136b7edee`.
+`ffab2250c0f4c720142f34bb81decf78b467f8d4`.
 
 ## Objective
 
@@ -2562,22 +2562,25 @@ growth. Its first-hand callback adds at most one card per played round, so
 before widening those capabilities. Current Play and several Boss checks
 still require a 52-card base deck.
 
-Next, own DNA's permanent card identity, hand insertion,
-and redraw. The pinned callback checks the hand count before it increments;
-headless Play currently increments its round hand count before the shared
-before-score callbacks. Capture that boundary explicitly and verify a
-single-card first hand, later hands, and retained order. Keep acquisition
-masked until all boundaries and the new observation provenance are exact.
-Audit the active Pillar guard before admitting copies: vanilla marks the
-source played before the callback, and `copy_card` inherits both the played
-history and the current debuff. An un-debuffed copy can therefore enter the
-hand with played history during The Pillar. The current guard rejects that
-combination in active zones. Preserve the pre-deal debuff authority while
-distinguishing cards created after it. Materialize DNA at its own position
-in the before-score callbacks so later Midas or Vampire effects cannot
-retroactively change what was copied.
+Next, connect the exact copy primitive to production Play's before-score
+callbacks. Capture first-hand authority before incrementing the counter,
+and resolve the copy at DNA's physical Joker position. Extend deal, redraw,
+and Boss validation only to bounded retained base-plus-copy order. Verify
+new and subsequent Pillar rounds, inherited debuffs, Midas/Vampire order,
+and no copy on later or multi-card hands. Keep acquisition masked until
+this path passes CI.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
+
+DNA copy and Pillar checkpoint:
+
+- Commit `ffab2250c0f4c720142f34bb81decf78b467f8d4` inserts distinct
+  copies into retained creation order, permanent inventory, and hand.
+  It preserves exact modifiers and inherited history. Pillar snapshots
+  distinguish pre-deal debuffs from copies born after the pre-deal pass
+  and reject divergence across restore and cleanup.
+- GitHub Actions run `45795348526`, job `139824464774` logged
+  **3834 passed, 1621 deselected in 431.90s**.
 
 DNA observation-capacity checkpoint:
 
