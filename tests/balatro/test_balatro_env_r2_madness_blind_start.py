@@ -3,6 +3,7 @@ import pytest
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.blind_start import prepare_supported_nonboss_blind_start
 from games.balatro.env.deal import deal_supported_round_start
+from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.rng import BalatroRNG
 from games.balatro.env.round_lifecycle import apply_supported_setting_blind_effects
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
@@ -128,6 +129,34 @@ def test_env_r2_madness_opening_capacity_round_trips_before_the_deal():
 
     assert restored.opening_draw_capacity == 9
     assert len(deal_supported_round_start(restored).public.hand) == 9
+
+
+def test_env_r4_madness_scores_after_juggler_destruction_without_extra_redraw():
+    madness = MadnessJoker()
+    madness.center = "j_madness"
+    run = _run([madness, JugglerJoker()])
+    run.public.hand_size = 9
+    dealt = deal_supported_round_start(prepare_supported_nonboss_blind_start(run))
+    comparison = dealt.copy()
+    comparison.public.jokers[0].x_mult = 1.0
+    base = apply_supported_ordinary_play(comparison, (0,))
+
+    played = apply_supported_ordinary_play(dealt, (0,))
+
+    assert played.public.score == int(base.public.score * 1.5)
+    assert len(played.public.hand) == played.public.hand_size == 8
+    assert played.draw_pile == dealt.draw_pile
+
+
+@pytest.mark.parametrize("invalid", [True, float("nan"), float("inf"), 0.5, 1.25])
+def test_env_r4_madness_rejects_inexact_growth_state(invalid):
+    madness = MadnessJoker()
+    madness.center = "j_madness"
+    dealt = deal_supported_round_start(prepare_supported_nonboss_blind_start(_run([madness])))
+    dealt.public.jokers[0].x_mult = invalid
+
+    with pytest.raises(HeadlessTransitionError, match="Joker callbacks"):
+        apply_supported_ordinary_play(dealt, (0,))
 
 
 @pytest.mark.parametrize(("bonus", "current"), [(0, 3), (-4, 0)])

@@ -1,6 +1,11 @@
 from games.balatro.joker import Joker, JokerContext
 
 
+def madness_x_mult_is_exact(value: object) -> bool:
+    # Half-steps must remain representable after the next growth.
+    return type(value) in (int, float) and 1 <= value < 2**52 and value % 0.5 == 0
+
+
 class MadnessJoker(Joker):
 
     def __init__(self):

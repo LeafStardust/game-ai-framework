@@ -37,6 +37,7 @@ from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.seance import SeanceJoker
+from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 
@@ -48,6 +49,7 @@ _ROUND_END_INERT_JOKER_TYPES = (
     *_OWNED_DECK_SCORING_TYPES,
     CastleJoker,
     SeanceJoker,
+    MadnessJoker,
     StuntmanJoker,
     DrunkardJoker,
     TroubadourJoker,

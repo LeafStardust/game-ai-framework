@@ -12,6 +12,7 @@ from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.vampire import VampireJoker
@@ -25,6 +26,7 @@ INVENTORY_ONLY_JOKER_REMOVAL_TYPES = tuple(
         GoldenJoker,
         CastleJoker,
         Cloud9Joker,
+        MadnessJoker,
         RocketJoker,
         SeanceJoker,
         VampireJoker,

@@ -1496,6 +1496,24 @@ def test_env_r2_mime_materialization_rejects_unsupported_metadata(rarity, base_c
         materialize_generated_shop_joker_for_acquisition(item)
 
 
+@pytest.mark.parametrize(("rarity", "base_cost", "edition"), [(1, 7, None), (2, 6, None), (2, 7, "Foil")])
+def test_env_r2_madness_materialization_rejects_unsupported_metadata(rarity, base_cost, edition):
+    item = GeneratedShopJokerItem("j_madness", rarity, base_cost, edition, 7, False)
+    with pytest.raises(HeadlessTransitionError):
+        materialize_generated_shop_joker_for_acquisition(item)
+
+
+def test_env_r2_madness_purchase_requires_retained_joker_order():
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_madness", rarity=2, base_cost=7, discovered=False)
+    )
+    inserted = insert_generated_shop_joker_item(run, item)
+    inserted.joker_order_state = None
+    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) not in (
+        ShopTransitionEngine().legal_actions(inserted)
+    )
+
+
 def test_env_r2_seance_purchase_is_masked_without_exact_spectral_authority():
     run, item = materialize_shop_joker_descriptor(
         _descriptor(center_key="j_seance", rarity=2, base_cost=6, discovered=False)

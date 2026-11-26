@@ -9,8 +9,6 @@ bonus that vanilla has already consumed.
 
 from __future__ import annotations
 
-from math import isfinite
-
 from games.balatro.blinds.blind import BlindType
 from games.balatro.env.boss_disable import disable_supported_boss
 from games.balatro.env.transition import (
@@ -25,7 +23,7 @@ from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.chicot import ChicotJoker
 from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.drunkard import DrunkardJoker
-from games.balatro.jokers.madness import MadnessJoker
+from games.balatro.jokers.madness import MadnessJoker, madness_x_mult_is_exact
 from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
@@ -135,13 +133,7 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
                     for field in ("eternal", "getting_sliced")
                 ):
                     raise HeadlessTransitionError("Madness target flags are not exact")
-                x_mult = joker.x_mult
-                if (
-                    type(x_mult) not in (int, float)
-                    or not isfinite(x_mult)
-                    or x_mult < 1
-                    or x_mult % 0.5
-                ):
+                if not madness_x_mult_is_exact(joker.x_mult):
                     raise HeadlessTransitionError("Madness requires exact XMult")
                 context = JokerContext(
                     state=next_state,

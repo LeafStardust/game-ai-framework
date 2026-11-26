@@ -731,6 +731,8 @@ class ShopTransitionEngine:
 
         if type(item) is GeneratedShopJokerItem:
             try:
+                if item.center_key == "j_madness":
+                    run.require_joker_order_state()
                 if item.center_key == "j_seance":
                     from games.balatro.env.spectral_inventory import require_seance_spectral_authority
 

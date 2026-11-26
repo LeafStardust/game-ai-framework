@@ -6,6 +6,7 @@ from games.balatro.env.blind_start import start_supported_start_inert_boss
 from games.balatro.env.boss_play import apply_hook_press_play_discards
 from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.cloud_9 import Cloud9Joker
+from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
@@ -74,6 +75,7 @@ def test_env_r2_hook_forces_two_discards_from_remaining_not_played_cards():
 
 @pytest.mark.parametrize(("joker_type", "center"), [
     (Cloud9Joker, "j_cloud_9"), (MimeJoker, "j_mime"), (SeanceJoker, "j_seance"),
+    (MadnessJoker, "j_madness"),
 ])
 def test_env_r2_hook_with_inert_joker_preserves_forced_discard_and_rng(joker_type, center):
     started = start_supported_start_inert_boss(_hook_run())
