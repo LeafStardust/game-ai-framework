@@ -12,6 +12,8 @@ class FacelessJoker(Joker):
         face_cards = sum(
             card_is_face(card, rules)
             for card in context.cards
+            if not card.debuffed
+            and (not card.is_stone or rules.get("all_cards_are_face"))
         )
 
         if face_cards >= 3:

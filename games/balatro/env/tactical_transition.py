@@ -320,9 +320,9 @@ def apply_supported_tactical_discard(
     selected_ids = {id(card) for card in next_selected}
 
     if next_state.jokers:
-        from games.balatro.env.castle_round import apply_castle_discard_callbacks
+        from games.balatro.env.discard_callbacks import apply_discard_callbacks
 
-        apply_castle_discard_callbacks(next_run, next_selected)
+        apply_discard_callbacks(next_run, next_selected)
 
     # Vanilla moves cards in hand-area order to the discard tail.
     next_state.hand = [card for card in next_state.hand if id(card) not in selected_ids]

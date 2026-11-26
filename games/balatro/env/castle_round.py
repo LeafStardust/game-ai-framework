@@ -1,10 +1,6 @@
 """Retain the round target used by Castle in the headless agent."""
 
-from games.balatro.card import BalatroCard
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
-from games.balatro.events import BalatroEvent, BalatroEventType
-from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.joker import JokerContext
 from games.balatro.jokers.castle import CASTLE_SUITS, CastleJoker
 
 
@@ -23,19 +19,3 @@ def reset_castle_round_suit(run: HeadlessRunState) -> None:
     for joker in run.public.jokers:
         if type(joker) is CastleJoker:
             joker.suit = suit
-
-
-def apply_castle_discard_callbacks(run: HeadlessRunState, cards: list[BalatroCard]) -> None:
-    """Apply the owned discard effect before the isolated run moves the cards."""
-    castles = [joker for joker in run.public.jokers if type(joker) is CastleJoker]
-    if not castles:
-        return
-    context = JokerContext(
-        state=run.public,
-        cards=cards,
-        trigger="DISCARD",
-        event=BalatroEvent(BalatroEventType.CARDS_DISCARDED, cards),
-        data={"hand_rules": hand_rules_for_state(run.public)},
-    )
-    for joker in castles:
-        joker.apply(context)

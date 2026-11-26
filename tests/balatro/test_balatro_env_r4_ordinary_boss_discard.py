@@ -1,10 +1,15 @@
 import pytest
 
 from games.balatro.blinds.blind import Blind, BlindType
+from games.balatro.card import BalatroCard
 from games.balatro.env.select_blind import select_blind_exact
 from games.balatro.env.serialization import serialize_headless_run_state
 from games.balatro.env.tactical_transition import apply_supported_tactical_discard
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.hand_rules import hand_rules_for_state
+from games.balatro.joker import JokerContext
+from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.pareidolia import PareidoliaJoker
 from games.balatro.state import BalatroState
 
 
@@ -65,6 +70,79 @@ def _boss_run(
         for card in run.require_playing_card_order():
             card.played_this_ante_observed = True
     return select_blind_exact(run)
+
+
+@pytest.mark.parametrize(
+    ("indices", "debuff_card", "payout"),
+    [
+        ((1, 2), False, 0),
+        ((1, 2, 3), False, 5),
+        ((0, 1, 2, 3, 4), False, 5),
+        ((1, 2, 3), True, 0),
+    ],
+)
+def test_env_r4_faceless_pays_once_for_qualifying_discard(indices, debuff_card, payout):
+    run = _boss_run("The Wall", seed="FACELESS")
+    assert [card.rank for card in run.public.hand[:5]] == ["A", "K", "Q", "Q", "J"]
+    run.public.hand[1].debuffed = debuff_card
+    joker = FacelessJoker()
+    joker.center = "j_faceless"
+    run.public.jokers = [joker]
+    before = run.public.money
+    selected = [(run.public.hand[i].rank, run.public.hand[i].suit) for i in indices]
+
+    result = apply_supported_tactical_discard(run, indices)
+
+    assert run.public.money == before
+    assert result.public.money == before + payout
+    assert result.public.discards_used == run.public.discards_used + 1
+    assert result.public.discards_remaining == run.public.discards_remaining - 1
+    assert len(result.public.hand) == run.public.hand_size
+    assert [(card.rank, card.suit) for card in result.discard_pile] == selected
+    assert result.rng_snapshot() == run.rng_snapshot()
+    assert apply_supported_tactical_discard(result, (0,)).public.money == before + payout
+
+
+@pytest.mark.parametrize(
+    ("pareidolia", "debuffed", "payout"),
+    [(False, False, 0), (True, False, 5), (True, True, 0)],
+)
+def test_faceless_stone_face_status_uses_active_pareidolia(pareidolia, debuffed, payout):
+    state = BalatroState()
+    if pareidolia:
+        joker = PareidoliaJoker()
+        joker.debuffed = debuffed
+        state.jokers = [joker]
+    cards = [
+        BalatroCard("Q", "Spades"),
+        BalatroCard("J", "Hearts"),
+        BalatroCard("K", "Clubs", enhancement="Stone"),
+    ]
+    before = state.money
+
+    FacelessJoker().apply(JokerContext(
+        state=state,
+        trigger="DISCARD",
+        cards=cards,
+        data={"hand_rules": hand_rules_for_state(state)},
+    ))
+
+    assert state.money == before + payout
+
+
+def test_faceless_debuff_disables_discard_payout():
+    state = BalatroState()
+    joker = FacelessJoker()
+    joker.debuffed = True
+    before = state.money
+
+    joker.apply(JokerContext(
+        state=state,
+        trigger="DISCARD",
+        cards=[BalatroCard(rank, "Hearts") for rank in ("J", "Q", "K")],
+    ))
+
+    assert state.money == before
 
 
 @pytest.mark.parametrize("boss_name", ORDINARY_REDRAW_BOSSES)

@@ -126,13 +126,21 @@ def _apply_hook_forced_discards(
         from games.balatro.jokers.castle import CastleJoker
         from games.balatro.jokers.cloud_9 import Cloud9Joker
         from games.balatro.jokers.dna import DNAJoker
+        from games.balatro.jokers.faceless_joker import FacelessJoker
         from games.balatro.jokers.madness import MadnessJoker
         from games.balatro.jokers.midas_mask import MidasMaskJoker
         from games.balatro.jokers.mime import MimeJoker
         from games.balatro.jokers.seance import SeanceJoker
 
         owned_hook_joker_types = {
-            CastleJoker, Cloud9Joker, DNAJoker, MadnessJoker, MidasMaskJoker, MimeJoker, SeanceJoker,
+            CastleJoker,
+            Cloud9Joker,
+            DNAJoker,
+            FacelessJoker,
+            MadnessJoker,
+            MidasMaskJoker,
+            MimeJoker,
+            SeanceJoker,
         }
         if (
             any(type(joker) not in owned_hook_joker_types for joker in state.jokers)
@@ -194,9 +202,9 @@ def _apply_hook_forced_discards(
     visible_rank = {id(card): index for index, card in enumerate(next_state.hand)}
     forced.sort(key=lambda card: visible_rank[id(card)])
     if next_state.jokers:
-        from games.balatro.env.castle_round import apply_castle_discard_callbacks
+        from games.balatro.env.discard_callbacks import apply_discard_callbacks
 
-        apply_castle_discard_callbacks(next_run, forced)
+        apply_discard_callbacks(next_run, forced)
     forced_ids = {id(card) for card in forced}
     next_state.hand = [card for card in next_state.hand if id(card) not in forced_ids]
     next_state.discard_pile.extend(forced)

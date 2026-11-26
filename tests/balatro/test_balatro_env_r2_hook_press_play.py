@@ -7,6 +7,7 @@ from games.balatro.env.boss_play import apply_hook_press_play_discards
 from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.mime import MimeJoker
@@ -80,6 +81,7 @@ def test_env_r2_hook_forces_two_discards_from_remaining_not_played_cards():
     (MadnessJoker, "j_madness"),
     (MidasMaskJoker, "j_midas_mask"),
     (DNAJoker, "j_dna"),
+    (FacelessJoker, "j_faceless"),
 ])
 def test_env_r2_hook_with_inert_joker_preserves_forced_discard_and_rng(joker_type, center):
     started = start_supported_start_inert_boss(_hook_run())

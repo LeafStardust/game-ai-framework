@@ -36,6 +36,7 @@ from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.madness import MadnessJoker, madness_x_mult_is_exact
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.scholar import ScholarJoker
@@ -83,6 +84,8 @@ def generated_joker_tactical_callbacks_are_exact(
             expected_center = "j_drunkard"
         elif type(joker) is EvenStevenJoker:
             expected_center = "j_even_steven"
+        elif type(joker) is FacelessJoker:
+            expected_center = "j_faceless"
         elif type(joker) is FibonacciJoker:
             expected_center = "j_fibonacci"
         elif type(joker) is GluttonousJoker:
