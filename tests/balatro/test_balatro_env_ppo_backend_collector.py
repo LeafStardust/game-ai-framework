@@ -710,7 +710,7 @@ def test_env_ppo_backend_acquires_generated_scary_face_and_discovers_its_center(
         ("j_faceless", 4, 4, False),
         ("j_scary_face", 4, 4, False),
     )
-    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) not in (
+    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) in (
         environment.legal_actions()
     )
     assert buy in environment.legal_actions()
@@ -1450,13 +1450,14 @@ def test_env_ppo_backend_replays_first_shop_big_blind_and_later_shop_exactly():
     )
     actions = environment.legal_actions()
     assert actions == (
+        EnvAction.from_alias("BUY_JOKER", {"slot": 1}),
         EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}),
         EnvAction.from_alias("REROLL_SHOP"),
         EnvAction.from_alias("END_SHOP"),
     )
     mask = legal_action_mask(actions)
-    assert sum(mask.values) == 3
-    assert mask.values[action_index(actions[0])] is True
+    assert sum(mask.values) == 4
+    assert all(mask.values[action_index(action)] for action in actions)
     assert all(action.alias != "OPEN_PACK" for action in actions)
     later_boundary = PPORolloutBoundary.from_frame(environment.frame)
     assert later_boundary.blind_requirement is None
