@@ -1,17 +1,24 @@
 from dataclasses import FrozenInstanceError, replace
 import json
+from types import SimpleNamespace
 
 import pytest
 
+from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.blinds.blind import create_small_blind
 from games.balatro.env.action_encoding import action_index, legal_action_mask
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.environment import BalatroHeadlessEnvironment
+from games.balatro.env.episode_backend import PPOHeadlessBackend
 from games.balatro.env.observation_encoding import (
     JOKER_CENTER_KEYS,
     PUBLIC_OBSERVATION_SCHEMA,
     VOUCHER_KEYS,
 )
-from games.balatro.env.ppo_campaign import make_ppo_training_environment
+from games.balatro.env.ppo_campaign import (
+    make_ppo_tactical_decision_engine,
+    make_ppo_training_environment,
+)
 from games.balatro.env.ppo_contract import (
     PPO_ACTION_SAMPLE_DOMAIN,
     PPO_POLICY_OUTPUT_SCHEMA,
@@ -28,6 +35,7 @@ from games.balatro.env.ppo_model import PPOActorCritic
 from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.seeded_evaluation import FIXED_SEEDED_EPISODES
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
+from games.balatro.jokers.dna import DNAJoker
 from games.balatro.state import BalatroState
 
 
@@ -1816,6 +1824,56 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
         ("SELECT_BLIND", {}),
     ]
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
+
+
+def test_env_ppo_roadmap_seed_completes_dna_purchase_copy_and_sale():
+    class FirstBigBlindSingleCard:
+        def __init__(self):
+            self.tactical = make_ppo_tactical_decision_engine()
+            self.played = False
+
+        def decide(self, state):
+            if state.round == 2 and not self.played:
+                self.played = True
+                return SimpleNamespace(
+                    action=BalatroAction(PLAY_CARDS, cards=[state.hand[0]])
+                )
+            return self.tactical.decide(state)
+
+    environment = BalatroHeadlessEnvironment(PPOHeadlessBackend(FirstBigBlindSingleCard()))
+    environment.reset(seed="64FD54A0")
+    replay = (
+        ("SELECT_BLIND", {}, 8, False, 52),
+        ("BUY_JOKER", {"slot": 0}, 0, True, 52),
+        ("END_SHOP", {}, 0, True, 52),
+        ("SELECT_BLIND", {}, 4, True, 53),
+        ("SELL_JOKER", {"joker_index": 0}, 8, False, 53),
+        ("END_SHOP", {}, 8, False, 53),
+        ("SELECT_BLIND", {}, 8, False, 53),
+    )
+    for alias, params, money, owns_dna, count in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert [type(joker) for joker in run.public.jokers] == [DNAJoker] * owns_dna
+        assert len(run.public.owned_deck) == count
+        order = run.require_playing_card_order()
+        assert len(order) == count
+        if owns_dna:
+            assert run.generated_center_discovered("j_dna") is True
+        if count == 53:
+            copy = order[52]
+            assert (copy.rank, copy.suit) == ("Q", "Spades")
+            assert any(card is copy for card in run.public.owned_deck)
+        if environment.frame.status is RunStatus.RUNNING:
+            assert _observation_feature(
+                environment.frame.encoded_observation(), "owned_deck.52.present"
+            ) == float(count == 53)
+
+    assert environment.frame.state.round == 3
+    assert environment.frame.status is RunStatus.LOSS
 
 
 def test_env_ppo_roadmap_seed_completes_midas_purchase_conversion_and_sale():

@@ -24,6 +24,7 @@ from games.balatro.env.actions import EnvAction
 from games.balatro.env.blind_progression import BlindProgressionState
 from games.balatro.env.card_order import (
     derive_playing_card_order,
+    has_bounded_base_copy_order,
     playing_card_order_matches,
 )
 from games.balatro.env.joker_order import JokerOrderError, JokerOrderState
@@ -53,6 +54,7 @@ from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.drivers_license import DriversLicenseJoker
 from games.balatro.jokers.droll_joker import DrollJoker
+from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.dusk import DuskJoker
 from games.balatro.jokers.erosion import ErosionJoker
@@ -741,6 +743,11 @@ class ShopTransitionEngine:
 
         if type(item) is GeneratedShopJokerItem:
             try:
+                if item.center_key == "j_dna":
+                    if any(type(joker) is DNAJoker for joker in state.jokers):
+                        return False
+                    if not has_bounded_base_copy_order(run.require_playing_card_order()):
+                        return False
                 if item.center_key == "j_madness":
                     run.require_joker_order_state()
                 if item.center_key == "j_seance":

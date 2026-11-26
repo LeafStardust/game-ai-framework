@@ -1,6 +1,7 @@
 import pytest
 
 from games.balatro.card import BalatroCard
+from games.balatro.env.card_order import derive_playing_card_order
 from games.balatro.env.shop_items import (
     GeneratedShopJokerItem,
     insert_generated_shop_joker_item,
@@ -24,6 +25,7 @@ from games.balatro.jokers.bull import BullJoker
 from games.balatro.jokers.clever_joker import CleverJoker
 from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.crafty_joker import CraftyJoker
+from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
@@ -1502,6 +1504,37 @@ def test_env_r2_madness_and_midas_reject_unsupported_metadata(rarity, base_cost,
     item = GeneratedShopJokerItem(center, rarity, base_cost, edition, 7, False)
     with pytest.raises(HeadlessTransitionError):
         materialize_generated_shop_joker_for_acquisition(item)
+
+
+@pytest.mark.parametrize(
+    ("rarity", "base_cost", "edition"), [(2, 8, None), (3, 7, None), (3, 8, "Foil")]
+)
+def test_env_r2_dna_materialization_rejects_unsupported_metadata(rarity, base_cost, edition):
+    item = GeneratedShopJokerItem("j_dna", rarity, base_cost, edition, 8, True)
+    with pytest.raises(HeadlessTransitionError):
+        materialize_generated_shop_joker_for_acquisition(item)
+
+
+@pytest.mark.parametrize("unsupported", ["missing_card_order", "duplicate_dna"])
+def test_env_r2_dna_purchase_masks_unsupported_inventory(unsupported):
+    run, item = materialize_shop_joker_descriptor(
+        _descriptor(center_key="j_dna", rarity=3, base_cost=8, discovered=True)
+    )
+    run.public.owned_deck = run.public.deck.copy()
+    run.playing_card_order = derive_playing_card_order(run.public)
+    inserted = insert_generated_shop_joker_item(run, item)
+    engine = ShopTransitionEngine()
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert action in engine.legal_actions(inserted)
+
+    if unsupported == "missing_card_order":
+        inserted.playing_card_order = None
+    else:
+        inserted.public.jokers.append(DNAJoker())
+
+    assert action not in engine.legal_actions(inserted)
+    with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
+        engine.step(inserted, action)
 
 
 def test_env_r2_madness_purchase_requires_retained_joker_order():
