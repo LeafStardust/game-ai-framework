@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`09fc0f633a2c9fe4fae7f73d1b6556dffeb64567`.
+`532b4089a845a6fc687780dd8aa0cbbe583937d5`.
 
 ## Objective
 
@@ -2553,13 +2553,22 @@ Audit Midas Mask as the candidate for the forty-first exact generated-Joker
 acquisition. The committed trace offers uneditioned `j_midas_mask` at episode
 50 decision 1 / seed `0B58B2B9`, with rarity 2, base cost 7, and price 7.
 
-Compare vanilla before-score conversion with the model, live projection, and
-headless Play. Trace permanent Gold identity, score-order interaction with
-Vampire, redraw and subsequent Play, and held Gold cash-out. The current
-headless Play guard rejects enhanced cards. Keep acquisition masked until
-the Gold lifecycle is owned through ordinary and Boss rounds.
+Next, share the existing before-score model callbacks between live projection
+and production Play for Midas Mask and Vampire. Admit only exact Gold card
+continuation, retaining physical card identity through scoring, redraw, and
+repopulation. Verify source order and debuffs. Keep acquisition masked until
+the Gold lifecycle is owned.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
+
+Midas Mask held Gold checkpoint:
+
+- Commit `532b4089a845a6fc687780dd8aa0cbbe583937d5` adds the exact $3 held
+  Gold effect before interest for ordinary and Boss cash-out. Red Seal and
+  active Mime each add one activation. Debuffed Gold and Gold outside the
+  hand pay nothing.
+- GitHub Actions run `45750586630`, job `139677141161` logged
+  **3822 passed, 1621 deselected in 344.72s**.
 
 Madness generated acquisition checkpoint:
 
