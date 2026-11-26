@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`8fb89a6be1218a9174a2e2cb0e54b02067d31154`.
+`9e29738b1f584c8184e4da90f491562136b7edee`.
 
 ## Objective
 
@@ -75,7 +75,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | Observation v5; prior checkpoints are historical and fresh retraining is required |
+| PPO learner and training path | Observation v6; prior checkpoints are historical and fresh retraining is required |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -113,16 +113,16 @@ considered; do not invent RL-only aliases.
 
 ## Current PPO contract
 
-- Schemas: sparse training `balatro-red-white-ppo-training-v5`, progress
-  training `balatro-red-white-ppo-progress-reward-training-v6`, run
+- Schemas: sparse training `balatro-red-white-ppo-training-v6`, progress
+  training `balatro-red-white-ppo-progress-reward-training-v7`, run
   `balatro-red-white-ppo-run-v3`, policy output
   `balatro-red-white-ppo-policy-output-v3`, sparse rollout
-  `balatro-red-white-ppo-rollout-episode-v4`, and progress rollout
-  `balatro-red-white-ppo-progress-reward-rollout-episode-v5`.
-- Public observation: `balatro-red-white-public-observation-v5`, **2,480**
+  `balatro-red-white-ppo-rollout-episode-v5`, and progress rollout
+  `balatro-red-white-ppo-progress-reward-rollout-episode-v6`.
+- Public observation: `balatro-red-white-public-observation-v6`, **3,320**
   values. Output: 27 canonical action slots.
-- Model/checkpoint owner: `balatro-red-white-ppo-actor-critic-v2`; campaign
-  owner: `balatro-red-white-ppo-campaign-v13`.
+- Model/checkpoint owner: `balatro-red-white-ppo-actor-critic-v3`; campaign
+  owner: `balatro-red-white-ppo-campaign-v14`.
 - Model: `(512, 256)` tanh MLP.
 - Collection: 8 environments, 256 steps each, 2,048 transitions per batch.
 - Optimization: 256-transition minibatches, 10 epochs, 1,024 batches,
@@ -137,7 +137,7 @@ considered; do not invent RL-only aliases.
 - Illegal probability mass is exactly zero. There is no empty-mask rescue.
 - Incomplete/nonterminal evidence, illegal actions, schema/provenance drift,
   non-finite output, seed drift, and terminal contradictions fail closed.
-- Earlier training artifacts predate observation v5 and remain historical
+- Earlier training artifacts predate observation v6 and remain historical
   evidence. The registered training contract digest includes observation
   version, even when the feature width is unchanged.
   Fresh training is explicitly authorized in the future after the remaining
@@ -2553,17 +2553,16 @@ Audit DNA as the candidate for the forty-second exact generated-Joker
 acquisition. The committed trace offers uneditioned `j_dna` at episode 51
 decision 1 / seed `64FD54A0`, with rarity 3, base cost 8, and price 8.
 
-Next, version the fixed observation contract for a bounded DNA deck.
-The pristine profile starts at 52 cards. A run can play at most 30 rounds:
+The bounded DNA deck starts at 52 cards. A run can play at most 30 rounds:
 eight Antes plus at most two extra Ante cycles from the single-use Hieroglyph
 and Petroglyph, with at most three played rounds in each cycle. The proposed
 slice admits one DNA and no copier, duplicate enabler, or other deck-size
 growth. Its first-hand callback adds at most one card per played round, so
 82 slots bound both owned cards and the discard zone. Revisit the bound
-before widening those capabilities. Observation v5 has only 52 slots each,
-and current Play and several Boss checks also require a 52-card base deck.
+before widening those capabilities. Current Play and several Boss checks
+still require a 52-card base deck.
 
-After encoding coverage, own DNA's permanent card identity, hand insertion,
+Next, own DNA's permanent card identity, hand insertion,
 and redraw. The pinned callback checks the hand count before it increments;
 headless Play currently increments its round hand count before the shared
 before-score callbacks. Capture that boundary explicitly and verify a
@@ -2571,6 +2570,17 @@ single-card first hand, later hands, and retained order. Keep acquisition
 masked until all boundaries and the new observation provenance are exact.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
+
+DNA observation-capacity checkpoint:
+
+- Commit `9e29738b1f584c8184e4da90f491562136b7edee` versions the observation,
+  model, and training artifact contracts. The original 2,480 feature
+  positions are preserved. Thirty additional owned-card slots and thirty
+  additional discard slots append 840 values. The new model rows start
+  at zero and remain trainable.
+- Regression tests encode whole 82-card zones canonically, reject 83,
+  and check zero initialization. GitHub Actions run `45792623346`, job
+  `139815206588` logged **3832 passed, 1621 deselected in 560.10s**.
 
 Midas Mask acquisition checkpoint:
 
