@@ -10,6 +10,7 @@ from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker import JokerContext
 from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.pareidolia import PareidoliaJoker
+from games.balatro.jokers.splash import SplashJoker
 from games.balatro.state import BalatroState
 
 
@@ -245,3 +246,22 @@ def test_env_r4_mutable_rule_boss_discard_requires_authoritative_state():
         apply_supported_tactical_discard(run, (0,))
 
     assert serialize_headless_run_state(run) == before
+
+
+def test_env_r4_splash_does_not_score_the_heads_debuffed_kicker():
+    from games.balatro.env.play_transition import apply_supported_ordinary_play
+
+    run = _boss_run("The Head")
+    indices = (0, 1, 2, 3)
+    assert [(run.public.hand[i].rank, run.public.hand[i].debuffed) for i in indices] == [
+        ("A", False), ("A", False), ("K", True), ("J", False),
+    ]
+    joker = SplashJoker()
+    joker.center = "j_splash"
+    run.public.jokers = [joker]
+
+    result = apply_supported_ordinary_play(run, indices)
+
+    assert result.public.last_played_hand == "PAIR"
+    assert result.public.score == 84
+    assert all(card.played_this_ante for card in result.discard_pile)

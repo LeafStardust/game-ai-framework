@@ -37,6 +37,7 @@ from games.balatro.env.seeded_evaluation import FIXED_SEEDED_EPISODES
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.splash import SplashJoker
 from games.balatro.state import BalatroState
 
 
@@ -1874,6 +1875,45 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
         ("SELECT_BLIND", {}),
     ]
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
+
+
+def test_env_ppo_trace_seed_completes_splash_purchase_scoring_and_sale():
+    class RecordingPolicy:
+        def __init__(self):
+            self.tactical = make_ppo_tactical_decision_engine()
+            self.first_scored_big_blind_hand = None
+
+        def decide(self, state):
+            if state.round == 2 and state.score and self.first_scored_big_blind_hand is None:
+                self.first_scored_big_blind_hand = (state.last_played_hand, state.score)
+            return self.tactical.decide(state)
+
+    policy = RecordingPolicy()
+    environment = BalatroHeadlessEnvironment(PPOHeadlessBackend(policy))
+    environment.reset(seed="EB851E5F")
+    replay = (
+        ("SELECT_BLIND", {}, 7, False),
+        ("BUY_JOKER", {"slot": 1}, 4, True),
+        ("END_SHOP", {}, 4, True),
+        ("SELECT_BLIND", {}, 10, True),
+        ("SELL_JOKER", {"joker_index": 0}, 11, False),
+        ("END_SHOP", {}, 11, False),
+        ("SELECT_BLIND", {}, 19, False),
+    )
+    for alias, params, money, owns_splash in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert [type(joker) for joker in run.public.jokers] == [SplashJoker] * owns_splash
+        if owns_splash:
+            assert run.generated_center_discovered("j_splash") is True
+
+    # The three 3s score alongside two ten-chip face-card kickers.
+    assert policy.first_scored_big_blind_hand == ("THREE_OF_A_KIND", 177)
+    assert environment.frame.state.round == 3
+    assert environment.frame.state.phase == "SHOP"
 
 
 def test_env_ppo_trace_seed_completes_faceless_purchase_payout_and_sale():

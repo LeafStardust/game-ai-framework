@@ -18,6 +18,7 @@ from games.balatro.env.spectral_inventory import GeneratedHeldSpectral
 from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.splash import SplashJoker
 from games.balatro.state import BalatroState
 
 
@@ -912,3 +913,25 @@ def test_env_r4_decision_engine_bridge_rejects_legacy_plan_only_shape():
 
     with pytest.raises(TypeError, match=r"provide decide\(state\)"):
         apply_planned_tactical_step(run, PlanOnly())
+
+
+def test_env_r4_splash_scores_a_pair_kicker_without_changing_hand_history():
+    run = _ordinary_play_run()
+    indices = (0, 3, 4)
+    assert [run.public.hand[index].rank for index in indices] == ["K", "8", "8"]
+    baseline = apply_supported_ordinary_play(run, indices)
+    joker = SplashJoker()
+    joker.center = "j_splash"
+    run.public.jokers = [joker]
+
+    result = apply_supported_ordinary_play(run, indices)
+
+    assert baseline.public.score == 52
+    assert result.public.score == 72
+    assert result.public.last_played_hand == baseline.public.last_played_hand == "PAIR"
+    assert result.public.hand_play_counts == baseline.public.hand_play_counts
+    assert result.public.round_hand_play_counts == baseline.public.round_hand_play_counts
+    assert [_card_signature(card) for card in result.discard_pile] == [
+        _card_signature(card) for card in baseline.discard_pile
+    ]
+    assert result.rng_snapshot() == baseline.rng_snapshot()

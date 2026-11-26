@@ -43,6 +43,7 @@ from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
+from games.balatro.jokers.splash import SplashJoker
 from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
@@ -139,6 +140,8 @@ def generated_joker_tactical_callbacks_are_exact(
             expected_center = "j_scary_face"
         elif type(joker) is SlyJoker:
             expected_center = "j_sly"
+        elif type(joker) is SplashJoker:
+            expected_center = "j_splash"
         elif type(joker) is SmileyFaceJoker:
             expected_center = "j_smiley"
         elif type(joker) is CastleJoker:

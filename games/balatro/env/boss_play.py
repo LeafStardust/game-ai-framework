@@ -131,6 +131,7 @@ def _apply_hook_forced_discards(
         from games.balatro.jokers.midas_mask import MidasMaskJoker
         from games.balatro.jokers.mime import MimeJoker
         from games.balatro.jokers.seance import SeanceJoker
+        from games.balatro.jokers.splash import SplashJoker
 
         owned_hook_joker_types = {
             CastleJoker,
@@ -141,6 +142,7 @@ def _apply_hook_forced_discards(
             MidasMaskJoker,
             MimeJoker,
             SeanceJoker,
+            SplashJoker,
         }
         if (
             any(type(joker) not in owned_hook_joker_types for joker in state.jokers)

@@ -5,6 +5,7 @@ from games.balatro.env.blind_start import start_supported_start_inert_boss
 from games.balatro.env.serialization import serialize_headless_run_state
 from games.balatro.env.tactical_transition import apply_supported_tactical_discard
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.jokers.splash import SplashJoker
 from games.balatro.state import BalatroState
 
 
@@ -92,3 +93,19 @@ def test_env_r4_psychic_discard_rejects_wrong_hand_size_and_jokers():
     joker.public.jokers = [object()]
     with pytest.raises(HeadlessTransitionError, match="Joker discard callbacks"):
         apply_supported_tactical_discard(joker, (0,))
+
+
+def test_env_r4_splash_respects_psychic_played_card_count():
+    from games.balatro.env.play_transition import apply_supported_ordinary_play
+
+    run = _psychic_run()
+    joker = SplashJoker()
+    joker.center = "j_splash"
+    run.public.jokers = [joker]
+
+    short = apply_supported_ordinary_play(run, (0, 1, 3, 4))
+    full = apply_supported_ordinary_play(run, (0, 1, 2, 3, 4))
+
+    assert short.public.score == 0
+    assert full.public.score == 120
+    assert short.public.last_played_hand == full.public.last_played_hand == "PAIR"
