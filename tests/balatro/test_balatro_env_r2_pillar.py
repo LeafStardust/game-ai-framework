@@ -6,6 +6,7 @@ from games.balatro.env.blind_start import (
     start_supported_pillar,
 )
 from games.balatro.env.boss_debuffs import clear_pillar_history_debuff
+from games.balatro.env.dna_copy import append_dna_copy
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
 
@@ -168,6 +169,42 @@ def test_env_r2_pillar_cleanup_accepts_newly_played_clean_discard_history():
     ]
     assert len(matching) == 1
     assert matching[0].played_this_ante is True
+
+
+@pytest.mark.parametrize("debuffed", [False, True])
+def test_env_r2_pillar_dna_copy_preserves_inherited_debuff_and_new_identity(debuffed):
+    run = _run(seed="PILLAR-COPY")
+    if debuffed:
+        for card in run.require_playing_card_order():
+            card.played_this_ante = True
+    dealt = start_supported_pillar(run)
+    source = dealt.public.hand.pop(0)
+    source.played_this_ante = True
+    source.enhancement = "Gold"
+    dealt.played_pile.append(source)
+    rng = dealt.rng_snapshot()
+
+    copied = append_dna_copy(dealt, source)
+
+    assert copied is not source
+    assert (copied.rank, copied.suit, copied.enhancement) == (source.rank, source.suit, "Gold")
+    assert copied.played_this_ante and copied.played_this_ante_observed
+    assert copied.debuffed is debuffed
+    assert copied is dealt.public.hand[-1] is dealt.public.owned_deck[-1]
+    assert copied is dealt.require_playing_card_order()[-1]
+    assert dealt.rng_snapshot() == rng
+
+    restored = HeadlessRunState.restore(dealt.serialize())
+    assert restored.pillar_debuff_snapshot[1] == (debuffed,)
+    assert restored.public.hand[-1] is restored.require_playing_card_order()[-1]
+    cleared = clear_pillar_history_debuff(restored)
+    assert cleared.pillar_debuff_snapshot is None
+    assert cleared.public.hand[-1].played_this_ante is True
+    assert cleared.public.hand[-1].debuffed is False
+
+    restored.public.hand[-1].debuffed = not debuffed
+    with pytest.raises(HeadlessTransitionError, match="retained authority"):
+        clear_pillar_history_debuff(restored)
 
 
 def test_env_r2_pillar_cleanup_rejects_clean_active_prior_history():

@@ -233,8 +233,18 @@ class HeadlessRunState:
     generation_discovery: dict[str, bool] | None = None
     castle_suit: str | None = None
     opening_draw_capacity: int | None = None
+    pillar_debuff_snapshot: tuple[tuple[bool, ...], tuple[bool, ...]] | None = None
 
     def __post_init__(self) -> None:
+        snapshot = self.pillar_debuff_snapshot
+        if snapshot is not None and (
+            self.public.boss_name != "The Pillar"
+            or type(snapshot) is not tuple
+            or len(snapshot) != 2
+            or any(type(group) is not tuple or any(type(flag) is not bool for flag in group)
+                   for group in snapshot)
+        ):
+            raise HeadlessTransitionError("invalid retained Pillar debuff snapshot")
         if self.castle_suit is not None and (
             not isinstance(self.castle_suit, str) or self.castle_suit not in CASTLE_SUITS
         ):

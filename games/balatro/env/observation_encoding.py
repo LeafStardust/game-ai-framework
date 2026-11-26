@@ -12,6 +12,7 @@ from games.balatro.env.consumable_centers import (
     VANILLA_SPECTRAL_CENTER_ORDER,
     VANILLA_TAROT_CENTER_ORDER,
 )
+from games.balatro.env.card_order import MAX_DNA_DECK_CARDS
 from games.balatro.env.boss_selection import VANILLA_BOSS_NAMES
 from games.balatro.env.joker_centers import VANILLA_JOKER_CENTERS
 from games.balatro.env.public_observation import public_observation_state
@@ -57,7 +58,7 @@ PACK_CENTER_KEYS = tuple(
 MAX_HAND_CARDS = 22
 _LEGACY_DECK_SLOTS = 52
 # Thirty played rounds at most, with one copy per round in the scoped DNA path.
-MAX_OWNED_CARDS = _LEGACY_DECK_SLOTS + 30
+MAX_OWNED_CARDS = MAX_DNA_DECK_CARDS
 MAX_DISCARD_CARDS = MAX_OWNED_CARDS
 MAX_JOKERS = 6
 MAX_CONSUMABLES = 3

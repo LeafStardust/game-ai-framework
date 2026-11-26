@@ -54,6 +54,19 @@ _VANILLA_BASE_IDENTITIES = frozenset(
     for suit in _VANILLA_SUIT_CODE
 )
 
+MAX_DNA_DECK_CARDS = len(_VANILLA_BASE_IDENTITIES) + 30
+
+
+def has_bounded_base_copy_order(cards: Sequence[BalatroCard]) -> bool:
+    """Validate retained base identities followed by distinct copy objects."""
+    base_count = len(_VANILLA_BASE_IDENTITIES)
+    return (
+        base_count <= len(cards) <= MAX_DNA_DECK_CARDS
+        and len({id(card) for card in cards}) == len(cards)
+        and {(card.rank, card.suit) for card in cards[:base_count]} == _VANILLA_BASE_IDENTITIES
+        and all((card.rank, card.suit) in _VANILLA_BASE_IDENTITIES for card in cards[base_count:])
+    )
+
 
 def vanilla_playing_card_sort_key(card: BalatroCard) -> str:
     """Return the source game's initial playing-card control-code sort key."""

@@ -9,7 +9,7 @@ from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
 
-def _pillar_run(*, seed="R4-PILLAR", requirement=99_999):
+def _pillar_run(*, seed="R4-PILLAR", requirement=99_999, mark_all=False):
     state = BalatroState()
     state.deck_name = "RED"
     state.stake_name = "WHITE"
@@ -25,14 +25,12 @@ def _pillar_run(*, seed="R4-PILLAR", requirement=99_999):
     run = HeadlessRunState(public=state, seed=seed)
     for card in run.require_playing_card_order():
         card.played_this_ante_observed = True
+        card.played_this_ante = mark_all
     return start_supported_pillar(run)
 
 
 def test_env_r4_pillar_play_scores_hand_base_but_not_debuffed_card_chips():
-    run = _pillar_run()
-    selected = run.public.hand[0]
-    selected.played_this_ante = True
-    selected.debuffed = True
+    run = _pillar_run(mark_all=True)
     rng_before = run.rng_snapshot()
 
     result = apply_supported_ordinary_play(run, (0,))

@@ -17,6 +17,8 @@ mutation. Modified decks remain fail-closed until those predicates are exact.
 
 from __future__ import annotations
 
+from games.balatro.env.card_order import has_bounded_base_copy_order
+
 from games.balatro.card import BalatroCard
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.pareidolia import PareidoliaJoker
@@ -193,8 +195,10 @@ def apply_pillar_history_debuff(run: HeadlessRunState) -> HeadlessRunState:
         )
 
     next_run = run.copy()
-    for card in next_run.require_playing_card_order():
+    ordered = next_run.require_playing_card_order()
+    for card in ordered:
         card.debuffed = card.played_this_ante
+    next_run.pillar_debuff_snapshot = (tuple(card.debuffed for card in ordered), ())
     return next_run
 
 
@@ -203,7 +207,9 @@ def require_pillar_history_debuff_state(run: HeadlessRunState) -> None:
     if run.public.boss_name != "The Pillar":
         raise HeadlessTransitionError("Pillar debuff state requires The Pillar boss")
     cards = run.require_playing_card_order()
-    if len(cards) != 52 or any(not card.played_this_ante_observed for card in cards):
+    if not has_bounded_base_copy_order(cards) or any(
+        not card.played_this_ante_observed for card in cards
+    ):
         raise HeadlessTransitionError(
             "Pillar debuff state requires authoritative played-this-ante history"
         )
@@ -212,12 +218,25 @@ def require_pillar_history_debuff_state(run: HeadlessRunState) -> None:
             "Pillar debuff state encountered a debuff outside owned Ante history"
         )
 
+    snapshot = run.pillar_debuff_snapshot
+    predeal_count = len(cards)
+    if snapshot is None:
+        if len(cards) != 52:
+            raise HeadlessTransitionError("expanded Pillar deck requires retained debuff authority")
+    else:
+        predeal, created = snapshot
+        predeal_count = len(predeal)
+        if predeal_count < 52 or len(predeal) + len(created) != len(cards):
+            raise HeadlessTransitionError("retained Pillar debuffs do not cover the owned cards")
+        if any(card.debuffed is not expected for card, expected in zip(cards, predeal + created)):
+            raise HeadlessTransitionError("Pillar debuff state drifted from retained authority")
+
     # Cards played during The Pillar gain permanent history after the pre-deal
     # debuff pass, but are not retroactively debuffed and have moved to discard.
     active_ids = {id(card) for card in (*run.public.hand, *run.draw_pile)}
     if any(
         id(card) in active_ids and card.played_this_ante and not card.debuffed
-        for card in cards
+        for card in cards[:predeal_count]
     ):
         raise HeadlessTransitionError(
             "Pillar debuff state encountered incomplete active history debuffs"
@@ -238,4 +257,5 @@ def clear_pillar_history_debuff(run: HeadlessRunState) -> HeadlessRunState:
     next_run = run.copy()
     for card in next_run.require_playing_card_order():
         card.debuffed = False
+    next_run.pillar_debuff_snapshot = None
     return next_run
