@@ -754,16 +754,19 @@ class ShopTransitionEngine:
 
         if type(item) is GeneratedShopJokerItem:
             try:
-                if item.center_key == "j_dna":
-                    if any(type(joker) is DNAJoker for joker in state.jokers):
-                        return False
-                    if not has_bounded_base_copy_order(
+                if item.center_key == "j_dna" and any(
+                    type(joker) is DNAJoker for joker in state.jokers
+                ):
+                    return False
+                if item.center_key in ("j_dna", "j_sixth_sense") and (
+                    state.owned_deck is None or not has_bounded_base_copy_order(
                         run.require_playing_card_order(), run.removed_base_six_suits
-                    ):
-                        return False
+                    )
+                ):
+                    return False
                 if item.center_key == "j_madness":
                     run.require_joker_order_state()
-                if item.center_key == "j_seance":
+                if item.center_key in ("j_seance", "j_sixth_sense"):
                     from games.balatro.env.spectral_inventory import require_held_spectral_authority
 
                     require_held_spectral_authority(run)

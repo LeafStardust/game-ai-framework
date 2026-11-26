@@ -39,6 +39,7 @@ from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.runner import RunnerJoker
+from games.balatro.jokers.sixth_sense import SixthSenseJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.state import BalatroState
@@ -1889,6 +1890,72 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
 
 
+def test_env_ppo_trace_seed_completes_sixth_sense_purchase_destruction_and_sale():
+    class FirstBigBlindSix:
+        def __init__(self):
+            self.tactical = make_ppo_tactical_decision_engine()
+            self.played = False
+
+        def decide(self, state):
+            if state.round == 2 and not self.played:
+                six = next((card for card in state.hand if card.rank == "6"), None)
+                if six is not None:
+                    self.played = True
+                    return SimpleNamespace(action=BalatroAction(PLAY_CARDS, cards=[six]))
+                if state.discards_remaining:
+                    return SimpleNamespace(
+                        action=BalatroAction(DISCARD_CARDS, cards=state.hand[:5])
+                    )
+            return self.tactical.decide(state)
+
+    environment = BalatroHeadlessEnvironment(PPOHeadlessBackend(FirstBigBlindSix()))
+    environment.reset(seed="4C8AAC2C")
+    replay = (
+        ("SELECT_BLIND", {}, 8, False, False),
+        ("BUY_JOKER", {"slot": 0}, 2, True, False),
+        ("END_SHOP", {}, 2, True, False),
+        ("SELECT_BLIND", {}, 7, True, True),
+        ("SELL_JOKER", {"joker_index": 0}, 10, False, True),
+        ("END_SHOP", {}, 10, False, True),
+        ("SELECT_BLIND", {}, 18, False, True),
+    )
+    for alias, params, money, owns_sixth, destroyed in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert [type(joker) for joker in run.public.jokers] == [SixthSenseJoker] * owns_sixth
+        assert len(run.public.owned_deck) == 52 - int(destroyed)
+        assert run.removed_base_six_suits == ("Hearts",) * destroyed
+        assert [card.center_key for card in run.public.consumables] == ["c_ouija"] * destroyed
+        assert ("Spectralsixth1" in run.rng.nodes) is destroyed
+        if owns_sixth:
+            assert run.generated_center_discovered("j_sixth_sense") is True
+        assert all(candidate.alias != "USE_CONSUMABLE" for candidate in environment.legal_actions())
+
+    assert environment.frame.state.round == 3
+    assert environment.frame.state.phase == "SHOP"
+
+
+@pytest.mark.parametrize("missing", ["order", "spectral"])
+def test_env_ppo_sixth_sense_buy_requires_exact_authority(missing):
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="4C8AAC2C")
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert buy in environment.legal_actions()
+    run = environment._backend.run
+    if missing == "order":
+        run.playing_card_order = None
+    else:
+        del run.generation_discovery["c_ouija"]
+
+    assert buy not in environment.legal_actions()
+    with pytest.raises(ValueError, match="illegal action"):
+        environment.step(buy)
+
+
 def test_env_ppo_trace_seed_completes_green_purchase_growth_and_sale():
     environment = make_ppo_training_environment(0)
     environment.reset(seed="243A32A8")
@@ -3003,11 +3070,21 @@ def test_env_ppo_rollout_crosses_exact_rerolls_and_blue_joker_lifecycle(
 @pytest.fixture(scope="module")
 def episode_102_with_first_shop_reroll():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    actions = (
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("REROLL_SHOP"),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+    )
     return collect_complete_ppo_episode(
         make_ppo_training_environment(6),
         run,
         episode_index=102,
-        policy=PPOActorCritic(run).infer,
+        policy=_fixed_action_policy(actions),
     )
 
 

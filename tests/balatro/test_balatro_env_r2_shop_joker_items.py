@@ -1582,6 +1582,15 @@ def test_env_r2_green_materialization_rejects_unsupported_metadata(rarity, base_
         materialize_generated_shop_joker_for_acquisition(item)
 
 
+@pytest.mark.parametrize(
+    ("rarity", "base_cost", "edition"), [(1, 6, None), (2, 5, None), (2, 6, "Foil")]
+)
+def test_env_r2_sixth_sense_materialization_rejects_unsupported_metadata(rarity, base_cost, edition):
+    item = GeneratedShopJokerItem("j_sixth_sense", rarity, base_cost, edition, 6, True)
+    with pytest.raises(HeadlessTransitionError):
+        materialize_generated_shop_joker_for_acquisition(item)
+
+
 def test_env_r2_madness_purchase_requires_retained_joker_order():
     run, item = materialize_shop_joker_descriptor(
         _descriptor(center_key="j_madness", rarity=2, base_cost=7, discovered=False)
