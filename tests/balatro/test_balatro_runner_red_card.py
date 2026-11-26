@@ -1,9 +1,11 @@
+from games.balatro.card import BalatroCard
 from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.hand import PokerHand
 from games.balatro.joker import JokerContext
 from games.balatro.jokers.red_card import RedCardJoker
 from games.balatro.jokers.runner import RunnerJoker
-from games.balatro.scoring import HandScore
+from games.balatro.jokers.vampire import VampireJoker
+from games.balatro.scoring import BalatroScorer, HandScore, apply_before_score_jokers
 from games.balatro.state import BalatroState
 
 
@@ -67,3 +69,25 @@ def test_runner_straight_flush_contains_a_straight_for_growth():
 
     assert joker.chips == 30
     assert straight_flush.score.chips == 30
+
+
+def test_runner_uses_straight_component_resolved_before_joker_mutations():
+    scorer = BalatroScorer()
+    state = BalatroState()
+    runner = RunnerJoker()
+    vampire = VampireJoker()
+    cards = [BalatroCard(rank, "Spades") for rank in ("2", "3", "4", "5", "6")]
+    cards[-1].enhancement = "Stone"
+
+    apply_before_score_jokers(
+        scorer, PokerHand.HIGH_CARD, state, cards, [vampire, runner], hand_rules={}
+    )
+
+    assert cards[-1].enhancement is None
+    assert runner.chips == 0
+
+    apply_before_score_jokers(
+        scorer, PokerHand.STRAIGHT_FLUSH, state, cards, [runner], hand_rules={}
+    )
+
+    assert runner.chips == 15

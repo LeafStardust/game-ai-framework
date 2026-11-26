@@ -70,6 +70,7 @@ from games.balatro.env.spectral_inventory import GeneratedHeldSpectral, generate
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.env.dna_copy import append_dna_copy
 from games.balatro.env.card_order import has_bounded_base_copy_order
 from games.balatro.jokers.vampire import VampireJoker
@@ -521,7 +522,7 @@ def apply_supported_ordinary_play(
         )
         before_score = [
             joker for joker in next_state.jokers
-            if type(joker) in (DNAJoker, MidasMaskJoker, VampireJoker)
+            if type(joker) in (DNAJoker, MidasMaskJoker, RunnerJoker, VampireJoker)
         ]
         joker_data = (
             apply_before_score_jokers(

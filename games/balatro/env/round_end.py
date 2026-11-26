@@ -40,6 +40,7 @@ from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.scoring import BalatroScorer
@@ -57,6 +58,7 @@ _ROUND_END_INERT_JOKER_TYPES = (
     MadnessJoker,
     DNAJoker,
     FacelessJoker,
+    RunnerJoker,
     MidasMaskJoker,
     StuntmanJoker,
     DrunkardJoker,

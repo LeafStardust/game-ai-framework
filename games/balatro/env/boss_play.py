@@ -130,6 +130,7 @@ def _apply_hook_forced_discards(
         from games.balatro.jokers.madness import MadnessJoker
         from games.balatro.jokers.midas_mask import MidasMaskJoker
         from games.balatro.jokers.mime import MimeJoker
+        from games.balatro.jokers.runner import RunnerJoker
         from games.balatro.jokers.seance import SeanceJoker
         from games.balatro.jokers.splash import SplashJoker
 
@@ -141,6 +142,7 @@ def _apply_hook_forced_discards(
             MadnessJoker,
             MidasMaskJoker,
             MimeJoker,
+            RunnerJoker,
             SeanceJoker,
             SplashJoker,
         }

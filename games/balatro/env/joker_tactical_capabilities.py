@@ -33,6 +33,7 @@ from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.castle import CASTLE_SUITS, CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
+from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.dna import DNAJoker
@@ -132,6 +133,10 @@ def generated_joker_tactical_callbacks_are_exact(
             if type(joker.increase) is not int or joker.increase < 0:
                 return False
             expected_center = "j_rocket"
+        elif type(joker) is RunnerJoker:
+            if type(joker.chips) is not int or joker.chips < 0 or joker.chips % 15:
+                return False
+            expected_center = "j_runner"
         elif type(joker) is ScholarJoker:
             expected_center = "j_scholar"
         elif type(joker) is SeanceJoker:

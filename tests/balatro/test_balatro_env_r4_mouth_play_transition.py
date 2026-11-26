@@ -8,6 +8,7 @@ from games.balatro.env.serialization import (
     serialize_headless_run_state,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
@@ -75,3 +76,33 @@ def test_env_r4_mouth_rejects_inexact_mutable_state_atomically(field, value):
         apply_supported_ordinary_play(run, (0,))
 
     assert serialize_headless_run_state(run) == before
+
+
+def test_env_r4_runner_does_not_grow_on_blocked_straight():
+    run = _mouth_run(seed="RUNNER-8")
+    run.public.boss_blind_only_hand = "PAIR"
+    joker = RunnerJoker()
+    joker.center = "j_runner"
+    joker.chips = 15
+    run.public.jokers = [joker]
+
+    result = apply_supported_ordinary_play(run, (0, 1, 2, 4, 5))
+
+    assert result.public.last_played_hand == "STRAIGHT"
+    assert result.public.score == 0
+    assert result.public.jokers[0].chips == 15
+
+
+@pytest.mark.parametrize("chips", [True, -15, 14, 15.0])
+def test_env_r4_runner_rejects_inexact_chip_state(chips):
+    run = _mouth_run()
+    joker = RunnerJoker()
+    joker.center = "j_runner"
+    joker.chips = chips
+    run.public.jokers = [joker]
+
+    with pytest.raises(HeadlessTransitionError, match="Joker callbacks"):
+        apply_supported_ordinary_play(run, (0,))
+
+    assert run.public.hands_remaining == 4
+    assert run.public.score == 0

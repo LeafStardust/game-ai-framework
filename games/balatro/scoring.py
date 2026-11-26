@@ -8,6 +8,7 @@ from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker import JokerContext
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
+from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.events import BalatroEvent, BalatroEventType
 
 
@@ -34,6 +35,11 @@ def apply_before_score_jokers(
     )
     if first_hand is not None:
         context.data["first_hand"] = first_hand
+    if any(type(joker) is RunnerJoker for joker in active_jokers):
+        # Vanilla resolves poker-hand components before Joker callbacks can mutate cards.
+        context.data["contains_straight"] = HandEvaluator().contains(
+            context.cards, PokerHand.STRAIGHT, hand_rules
+        )
     for joker in active_jokers:
         context = joker.apply(context)
         if append_dna_copy is not None:

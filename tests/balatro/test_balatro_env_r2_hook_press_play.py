@@ -11,6 +11,7 @@ from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.mime import MimeJoker
+from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
@@ -84,6 +85,7 @@ def test_env_r2_hook_forces_two_discards_from_remaining_not_played_cards():
     (DNAJoker, "j_dna"),
     (FacelessJoker, "j_faceless"),
     (SplashJoker, "j_splash"),
+    (RunnerJoker, "j_runner"),
 ])
 def test_env_r2_hook_with_inert_joker_preserves_forced_discard_and_rng(joker_type, center):
     started = start_supported_start_inert_boss(_hook_run())
