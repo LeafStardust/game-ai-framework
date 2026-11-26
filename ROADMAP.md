@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`9e630067cbfb2e76d0e2fd0850c1b808b468b06a`.
+`a93c2170ebd6daf04dd17b8f7d4b991d89f35e97`.
 
 ## Objective
 
@@ -2549,23 +2549,33 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit DNA as the candidate for the forty-second exact generated-Joker
-acquisition. The committed trace offers uneditioned `j_dna` at episode 51
-decision 1 / seed `64FD54A0`, with rarity 3, base cost 8, and price 8.
+Audit Faceless Joker as the candidate for the forty-third exact generated
+Joker acquisition. The committed strategic/shop trace offers uneditioned
+`j_faceless` at episode 51 decision 3 / seed `64FD54A0`, with rarity 1,
+base cost 4, and price 4.
 
-The bounded DNA deck starts at 52 cards. A run can play at most 30 rounds:
-eight Antes plus at most two extra Ante cycles from the single-use Hieroglyph
-and Petroglyph, with at most three played rounds in each cycle. The proposed
-slice admits one DNA and no copier, duplicate enabler, or other deck-size
-growth. Its first-hand callback adds at most one card per played round, so
-82 slots bound both owned cards and the discard zone. Revisit the bound
-before widening those capabilities.
+Next, audit the pinned vanilla discard callback and the canonical discard
+owner for the three-face threshold, debuffs, Stone, Pareidolia, and forced
+Hook discards. Add deterministic regressions for exact payout and
+continuation before admitting purchase or sale. Keep Hallucination,
+booster work, other centers, rewards, and retraining deferred.
 
-Next, admit exact uneditioned DNA to the generated shop and inventory-only
-sale. Audit blind start and round end, reject duplicate DNA and unsupported
-offers, and pin a deterministic purchase, first-hand copy, sale, and continued
-play using the production environment. Hallucination, booster work, other
-centers, rewards, and retraining remain deferred.
+DNA acquisition checkpoint:
+
+- Commit `096083ca4f77e3e2df1247fb82f522db7e9cff96` admits exact uneditioned
+  DNA, rejects duplicates and missing retained order, and supports
+  inventory-only sale. Natural seed `64FD54A0` buys DNA for $8. The replay
+  forces one opening Big Blind Play to copy the Queen of Spades, sells DNA
+  for $4, and preserves all 53 cards through the terminal Boss loss.
+- The slice admits one DNA and no copier, duplicate enabler, or other
+  deck-size growth. Eight Ante cycles plus the single-use Hieroglyph and
+  Petroglyph allow at most 30 played rounds and one copy per round, bounding
+  the owned and discard zones at 82 positions. Revisit before widening.
+- Initial CI run `45798598084` logged **1 failed, 3846 passed, 1621
+  deselected in 429.31s**. Its generalized Scholar fixture took newly legal
+  DNA actions. Commit `a93c2170ebd6daf04dd17b8f7d4b991d89f35e97` pins the
+  intended Scholar replay. GitHub Actions run `45800111130`,
+  job `139840817782` logged **3847 passed, 1621 deselected in 449.21s**.
 
 DNA production Play checkpoint:
 
