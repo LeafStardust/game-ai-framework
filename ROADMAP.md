@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`427483661d79884451580936c726bb89ee6744d3`.
+`8fb89a6be1218a9174a2e2cb0e54b02067d31154`.
 
 ## Objective
 
@@ -2549,16 +2549,28 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Add Midas Mask as the forty-first exact generated-Joker acquisition. The
-committed trace offers uneditioned `j_midas_mask` at episode
-50 decision 1 / seed `0B58B2B9`, with rarity 2, base cost 7, and price 7.
+Audit DNA as the candidate for the forty-second exact generated-Joker
+acquisition. The committed trace offers uneditioned `j_dna` at episode 51
+decision 1 / seed `64FD54A0`, with rarity 3, base cost 8, and price 8.
 
-Next, admit exact uneditioned purchase, blind-start and cash-out
-continuation, and inventory-only sale. Verify the roadmap seed's natural
-offer and a complete rollout that carries Gold across rounds. Keep other
-enhancements and unsupported editions masked.
+Audit first-hand single-card copy timing, permanent card identity and order,
+hand insertion, and redraw. Prove a finite deck bound for the admitted
+training surface before changing the fixed observation contract: observation
+v5 caps owned and discarded card slots at 52, so it cannot publish DNA's
+first copy. Audit base-deck guards and retain fail-closed acquisition until
+the owned path and provenance are exact.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
+
+Midas Mask acquisition checkpoint:
+
+- Commit `8fb89a6be1218a9174a2e2cb0e54b02067d31154` admits exact uneditioned
+  `j_midas_mask`, including natural purchase, round continuation, and
+  inventory-only sale. Production seed `0B58B2B9` buys it for $7, converts
+  the Queen of Diamonds to Gold, sells the Joker for $3, and preserves the
+  Gold card through the terminal Boss loss.
+- GitHub Actions run `45752806180`, job `139684333707` logged
+  **3830 passed, 1621 deselected in 301.97s**.
 
 Midas Mask before-score and Gold continuation checkpoint:
 
