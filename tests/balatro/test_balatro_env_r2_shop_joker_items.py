@@ -1537,6 +1537,15 @@ def test_env_r2_dna_purchase_masks_unsupported_inventory(unsupported):
         engine.step(inserted, action)
 
 
+@pytest.mark.parametrize(
+    ("rarity", "base_cost", "edition"), [(2, 4, None), (1, 5, None), (1, 4, "Foil")]
+)
+def test_env_r2_faceless_materialization_rejects_unsupported_metadata(rarity, base_cost, edition):
+    item = GeneratedShopJokerItem("j_faceless", rarity, base_cost, edition, 4, True)
+    with pytest.raises(HeadlessTransitionError):
+        materialize_generated_shop_joker_for_acquisition(item)
+
+
 def test_env_r2_madness_purchase_requires_retained_joker_order():
     run, item = materialize_shop_joker_descriptor(
         _descriptor(center_key="j_madness", rarity=2, base_cost=7, discovered=False)

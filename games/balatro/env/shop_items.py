@@ -49,6 +49,7 @@ from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.scholar import ScholarJoker
@@ -225,6 +226,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 3
         expected_base_cost = 8
         label = "DNA"
+    elif item.center_key == "j_faceless":
+        joker_type = FacelessJoker
+        expected_rarity = 1
+        expected_base_cost = 4
+        label = "Faceless Joker"
     elif item.center_key == "j_midas_mask":
         joker_type = MidasMaskJoker
         expected_rarity = 2

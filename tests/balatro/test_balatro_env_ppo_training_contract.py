@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from games.balatro.actions import PLAY_CARDS, BalatroAction
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.blinds.blind import create_small_blind
 from games.balatro.env.action_encoding import action_index, legal_action_mask
 from games.balatro.env.actions import EnvAction
@@ -36,6 +36,7 @@ from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.seeded_evaluation import FIXED_SEEDED_EPISODES
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.state import BalatroState
 
 
@@ -1847,6 +1848,58 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
         ("SELECT_BLIND", {}),
     ]
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
+
+
+def test_env_ppo_trace_seed_completes_faceless_purchase_payout_and_sale():
+    class FirstQualifyingDiscard:
+        def __init__(self):
+            self.tactical = make_ppo_tactical_decision_engine()
+            self.before_payout = None
+            self.payout = None
+
+        def decide(self, state):
+            if self.before_payout is not None and self.payout is None:
+                self.payout = state.money - self.before_payout
+            if self.before_payout is None and state.jokers and state.discards_remaining:
+                faces = [
+                    card for card in state.hand
+                    if not card.face_down and not card.debuffed
+                    and card.rank in {"J", "Q", "K"}
+                ]
+                if len(faces) >= 3:
+                    self.before_payout = state.money
+                    return SimpleNamespace(
+                        action=BalatroAction(DISCARD_CARDS, cards=faces[:3])
+                    )
+            return self.tactical.decide(state)
+
+    policy = FirstQualifyingDiscard()
+    environment = BalatroHeadlessEnvironment(PPOHeadlessBackend(policy))
+    environment.reset(seed="FF526426")
+    replay = (
+        ("SELECT_BLIND", {}, 8, False),
+        ("BUY_JOKER", {"slot": 1}, 4, True),
+        ("END_SHOP", {}, 4, True),
+        ("SELECT_BLIND", {}, 8, True),
+        ("END_SHOP", {}, 8, True),
+        ("SELECT_BLIND", {}, 21, True),
+        ("SELL_JOKER", {"joker_index": 0}, 23, False),
+        ("END_SHOP", {}, 23, False),
+        ("SELECT_BLIND", {}, 30, False),
+    )
+    for alias, params, money, owns_faceless in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert [type(joker) for joker in run.public.jokers] == [FacelessJoker] * owns_faceless
+        if owns_faceless:
+            assert run.generated_center_discovered("j_faceless") is True
+
+    assert policy.payout == 5
+    assert environment.frame.state.round == 4
+    assert environment.frame.state.phase == "SHOP"
 
 
 def test_env_ppo_roadmap_seed_completes_dna_purchase_copy_and_sale():
