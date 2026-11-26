@@ -38,6 +38,8 @@ from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.madness import MadnessJoker
+from games.balatro.jokers.mime import MimeJoker
+from games.balatro.scoring import BalatroScorer
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 
@@ -83,6 +85,25 @@ def baseline_interest_dollars(money: int, interest_cap: int = 25) -> int:
     if money < 5:
         return 0
     return _BASE_INTEREST_AMOUNT * min(money // 5, interest_cap // 5)
+
+
+def _held_gold_dollars(run: HeadlessRunState) -> int:
+    """Resolve Gold held effects before vanilla reads the interest balance."""
+    state = run.public
+    gold_cards = [
+        card for card in state.hand
+        if card.enhancement == "Gold" and not card.debuffed
+    ]
+    if not gold_cards:
+        return 0
+    mime_retriggers = sum(
+        type(joker) is MimeJoker and not getattr(joker, "debuffed", False)
+        for joker in state.jokers
+    )
+    return 3 * sum(
+        BalatroScorer._held_card_trigger_count(card, mime_retriggers)
+        for card in gold_cards
+    )
 
 
 def _round_end_joker_dollars(run: HeadlessRunState) -> int:
@@ -250,6 +271,7 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
             "baseline cash-out requires an ungenerated shop boundary"
         )
 
+    money += _held_gold_dollars(run)
     interest = baseline_interest_dollars(money, interest_cap)
     round_end_run = run.copy()
     joker_dollars = _round_end_joker_dollars(round_end_run)

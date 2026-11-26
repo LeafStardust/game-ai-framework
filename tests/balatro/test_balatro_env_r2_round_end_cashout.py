@@ -157,6 +157,25 @@ def test_env_r2_cloud9_counts_permanent_nonstone_nines_and_respects_debuff(debuf
     assert run.public.money == 14
 
 
+def test_env_r2_held_gold_round_end_pays_retriggers_before_interest():
+    from games.balatro.jokers.mime import MimeJoker
+
+    run = _cleared_run(money=4, hands_remaining=0, reward=3)
+    run.public.hand[0].enhancement = "Gold"
+    run.public.hand[0].seal = "Red"
+    run.public.hand[1].enhancement = "Gold"
+    run.public.hand[1].debuffed = True
+    run.draw_pile[0].enhancement = "Gold"
+    run.public.jokers = [MimeJoker()]
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    # The held active card pays three times. Interest uses $13, before the blind reward.
+    assert result.public.money == 18
+    assert run.public.money == 4
+    assert sum(card.enhancement == "Gold" for card in result.public.owned_deck) == 3
+
+
 def test_env_r2_cashout_pays_exact_materialized_generated_golden_joker():
     from games.balatro.env.shop_items import (
         GeneratedShopJokerItem,

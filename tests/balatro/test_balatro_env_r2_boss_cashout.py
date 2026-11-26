@@ -87,6 +87,21 @@ def test_env_r2_boss_cashout_applies_cloud9_nonstone_count_and_debuff(debuffed, 
     assert run.public.money == 14
 
 
+def test_env_r2_boss_cashout_held_gold_contributes_to_interest_before_boss_defeat():
+    from games.balatro.jokers.mime import MimeJoker
+
+    run = _finish(_boss_round("The Psychic", money=4))
+    run.public.hand[0].enhancement = "Gold"
+    mime = MimeJoker()
+    mime.debuffed = True
+    run.public.jokers = [mime]
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 14
+    assert run.public.money == 4
+
+
 def test_env_r2_boss_cashout_upgrades_rocket_before_payout_and_persists():
     from games.balatro.jokers.rocket import RocketJoker
 

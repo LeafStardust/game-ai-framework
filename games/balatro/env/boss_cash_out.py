@@ -16,6 +16,7 @@ from games.balatro.blinds.blind import BlindType
 from games.balatro.env.boss_defeat import defeat_supported_boss
 from games.balatro.env.card_history import clear_played_this_ante_for_new_ante
 from games.balatro.env.round_end import (
+    _held_gold_dollars,
     _ROUND_END_DOLLAR_JOKER_TYPES,
     _ROUND_END_INERT_JOKER_TYPES,
     _round_end_joker_dollars,
@@ -77,11 +78,11 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
         "blind requirement", getattr(state.blind, "requirement", None)
     )
     reward = _require_exact_int("blind reward", getattr(state.blind, "reward", None))
-    money = _require_exact_int("money", state.money)
     hands_remaining = _require_exact_int("hands_remaining", state.hands_remaining)
 
     if requirement < 0 or reward < 0 or hands_remaining < 0:
         raise HeadlessTransitionError("Boss cash-out requires nonnegative reward/resource state")
+    money = _require_exact_int("money", state.money)
     if money < 0:
         raise HeadlessTransitionError(
             "Boss cash-out does not yet own negative-money economy semantics"
@@ -140,6 +141,7 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
         raise HeadlessTransitionError(
             "Boss cash-out does not own Voucher interest-cap semantics"
         )
+    money += _held_gold_dollars(run)
     interest = baseline_interest_dollars(money, interest_cap)
     round_end_run = run.copy()
     joker_dollars = _round_end_joker_dollars(round_end_run)
