@@ -44,7 +44,7 @@ def test_env_r2_seance_inventory_discovers_cards_and_suppresses_held_duplicates(
     assert not can_use_planet_exact(run, 0)
     assert not can_use_planet_exact(run, 1)
     frame = EnvStateFrame(run.public, RunStatus.RUNNING, TurnOwner.TACTICAL_POLICY)
-    assert encode_public_observation(frame).shape == (2480,)
+    assert encode_public_observation(frame).shape == (3320,)
 
 
 def test_env_r2_seance_missing_profile_authority_fails_before_draw():

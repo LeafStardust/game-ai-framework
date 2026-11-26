@@ -34,15 +34,15 @@ from games.balatro.env.seeded_evaluation import (
 from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 
 
-PPO_TRAINING_CONTRACT_VERSION = "balatro-red-white-ppo-training-v5"
+PPO_TRAINING_CONTRACT_VERSION = "balatro-red-white-ppo-training-v6"
 PPO_PROGRESS_TRAINING_CONTRACT_VERSION = (
-    "balatro-red-white-ppo-progress-reward-training-v6"
+    "balatro-red-white-ppo-progress-reward-training-v7"
 )
 PPO_TRAINING_RUN_SCHEMA = "balatro-red-white-ppo-run-v3"
 PPO_POLICY_OUTPUT_SCHEMA = "balatro-red-white-ppo-policy-output-v3"
-PPO_ROLLOUT_EPISODE_SCHEMA = "balatro-red-white-ppo-rollout-episode-v4"
+PPO_ROLLOUT_EPISODE_SCHEMA = "balatro-red-white-ppo-rollout-episode-v5"
 PPO_PROGRESS_ROLLOUT_EPISODE_SCHEMA = (
-    "balatro-red-white-ppo-progress-reward-rollout-episode-v5"
+    "balatro-red-white-ppo-progress-reward-rollout-episode-v6"
 )
 PPO_ACTION_SAMPLE_DOMAIN = "balatro-red-white-ppo-rollout-episode-v3"
 PPO_ALGORITHM = "clipped_ppo"

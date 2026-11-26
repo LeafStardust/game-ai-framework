@@ -55,7 +55,7 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
     assert PUBLIC_OBSERVATION_SCHEMA.version == PUBLIC_OBSERVATION_VERSION
     assert encoded.schema_version == PUBLIC_OBSERVATION_VERSION
     assert encoded.shape == PUBLIC_OBSERVATION_SCHEMA.shape
-    assert encoded.shape == (2480,)
+    assert encoded.shape == (3320,)
     assert PUBLIC_OBSERVATION_SCHEMA.feature_names[:5] == (
         "frame.status", "frame.owner", "state.phase", "state.money", "state.ante"
     )
@@ -65,7 +65,29 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
     assert _at(encoded, "jokers.0.present") == 1.0
 
 
-def test_env_o_v5_encodes_held_spectral_identity_in_existing_slots():
+@pytest.mark.parametrize(("attribute", "prefix"), [
+    ("owned_deck", "owned_deck"), ("discard_pile", "discard"),
+])
+def test_env_o_v6_accepts_exact_bounded_deck_and_rejects_overflow(attribute, prefix):
+    frame = _frame()
+    legacy = encode_public_observation(frame)
+    assert legacy.values[2480:] == (0.0,) * 840
+
+    cards = [BalatroCard("2", "Clubs") for _ in range(81)] + [BalatroCard("A", "Spades")]
+    setattr(frame.state, attribute, cards)
+    encoded = encode_public_observation(frame)
+    assert _at(encoded, f"{prefix}.52.present") == 1.0
+    assert _at(encoded, f"{prefix}.81.present") == 1.0
+    assert _at(encoded, f"{prefix}.81.rank") == 13.0
+    cards.reverse()
+    assert encode_public_observation(frame) == encoded
+
+    cards.append(BalatroCard("2", "Clubs"))
+    with pytest.raises(PublicObservationEncodingError, match="exceeds schema capacity 82"):
+        encode_public_observation(frame)
+
+
+def test_env_o_v6_encodes_held_spectral_identity_in_existing_slots():
     frame = _frame()
     spectral = create_spectral("Cryptid")
     spectral.center_key = "c_cryptid"
@@ -73,8 +95,8 @@ def test_env_o_v5_encodes_held_spectral_identity_in_existing_slots():
 
     encoded = encode_public_observation(frame)
 
-    assert encoded.shape == (2480,)
-    assert encoded.schema_version == "balatro-red-white-public-observation-v5"
+    assert encoded.shape == (3320,)
+    assert encoded.schema_version == "balatro-red-white-public-observation-v6"
     assert _at(encoded, "consumables.0.category") == 3.0
     assert _at(encoded, "consumables.0.center") == 35 + VANILLA_SPECTRAL_CENTER_ORDER.index("c_cryptid")
 

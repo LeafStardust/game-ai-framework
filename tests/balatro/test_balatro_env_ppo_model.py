@@ -64,16 +64,16 @@ def test_env_ppo_model_initialization_is_seeded_and_contract_shaped():
 
     assert first.parameter_sha256 == second.parameter_sha256
     assert first.parameter_sha256 != different.parameter_sha256
-    assert PPO_MODEL_VERSION == "balatro-red-white-ppo-actor-critic-v2"
+    assert PPO_MODEL_VERSION == "balatro-red-white-ppo-actor-critic-v3"
     assert PPO_OPTIMIZER_VERSION == "balatro-red-white-ppo-adam-v1"
     assert (ADAM_BETA1, ADAM_BETA2, ADAM_EPSILON) == (0.9, 0.999, 1e-8)
-    assert first.parameters["w1"].shape == (2480, 512)
+    assert first.parameters["w1"].shape == (3320, 512)
     assert first.parameters["w2"].shape == (512, 256)
     assert first.parameters["policy_w"].shape == (256, 27)
     assert first.parameters["value_w"].shape == (256, 1)
 
 
-def test_env_ppo_v4_initializer_preserves_v3_weights_and_trains_new_rows():
+def test_env_ppo_initializer_zeroes_only_added_observation_rows():
     _, model = _model("V4-EXPANSION")
     added = tuple(
         index
@@ -86,6 +86,8 @@ def test_env_ppo_v4_initializer_preserves_v3_weights_and_trains_new_rows():
 
     assert len(added) == 24
     assert np.count_nonzero(model.parameters["w1"][list(added)]) == 0
+    assert np.count_nonzero(model.parameters["w1"][2480:]) == 0
+    assert np.count_nonzero(model.parameters["w1"][:2480]) == 2456 * 512
 
 
 def test_env_ppo_model_inference_masks_logits_and_returns_value_exactly():

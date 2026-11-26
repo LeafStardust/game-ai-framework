@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from games.balatro.env.state import EnvStateFrame
 
 
-PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v5"
+PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v6"
 
 PHASES = (
     "ROUND_START", "BLIND_SELECT", "DRAW_TO_HAND", "SELECTING_HAND", "SHOP",
@@ -55,8 +55,10 @@ PACK_CENTER_KEYS = tuple(
 )
 
 MAX_HAND_CARDS = 22
-MAX_OWNED_CARDS = 52
-MAX_DISCARD_CARDS = 52
+_LEGACY_DECK_SLOTS = 52
+# Thirty played rounds at most, with one copy per round in the scoped DNA path.
+MAX_OWNED_CARDS = _LEGACY_DECK_SLOTS + 30
+MAX_DISCARD_CARDS = MAX_OWNED_CARDS
 MAX_JOKERS = 6
 MAX_CONSUMABLES = 3
 MAX_SHOP_JOKERS = 3
@@ -116,8 +118,8 @@ class EncodedPublicObservation:
         return (len(self.values),)
 
 
-def _slot_names(prefix: str, count: int, fields: Iterable[str]) -> list[str]:
-    return [f"{prefix}.{index}.{field}" for index in range(count) for field in fields]
+def _slot_names(prefix: str, count: int, fields: Iterable[str], *, start: int = 0) -> list[str]:
+    return [f"{prefix}.{index}.{field}" for index in range(start, count) for field in fields]
 
 
 _CARD_FIELDS = (
@@ -161,8 +163,8 @@ def _build_feature_names() -> tuple[str, ...]:
         names.extend(f"hands.{prefix}.{hand}" for hand in HAND_KEYS)
     names.extend(f"vouchers.owned.{key}" for key in VOUCHER_KEYS)
     names.extend(_slot_names("hand", MAX_HAND_CARDS, _CARD_FIELDS))
-    names.extend(_slot_names("owned_deck", MAX_OWNED_CARDS, _CARD_FIELDS))
-    names.extend(_slot_names("discard", MAX_DISCARD_CARDS, _CARD_FIELDS))
+    names.extend(_slot_names("owned_deck", _LEGACY_DECK_SLOTS, _CARD_FIELDS))
+    names.extend(_slot_names("discard", _LEGACY_DECK_SLOTS, _CARD_FIELDS))
     names.extend(_slot_names("jokers", MAX_JOKERS, _JOKER_FIELDS))
     names.extend(_slot_names("consumables", MAX_CONSUMABLES, _CONSUMABLE_FIELDS))
     names.extend(_slot_names("shop.jokers", MAX_SHOP_JOKERS, _SHOP_ITEM_FIELDS))
@@ -172,6 +174,8 @@ def _build_feature_names() -> tuple[str, ...]:
     names.extend(f"pool.joker.{key}" for key in JOKER_CENTER_KEYS)
     names.extend(f"pool.consumable.{key}" for key in CONSUMABLE_CENTER_KEYS)
     names.extend(f"pool.voucher.{key}" for key in VOUCHER_KEYS)
+    names.extend(_slot_names("owned_deck", MAX_OWNED_CARDS, _CARD_FIELDS, start=_LEGACY_DECK_SLOTS))
+    names.extend(_slot_names("discard", MAX_DISCARD_CARDS, _CARD_FIELDS, start=_LEGACY_DECK_SLOTS))
     return tuple(names)
 
 
@@ -475,8 +479,11 @@ def encode_public_observation(frame: "EnvStateFrame") -> EncodedPublicObservatio
         raise PublicObservationEncodingError("owned Vouchers are not an exact supported set")
     values.extend(float(key in state.vouchers) for key in VOUCHER_KEYS)
     values.extend(_fixed_cards(state.hand, MAX_HAND_CARDS, "hand"))
-    values.extend(_fixed_cards(state.owned_deck, MAX_OWNED_CARDS, "owned_deck", canonical=True))
-    values.extend(_fixed_cards(state.discard_pile, MAX_DISCARD_CARDS, "discard", canonical=True))
+    owned = _fixed_cards(state.owned_deck, MAX_OWNED_CARDS, "owned_deck", canonical=True)
+    discard = _fixed_cards(state.discard_pile, MAX_DISCARD_CARDS, "discard", canonical=True)
+    legacy_card_width = _LEGACY_DECK_SLOTS * len(_CARD_FIELDS)
+    values.extend(owned[:legacy_card_width])
+    values.extend(discard[:legacy_card_width])
     values.extend(_fixed_jokers(state.jokers, MAX_JOKERS, "jokers"))
     values.extend(_fixed_consumables(state.consumables, MAX_CONSUMABLES, "consumables"))
     values.extend(_fixed_shop(state.shop_jokers, MAX_SHOP_JOKERS, "shop.jokers", JOKER_CENTER_KEYS, "JOKER"))
@@ -494,6 +501,8 @@ def encode_public_observation(frame: "EnvStateFrame") -> EncodedPublicObservatio
             eligibility_field="eligible",
         )
     )
+    values.extend(owned[legacy_card_width:])
+    values.extend(discard[legacy_card_width:])
     encoded = EncodedPublicObservation(PUBLIC_OBSERVATION_VERSION, tuple(values))
     if encoded.shape != PUBLIC_OBSERVATION_SCHEMA.shape:
         raise RuntimeError("public observation implementation drifted from its versioned schema")
