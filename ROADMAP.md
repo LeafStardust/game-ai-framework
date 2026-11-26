@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`c6295589d4e7defe422879b5d00a8d9505d9485a`.
+`d3862bd48751a871ab032c949ed5e3befe8d3b80`.
 
 ## Objective
 
@@ -2553,14 +2553,32 @@ Audit Madness as the candidate for the fortieth exact generated-Joker
 acquisition. The committed trace offers uneditioned `j_madness` at episode 49
 decision 1 / seed `382C0AB9`, with rarity 2, base cost 7, and price 7.
 
-Next, replace Python randomness with the seeded `madness` draw at the
-blind-start boundary. Verify growth, Boss inertness, physical target order,
-Eternal and queued-target exclusion, the no-target RNG boundary, and removal
-through the canonical inventory-only inverse. Resource-sensitive destruction
-remains fail-closed until dissolve timing and its resource effects are exact.
-Keep acquisition masked until its reachable lifecycle paths are owned.
+Next, own the deferred resource effects of removing Juggler and Drunkard,
+the resource-sensitive targets already generated in the admitted shop surface.
+Pinned `Card:start_dissolve` queues `Card:remove`; `Card:remove_from_deck`
+then separately queues `CardArea:change_size` and `ease_discard`. Trace
+these against the queued opening draw. The draw can count cards at the old
+hand limit and the hand area admits scheduled cards after the limit drops.
+Cover both the dealt card count and settled capacity, plus persistent and
+current discard allowances, at the canonical round-start boundaries.
+Consider a live fixture only if source ordering cannot prove the reachable
+boundary. Keep purchase and resource-sensitive destruction masked until
+these effects are owned.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
+
+Madness seeded blind-start checkpoint:
+
+- Commit `d3862bd48751a871ab032c949ed5e3befe8d3b80` removes Python
+  randomness from the model. Exact non-Boss growth produces ordered
+  candidates, and blind start draws from retained `madness` RNG only when
+  an eligible target exists. Self, Eternal, and previously queued targets
+  are excluded. Inventory-only removals settle without proceeds.
+- Regressions cover physical versus creation order, two ordered callbacks
+  with a queued target, Boss/debuff inertness, and atomic rejection of an
+  unsupported resource target.
+- GitHub Actions run `45746430347`, job `139663512313` logged
+  **3804 passed, 1621 deselected in 411.61s**.
 
 Madness shared Joker removal checkpoint:
 
