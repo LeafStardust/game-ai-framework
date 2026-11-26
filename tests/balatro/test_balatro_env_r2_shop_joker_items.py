@@ -1497,8 +1497,9 @@ def test_env_r2_mime_materialization_rejects_unsupported_metadata(rarity, base_c
 
 
 @pytest.mark.parametrize(("rarity", "base_cost", "edition"), [(1, 7, None), (2, 6, None), (2, 7, "Foil")])
-def test_env_r2_madness_materialization_rejects_unsupported_metadata(rarity, base_cost, edition):
-    item = GeneratedShopJokerItem("j_madness", rarity, base_cost, edition, 7, False)
+@pytest.mark.parametrize("center", ["j_madness", "j_midas_mask"])
+def test_env_r2_madness_and_midas_reject_unsupported_metadata(rarity, base_cost, edition, center):
+    item = GeneratedShopJokerItem(center, rarity, base_cost, edition, 7, False)
     with pytest.raises(HeadlessTransitionError):
         materialize_generated_shop_joker_for_acquisition(item)
 

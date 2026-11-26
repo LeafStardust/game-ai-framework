@@ -1818,6 +1818,36 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
 
 
+def test_env_ppo_roadmap_seed_completes_midas_purchase_conversion_and_sale():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="0B58B2B9")
+    replay = (
+        ("SELECT_BLIND", {}, 10, False, ()),
+        ("BUY_JOKER", {"slot": 0}, 3, True, ()),
+        ("END_SHOP", {}, 3, True, ()),
+        ("SELECT_BLIND", {}, 9, True, (("Q", "Diamonds"),)),
+        ("SELL_JOKER", {"joker_index": 0}, 12, False, (("Q", "Diamonds"),)),
+        ("END_SHOP", {}, 12, False, (("Q", "Diamonds"),)),
+        ("SELECT_BLIND", {}, 12, False, (("Q", "Diamonds"),)),
+    )
+    for alias, params, money, owns_midas, expected_gold in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert [joker.center for joker in run.public.jokers] == ["j_midas_mask"] * owns_midas
+        assert tuple(
+            (card.rank, card.suit) for card in run.public.owned_deck
+            if card.enhancement == "Gold"
+        ) == expected_gold
+        if owns_midas:
+            assert run.generated_center_discovered("j_midas_mask") is True
+
+    assert environment.frame.state.round == 3
+    assert environment.frame.status is RunStatus.LOSS
+
+
 def test_env_ppo_roadmap_seed_completes_madness_purchase_growth_and_sale():
     environment = make_ppo_training_environment(0)
     environment.reset(seed="382C0AB9")

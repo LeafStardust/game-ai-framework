@@ -25,6 +25,7 @@ from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.madness import MadnessJoker, madness_x_mult_is_exact
 from games.balatro.jokers.merry_andy import MerryAndyJoker
+from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
@@ -36,6 +37,7 @@ _BLIND_START_INERT_JOKER_TYPES = (
     CastleJoker,
     Cloud9Joker,
     SeanceJoker,
+    MidasMaskJoker,
     StuntmanJoker,
     DrunkardJoker,
     TroubadourJoker,

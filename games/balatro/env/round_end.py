@@ -38,6 +38,7 @@ from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.madness import MadnessJoker
+from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.jokers.stuntman import StuntmanJoker
@@ -52,6 +53,7 @@ _ROUND_END_INERT_JOKER_TYPES = (
     CastleJoker,
     SeanceJoker,
     MadnessJoker,
+    MidasMaskJoker,
     StuntmanJoker,
     DrunkardJoker,
     TroubadourJoker,
