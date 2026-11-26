@@ -2553,12 +2553,22 @@ Audit DNA as the candidate for the forty-second exact generated-Joker
 acquisition. The committed trace offers uneditioned `j_dna` at episode 51
 decision 1 / seed `64FD54A0`, with rarity 3, base cost 8, and price 8.
 
-Audit first-hand single-card copy timing, permanent card identity and order,
-hand insertion, and redraw. Prove a finite deck bound for the admitted
-training surface before changing the fixed observation contract: observation
-v5 caps owned and discarded card slots at 52, so it cannot publish DNA's
-first copy. Audit base-deck guards and retain fail-closed acquisition until
-the owned path and provenance are exact.
+Next, version the fixed observation contract for a bounded DNA deck.
+The pristine profile starts at 52 cards. A run can play at most 30 rounds:
+eight Antes plus at most two extra Ante cycles from the single-use Hieroglyph
+and Petroglyph, with at most three played rounds in each cycle. The proposed
+slice admits one DNA and no copier, duplicate enabler, or other deck-size
+growth. Its first-hand callback adds at most one card per played round, so
+82 slots bound both owned cards and the discard zone. Revisit the bound
+before widening those capabilities. Observation v5 has only 52 slots each,
+and current Play and several Boss checks also require a 52-card base deck.
+
+After encoding coverage, own DNA's permanent card identity, hand insertion,
+and redraw. The pinned callback checks the hand count before it increments;
+headless Play currently increments its round hand count before the shared
+before-score callbacks. Capture that boundary explicitly and verify a
+single-card first hand, later hands, and retained order. Keep acquisition
+masked until all boundaries and the new observation provenance are exact.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
 
