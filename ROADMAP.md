@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`a93c2170ebd6daf04dd17b8f7d4b991d89f35e97`.
+`51faecd8d6c90dd3fb70b839fed1913287b72ab8`.
 
 ## Objective
 
@@ -2554,11 +2554,22 @@ Joker acquisition. The committed strategic/shop trace offers uneditioned
 `j_faceless` at episode 51 decision 3 / seed `64FD54A0`, with rarity 1,
 base cost 4, and price 4.
 
-Next, audit the pinned vanilla discard callback and the canonical discard
-owner for the three-face threshold, debuffs, Stone, Pareidolia, and forced
-Hook discards. Add deterministic regressions for exact payout and
-continuation before admitting purchase or sale. Keep Hallucination,
-booster work, other centers, rewards, and retraining deferred.
+Next, admit exact uneditioned Faceless Joker to the generated shop and
+inventory-only sale. Audit blind-start and round-end continuation, then
+pin purchase, payout, sale, and subsequent play in the production headless
+environment. Keep Hallucination, booster work, other centers, rewards, and
+retraining deferred.
+
+Faceless Joker discard checkpoint:
+
+- Commit `51faecd8d6c90dd3fb70b839fed1913287b72ab8` applies one $5 payout
+  per discard of at least three qualifying faces and shares discard callback
+  ownership with Castle. The pinned `Card:is_face` excludes debuffed cards
+  and recognizes Stone only with active Pareidolia. A debuffed Faceless
+  Joker produces no callback effect. The Hook discards at most two cards
+  and never qualifies. Purchase and sale remain masked.
+- GitHub Actions run `45802020242`, job `139847407464` logged
+  **3856 passed, 1621 deselected in 368.11s**.
 
 DNA acquisition checkpoint:
 
