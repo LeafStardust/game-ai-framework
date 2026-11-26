@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`ffab2250c0f4c720142f34bb81decf78b467f8d4`.
+`9e630067cbfb2e76d0e2fd0850c1b808b468b06a`.
 
 ## Objective
 
@@ -2559,18 +2559,23 @@ and Petroglyph, with at most three played rounds in each cycle. The proposed
 slice admits one DNA and no copier, duplicate enabler, or other deck-size
 growth. Its first-hand callback adds at most one card per played round, so
 82 slots bound both owned cards and the discard zone. Revisit the bound
-before widening those capabilities. Current Play and several Boss checks
-still require a 52-card base deck.
+before widening those capabilities.
 
-Next, connect the exact copy primitive to production Play's before-score
-callbacks. Capture first-hand authority before incrementing the counter,
-and resolve the copy at DNA's physical Joker position. Extend deal, redraw,
-and Boss validation only to bounded retained base-plus-copy order. Verify
-new and subsequent Pillar rounds, inherited debuffs, Midas/Vampire order,
-and no copy on later or multi-card hands. Keep acquisition masked until
-this path passes CI.
-Hallucination, booster work, other centers, rewards, and retraining remain
-deferred.
+Next, admit exact uneditioned DNA to the generated shop and inventory-only
+sale. Audit blind start and round end, reject duplicate DNA and unsupported
+offers, and pin a deterministic purchase, first-hand copy, sale, and continued
+play using the production environment. Hallucination, booster work, other
+centers, rewards, and retraining remain deferred.
+
+DNA production Play checkpoint:
+
+- Commit `9e630067cbfb2e76d0e2fd0850c1b808b468b06a` captures first-hand
+  authority before increment and resolves DNA at its physical Joker position.
+  Deal, redraw, and Boss validation accept bounded retained base-plus-copy
+  order. Regressions cover Pillar inheritance, Midas/Vampire ordering,
+  later and multi-card hands, and duplicate-DNA rejection.
+- GitHub Actions run `45797128828`, job `139830573032` logged
+  **3841 passed, 1621 deselected in 317.06s**.
 
 DNA copy and Pillar checkpoint:
 
