@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`1d7de1fa306362c0592d762a65e52ecf279ae469`.
+`a76000cd04c38f9405fa74331d886ea342fb7d1d`.
 
 ## Objective
 
@@ -2549,17 +2549,32 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Splash as the candidate for the forty-fourth exact generated Joker
+Audit Runner as the candidate for the forty-fifth exact generated Joker
 acquisition. The committed strategic/shop trace offers uneditioned
-`j_splash` at episode 52 decision 1 / seed `EB851E5F`, with rarity 1,
-base cost 3, and price 3.
+`j_runner` at episode 52 decision 3 / seed `EB851E5F`, with rarity 1,
+base cost 5, and price 5.
 
-Next, audit Splash's existing passive hand-rule and scoring owners, including
-the distinction between cards played and cards that score. Verify the exact
-Play and Boss boundaries before admitting the generated shop offer, and pin
-purchase, scoring, sale, and continued play in the production headless
-environment. Keep Hallucination, booster work, other centers, rewards, and
-retraining deferred.
+Next, audit the pinned before-score callback for recognizing a Straight
+inside another hand type, growth on the triggering hand, and persistent
+chips across rounds. Verify the score and Boss boundaries and the public
+observation of accumulated chips before admitting purchase or sale.
+Supernova, Hallucination, booster work, rewards, and retraining remain
+deferred.
+
+Splash acquisition checkpoint:
+
+- Commit `db3cd514f890961204d38f87ee3c3b2ac2075142` admits exact uneditioned
+  Splash using the existing passive rule and scorer. Kickers score without
+  changing the classified hand or counters. The Head still suppresses
+  debuffed cards, The Psychic still requires five played cards, and The
+  Hook's discard and RNG behavior are preserved.
+- Trace seed `EB851E5F` buys Splash for $3, scores 177 on Three of a Kind
+  with two face-card kickers, sells it for $1, and clears the next Boss.
+- Initial CI run `45807331515` logged **1 failed, 3867 passed, 1621
+  deselected in 365.69s** after the Banner fixture took the newly legal
+  offer. Commit `a76000cd04c38f9405fa74331d886ea342fb7d1d` pins that
+  replay. GitHub Actions run `45807853676`, job `139867698851` logged
+  **3868 passed, 1621 deselected in 572.36s**.
 
 Faceless Joker acquisition checkpoint:
 
