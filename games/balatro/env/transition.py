@@ -236,6 +236,7 @@ class HeadlessRunState:
     castle_suit: str | None = None
     opening_draw_capacity: int | None = None
     pillar_debuff_snapshot: tuple[tuple[bool, ...], tuple[bool, ...]] | None = None
+    removed_base_six_suits: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         snapshot = self.pillar_debuff_snapshot
@@ -409,6 +410,9 @@ class HeadlessRunState:
                     "playing_card_order must reference the authoritative owned cards exactly"
                 )
 
+        if self.removed_base_six_suits != ():
+            self.require_playing_card_order()
+
         if self.joker_order_state is None:
             self.joker_order_state = JokerOrderState.from_public(self.public.jokers)
         else:
@@ -506,6 +510,13 @@ class HeadlessRunState:
             raise HeadlessTransitionError(
                 "playing-card creation order is stale relative to the public deck"
             )
+        if self.removed_base_six_suits != () and (
+            self.public.owned_deck is None
+            or not has_bounded_base_copy_order(
+                self.playing_card_order, self.removed_base_six_suits
+            )
+        ):
+            raise HeadlessTransitionError("invalid retained removed base sixes")
         return list(self.playing_card_order)
 
     def require_joker_order_state(self) -> JokerOrderState:
@@ -746,7 +757,9 @@ class ShopTransitionEngine:
                 if item.center_key == "j_dna":
                     if any(type(joker) is DNAJoker for joker in state.jokers):
                         return False
-                    if not has_bounded_base_copy_order(run.require_playing_card_order()):
+                    if not has_bounded_base_copy_order(
+                        run.require_playing_card_order(), run.removed_base_six_suits
+                    ):
                         return False
                 if item.center_key == "j_madness":
                     run.require_joker_order_state()

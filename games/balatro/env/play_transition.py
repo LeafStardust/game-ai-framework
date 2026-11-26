@@ -135,7 +135,7 @@ def _require_plain_base_cards(
     allow_verdant_leaf_debuffs: bool,
 ) -> None:
     order = run.require_playing_card_order()
-    if not has_bounded_base_copy_order(order):
+    if not has_bounded_base_copy_order(order, run.removed_base_six_suits):
         raise HeadlessTransitionError(
             "R4 baseline Play currently requires the unmodified base-card composition"
         )

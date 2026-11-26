@@ -10,14 +10,13 @@ Current exact base-deck families:
   playing card a face card;
 * The Pillar: cards whose permanent ``ability.played_this_ante`` history is true.
 
-These helpers intentionally support only the untouched base 52-card rank/suit
-composition with no suit/rank-changing enhancement or other persistent card
-mutation. Modified decks remain fail-closed until those predicates are exact.
+These helpers accept the retained base survivors and bounded DNA copies.
+Suit and rank changes remain outside the audited predicates.
 """
 
 from __future__ import annotations
 
-from games.balatro.env.card_order import has_bounded_base_copy_order
+from games.balatro.env.card_order import BASE_DECK_CARD_COUNT, has_bounded_base_copy_order
 
 from games.balatro.card import BalatroCard
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
@@ -40,9 +39,9 @@ def _require_exact_base_permanent_cards(
 ) -> list[BalatroCard]:
     state = run.public
     cards = run.require_playing_card_order()
-    if not has_bounded_base_copy_order(cards):
+    if not has_bounded_base_copy_order(cards, run.removed_base_six_suits):
         raise HeadlessTransitionError(
-            f"{label} requires exact base 52-card composition"
+            f"{label} requires exact base permanent-card composition"
         )
     if any(
         card.live_id is not None
@@ -102,7 +101,7 @@ def require_static_suit_boss_debuff_state(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("boss has no audited static suit debuff")
 
     cards = run.require_playing_card_order()
-    if not has_bounded_base_copy_order(cards):
+    if not has_bounded_base_copy_order(cards, run.removed_base_six_suits):
         raise HeadlessTransitionError(
             "static suit Boss state requires exact base permanent-card set"
         )
@@ -141,7 +140,7 @@ def clear_plant_face_debuff(run: HeadlessRunState) -> HeadlessRunState:
         raise HeadlessTransitionError("Plant cleanup requires The Plant boss")
 
     cards = run.require_playing_card_order()
-    if not has_bounded_base_copy_order(cards):
+    if not has_bounded_base_copy_order(cards, run.removed_base_six_suits):
         raise HeadlessTransitionError(
             "Plant cleanup requires exact base permanent-card set"
         )
@@ -192,7 +191,7 @@ def require_pillar_history_debuff_state(run: HeadlessRunState) -> None:
     if run.public.boss_name != "The Pillar":
         raise HeadlessTransitionError("Pillar debuff state requires The Pillar boss")
     cards = run.require_playing_card_order()
-    if not has_bounded_base_copy_order(cards) or any(
+    if not has_bounded_base_copy_order(cards, run.removed_base_six_suits) or any(
         not card.played_this_ante_observed for card in cards
     ):
         raise HeadlessTransitionError(
@@ -206,12 +205,13 @@ def require_pillar_history_debuff_state(run: HeadlessRunState) -> None:
     snapshot = run.pillar_debuff_snapshot
     predeal_count = len(cards)
     if snapshot is None:
-        if len(cards) != 52:
-            raise HeadlessTransitionError("expanded Pillar deck requires retained debuff authority")
+        if len(cards) != BASE_DECK_CARD_COUNT or run.removed_base_six_suits:
+            raise HeadlessTransitionError("modified Pillar deck requires retained debuff authority")
     else:
         predeal, created = snapshot
         predeal_count = len(predeal)
-        if predeal_count < 52 or len(predeal) + len(created) != len(cards):
+        base_survivors = BASE_DECK_CARD_COUNT - len(run.removed_base_six_suits)
+        if predeal_count < base_survivors or len(predeal) + len(created) != len(cards):
             raise HeadlessTransitionError("retained Pillar debuffs do not cover the owned cards")
         if any(card.debuffed is not expected for card, expected in zip(cards, predeal + created)):
             raise HeadlessTransitionError("Pillar debuff state drifted from retained authority")

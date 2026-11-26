@@ -7,6 +7,8 @@ from games.balatro.env.blind_start import (
 )
 from games.balatro.env.boss_debuffs import clear_pillar_history_debuff
 from dataclasses import replace
+from games.balatro.env.card_order import has_bounded_base_copy_order
+from games.balatro.env.card_removal import remove_played_six
 from games.balatro.env.dna_copy import append_dna_copy
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
@@ -235,3 +237,60 @@ def test_env_r2_pillar_cleanup_rejects_clean_active_prior_history():
         match="incomplete active history debuffs",
     ):
         clear_pillar_history_debuff(prepared)
+
+
+@pytest.mark.parametrize("destroy_copy", [False, True])
+def test_env_r2_pillar_remove_played_six_preserves_copy_and_surviving_debuffs(destroy_copy):
+    run = _run()
+    for card in run.require_playing_card_order()[::3]:
+        card.played_this_ante = True
+    dealt = start_supported_pillar(run)
+    source = dealt.public.hand.pop(3)
+    assert (source.rank, source.suit) == ("6", "Clubs")
+    source.played_this_ante = True
+    dealt.played_pile.append(source)
+    copied = append_dna_copy(dealt, source)
+    predeal, created = dealt.pillar_debuff_snapshot
+    if destroy_copy:
+        dealt.played_pile[0] = dealt.public.hand.pop()
+        dealt.discard_pile.append(source)
+        dealt.public.discard_pile.append(source)
+    removed, retained = (copied, source) if destroy_copy else (source, copied)
+    order = dealt.require_playing_card_order()
+    position = next(i for i, card in enumerate(order) if card is removed)
+    before_rng = dealt.rng_snapshot()
+
+    remove_played_six(dealt, removed)
+
+    survivors = dealt.require_playing_card_order()
+    assert [(id(card), card.debuffed) for card in survivors] == [
+        (id(card), card.debuffed) for card in order if card is not removed
+    ]
+    assert any(card is retained for card in survivors)
+    assert dealt.rng_snapshot() == before_rng
+    if destroy_copy:
+        assert dealt.pillar_debuff_snapshot == (predeal, ())
+        assert dealt.removed_base_six_suits == ()
+    else:
+        assert dealt.pillar_debuff_snapshot == (predeal[:position] + predeal[position + 1:], created)
+        assert dealt.removed_base_six_suits == ("Clubs",)
+        assert not has_bounded_base_copy_order(survivors)
+
+    restored = HeadlessRunState.restore(dealt.serialize())
+    assert restored.pillar_debuff_snapshot == dealt.pillar_debuff_snapshot
+    cleared = clear_pillar_history_debuff(restored)
+    assert len(cleared.require_playing_card_order()) == 52
+    assert all(not card.debuffed for card in cleared.require_playing_card_order())
+
+
+def test_env_r2_played_six_removal_rejects_wrong_physical_card():
+    dealt = start_supported_pillar(_run())
+    six = dealt.public.hand.pop(3)
+    six.played_this_ante = True
+    dealt.played_pile.append(six)
+    before = dealt.serialize()
+
+    with pytest.raises(HeadlessTransitionError, match="exact sole played six"):
+        remove_played_six(dealt, replace(six))
+
+    assert dealt.serialize() == before

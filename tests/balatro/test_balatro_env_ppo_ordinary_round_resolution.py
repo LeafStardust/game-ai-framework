@@ -9,6 +9,12 @@ from games.balatro.env.blind_progression import (
     BlindProgressionState,
     activate_selected_blind_progression,
 )
+from games.balatro.env.boss_debuffs import (
+    apply_static_suit_boss_debuff,
+    clear_static_suit_boss_debuff,
+)
+from games.balatro.env.card_removal import remove_played_six
+from games.balatro.env.deal import draw_one_supported_card_to_hand
 from games.balatro.env.episode_backend import pristine_red_white_reset
 from games.balatro.env.observation_encoding import PUBLIC_OBSERVATION_SCHEMA
 from games.balatro.env.ordinary_round_resolution import (
@@ -19,6 +25,7 @@ from games.balatro.env.select_blind import select_blind_exact
 from games.balatro.env.shop_inventory_generation import (
     first_shop_from_retained_progression,
 )
+from games.balatro.env.serialization import restore_headless_run_state, serialize_headless_run_state
 from games.balatro.env.state import EnvStateFrame
 from games.balatro.env.tactical_transition import apply_planned_tactical_step
 from games.balatro.env.transition import HeadlessTransitionError, ShopTransitionEngine
@@ -177,3 +184,57 @@ def test_env_ppo_green_keeps_mult_visible_across_rounds():
     dealt = select_blind_exact(activate_selected_blind_progression(next_blind))
     assert dealt.public.jokers[0].mult == 4
     assert apply_supported_ordinary_play(dealt, (0,)).public.jokers[0].mult == 5
+
+
+def test_env_ppo_removed_six_stays_out_of_redraw_and_next_blind():
+    run = pristine_red_white_reset("RUNNER-4")
+    run.public.hand_levels["HIGH_CARD"] = 1000
+    dealt = select_blind_exact(activate_selected_blind_progression(run))
+    six = dealt.public.hand.pop(3)
+    assert (six.rank, six.suit) == ("6", "Hearts")
+    six.played_this_ante = True
+    dealt.played_pile.append(six)
+    before_rng = dealt.rng_snapshot()
+    survivors = [card for card in dealt.require_playing_card_order() if card is not six]
+
+    remove_played_six(dealt, six)
+
+    assert dealt.removed_base_six_suits == ("Hearts",)
+    assert [id(card) for card in dealt.require_playing_card_order()] == [id(card) for card in survivors]
+    assert all(card is not six for card in dealt.public.owned_deck)
+    assert dealt.played_pile == []
+    assert dealt.rng_snapshot() == before_rng
+
+    snapshot = serialize_headless_run_state(dealt)
+    restored = restore_headless_run_state(snapshot)
+    assert restored.removed_base_six_suits == ("Hearts",)
+    snapshot["private"]["removed_base_six_suits"] = {"$tuple": ["Clubs"]}
+    with pytest.raises(HeadlessTransitionError, match="invalid headless run-state snapshot"):
+        restore_headless_run_state(snapshot)
+    expected_draw = restored.draw_pile[-1]
+    redrawn = draw_one_supported_card_to_hand(restored)
+    assert len(redrawn.public.hand) == 8
+    assert (expected_draw.rank, expected_draw.suit) in {
+        (card.rank, card.suit) for card in redrawn.public.hand
+    }
+    assert redrawn.rng_snapshot() == before_rng
+    cleared = apply_supported_ordinary_play(redrawn, (0,))
+    shop = resolve_supported_ordinary_round(
+        cleared, cleared.require_blind_progression_state()
+    ).run
+    next_blind = ShopTransitionEngine().step(shop, EnvAction.from_alias("END_SHOP"))
+    next_dealt = select_blind_exact(activate_selected_blind_progression(next_blind))
+
+    assert next_dealt.public.round == 2
+    assert len(next_dealt.public.hand) == 8
+    assert len(next_dealt.draw_pile) == 43
+    assert ("6", "Hearts") not in {
+        (card.rank, card.suit) for card in next_dealt.public.owned_deck
+    }
+
+    shop.public.boss_name = "The Head"
+    debuffed = apply_static_suit_boss_debuff(shop)
+    assert all(card.debuffed is (card.suit == "Hearts") for card in debuffed.public.owned_deck)
+    cleaned = clear_static_suit_boss_debuff(debuffed)
+    assert len(cleaned.public.owned_deck) == 51
+    assert all(not card.debuffed for card in cleaned.public.owned_deck)

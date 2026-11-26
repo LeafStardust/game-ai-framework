@@ -21,7 +21,10 @@ def append_dna_copy(run: HeadlessRunState, source: BalatroCard) -> BalatroCard:
         or any(card is source for card in state.hand)
     ):
         raise HeadlessTransitionError("DNA requires its exact single played source")
-    if not has_bounded_base_copy_order(order) or len(order) >= MAX_DNA_DECK_CARDS:
+    if (
+        not has_bounded_base_copy_order(order, run.removed_base_six_suits)
+        or len(order) >= MAX_DNA_DECK_CARDS - len(run.removed_base_six_suits)
+    ):
         raise HeadlessTransitionError("DNA requires a retained deck within its copy bound")
     if (
         source.enhancement not in (None, "Gold")

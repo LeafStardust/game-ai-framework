@@ -12,7 +12,7 @@ relative order in two narrowly audited cases:
   vanilla rank/suit pair, whose initial creation order is the source game's
   lexicographically sorted control-code order.
 
-Everything else fails closed.  In particular, mixed/missing live ids or a deck
+Structural inference otherwise fails closed. In particular, mixed/missing live ids or a deck
 with duplicated/missing rank-suit identities cannot safely reconstruct creation
 order after card creation/destruction/rank conversion mechanics.
 """
@@ -48,24 +48,50 @@ _VANILLA_RANK_CODE = {
     "A": "A",
 }
 
-_VANILLA_BASE_IDENTITIES = frozenset(
+_VANILLA_BASE_CREATION_ORDER = tuple(
     (rank, suit)
-    for rank in _VANILLA_RANK_CODE
-    for suit in _VANILLA_SUIT_CODE
+    for suit in sorted(_VANILLA_SUIT_CODE, key=_VANILLA_SUIT_CODE.get)
+    for rank in sorted(_VANILLA_RANK_CODE, key=_VANILLA_RANK_CODE.get)
 )
+_VANILLA_BASE_IDENTITIES = frozenset(_VANILLA_BASE_CREATION_ORDER)
 
-MAX_DNA_DECK_CARDS = len(_VANILLA_BASE_IDENTITIES) + 30
+BASE_DECK_CARD_COUNT = len(_VANILLA_BASE_CREATION_ORDER)
+MAX_DNA_DECK_CARDS = BASE_DECK_CARD_COUNT + 30
 
 
-def has_bounded_base_copy_order(cards: Sequence[BalatroCard]) -> bool:
-    """Validate retained base identities followed by distinct copy objects."""
-    base_count = len(_VANILLA_BASE_IDENTITIES)
-    return (
-        base_count <= len(cards) <= MAX_DNA_DECK_CARDS
-        and len({id(card) for card in cards}) == len(cards)
-        and {(card.rank, card.suit) for card in cards[:base_count]} == _VANILLA_BASE_IDENTITIES
-        and all((card.rank, card.suit) in _VANILLA_BASE_IDENTITIES for card in cards[base_count:])
-    )
+def has_bounded_base_copy_order(
+    cards: Sequence[BalatroCard], removed_base_six_suits: tuple[str, ...] = (),
+) -> bool:
+    """Validate retained base survivors followed by distinct copy objects."""
+    if type(removed_base_six_suits) is not tuple:
+        return False
+    expected = _VANILLA_BASE_CREATION_ORDER
+    if removed_base_six_suits:
+        if (
+            any(type(suit) is not str or suit not in _VANILLA_SUIT_CODE
+                for suit in removed_base_six_suits)
+            or tuple(sorted(set(removed_base_six_suits))) != removed_base_six_suits
+        ):
+            return False
+        removed = {("6", suit) for suit in removed_base_six_suits}
+        expected = tuple(identity for identity in expected if identity not in removed)
+
+    base_count = len(expected)
+    if not base_count <= len(cards) <= MAX_DNA_DECK_CARDS - len(removed_base_six_suits):
+        return False
+    if len({id(card) for card in cards}) != len(cards):
+        return False
+
+    base = cards[:base_count]
+    actual = tuple((card.rank, card.suit) for card in base)
+    if all(card.live_id is None for card in base):
+        # A surviving DNA copy cannot replace an absent original in the prefix.
+        if actual != expected:
+            return False
+    elif set(actual) != set(expected):
+        # A live snapshot can prove a different creation order via its card IDs.
+        return False
+    return all((card.rank, card.suit) in _VANILLA_BASE_IDENTITIES for card in cards[base_count:])
 
 
 def vanilla_playing_card_sort_key(card: BalatroCard) -> str:

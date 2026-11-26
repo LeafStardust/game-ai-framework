@@ -57,13 +57,16 @@ def _can_infer_base_original_suit_nominals(
     cards: list[BalatroCard],
     *,
     allow_gold: bool = True,
+    removed_base_six_suits: tuple[str, ...] = (),
 ) -> bool:
     """Prove original-suit nominals from the exact base identities.
 
     Blind debuffs and Midas's Gold conversion leave original suits and base
     identities intact. A pristine check continues to exclude Gold.
     """
-    if not has_bounded_base_copy_order(cards) or (not allow_gold and len(cards) != 52):
+    if not has_bounded_base_copy_order(cards, removed_base_six_suits) or (
+        not allow_gold and (len(cards) != 52 or removed_base_six_suits)
+    ):
         return False
     return all(
         (card.enhancement is None or (allow_gold and card.enhancement == "Gold"))
@@ -166,13 +169,14 @@ def _mark_drawn_card_face_up(card: BalatroCard) -> None:
     card.facing_observed = True
 
 
-def _modified_complete_owned_order(run: HeadlessRunState) -> list[BalatroCard]:
+def _require_complete_owned_deck(
+    run: HeadlessRunState, order: list[BalatroCard],
+) -> None:
     state = run.public
     if state.owned_deck is None:
         raise HeadlessTransitionError(
             "modified round-start deal requires authoritative owned deck"
         )
-    order = run.require_playing_card_order()
     if len(state.deck) != len(order):
         raise HeadlessTransitionError(
             "current deck is not a complete permanent-card collection"
@@ -186,10 +190,6 @@ def _modified_complete_owned_order(run: HeadlessRunState) -> list[BalatroCard]:
             "current deck must reference the authoritative owned cards exactly"
         )
 
-    for card in order:
-        _vanilla_hand_primary_nominal(card, pristine=False)
-    return order
-
 
 def deal_supported_round_start(run: HeadlessRunState) -> HeadlessRunState:
     """Shuffle and deal an exact supported round-start card collection.
@@ -200,9 +200,14 @@ def deal_supported_round_start(run: HeadlessRunState) -> HeadlessRunState:
     _require_empty_round_start_zones(run)
 
     order = run.require_playing_card_order()
-    infer_base_original_suit = _can_infer_base_original_suit_nominals(order)
+    infer_base_original_suit = _can_infer_base_original_suit_nominals(
+        order, removed_base_six_suits=run.removed_base_six_suits
+    )
+    if run.removed_base_six_suits or not infer_base_original_suit:
+        _require_complete_owned_deck(run, order)
     if not infer_base_original_suit:
-        order = _modified_complete_owned_order(run)
+        for card in order:
+            _vanilla_hand_primary_nominal(card, pristine=False)
 
     next_run = run.copy()
     next_state = next_run.public
@@ -272,7 +277,9 @@ def draw_one_supported_card_to_hand(run: HeadlessRunState) -> HeadlessRunState:
         return run.copy()
 
     order = run.require_playing_card_order()
-    infer_base_original_suit = _can_infer_base_original_suit_nominals(order)
+    infer_base_original_suit = _can_infer_base_original_suit_nominals(
+        order, removed_base_six_suits=run.removed_base_six_suits
+    )
     if not infer_base_original_suit:
         for card in order:
             _vanilla_hand_primary_nominal(card, pristine=False)

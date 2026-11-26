@@ -303,6 +303,8 @@ def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
         private["opening_draw_capacity"] = run.opening_draw_capacity
     if run.pillar_debuff_snapshot is not None:
         private["pillar_debuff_snapshot"] = _plain_value(run.pillar_debuff_snapshot)
+    if run.removed_base_six_suits:
+        private["removed_base_six_suits"] = _plain_value(run.removed_base_six_suits)
     return {
         "schema": HEADLESS_RUN_STATE_SCHEMA,
         "seed": run.seed,
@@ -394,7 +396,9 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
     }:
         raise HeadlessTransitionError("invalid private zones in headless snapshot")
     private = payload["private"]
-    optional_fields = {"castle_suit", "opening_draw_capacity", "pillar_debuff_snapshot"}
+    optional_fields = {
+        "castle_suit", "opening_draw_capacity", "pillar_debuff_snapshot", "removed_base_six_suits",
+    }
     if not isinstance(private, Mapping) or set(private) - optional_fields != set(_PRIVATE_SCALARS):
         raise HeadlessTransitionError("invalid private fields in headless snapshot")
     if any(private[key] is None for key in optional_fields & private.keys()):
