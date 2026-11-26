@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`d3862bd48751a871ab032c949ed5e3befe8d3b80`.
+`0d7e774201c4912b01d8bdf96cf9785f77a2bab5`.
 
 ## Objective
 
@@ -2553,19 +2553,27 @@ Audit Madness as the candidate for the fortieth exact generated-Joker
 acquisition. The committed trace offers uneditioned `j_madness` at episode 49
 decision 1 / seed `382C0AB9`, with rarity 2, base cost 7, and price 7.
 
-Next, own the deferred resource effects of removing Juggler and Drunkard,
-the resource-sensitive targets already generated in the admitted shop surface.
-Pinned `Card:start_dissolve` queues `Card:remove`; `Card:remove_from_deck`
-then separately queues `CardArea:change_size` and `ease_discard`. Trace
-these against the queued opening draw. The draw can count cards at the old
-hand limit and the hand area admits scheduled cards after the limit drops.
-Cover both the dealt card count and settled capacity, plus persistent and
-current discard allowances, at the canonical round-start boundaries.
-Consider a live fixture only if source ordering cannot prove the reachable
-boundary. Keep purchase and resource-sensitive destruction masked until
-these effects are owned.
+Next, admit uneditioned generated Madness through the existing exact shop,
+tactical, cash-out, and inventory-only sale owners. Require exact retained
+target order and valid XMult. Verify the roadmap seed's natural offer, growth
+and scoring after purchase, and a complete rollout. The existing
+resource-changing generated targets are Juggler and Drunkard. Keep
+unowned inverse lifecycles and editions fail-closed.
 Hallucination, booster work, other centers, rewards, and retraining remain
 deferred.
+
+Madness resource destruction checkpoint:
+
+- Commit `0d7e774201c4912b01d8bdf96cf9785f77a2bab5` separates the opening
+  draw's sampled capacity from its settled hand limit. In the pinned queue,
+  dissolve's removal queues the capacity change behind the opening draw;
+  the later card movements still admit every scheduled card. The headless
+  deal consumes that capacity once, including across a predeal snapshot.
+- Juggler destruction can deal nine cards with a settled limit of eight.
+  Drunkard destruction reduces the persistent reset allowance and the
+  current discard count, with the current count clamped at zero.
+- GitHub Actions run `45748003698`, job `139668658104` logged
+  **3808 passed, 1621 deselected in 540.03s**.
 
 Madness seeded blind-start checkpoint:
 
