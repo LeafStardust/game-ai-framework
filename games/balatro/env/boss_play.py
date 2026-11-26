@@ -133,6 +133,7 @@ def _apply_hook_forced_discards(
         from games.balatro.jokers.runner import RunnerJoker
         from games.balatro.jokers.seance import SeanceJoker
         from games.balatro.jokers.splash import SplashJoker
+        from games.balatro.jokers.supernova import SupernovaJoker
 
         owned_hook_joker_types = {
             CastleJoker,
@@ -145,6 +146,7 @@ def _apply_hook_forced_discards(
             RunnerJoker,
             SeanceJoker,
             SplashJoker,
+            SupernovaJoker,
         }
         if (
             any(type(joker) not in owned_hook_joker_types for joker in state.jokers)

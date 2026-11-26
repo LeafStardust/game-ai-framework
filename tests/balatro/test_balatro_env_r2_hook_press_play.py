@@ -14,6 +14,7 @@ from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.splash import SplashJoker
+from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.state import BalatroState
 
@@ -85,6 +86,7 @@ def test_env_r2_hook_forces_two_discards_from_remaining_not_played_cards():
     (DNAJoker, "j_dna"),
     (FacelessJoker, "j_faceless"),
     (SplashJoker, "j_splash"),
+    (SupernovaJoker, "j_supernova"),
     (RunnerJoker, "j_runner"),
 ])
 def test_env_r2_hook_with_inert_joker_preserves_forced_discard_and_rng(joker_type, center):

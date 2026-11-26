@@ -39,6 +39,7 @@ from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.splash import SplashJoker
+from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.state import BalatroState
 
 
@@ -1876,6 +1877,47 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
         ("SELECT_BLIND", {}),
     ]
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
+
+
+def test_env_ppo_trace_seed_completes_supernova_purchase_scoring_and_sale():
+    class RecordingPolicy:
+        def __init__(self):
+            self.tactical = make_ppo_tactical_decision_engine()
+            self.first_boss_score = None
+
+        def decide(self, state):
+            if state.round == 3 and state.score and self.first_boss_score is None:
+                hand = state.last_played_hand
+                self.first_boss_score = (hand, state.hand_play_counts[hand], state.score)
+            return self.tactical.decide(state)
+
+    policy = RecordingPolicy()
+    environment = BalatroHeadlessEnvironment(PPOHeadlessBackend(policy))
+    environment.reset(seed="EB851E5F")
+    replay = (
+        ("SELECT_BLIND", {}, 7, False),
+        ("END_SHOP", {}, 7, False),
+        ("SELECT_BLIND", {}, 12, False),
+        ("BUY_JOKER", {"slot": 1}, 7, True),
+        ("END_SHOP", {}, 7, True),
+        ("SELECT_BLIND", {}, 14, True),
+        ("SELL_JOKER", {"joker_index": 0}, 16, False),
+        ("END_SHOP", {}, 16, False),
+        ("SELECT_BLIND", {}, 16, False),
+    )
+    for alias, params, money, owns_supernova in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert [type(joker) for joker in run.public.jokers] == [SupernovaJoker] * owns_supernova
+        if owns_supernova:
+            assert run.generated_center_discovered("j_supernova") is True
+
+    assert policy.first_boss_score == ("TWO_PAIR", 6, 480)
+    assert environment.frame.state.round == 4
+    assert environment.frame.status is RunStatus.LOSS
 
 
 def test_env_ppo_seed_completes_runner_purchase_growth_and_sale():

@@ -533,6 +533,7 @@ def apply_supported_ordinary_play(
             )
             if before_score else {}
         )
+        joker_data["scoring_hand_play_count"] = next_state.hand_play_counts[hand_name]
         if generated is not None:
             joker_data["created_consumables"] = generated
         hand_score = scorer.score(

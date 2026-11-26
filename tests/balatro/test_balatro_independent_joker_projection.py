@@ -116,6 +116,7 @@ def test_supernova_includes_current_hand_in_run_play_count():
 
     # Fourth High Card this run gives +4 Mult: 16 Chips * (1 + 4) Mult.
     assert transition.distribution.minimum == 80
+    assert state.hand_play_counts[PokerHand.HIGH_CARD.value] == 3
     assert transition.state_after_scoring.hand_play_counts[PokerHand.HIGH_CARD.value] == 4
 
 

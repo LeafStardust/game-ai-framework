@@ -6,6 +6,7 @@ from games.balatro.env.serialization import serialize_headless_run_state
 from games.balatro.env.tactical_transition import apply_supported_tactical_discard
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.splash import SplashJoker
+from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.state import BalatroState
 
 
@@ -109,3 +110,25 @@ def test_env_r4_splash_respects_psychic_played_card_count():
     assert short.public.score == 0
     assert full.public.score == 120
     assert short.public.last_played_hand == full.public.last_played_hand == "PAIR"
+
+
+def test_env_r4_supernova_counts_a_prior_boss_debuffed_play():
+    from games.balatro.env.play_transition import apply_supported_ordinary_play
+
+    run = _psychic_run()
+    run.public.hand_play_counts["HIGH_CARD"] = 3
+    joker = SupernovaJoker()
+    joker.center = "j_supernova"
+    run.public.jokers = [joker]
+
+    blocked = apply_supported_ordinary_play(run, (0, 1, 2, 3))
+    assert blocked.public.score == 0
+    assert blocked.public.last_played_hand == "HIGH_CARD"
+    assert blocked.public.hand_play_counts["HIGH_CARD"] == 4
+
+    accepted = apply_supported_ordinary_play(blocked, (0, 1, 2, 3, 5))
+
+    assert accepted.public.last_played_hand == "HIGH_CARD"
+    assert accepted.public.hand_play_counts["HIGH_CARD"] == 5
+    assert accepted.public.round_hand_play_counts["HIGH_CARD"] == 2
+    assert accepted.public.score == 90

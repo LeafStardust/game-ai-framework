@@ -19,6 +19,7 @@ from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.splash import SplashJoker
+from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.state import BalatroState
 
 
@@ -935,3 +936,20 @@ def test_env_r4_splash_scores_a_pair_kicker_without_changing_hand_history():
         _card_signature(card) for card in baseline.discard_pile
     ]
     assert result.rng_snapshot() == baseline.rng_snapshot()
+
+
+def test_env_r4_supernova_reads_the_committed_run_count_once():
+    run = _ordinary_play_run()
+    run.public.hand_play_counts.update(PAIR=3, HIGH_CARD=8)
+    joker = SupernovaJoker()
+    joker.center = "j_supernova"
+    run.public.jokers = [joker]
+
+    result = apply_supported_ordinary_play(run, (0, 3, 4))
+
+    assert result.public.last_played_hand == "PAIR"
+    assert result.public.score == 156
+    assert result.public.hand_play_counts["PAIR"] == 4
+    assert result.public.round_hand_play_counts["PAIR"] == 1
+    assert result.public.hand_play_counts["HIGH_CARD"] == 8
+    assert run.public.hand_play_counts["PAIR"] == 3

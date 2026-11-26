@@ -47,6 +47,7 @@ from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.castle import CASTLE_SUITS, CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.runner import RunnerJoker
+from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
@@ -300,6 +301,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 2
         expected_base_cost = 6
         label = "Castle"
+    elif item.center_key == "j_supernova":
+        joker_type = SupernovaJoker
+        expected_rarity = 1
+        expected_base_cost = 5
+        label = "Supernova"
     elif item.center_key == "j_vampire":
         joker_type = VampireJoker
         expected_rarity = 2

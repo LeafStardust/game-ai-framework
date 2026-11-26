@@ -28,6 +28,7 @@ from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.runner import RunnerJoker
+from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
@@ -43,6 +44,7 @@ _BLIND_START_INERT_JOKER_TYPES = (
     DNAJoker,
     FacelessJoker,
     RunnerJoker,
+    SupernovaJoker,
     MidasMaskJoker,
     StuntmanJoker,
     DrunkardJoker,
