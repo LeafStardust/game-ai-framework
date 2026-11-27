@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`cd52984f`.
+`be2f431d`.
 
 ## Objective
 
@@ -2554,8 +2554,8 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Verify the paid Buffoon and Hallucination changes in CI, then freeze the
-verified Red/White surface for a fresh observation-v8 PPO campaign.
+Run and verify one fresh observation-v8 PPO optimizer batch on the
+frozen Red/White implementation at `be2f431d`.
 Reward changes remain deferred.
 
 - Episode 63 decision 9 offers Hallucination for $4 in slot 1 on seed
@@ -2577,10 +2577,9 @@ Reward changes remain deferred.
   CI run `45996294163` reported **6 failed, 3,990 passed, 1,621 deselected,
   1 error**. `be2f431d` fixes the Buffoon rollout boundary and pins the
   affected mechanics replays independently of the newly legal actions.
-  Verify run `46011926776` before counting Hallucination and freezing.
-- After the acquisition gate is green, close the current trace queue at 58
-  verified Jokers and record the exact implementation SHA and CI counts.
-  Start a fresh campaign artifact directory with observation v8, model v5,
+  Corrected CI run `46011926776` passed **3,997 tests, 1,621 deselected**.
+  Hallucination closes the current trace queue at 58 verified Jokers.
+- Start a fresh campaign artifact directory with observation v8, model v5,
   campaign v16, and the existing PPO contract. The first execution
   checkpoint is one completed optimizer batch. Verify persisted progress,
   checkpoint integrity, and rollout behavior before extending the run.
