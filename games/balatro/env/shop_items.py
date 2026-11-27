@@ -62,6 +62,7 @@ from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.splash import SplashJoker
+from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
@@ -327,6 +328,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 5
         label = "Supernova"
+    elif item.center_key == "j_to_the_moon":
+        joker_type = ToTheMoonJoker
+        expected_rarity = 2
+        expected_base_cost = 5
+        label = "To the Moon"
     elif item.center_key == "j_vampire":
         joker_type = VampireJoker
         expected_rarity = 2

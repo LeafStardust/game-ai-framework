@@ -1601,6 +1601,15 @@ def test_env_r2_mail_materialization_requires_exact_offer_and_target(rarity, cos
         materialize_generated_shop_joker_for_acquisition(item, mail_rebate_rank=rank)
 
 
+@pytest.mark.parametrize(
+    ("rarity", "cost", "edition"), [(1, 5, None), (2, 4, None), (2, 5, "Foil")]
+)
+def test_env_r2_moon_materialization_rejects_unsupported_metadata(rarity, cost, edition):
+    item = GeneratedShopJokerItem("j_to_the_moon", rarity, cost, edition, 5, True)
+    with pytest.raises(HeadlessTransitionError):
+        materialize_generated_shop_joker_for_acquisition(item)
+
+
 def test_env_r2_madness_purchase_requires_retained_joker_order():
     run, item = materialize_shop_joker_descriptor(
         _descriptor(center_key="j_madness", rarity=2, base_cost=7, discovered=False)

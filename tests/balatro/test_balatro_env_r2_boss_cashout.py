@@ -7,6 +7,7 @@ from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.state import BalatroState
 
 
@@ -815,3 +816,24 @@ def test_env_r2_boss_cashout_rejects_uncleared_or_nonboss_boundary():
     run.public.blind.type = BlindType.BIG
     with pytest.raises(HeadlessTransitionError, match="Boss Blind"):
         cash_out_supported_boss(run)
+
+
+def test_env_r2_boss_moon_interest_resumes_after_crimson_heart_defeat():
+    run = _finish(_boss_round("Crimson Heart"), hands=0)
+    joker = ToTheMoonJoker()
+    joker.debuffed = True
+    run.public.jokers = [joker]
+    setattr(run.public.blind, "prepped", False)
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 23
+    assert result.public.jokers[0].debuffed is False
+    assert joker.debuffed is True
+
+
+def test_env_r2_boss_moon_cashout_carries_unpaid_debt_without_interest():
+    run = _finish(_boss_round("The Psychic", money=-10), hands=1)
+    run.public.jokers = [ToTheMoonJoker()]
+
+    assert cash_out_supported_boss(run).public.money == -4

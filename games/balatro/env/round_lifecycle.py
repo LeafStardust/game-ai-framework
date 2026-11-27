@@ -28,6 +28,7 @@ from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.green_joker import GreenJoker
+from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.sixth_sense import SixthSenseJoker
@@ -47,6 +48,7 @@ _BLIND_START_INERT_JOKER_TYPES = (
     DNAJoker,
     FacelessJoker,
     GreenJoker,
+    ToTheMoonJoker,
     MailInRebateJoker,
     RunnerJoker,
     SixthSenseJoker,

@@ -15,6 +15,7 @@ from games.balatro.env.voucher_capabilities import (
     expected_interest_cap_for_vouchers,
     interest_cap_vouchers_are_exact,
 )
+from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.state import BalatroState
 
 
@@ -223,3 +224,13 @@ def test_env_r2_interest_redemption_rejects_unaffordable_wrong_phase_and_bad_met
     legacy = _shop_run()
     legacy.public.shop_vouchers = [object()]
     assert not interest_cap_voucher_redemption_is_exact(legacy, 0)
+
+
+@pytest.mark.parametrize(("vouchers", "expected"), [
+    ((), 215), (("v_seed_money",), 230), (("v_seed_money", "v_money_tree"), 260),
+])
+def test_env_r2_moon_per_five_bonus_obeys_interest_cap(vouchers, expected):
+    run = _cleared_run(money=200, vouchers=vouchers, cap=25, cap_observed=False)
+    run.public.jokers = [ToTheMoonJoker(), ToTheMoonJoker()]
+
+    assert cash_out_baseline_ordinary_blind(run).public.money == expected

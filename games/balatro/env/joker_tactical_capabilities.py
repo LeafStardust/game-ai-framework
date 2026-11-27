@@ -49,6 +49,7 @@ from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.sixth_sense import SixthSenseJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.jokers.supernova import SupernovaJoker
+from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
@@ -165,6 +166,8 @@ def generated_joker_tactical_callbacks_are_exact(
             expected_center = "j_sixth_sense"
         elif type(joker) is SplashJoker:
             expected_center = "j_splash"
+        elif type(joker) is ToTheMoonJoker:
+            expected_center = "j_to_the_moon"
         elif type(joker) is SupernovaJoker:
             expected_center = "j_supernova"
         elif type(joker) is SmileyFaceJoker:

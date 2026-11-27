@@ -49,6 +49,7 @@ from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.jokers.stuntman import StuntmanJoker
+from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 
 
@@ -71,6 +72,7 @@ _ROUND_END_INERT_JOKER_TYPES = (
     StuntmanJoker,
     DrunkardJoker,
     TroubadourJoker,
+    ToTheMoonJoker,
     MerryAndyJoker,
 )
 
@@ -92,15 +94,24 @@ def baseline_interest_dollars(money: int, interest_cap: int = 25) -> int:
     """Return vanilla normal-mode interest from pre-payout current money."""
     money = _require_exact_int("money", money)
     interest_cap = _require_exact_int("interest_cap", interest_cap)
-    if money < 0:
-        raise HeadlessTransitionError(
-            "baseline cash-out does not yet own negative-money economy semantics"
-        )
     if interest_cap < 0:
         raise HeadlessTransitionError("interest_cap cannot be negative")
     if money < 5:
         return 0
     return _BASE_INTEREST_AMOUNT * min(money // 5, interest_cap // 5)
+
+
+def _round_end_interest_dollars(run: HeadlessRunState, money: int, interest_cap: int) -> int:
+    interest = baseline_interest_dollars(money, interest_cap)
+    if not interest:
+        return 0
+    moons = [joker for joker in run.public.jokers if type(joker) is ToTheMoonJoker]
+    if not moons:
+        return interest
+    context = JokerContext(state=run.public, trigger="INTEREST_CALCULATED")
+    for joker in moons:
+        joker.apply(context)
+    return interest * (_BASE_INTEREST_AMOUNT + context.data.get("interest_bonus", 0))
 
 
 def _held_gold_dollars(run: HeadlessRunState) -> int:
@@ -239,10 +250,6 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
         raise HeadlessTransitionError("cannot cash out an uncleared blind")
 
     money = _require_exact_int("money", state.money)
-    if money < 0:
-        raise HeadlessTransitionError(
-            "baseline cash-out does not yet own negative-money economy semantics"
-        )
     hands_remaining = _require_exact_int("hands_remaining", state.hands_remaining)
     if hands_remaining < 0:
         raise HeadlessTransitionError("hands_remaining cannot be negative")
@@ -288,7 +295,7 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
         )
 
     money += _held_gold_dollars(run)
-    interest = baseline_interest_dollars(money, interest_cap)
+    interest = _round_end_interest_dollars(run, money, interest_cap)
     round_end_run = run.copy()
     joker_dollars = _round_end_joker_dollars(round_end_run)
     payout = blind_reward + hands_remaining + joker_dollars + interest

@@ -7,6 +7,8 @@ from games.balatro.env.round_end import (
     cash_out_baseline_ordinary_blind,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.jokers.golden_joker import GoldenJoker
+from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.state import BalatroState
 
 
@@ -319,10 +321,7 @@ def test_env_r2_cashout_rejects_unowned_economy_and_lifecycle_modifiers():
         cash_out_baseline_ordinary_blind(run)
 
 
-def test_env_r2_cashout_rejects_negative_money_and_preexisting_shop_contents():
-    run = _cleared_run(money=-1)
-    with pytest.raises(HeadlessTransitionError, match="negative-money"):
-        cash_out_baseline_ordinary_blind(run)
+def test_env_r2_cashout_rejects_preexisting_shop_contents():
     run = _cleared_run()
     run.public.shop_vouchers.append(object())
     with pytest.raises(HeadlessTransitionError, match="ungenerated shop"):
@@ -345,3 +344,20 @@ def test_env_r2_cashout_preserves_supported_voucher_state_into_next_shop():
     assert result.public.planet_rate == 4.0
     assert result.base_reroll_cost == 3
     assert result.reroll_cost == 3
+
+
+@pytest.mark.parametrize(("balance", "gold", "expected"), [
+    (-10, False, -1),
+    (4, False, 13),
+    (2, True, 16),
+])
+def test_env_r2_moon_interest_counts_held_gold_before_payout_rows(balance, gold, expected):
+    run = _cleared_run(money=balance)
+    if gold:
+        run.public.hand[0].enhancement = "Gold"
+    run.public.jokers = [ToTheMoonJoker(), GoldenJoker()]
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    assert result.public.money == expected
+    assert run.public.money == balance

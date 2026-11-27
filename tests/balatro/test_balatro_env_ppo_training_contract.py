@@ -43,6 +43,7 @@ from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.sixth_sense import SixthSenseJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.jokers.supernova import SupernovaJoker
+from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.state import BalatroState
 
 
@@ -490,11 +491,26 @@ def test_env_ppo_rollout_crosses_exact_generated_banner_and_devious_lifecycles(
 @pytest.fixture(scope="module")
 def episode_31_with_gluttonous_abstract_and_mad_lifecycles():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    actions = (
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 1}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 1}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+    )
     return collect_complete_ppo_episode(
         make_ppo_training_environment(7),
         run,
         episode_index=31,
-        policy=_generated_joker_lifecycle_policy,
+        policy=_fixed_action_policy(actions),
     )
 
 
@@ -1889,6 +1905,34 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
         ("SELECT_BLIND", {}),
     ]
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
+
+
+def test_env_ppo_trace_seed_completes_moon_purchase_interest_and_sale():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="062DA0EA")
+    replay = (
+        ("SELECT_BLIND", {}, 8, False),
+        ("BUY_JOKER", {"slot": 0}, 3, True),
+        ("END_SHOP", {}, 3, True),
+        ("SELECT_BLIND", {}, 8, True),
+        ("END_SHOP", {}, 8, True),
+        ("SELECT_BLIND", {}, 16, True),
+        ("SELL_JOKER", {"joker_index": 0}, 18, False),
+        ("END_SHOP", {}, 18, False),
+        ("SELECT_BLIND", {}, 25, False),
+    )
+    for alias, params, money, owns_moon in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert [type(joker) for joker in run.public.jokers] == [ToTheMoonJoker] * owns_moon
+        if owns_moon:
+            assert run.generated_center_discovered("j_to_the_moon") is True
+
+    assert environment.frame.state.round == 4
+    assert environment.frame.state.phase == "SHOP"
 
 
 def test_env_ppo_trace_seed_completes_mail_purchase_payout_and_sale():
