@@ -1,12 +1,16 @@
 import pytest
 
 from games.balatro.blinds.blind import Blind, BlindType
+from games.balatro.card import BalatroCard
 from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.episode_backend import pristine_red_white_reset
 from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.shop_consumable_generation_state import generate_held_eight_ball_tarot
 from games.balatro.env.transition import HeadlessTransitionError
+from games.balatro.hand import PokerHand
 from games.balatro.jokers.eight_ball import EightBallJoker
+from games.balatro.scoring import BalatroScorer
+from games.balatro.state import BalatroState
 
 
 def _run():
@@ -87,3 +91,28 @@ def test_env_r4_eight_ball_rolls_for_scoring_eights_with_room(
     assert [item.center_key for item in result.public.consumables] == expected
     assert ("Tarot8ba1" in result.rng.nodes) is bool(expected)
     assert "8ball" not in run.rng.nodes
+
+
+@pytest.mark.parametrize(
+    "card_debuffed, joker_debuffed, attempts",
+    [(False, False, 2), (True, False, 0), (False, True, 0)],
+)
+def test_eight_ball_scoring_callback_honors_retriggers_and_debuffs(
+    card_debuffed, joker_debuffed, attempts,
+):
+    card = BalatroCard("8", "Hearts", seal="Red", debuffed=card_debuffed)
+    joker = EightBallJoker()
+    joker.debuffed = joker_debuffed
+    state = BalatroState()
+    state.jokers = [joker]
+    reservations = []
+
+    BalatroScorer().score(
+        PokerHand.HIGH_CARD,
+        state=state,
+        cards=[card],
+        include_card_chips=True,
+        joker_data={"reserve_eight_ball_tarot": lambda: reservations.append(True)},
+    )
+
+    assert reservations == [True] * attempts
