@@ -16,13 +16,16 @@ from games.balatro.env.shop_generation_state import (
     restore_removed_shop_jokers_to_generation_pool,
     suppress_visible_shop_jokers_from_generation_pool,
 )
-from games.balatro.env.shop_items import GeneratedShopJokerItem
+from games.balatro.env.shop_items import (
+    GeneratedShopJokerItem,
+    materialize_generated_shop_joker_for_acquisition,
+)
 from games.balatro.env.shop_joker_generation import generate_ordinary_shop_joker_descriptor
 from games.balatro.env.shop_pricing import vanilla_card_cost
 from games.balatro.env.tag_selection import TagProfileState
 from games.balatro.env.voucher_capabilities import shop_pricing_vouchers_are_exact
 from games.balatro.jokers.hallucination import HallucinationJoker
-from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError, ShopTransitionEngine
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.red_card import RedCardJoker
 from games.balatro.env.transition import _EXACT_R1_JOKER_ACQUISITION_TYPES
@@ -141,6 +144,12 @@ def validate_choose_pack_option_exact(
         raise HeadlessTransitionError("no Joker capacity for Buffoon choice")
 
     joker = run.pack_choices[option_index]
+    if type(joker) is GeneratedShopJokerItem:
+        if not ShopTransitionEngine._joker_acquisition_is_exact(run, joker):
+            raise HeadlessTransitionError("generated Buffoon Joker acquisition is not exact")
+        joker = materialize_generated_shop_joker_for_acquisition(
+            joker, castle_suit=run.castle_suit, mail_rebate_rank=run.mail_rebate_rank,
+        )
     if type(joker) not in _EXACT_R1_JOKER_ACQUISITION_TYPES:
         raise HeadlessTransitionError(
             "Buffoon Joker acquisition lifecycle is not exactly owned"
@@ -168,7 +177,12 @@ def choose_pack_option_exact(
 ) -> HeadlessRunState:
     validate_choose_pack_option_exact(run, option_index)
     next_run = run.copy()
-    joker = next_run.pack_choices[option_index]
+    offered = next_run.pack_choices[option_index]
+    joker = offered
+    if type(offered) is GeneratedShopJokerItem:
+        joker = materialize_generated_shop_joker_for_acquisition(
+            offered, castle_suit=run.castle_suit, mail_rebate_rank=run.mail_rebate_rank,
+        )
     if next_run.public.joker_generation_pool_observed:
         # Live used_jokers suppression covers every visible Buffoon option while
         # the pack is open. Closing the pack re-admits each unchosen Joker; the
@@ -189,6 +203,12 @@ def choose_pack_option_exact(
                 "cannot retain exact Joker order after Buffoon choice"
             ) from exc
     next_run.public.jokers.append(joker)
+    if type(offered) is GeneratedShopJokerItem:
+        next_run.generation_discovery[offered.center_key] = True
+        if next_run.tag_profile_state is not None:
+            next_run.tag_profile_state = TagProfileState(
+                next_run.tag_profile_state.discovered_center_keys | {offered.center_key}
+            )
     next_run.public.phase = next_run.pack_return_phase
     next_run.public.shop_active = next_run.pack_return_phase == "SHOP"
     next_run.pack_choices.clear()
