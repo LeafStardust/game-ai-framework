@@ -47,7 +47,7 @@ def poll_base_shop_consumable_center(
         raise HeadlessTransitionError(
             "base consumable generation does not own current voucher modifiers"
         )
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError("base consumable generation does not own active Tag effects")
     if any((state.shop_jokers, state.shop_consumables, state.shop_boosters, state.shop_vouchers)):
         raise HeadlessTransitionError("base consumable generation requires ungenerated inventory")

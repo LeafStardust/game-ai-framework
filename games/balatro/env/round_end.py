@@ -273,7 +273,7 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
             "baseline cash-out does not yet own end-of-round Joker effects: "
             + ", ".join(unsupported_jokers)
         )
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError(
             "baseline cash-out does not yet own tag cash-out effects"
         )

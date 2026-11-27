@@ -22,9 +22,8 @@ SUPPORTED_IMMEDIATE_SKIP_TAGS = frozenset({"tag_economy"})
 def skip_blind_exact(run: HeadlessRunState) -> HeadlessRunState:
     """Skip a Small Blind carrying the deterministic Economy Tag.
 
-    Economy Tag is immediately consumed and adds
-    ``min(40, max(0, dollars))`` in pinned vanilla source.  The next Big
-    Blind's generated Tag must already be retained in private progression.
+    Every pending Double Tag queues one Economy copy before the immediate
+    pass. The next Big Blind's offered Tag must already be retained.
     """
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
@@ -38,7 +37,7 @@ def skip_blind_exact(run: HeadlessRunState) -> HeadlessRunState:
         )
     if state.boss_name is not None:
         raise HeadlessTransitionError("Small SKIP_BLIND cannot carry Boss state")
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError(
             "exact SKIP_BLIND does not yet own pre-existing active Tags"
         )
@@ -78,7 +77,10 @@ def skip_blind_exact(run: HeadlessRunState) -> HeadlessRunState:
     next_run.skips += 1
 
     next_state = next_run.public
-    next_state.money += min(40, max(0, state.money))
+    # The original and its copies each read the balance left by the prior payout.
+    for _ in range(1 + len(next_run.tags)):
+        next_state.money += min(40, max(0, next_state.money))
+    next_run.tags.clear()
     next_requirement = red_white_base_blind_amount(state.ante) * 3 // 2
     next_state.blind_score = next_requirement
     next_state.blind = Blind(

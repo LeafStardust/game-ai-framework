@@ -154,7 +154,7 @@ def _validate_boundary(run: HeadlessRunState) -> None:
     if state.phase != "SHOP" or not state.shop_active:
         raise HeadlessTransitionError("Booster generation requires an active SHOP")
     require_exact_normal_shop_ante(state)
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError("normal Booster generation does not own active Tags")
     if len(state.shop_boosters) >= 2:
         raise HeadlessTransitionError("normal Booster shop area is already full")

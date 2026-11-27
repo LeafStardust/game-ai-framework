@@ -114,7 +114,7 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
         raise HeadlessTransitionError(
             "Boss cash-out does not yet own Voucher economy modifiers"
         )
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError(
             "Boss cash-out does not yet own tag cash-out effects"
         )

@@ -92,7 +92,7 @@ def materialize_normal_shop_voucher_descriptor(
         raise HeadlessTransitionError("shop inflation is not authoritative")
     if not state.shop_discount_percent_observed:
         raise HeadlessTransitionError("shop discount percent is not authoritative")
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError(
             "normal Voucher materialization does not own active Tag Voucher effects"
         )

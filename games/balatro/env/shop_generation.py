@@ -173,7 +173,7 @@ def _validate_base_shop_boundary(run: HeadlessRunState) -> None:
             "base shop generation does not own current voucher modifiers"
         )
     _shop_rates_for_state(state)
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError("base shop generation does not own active Tag shop effects")
     if any(
         (

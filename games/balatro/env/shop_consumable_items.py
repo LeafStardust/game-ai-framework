@@ -158,7 +158,7 @@ def materialize_base_shop_consumable_descriptor(
         raise HeadlessTransitionError(
             "consumable materialization does not own current Voucher modifiers"
         )
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError("base consumable materialization does not own active Tag effects")
 
     price = vanilla_card_cost(

@@ -325,7 +325,7 @@ def _require_supported_context(run: HeadlessRunState) -> None:
             raise HeadlessTransitionError(
                 "R4 baseline Play does not yet own Joker callbacks"
             )
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError("R4 baseline Play does not yet own Tag callbacks")
     if any(not _is_play_time_no_effect_consumable(item) for item in state.consumables):
         raise HeadlessTransitionError(

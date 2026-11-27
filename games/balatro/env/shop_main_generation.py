@@ -69,7 +69,7 @@ def _preflight_main_shop_generation(run: HeadlessRunState) -> None:
         )
     if expected_main_shop_slots_for_vouchers(state) is None:
         raise HeadlessTransitionError("main shop slot count is not exact")
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError("main shop generation does not own active Tag modifiers")
     if any((state.shop_jokers, state.shop_consumables, state.shop_boosters, state.shop_vouchers)):
         raise HeadlessTransitionError("main shop generation requires ungenerated inventory")

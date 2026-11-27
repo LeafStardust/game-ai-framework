@@ -102,8 +102,38 @@ def test_env_r3_skip_blind_fails_closed_for_big_boss_and_inconsistent_state():
     assert not can_skip_blind_exact(run)
 
     run = _run()
-    run.tags.append("tag_double")
+    run.tags.extend(("tag_double", "tag_juggle"))
     assert not can_skip_blind_exact(run)
+
+
+@pytest.mark.parametrize(("money", "copies", "expected"), [
+    (17, 1, 68),
+    (17, 2, 108),
+    (50, 2, 170),
+    (-4, 2, -4),
+])
+def test_env_r3_pending_double_tags_copy_economy_at_the_updated_balance(money, copies, expected):
+    run = _run(money=money)
+    run.tags = ["tag_double"] * copies
+    before = run.serialize()
+
+    assert can_skip_blind_exact(run)
+    result = skip_blind_exact(run)
+
+    assert result.public.money == expected
+    assert result.tags == []
+    assert result.skips == 1
+    assert result.rng_snapshot() == run.rng_snapshot()
+    assert run.serialize() == before
+
+
+def test_env_r3_double_tags_leave_other_offered_skips_unsupported():
+    run = _run(tag="tag_double")
+    run.tags = ["tag_double"]
+    before = run.serialize()
+
+    assert not can_skip_blind_exact(run)
+    assert run.serialize() == before
 
 
 def test_env_r3_skip_blind_rejects_non_run_input():

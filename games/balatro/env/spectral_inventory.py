@@ -47,7 +47,7 @@ def require_held_spectral_authority(run: HeadlessRunState) -> None:
         for key in REGULAR_SPECTRAL_CENTER_KEYS
     ):
         raise HeadlessTransitionError("Held Spectral generation requires pristine-profile Spectral authority")
-    if run.tags or any(type(joker).__name__ == "ShowmanJoker" for joker in run.public.jokers):
+    if not run.pending_tags_are_exact() or any(type(joker).__name__ == "ShowmanJoker" for joker in run.public.jokers):
         raise HeadlessTransitionError("Held Spectral pool modifiers are not owned")
 
 

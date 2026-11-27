@@ -57,7 +57,7 @@ def validate_paid_base_reroll(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("paid reroll requires active SHOP")
     if not shop_generation_vouchers_are_exact(state):
         raise HeadlessTransitionError("paid reroll does not own current Voucher modifiers")
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError("paid reroll does not own active Tag modifiers")
     if any(isinstance(joker, CreditCardJoker) for joker in state.jokers):
         raise HeadlessTransitionError("paid reroll does not own bankruptcy allowance")

@@ -28,7 +28,7 @@ from games.balatro.env.ppo_contract import (
 )
 from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.state import RunStatus, TurnOwner
-from games.balatro.env.transition import HeadlessTransitionError
+from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.banner import BannerJoker
@@ -2172,3 +2172,33 @@ def test_env_ppo_collector_fails_closed_on_reward_contract_mismatch(
             episode_index=0,
             policy=lambda observation, mask: _ppo_output(),
         )
+
+
+def test_env_ppo_pending_double_tags_carry_through_play_shops_and_boss_cashout():
+    baseline_backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    pending_backend = PPOHeadlessBackend(_OneCardTacticalPolicy())
+    baseline = BalatroHeadlessEnvironment(baseline_backend)
+    pending = BalatroHeadlessEnvironment(pending_backend)
+    for environment, backend in ((baseline, baseline_backend), (pending, pending_backend)):
+        environment.reset(seed=1)
+        backend.run.public.hand_levels["HIGH_CARD"] = 1000
+    pending_backend.run.tags = ["tag_double", "tag_double"]
+
+    for alias in (
+        "SELECT_BLIND", "REROLL_SHOP", "END_SHOP", "SELECT_BLIND", "END_SHOP",
+        "SELECT_BLIND", "END_SHOP", "SELECT_BLIND",
+    ):
+        action = EnvAction.from_alias(alias)
+        assert pending.legal_actions() == baseline.legal_actions()
+        assert action in baseline.legal_actions()
+        baseline.step(action)
+        pending.step(action)
+
+        snapshot = pending_backend.run.serialize()
+        assert pending_backend.run.tags == ["tag_double", "tag_double"]
+        assert HeadlessRunState.restore(snapshot).tags == pending_backend.run.tags
+        snapshot["private"]["tags"] = []
+        assert snapshot == baseline_backend.run.serialize()
+
+    assert pending.frame.state.ante == 2
+    assert pending.frame.state.phase == "SHOP"

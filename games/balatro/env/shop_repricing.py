@@ -52,7 +52,7 @@ def reprice_exact_generated_shop(
         raise HeadlessTransitionError(
             "shop inflation must be a nonnegative exact integer"
         )
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError(
             "shop repricing does not own active Tag price effects"
         )

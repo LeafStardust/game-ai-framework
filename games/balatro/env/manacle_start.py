@@ -52,7 +52,7 @@ def _require_retained_manacle_chicot_boundary(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "blind requirement must be an exact nonnegative integer"
         )
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError(
             "retained Manacle+Chicot start with active tags is not yet owned"
         )

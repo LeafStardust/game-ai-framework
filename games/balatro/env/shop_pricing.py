@@ -96,7 +96,7 @@ def price_base_shop_joker_descriptor(descriptor: OrdinaryShopJokerDescriptor) ->
         raise HeadlessTransitionError("shop_discount_percent_observed must be a boolean")
     if not state.shop_discount_percent_observed:
         raise HeadlessTransitionError("shop discount percent is not authoritative")
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError("base Joker pricing does not own active Tag price effects")
 
     return vanilla_card_cost(

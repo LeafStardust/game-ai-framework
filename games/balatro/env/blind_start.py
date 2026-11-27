@@ -55,7 +55,7 @@ def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -
     requirement = getattr(state.blind, "requirement", None)
     if isinstance(requirement, bool) or not isinstance(requirement, int) or requirement < 0:
         raise HeadlessTransitionError("blind requirement must be an exact nonnegative integer")
-    if run.tags:
+    if not run.pending_tags_are_exact():
         raise HeadlessTransitionError(f"{label} with active tags is not yet owned")
     if not blind_start_vouchers_are_exact(state):
         raise HeadlessTransitionError(

@@ -546,6 +546,10 @@ class HeadlessRunState:
             raise HeadlessTransitionError("exact Boss selection state is unavailable")
         return self.boss_selection_state
 
+    def pending_tags_are_exact(self) -> bool:
+        """The owned slice retains only Double Tags awaiting a future Tag."""
+        return all(tag == "tag_double" for tag in self.tags)
+
     def require_tag_profile_state(self) -> "TagProfileState":
         if self.tag_profile_state is None:
             raise HeadlessTransitionError("exact Tag profile state is unavailable")
