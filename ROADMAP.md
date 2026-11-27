@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`a690c4b17d2633bb50e31df3e53c78bee067a8a4`.
+`f0d6fea9f797ead5f1dacb83a250f845c0d57488`.
 
 ## Objective
 
@@ -75,7 +75,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | Observation v6; prior checkpoints are historical and fresh retraining is required |
+| PPO learner and training path | Observation v7; prior checkpoints are historical and fresh retraining is required |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -113,16 +113,16 @@ considered; do not invent RL-only aliases.
 
 ## Current PPO contract
 
-- Schemas: sparse training `balatro-red-white-ppo-training-v6`, progress
-  training `balatro-red-white-ppo-progress-reward-training-v7`, run
+- Schemas: sparse training `balatro-red-white-ppo-training-v7`, progress
+  training `balatro-red-white-ppo-progress-reward-training-v8`, run
   `balatro-red-white-ppo-run-v3`, policy output
   `balatro-red-white-ppo-policy-output-v3`, sparse rollout
-  `balatro-red-white-ppo-rollout-episode-v5`, and progress rollout
-  `balatro-red-white-ppo-progress-reward-rollout-episode-v6`.
-- Public observation: `balatro-red-white-public-observation-v6`, **3,320**
+  `balatro-red-white-ppo-rollout-episode-v6`, and progress rollout
+  `balatro-red-white-ppo-progress-reward-rollout-episode-v7`.
+- Public observation: `balatro-red-white-public-observation-v7`, **3,321**
   values. Output: 27 canonical action slots.
-- Model/checkpoint owner: `balatro-red-white-ppo-actor-critic-v3`; campaign
-  owner: `balatro-red-white-ppo-campaign-v14`.
+- Model/checkpoint owner: `balatro-red-white-ppo-actor-critic-v4`; campaign
+  owner: `balatro-red-white-ppo-campaign-v15`.
 - Model: `(512, 256)` tanh MLP.
 - Collection: 8 environments, 256 steps each, 2,048 transitions per batch.
 - Optimization: 256-transition minibatches, 10 epochs, 1,024 batches,
@@ -137,11 +137,11 @@ considered; do not invent RL-only aliases.
 - Illegal probability mass is exactly zero. There is no empty-mask rescue.
 - Incomplete/nonterminal evidence, illegal actions, schema/provenance drift,
   non-finite output, seed drift, and terminal contradictions fail closed.
-- Earlier training artifacts predate observation v6 and remain historical
+- Earlier training artifacts predate observation v7 and remain historical
   evidence. The registered training contract digest includes observation
   version, even when the feature width is unchanged.
   Fresh training is explicitly authorized in the future after the remaining
-  development boundary is frozen; no old promotion result transfers to v4.
+  development boundary is frozen; earlier promotion results remain historical.
 
 ## Frozen evaluation and promotion contract
 
@@ -2554,13 +2554,22 @@ acquisition. The committed strategic/shop trace offers uneditioned
 `j_diet_cola` at episode 58 decision 3 / seed `062DA0EA`, with rarity 2,
 base cost 6, and price 6.
 
-Next, append the count of pending Double Tags to the public observation
-and version the dependent PPO training, model, rollout, and checkpoint
-contracts. Preserve all 3,320 existing feature positions and prove the
-zero-count baseline and the owned count at strategic boundaries. Keep
-Diet Cola purchase and sale masked until the observation and artifact
-gate passes. Hallucination, booster work, rewards, and retraining
+Next, admit exact uneditioned Diet Cola at the generated shop and route
+its own sale callback through the canonical Joker removal and Tag inventory
+owners. Verify the $3 sale, one Double Tag per sale, carry through normal
+play, and an exact seeded Economy skip when available. Reject inactive or
+unsupported sale state. Hallucination, booster work, rewards, and retraining
 remain deferred.
+
+Pending Double Tag observation checkpoint:
+
+- Commit `f0d6fea9f797ead5f1dacb83a250f845c0d57488` appends the pending count at
+  index 3,320 and versions the dependent PPO artifacts. All earlier feature
+  positions are preserved, as proven by the v6 feature-name digest.
+  The new model row starts at zero and remains trainable. Strategic frames
+  reconstruct the count from retained Tag inventory on restore.
+- GitHub Actions run `45954761545`, job `140358561447` logged
+  **3949 passed, 1621 deselected in 529.98s**.
 
 Pending Double Tag lifecycle checkpoint:
 
@@ -2582,9 +2591,8 @@ Diet Cola source audit:
   Double Tag is added. A newly acquired non-Double Tag schedules a copy
   and marks the pending Double Tag triggered.
 - `HeadlessRunState.tags` already retains and serializes a private list.
-  The public observation encodes the selected blind's offered Tag. It has
-  no pending Tag feature. The owned lifecycle now accepts pending Double
-  Tags. `skip_blind_exact` still admits only the immediate Small Blind
+  The public observation encodes the offered Tag and the pending Double
+  Tag count. The owned lifecycle accepts pending Double Tags. `skip_blind_exact` still admits only the immediate Small Blind
   Economy Tag.
 
 To the Moon acquisition checkpoint:
