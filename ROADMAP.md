@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`ddc181d9880e221f4cb84d242f8695ae4bf0217d`.
+`0342581cb7d2df28b933aa4f830c236dee5d73ba`.
 
 ## Objective
 
@@ -2549,14 +2549,27 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Egg as the candidate for the fifty-second exact generated Joker
-acquisition. The committed strategic/shop trace offers uneditioned
-`j_egg` at episode 58 decision 8 / seed `062DA0EA` for $4.
+Audit Shortcut as the candidate for the fifty-third exact generated Joker
+acquisition. Trace episode 58 decision 8 / seed `062DA0EA` offers
+uneditioned `j_shortcut` for $7.
 
-First audit the pinned round-end sell-value increase and canonical pricing
-and repricing owners. Verify accumulated sell value across ordinary and
-Boss cash-outs and its public observation before opening purchase and sale.
+First verify the pinned gap rule against the canonical hand evaluator,
+then audit tactical classification, scoring, Boss constraints, and
+Straight component callbacks before admitting purchase and sale.
 Hallucination, booster work, rewards, and retraining remain deferred.
+
+Egg acquisition checkpoint:
+
+- Commit `4c343ce0` admits exact uneditioned Egg. Round-end growth adds
+  $3 to accumulated sell value before Boss defeat cleanup, and keeps
+  cash unchanged. Voucher repricing preserves the accumulated value.
+  The existing public sell-cost feature exposes the current payout.
+- Trace seed `062DA0EA` buys Egg for $4 and verifies its initial $2 sale.
+  Separate cash-out tests cover growth, repricing, and Crimson Heart.
+- Initial CI exposed one Blue Joker replay that took the newly legal Egg
+  offer. Commit `0342581c` pins its intended actions. GitHub Actions run
+  `45964118191`, job `140388600484` logged **3954 passed, 1621 deselected
+  in 554.52s**.
 
 Diet Cola acquisition checkpoint:
 
