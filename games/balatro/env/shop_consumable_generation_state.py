@@ -296,13 +296,13 @@ def eligible_consumable_records_from_state(
     return tuple(dict(record) for record in pools[card_type])
 
 
-def generate_held_eight_ball_tarot(run: HeadlessRunState) -> HeadlessRunState:
-    """Publish one reserved 8 Ball success on an isolated run."""
+def require_eight_ball_tarot_authority(run: HeadlessRunState) -> dict[str, list[dict]]:
+    """Validate the observed pool and inventory needed for 8 Ball Tarot creation."""
     pools = _validate_observed_consumable_generation_pools(run)
     state = run.public
     if (
         type(state.consumable_slots) is not int
-        or len(state.consumables) >= state.consumable_slots
+        or not 0 <= len(state.consumables) <= state.consumable_slots
         or _showman_present(run)
         or not run.pending_tags_are_exact()
     ):
@@ -335,12 +335,23 @@ def generate_held_eight_ball_tarot(run: HeadlessRunState) -> HeadlessRunState:
         for key in vanilla_consumable_center_order("Tarot")
     ):
         raise HeadlessTransitionError("8 Ball Tarot generation requires profile discovery authority")
+    return pools
 
+
+def generate_held_eight_ball_tarot(run: HeadlessRunState) -> HeadlessRunState:
+    """Publish one reserved 8 Ball success on an isolated run."""
+    pools = require_eight_ball_tarot_authority(run)
+    state = run.public
+    if len(state.consumables) == state.consumable_slots:
+        raise HeadlessTransitionError("8 Ball Tarot generation requires exact open inventory")
+    records = {record["key"]: record for record in pools["Tarot"]}
+    profile = run.tag_profile_state
     next_run = run.copy()
     center, _ = poll_eight_ball_tarot_center(next_run.rng, state.ante, records.keys())
     base_cost = records[center]["cost"] if records else 3
     price = vanilla_card_cost(
-        base_cost, edition=None, inflation=state.shop_inflation, discount_percent=discount,
+        base_cost, edition=None, inflation=state.shop_inflation,
+        discount_percent=state.shop_discount_percent,
     )
     next_run.public.consumables.append(
         GeneratedShopConsumableItem("Tarot", center, base_cost, price, discovered=True)

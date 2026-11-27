@@ -60,6 +60,7 @@ from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.mail_in_rebate import MAIL_REBATE_RANKS, MailInRebateJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.seance import SeanceJoker
+from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
@@ -289,6 +290,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Scholar"
+    elif item.center_key == "j_8_ball":
+        joker_type = EightBallJoker
+        expected_rarity = 1
+        expected_base_cost = 5
+        label = "8 Ball"
     elif item.center_key == "j_seance":
         joker_type = SeanceJoker
         expected_rarity = 2

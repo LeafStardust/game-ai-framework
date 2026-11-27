@@ -782,6 +782,12 @@ class ShopTransitionEngine:
                     from games.balatro.env.spectral_inventory import require_held_spectral_authority
 
                     require_held_spectral_authority(run)
+                if item.center_key == "j_8_ball":
+                    from games.balatro.env.shop_consumable_generation_state import (
+                        require_eight_ball_tarot_authority,
+                    )
+
+                    require_eight_ball_tarot_authority(run)
                 materialize_generated_shop_joker_for_acquisition(
                     item, castle_suit=run.castle_suit, mail_rebate_rank=run.mail_rebate_rank,
                 )

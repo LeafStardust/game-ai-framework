@@ -6,6 +6,7 @@ from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.episode_backend import pristine_red_white_reset
 from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.shop_consumable_generation_state import generate_held_eight_ball_tarot
+from games.balatro.env.shop_repricing import reprice_exact_generated_shop
 from games.balatro.env.transition import HeadlessTransitionError
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.eight_ball import EightBallJoker
@@ -55,6 +56,18 @@ def test_env_r2_eight_ball_rejects_inconsistent_pool_before_rng():
     with pytest.raises(HeadlessTransitionError, match="visible duplicate"):
         generate_held_eight_ball_tarot(result)
     assert result.rng_snapshot() == snapshot
+
+
+def test_env_r2_eight_ball_tarot_reprices_with_shop_discount():
+    run = generate_held_eight_ball_tarot(_run())
+    run.public.phase = "SHOP"
+    run.public.shop_active = True
+    result = reprice_exact_generated_shop(run, discount_percent=50)
+
+    assert run.public.consumables[0].price == 3
+    assert result.public.consumables[0].price == 1
+    assert result.public.consumables[0].center_key == "c_strength"
+    assert result.rng_snapshot() == run.rng_snapshot()
 
 
 @pytest.mark.parametrize(

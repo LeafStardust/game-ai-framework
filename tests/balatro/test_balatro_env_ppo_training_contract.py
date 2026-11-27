@@ -11,6 +11,7 @@ from games.balatro.env.actions import EnvAction
 from games.balatro.env.environment import BalatroHeadlessEnvironment
 from games.balatro.env.episode_backend import PPOHeadlessBackend
 from games.balatro.env.joker_sale import can_sell_joker_exact
+from games.balatro.env.transition import ShopTransitionEngine
 from games.balatro.env.observation_encoding import (
     JOKER_CENTER_KEYS,
     PUBLIC_OBSERVATION_SCHEMA,
@@ -3620,3 +3621,30 @@ def test_env_ppo_trace_seed_buys_and_sells_exact_shortcut():
     assert environment.frame.state.money == 26
     assert environment.frame.state.jokers == []
     assert environment._backend.run.rng_snapshot() == rng
+
+
+def test_env_ppo_trace_seed_buys_and_sells_exact_eight_ball():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="61B2716E")
+    for alias in ("SELECT_BLIND", "END_SHOP") * 4 + ("SELECT_BLIND",):
+        environment.step(EnvAction.from_alias(alias))
+
+    state = environment.frame.state
+    offer = state.shop_jokers[0]
+    assert (offer.center_key, offer.price, offer.edition) == ("j_8_ball", 5, None)
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert buy in environment.legal_actions()
+    before = environment._backend.run
+    without_authority = before.copy()
+    without_authority.public.consumable_generation_pool_observed = False
+    assert not ShopTransitionEngine._joker_acquisition_is_exact(without_authority, offer)
+    snapshot = before.rng_snapshot()
+
+    environment.step(buy)
+    state = environment.frame.state
+    assert state.money == 32
+    assert [(joker.center, joker.sell_cost) for joker in state.jokers] == [("j_8_ball", 2)]
+    environment.step(EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}))
+    assert environment.frame.state.money == 34
+    assert environment.frame.state.jokers == []
+    assert environment._backend.run.rng_snapshot() == snapshot

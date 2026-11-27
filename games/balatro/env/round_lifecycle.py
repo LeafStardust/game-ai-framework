@@ -37,6 +37,7 @@ from games.balatro.jokers.sixth_sense import SixthSenseJoker
 from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.seance import SeanceJoker
+from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 
@@ -47,6 +48,7 @@ _BLIND_START_INERT_JOKER_TYPES = (
     CastleJoker,
     Cloud9Joker,
     SeanceJoker,
+    EightBallJoker,
     DNAJoker,
     FacelessJoker,
     DietColaJoker,

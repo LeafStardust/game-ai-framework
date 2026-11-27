@@ -127,10 +127,17 @@ def reprice_exact_generated_shop(
             )
     next_state.shop_discount_percent_observed = True
     next_state.shop_discount_percent = discount_percent
-    next_state.consumables = [
-        reprice_held_spectral(
-            item, inflation=next_state.shop_inflation, discount_percent=discount_percent
-        ) if type(item) is GeneratedHeldSpectral else item
-        for item in next_state.consumables
-    ]
+    for index, item in enumerate(next_state.consumables):
+        if type(item) is GeneratedHeldSpectral:
+            next_state.consumables[index] = reprice_held_spectral(
+                item, inflation=next_state.shop_inflation, discount_percent=discount_percent
+            )
+        elif type(item) is GeneratedShopConsumableItem and item.card_type == "Tarot":
+            next_state.consumables[index] = replace(
+                item,
+                price=vanilla_card_cost(
+                    item.base_cost, edition=None, inflation=next_state.shop_inflation,
+                    discount_percent=discount_percent,
+                ),
+            )
     return next_run
