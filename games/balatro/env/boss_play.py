@@ -136,6 +136,7 @@ def _apply_hook_forced_discards(
         from games.balatro.jokers.mime import MimeJoker
         from games.balatro.jokers.runner import RunnerJoker
         from games.balatro.jokers.seance import SeanceJoker
+        from games.balatro.jokers.shortcut import ShortcutJoker
         from games.balatro.jokers.sixth_sense import SixthSenseJoker
         from games.balatro.jokers.splash import SplashJoker
         from games.balatro.jokers.supernova import SupernovaJoker
@@ -155,6 +156,7 @@ def _apply_hook_forced_discards(
             MimeJoker,
             RunnerJoker,
             SeanceJoker,
+            ShortcutJoker,
             SixthSenseJoker,
             SplashJoker,
             SupernovaJoker,

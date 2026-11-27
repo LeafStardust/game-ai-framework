@@ -1,3 +1,5 @@
+from itertools import combinations
+
 import pytest
 
 from games.balatro.blinds.blind import Blind, BlindType
@@ -8,7 +10,10 @@ from games.balatro.env.serialization import (
     serialize_headless_run_state,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.hand import PokerHand
+from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.jokers.runner import RunnerJoker
+from games.balatro.jokers.shortcut import ShortcutJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
@@ -61,6 +66,40 @@ def test_env_r4_mouth_different_type_scores_zero_without_replacing_lock():
     assert result.public.score == 0
     assert result.public.hands_remaining == 3
     assert serialize_headless_run_state(run) == before
+
+
+@pytest.mark.parametrize("locked_hand, grows", [(None, True), ("HIGH_CARD", False)])
+def test_env_r4_mouth_uses_shortcut_for_hand_lock_and_runner(locked_hand, grows):
+    evaluator = HandEvaluator()
+    for attempt in range(100):
+        run = _mouth_run(seed=f"R4-MOUTH-SHORTCUT-{attempt}")
+        for indices in combinations(range(len(run.public.hand)), 5):
+            cards = [run.public.hand[index] for index in indices]
+            if (
+                evaluator.evaluate(cards) is PokerHand.HIGH_CARD
+                and evaluator.evaluate(cards, {"shortcut": True}) is PokerHand.STRAIGHT
+            ):
+                break
+        else:
+            continue
+        break
+    else:
+        pytest.fail("No gapped Straight in deterministic deal corpus")
+
+    shortcut = ShortcutJoker()
+    shortcut.center = "j_shortcut"
+    runner = RunnerJoker()
+    runner.center = "j_runner"
+    runner.chips = 15
+    run.public.jokers = [shortcut, runner]
+    run.public.boss_blind_only_hand = locked_hand
+
+    result = apply_supported_ordinary_play(run, indices)
+
+    assert result.public.last_played_hand == "STRAIGHT"
+    assert result.public.boss_blind_only_hand == (locked_hand or "STRAIGHT")
+    assert result.public.jokers[1].chips == (30 if grows else 15)
+    assert (result.public.score > 0) is grows
 
 
 @pytest.mark.parametrize("field, value", [
