@@ -666,11 +666,20 @@ def test_env_ppo_rollout_crosses_exact_generated_scholar_lifecycle(
 @pytest.fixture(scope="module")
 def episode_34_with_blue_joker_lifecycle():
     run = PPOTrainingRun.from_seed("RED-WHITE-PPO-V1")
+    actions = (
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+    )
     return collect_complete_ppo_episode(
         make_ppo_training_environment(0),
         run,
         episode_index=34,
-        policy=_generated_joker_lifecycle_policy,
+        policy=_fixed_action_policy(actions),
     )
 
 
