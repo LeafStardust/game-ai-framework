@@ -19,6 +19,7 @@ from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.diet_cola import DietColaJoker
@@ -83,6 +84,10 @@ def generated_joker_tactical_callbacks_are_exact(
             expected_center = "j_crazy"
         elif type(joker) is CraftyJoker:
             expected_center = "j_crafty"
+        elif type(joker) is FlashCardJoker:
+            if type(joker.mult) is not int or joker.mult < 0 or joker.mult % 2:
+                return False
+            expected_center = "j_flash"
         elif type(joker) is FlatMultJoker:
             if type(joker.mult) is not int or joker.mult != 4:
                 return False

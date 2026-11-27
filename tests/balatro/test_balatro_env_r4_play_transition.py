@@ -15,6 +15,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.jokers.shortcut import ShortcutJoker
+from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 from games.balatro.consumable import PlanetCard
@@ -34,6 +35,20 @@ def _play_run(*, seed="R4-PLAY", requirement=9999, hands_remaining=4):
 
 def _card_signature(card):
     return (card.rank, card.suit)
+
+
+def test_env_r4_flash_card_scores_stored_mult_without_changing_it():
+    run = _play_run()
+    joker = FlashCardJoker()
+    joker.center = "j_flash"
+    joker.mult = 4
+    run.public.jokers = [joker]
+    chips = 5 + BalatroScorer.RANK_CHIPS[run.public.hand[0].rank]
+
+    result = apply_supported_ordinary_play(run, (0,))
+
+    assert result.public.score == chips * 5
+    assert result.public.jokers[0].mult == 4
 
 
 def test_env_r4_ordinary_play_classifies_and_scores_shortcut_straight():
