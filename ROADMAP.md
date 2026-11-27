@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`2e7a582b1ae0a12599b401bfacfc6a64a36c2d5d`.
+`10c201be`.
 
 ## Objective
 
@@ -2552,26 +2552,28 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit 8 Ball as the candidate for the fifty-fourth exact generated Joker
-acquisition. Trace episode 59 decision 10 / seed `61B2716E` offers
-uneditioned `j_8_ball` for $5 in slot 0 with $24 available.
+Audit Gros Michel as the candidate for the fifty-sixth exact generated
+Joker acquisition. Trace episode 63 decision 6 / seed `3B8B6C3F` offers
+uneditioned `j_gros_michel` for $5 in slot 1 with $13 available.
 
-Verify scored-8 callback order, debuffs, retriggers, and consumable capacity.
-Vanilla checks capacity before rolling the `8ball` RNG stream and uses
-`8ba` for successful Tarot generation. Headless Play currently lacks an
-exact held Tarot generation path for this callback. Keep acquisition closed
-until exact pool eligibility, inventory publication, and RNG advancement are
-covered by deterministic regressions.
+Verify the seeded round-end extinction roll, debuff and Boss cleanup
+ordering, owned-Joker removal, and the persistent pool flag that excludes
+Gros Michel and admits Cavendish to generation. Keep acquisition closed
+until these effects are covered by deterministic regressions.
 Hallucination, booster work, rewards, and retraining remain deferred.
 
-8 Ball Tarot poll checkpoint:
+8 Ball and Flash Card acquisition checkpoint:
 
 - `2e7a582b` pins the `Tarot8ba{ante}` stream, unavailable-position
   retries, and the Strength fallback. CI run `45979370901` reported
   **3,961 passed, 1,621 deselected**.
-- Next wire successful polls into held inventory using the authoritative
-  Tarot pool, duplicate suppression, and profile discovery. Then wire the
-  capacity-gated `8ball` roll into per-card scoring triggers.
+- 8 Ball reserves capacity during each scored-8 callback, publishes queued
+  Tarots using authoritative eligibility and discovery, and replays its
+  $5 purchase and $2 sale on seed `61B2716E`.
+- Flash Card gains +2 stored Mult after a paid reroll. Seed `B2189F31`
+  verifies its purchase, round carry, reroll growth, and sale.
+- CI run `45988752582` verified both acquisitions and updated seeded
+  fixtures with **3,977 passed, 1,621 deselected**.
 
 Shortcut acquisition checkpoint:
 

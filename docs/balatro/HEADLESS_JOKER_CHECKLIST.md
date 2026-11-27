@@ -1,8 +1,8 @@
 # Headless Joker checklist
 
-**53 of 150 verified · 1 in progress · 96 outside support**
+**55 of 150 verified · 1 next · 94 outside support**
 
-Red Deck / White Stake snapshot through `61f19f93`. Shortcut is the latest verified acquisition. Its [CI run](https://github.com/LeafStardust/game-ai-framework/actions/runs/45975956842) reported **3,959 passed, 1,621 deselected**. 8 Ball is next.
+Red Deck / White Stake snapshot through `10c201be`. 8 Ball and Flash Card are the latest verified acquisitions. Their [CI run](https://github.com/LeafStardust/game-ai-framework/actions/runs/45988752582) reported **3,977 passed, 1,621 deselected**. Gros Michel is next.
 
 Supported means exact generated shop acquisition for the supported variant. Jokers outside support may already have some mechanics implemented. Training and promotion follow the [roadmap](../../ROADMAP.md).
 
@@ -10,7 +10,8 @@ Sources: [Joker catalogue](../../games/balatro/env/joker_centers.py) and [shop a
 
 | Joker center | Headless acquisition |
 | --- | --- |
-| `j_8_ball` | In progress · Tarot poll verified, held generation pending |
+| `j_gros_michel` | Next |
+| `j_8_ball` | Supported |
 | `j_shortcut` | Supported |
 | `j_abstract` | Supported |
 | `j_banner` | Supported |
@@ -95,13 +96,12 @@ Sources: [Joker catalogue](../../games/balatro/env/joker_centers.py) and [shop a
 | `j_dusk` | Outside support |
 | `j_erosion` | Outside support |
 | `j_family` | Outside support |
-| `j_flash` | Outside support |
+| `j_flash` | Supported |
 | `j_flower_pot` | Outside support |
 | `j_fortune_teller` | Outside support |
 | `j_four_fingers` | Outside support |
 | `j_gift` | Outside support |
 | `j_glass` | Outside support |
-| `j_gros_michel` | Outside support |
 | `j_hack` | Outside support |
 | `j_hallucination` | Outside support |
 | `j_hanging_chad` | Outside support |
