@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`f0d6fea9f797ead5f1dacb83a250f845c0d57488`.
+`ddc181d9880e221f4cb84d242f8695ae4bf0217d`.
 
 ## Objective
 
@@ -2549,17 +2549,25 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Diet Cola as the candidate for the fifty-first exact generated Joker
+Audit Egg as the candidate for the fifty-second exact generated Joker
 acquisition. The committed strategic/shop trace offers uneditioned
-`j_diet_cola` at episode 58 decision 3 / seed `062DA0EA`, with rarity 2,
-base cost 6, and price 6.
+`j_egg` at episode 58 decision 8 / seed `062DA0EA` for $4.
 
-Next, admit exact uneditioned Diet Cola at the generated shop and route
-its own sale callback through the canonical Joker removal and Tag inventory
-owners. Verify the $3 sale, one Double Tag per sale, carry through normal
-play, and an exact seeded Economy skip when available. Reject inactive or
-unsupported sale state. Hallucination, booster work, rewards, and retraining
-remain deferred.
+First audit the pinned round-end sell-value increase and canonical pricing
+and repricing owners. Verify accumulated sell value across ordinary and
+Boss cash-outs and its public observation before opening purchase and sale.
+Hallucination, booster work, rewards, and retraining remain deferred.
+
+Diet Cola acquisition checkpoint:
+
+- Commit `0278ad3d` admits exact uneditioned Diet Cola and creates one pending
+  Double Tag on its own active shop sale. Destruction uses the inventory-only
+  inverse and creates no Tag. In trace seed `062DA0EA` the $6 purchase and $3
+  sale leave one visible pending Double Tag through the Boss clear. Economy
+  consumption is covered by the separate pending-Tag regressions.
+- Initial CI exposed two lifecycle fixtures that took the new purchase.
+  Commit `ddc181d9` pins those replays. GitHub Actions run `45960768763`,
+  job `140377778677` logged **3950 passed, 1621 deselected in 609.03s**.
 
 Pending Double Tag observation checkpoint:
 
