@@ -137,6 +137,7 @@ def _apply_hook_forced_discards(
         from games.balatro.jokers.runner import RunnerJoker
         from games.balatro.jokers.seance import SeanceJoker
         from games.balatro.jokers.eight_ball import EightBallJoker
+        from games.balatro.jokers.flash_card import FlashCardJoker
         from games.balatro.jokers.shortcut import ShortcutJoker
         from games.balatro.jokers.sixth_sense import SixthSenseJoker
         from games.balatro.jokers.splash import SplashJoker
@@ -158,6 +159,7 @@ def _apply_hook_forced_discards(
             RunnerJoker,
             SeanceJoker,
             EightBallJoker,
+            FlashCardJoker,
             ShortcutJoker,
             SixthSenseJoker,
             SplashJoker,

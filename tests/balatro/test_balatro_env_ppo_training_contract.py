@@ -3648,3 +3648,23 @@ def test_env_ppo_trace_seed_buys_and_sells_exact_eight_ball():
     assert environment.frame.state.money == 34
     assert environment.frame.state.jokers == []
     assert environment._backend.run.rng_snapshot() == snapshot
+
+
+def test_env_ppo_trace_seed_buys_grows_and_sells_exact_flash_card():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="B2189F31")
+    for alias, params, money, stored_mult in (
+        ("SELECT_BLIND", {}, 8, None),
+        ("BUY_JOKER", {"slot": 1}, 3, 0),
+        ("END_SHOP", {}, 3, 0),
+        ("SELECT_BLIND", {}, 8, 0),
+        ("REROLL_SHOP", {}, 3, 2),
+        ("SELL_JOKER", {"joker_index": 0}, 5, None),
+    ):
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        state = environment.frame.state
+        assert state.money == money
+        expected = [] if stored_mult is None else [("j_flash", stored_mult)]
+        assert [(joker.center, joker.mult) for joker in state.jokers] == expected

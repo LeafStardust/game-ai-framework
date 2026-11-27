@@ -27,6 +27,7 @@ from games.balatro.jokers.sixth_sense import SixthSenseJoker
 from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.eight_ball import EightBallJoker
+from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.jokers.vampire import VampireJoker
 
 
@@ -53,6 +54,7 @@ INVENTORY_ONLY_JOKER_REMOVAL_TYPES = tuple(
         SupernovaJoker,
         SeanceJoker,
         EightBallJoker,
+        FlashCardJoker,
         VampireJoker,
     )
     if joker_type is not JugglerJoker

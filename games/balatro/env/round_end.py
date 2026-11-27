@@ -38,6 +38,7 @@ from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.eight_ball import EightBallJoker
+from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
@@ -64,6 +65,7 @@ _ROUND_END_INERT_JOKER_TYPES = (
     CastleJoker,
     SeanceJoker,
     EightBallJoker,
+    FlashCardJoker,
     MadnessJoker,
     DNAJoker,
     FacelessJoker,
