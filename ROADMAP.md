@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`26ba41d72e39b2c070448560bf657c4805b6a2c6`.
+`47b30eeb896d59a0fd1321ebac785ea6fcdd913e`.
 
 ## Objective
 
@@ -2549,16 +2549,29 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Mail-In Rebate as the candidate for the forty-ninth exact generated
-Joker acquisition. The committed strategic/shop trace offers uneditioned
-`j_mail` at episode 57 decision 1 / seed `FADDC372`, with rarity 1, base
-cost 4, and price 4.
+Audit To the Moon as the candidate for the fiftieth exact generated Joker
+acquisition. The committed strategic/shop trace offers uneditioned
+`j_to_the_moon` at episode 58 decision 1 / seed `062DA0EA`, with rarity 2,
+base cost 5, and price 5.
 
-First audit the pinned target-rank reset, RNG stream, retained deck order,
-and initial target. Verify the per-card discard payout, including debuffs
-and The Hook, and the public target observation before admitting purchase
-or sale. Hallucination, booster work, rewards, and retraining remain
-deferred.
+First audit the pinned cash-out formula and ordering. Verify To the Moon's
+payout against the pre-payout balance, debt, interest-cap Vouchers, and
+held Gold before admitting purchase or sale. Hallucination, booster work,
+rewards, and retraining remain deferred.
+
+Mail-In Rebate acquisition checkpoint:
+
+- Commit `47b30eeb896d59a0fd1321ebac785ea6fcdd913e` owns the private
+  `mail{ante}` target draw at run initialization and after each round win.
+  The draw uses retained non-Stone card creation order. The owned Joker's
+  target uses the existing public rank feature. Active discard callbacks
+  pay $5 per matching card that is neither debuffed nor Stone. The Hook
+  pays without consuming a regular discard.
+- Trace seed `FADDC372` buys Mail-In Rebate for $4 at target seven,
+  earns $5 for discarding the Seven of Hearts, rolls target nine, sells
+  for $2, and reaches the Boss.
+- GitHub Actions run `45943143844`, job `140321757203` logged
+  **3925 passed, 1621 deselected in 327.11s**.
 
 Sixth Sense acquisition checkpoint:
 
