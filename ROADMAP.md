@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`47b30eeb896d59a0fd1321ebac785ea6fcdd913e`.
+`e50dfb6df0032b6f96dd761d11bd1b34bace88d3`.
 
 ## Objective
 
@@ -2549,15 +2549,30 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit To the Moon as the candidate for the fiftieth exact generated Joker
+Audit Diet Cola as the candidate for the fifty-first exact generated Joker
 acquisition. The committed strategic/shop trace offers uneditioned
-`j_to_the_moon` at episode 58 decision 1 / seed `062DA0EA`, with rarity 2,
-base cost 5, and price 5.
+`j_diet_cola` at episode 58 decision 3 / seed `062DA0EA`, with rarity 2,
+base cost 6, and price 6.
 
-First audit the pinned cash-out formula and ordering. Verify To the Moon's
-payout against the pre-payout balance, debt, interest-cap Vouchers, and
-held Gold before admitting purchase or sale. Hallucination, booster work,
-rewards, and retraining remain deferred.
+First audit the pinned sale callback and its Double Tag creation. Verify
+whether the current canonical Tag inventory, activation, and public
+observation can carry the result exactly from a shop sale. Keep purchase
+and sale masked until those boundaries are owned. Hallucination, booster
+work, rewards, and retraining remain deferred.
+
+To the Moon acquisition checkpoint:
+
+- Commit `e50dfb6df0032b6f96dd761d11bd1b34bace88d3` admits exact uneditioned
+  To the Moon with inventory-derived interest. The shared cash-out owner
+  uses the balance after held Gold and before reward, unused hands, or
+  Joker rows. It applies the owned Voucher cap and pays no interest below
+  $5, including debt. Boss defeat restores Crimson Heart's disabled
+  passive before interest is calculated. Sale removes the rate increase.
+- Trace seed `062DA0EA` buys To the Moon for $5, earns $2 interest on an
+  $8 pre-payout Boss balance, sells for $2, and clears the next Small Blind
+  with ordinary interest.
+- GitHub Actions run `45944608167`, job `140326337325` logged
+  **3938 passed, 1621 deselected in 550.75s**.
 
 Mail-In Rebate acquisition checkpoint:
 
