@@ -13,6 +13,7 @@ from games.balatro.env.transition import (
 )
 from games.balatro.jokers.chaos_the_clown import ChaosTheClownJoker
 from games.balatro.jokers.credit_card import CreditCardJoker
+from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.state import BalatroState
 
 
@@ -86,6 +87,23 @@ def test_env_r2_paid_reroll_charges_then_increments_cost_and_replaces_two_cards(
     assert run.public.money == 20
     assert run.reroll_cost == 5
     assert tuple(run.public.shop_jokers) + tuple(run.public.shop_consumables) == old_items
+
+
+@pytest.mark.parametrize("debuffed, expected", [(False, 6), (True, 2)])
+def test_env_r2_paid_reroll_updates_flash_card_once_per_committed_reroll(debuffed, expected):
+    run = _generated_run("REROLL-FLASH")
+    joker = FlashCardJoker()
+    joker.mult = 2
+    joker.debuffed = debuffed
+    run.public.jokers = [joker]
+
+    first = reroll_base_main_shop(run).run
+    second = reroll_base_main_shop(first).run
+
+    assert run.public.jokers[0].mult == 2
+    assert first.public.jokers[0].mult == (2 if debuffed else 4)
+    assert second.public.jokers[0].mult == expected
+    assert second.public.money == 9
 
 
 def test_env_r2_shop_transition_delegates_exact_paid_reroll_without_mutation():

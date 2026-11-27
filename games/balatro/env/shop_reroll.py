@@ -7,6 +7,7 @@ Pinned vanilla order for ``G.FUNCS.reroll_shop`` is:
 3. ``calculate_reroll_cost(final_free)``;
 4. remove every card in the shared main-shop area;
 5. regenerate missing slots through ``create_card_for_shop``.
+6. resolve owned Joker reroll callbacks.
 
 The owned boundary covers ordinary paid rerolls with exact Voucher-derived base
 reroll cost and main-shop capacity. Bankruptcy, free-reroll and Tag temporary
@@ -34,6 +35,8 @@ from games.balatro.env.voucher_capabilities import (
 )
 from games.balatro.jokers.chaos_the_clown import ChaosTheClownJoker
 from games.balatro.jokers.credit_card import CreditCardJoker
+from games.balatro.joker import JokerContext
+from games.balatro.jokers.flash_card import FlashCardJoker
 
 
 @dataclass(frozen=True)
@@ -63,6 +66,17 @@ def validate_paid_base_reroll(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("paid reroll does not own bankruptcy allowance")
     if any(isinstance(joker, ChaosTheClownJoker) for joker in state.jokers):
         raise HeadlessTransitionError("paid reroll does not own free-reroll state")
+    if any(
+        type(joker) is FlashCardJoker
+        and (
+            type(joker.mult) is not int
+            or joker.mult < 0
+            or joker.mult % 2
+            or type(joker.debuffed) is not bool
+        )
+        for joker in state.jokers
+    ):
+        raise HeadlessTransitionError("paid reroll requires exact Flash Card state")
 
     expected_base = expected_base_reroll_cost_for_vouchers(state)
     if expected_base is None or run.base_reroll_cost != expected_base:
@@ -132,6 +146,9 @@ def reroll_base_main_shop(run: HeadlessRunState) -> PaidBaseShopReroll:
     generated: GeneratedMainShop = generate_base_main_shop(next_run)
     generated.run.public.shop_boosters = existing_boosters
     generated.run.public.shop_vouchers = existing_vouchers
+    for joker in generated.run.public.jokers:
+        if type(joker) is FlashCardJoker:
+            joker.apply(JokerContext(state=generated.run.public, trigger="SHOP_REROLLED"))
 
     return PaidBaseShopReroll(
         run=generated.run,
