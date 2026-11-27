@@ -215,7 +215,7 @@ def test_env_r4_ordinary_play_fails_closed_on_joker_tag_consumable_and_voucher_c
         apply_supported_ordinary_play(joker_run, (0,))
 
     tag_run = _play_run(seed="R4-TAG")
-    tag_run.tags.append("tag_double")
+    tag_run.tags.append("tag_juggle")
     with pytest.raises(HeadlessTransitionError, match="Tag callbacks"):
         apply_supported_ordinary_play(tag_run, (0,))
 

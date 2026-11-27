@@ -91,7 +91,7 @@ def test_env_r2_select_blind_fails_closed_for_unknown_boss_identity():
 
 def test_env_r2_select_blind_fails_closed_when_active_tags_are_unowned():
     run = _nonboss_run()
-    run.tags = ["tag_double"]
+    run.tags = ["tag_juggle"]
 
     assert not can_select_blind_exact(run)
     with pytest.raises(HeadlessTransitionError, match="active tags"):
