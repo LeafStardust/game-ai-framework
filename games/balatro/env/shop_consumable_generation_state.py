@@ -17,11 +17,16 @@ by the authoritative observed records and are never guessed.
 from __future__ import annotations
 
 from games.balatro.env.consumable_centers import vanilla_consumable_center_order
+from games.balatro.env.consumable_generation import poll_eight_ball_tarot_center
 from games.balatro.env.shop_consumable_items import (
+    GeneratedShopConsumableItem,
     OrdinaryShopConsumableDescriptor,
     describe_base_shop_consumable_from_records,
 )
+from games.balatro.env.shop_pricing import vanilla_card_cost
+from games.balatro.env.tag_selection import TagProfileState
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.voucher_capabilities import expected_shop_discount_percent_for_vouchers
 
 
 _REQUIRED_TYPES = ("Tarot", "Planet")
@@ -289,6 +294,62 @@ def eligible_consumable_records_from_state(
         raise HeadlessTransitionError("ordinary consumable type must be Tarot or Planet")
     pools = _validate_observed_consumable_generation_pools(run)
     return tuple(dict(record) for record in pools[card_type])
+
+
+def generate_held_eight_ball_tarot(run: HeadlessRunState) -> HeadlessRunState:
+    """Publish one reserved 8 Ball success on an isolated run."""
+    pools = _validate_observed_consumable_generation_pools(run)
+    state = run.public
+    if (
+        type(state.consumable_slots) is not int
+        or len(state.consumables) >= state.consumable_slots
+        or _showman_present(run)
+        or not run.pending_tags_are_exact()
+    ):
+        raise HeadlessTransitionError("8 Ball Tarot generation requires exact open inventory")
+    discount = expected_shop_discount_percent_for_vouchers(state)
+    if (
+        discount is None
+        or state.shop_discount_percent_observed is not True
+        or type(state.shop_discount_percent) is not int
+        or state.shop_discount_percent != discount
+        or state.shop_inflation_observed is not True
+    ):
+        raise HeadlessTransitionError("8 Ball Tarot generation requires exact price inputs")
+    records = {record["key"]: record for record in pools["Tarot"]}
+    visible = set()
+    for item in (*state.consumables, *state.shop_consumables):
+        record = _visible_consumable_record(item)
+        if record is None:
+            category = getattr(item, "category", getattr(item, "card_type", ""))
+            if category not in ("Spectral", "SPECTRAL"):
+                raise HeadlessTransitionError("8 Ball requires exact visible consumable identities")
+        elif record["type"] == "Tarot":
+            visible.add(record["key"])
+    if records.keys() & visible:
+        raise HeadlessTransitionError("8 Ball Tarot pool contains a visible duplicate")
+    profile = run.tag_profile_state
+    if profile is None or any(
+        type(run.generated_center_discovered(key)) is not bool
+        or run.generated_center_discovered(key) != (key in profile.discovered_center_keys)
+        for key in vanilla_consumable_center_order("Tarot")
+    ):
+        raise HeadlessTransitionError("8 Ball Tarot generation requires profile discovery authority")
+
+    next_run = run.copy()
+    center, _ = poll_eight_ball_tarot_center(next_run.rng, state.ante, records.keys())
+    base_cost = records[center]["cost"] if records else 3
+    price = vanilla_card_cost(
+        base_cost, edition=None, inflation=state.shop_inflation, discount_percent=discount,
+    )
+    next_run.public.consumables.append(
+        GeneratedShopConsumableItem("Tarot", center, base_cost, price, discovered=True)
+    )
+    pools["Tarot"] = [record for key, record in records.items() if key != center]
+    next_run.public.consumable_generation_pools = pools
+    next_run.generation_discovery[center] = True
+    next_run.tag_profile_state = TagProfileState(profile.discovered_center_keys | {center})
+    return next_run
 
 
 def generate_ordinary_shop_consumable_descriptor_from_state(
