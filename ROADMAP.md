@@ -2554,11 +2554,27 @@ acquisition. The committed strategic/shop trace offers uneditioned
 `j_diet_cola` at episode 58 decision 3 / seed `062DA0EA`, with rarity 2,
 base cost 6, and price 6.
 
-First audit the pinned sale callback and its Double Tag creation. Verify
-whether the current canonical Tag inventory, activation, and public
-observation can carry the result exactly from a shop sale. Keep purchase
-and sale masked until those boundaries are owned. Hallucination, booster
-work, rewards, and retraining remain deferred.
+Next, own the smallest exact pending Double Tag slice before connecting
+Diet Cola. Trace vanilla `add_tag` ordering and keep pending Double Tags
+through supported blind, shop, and cash-out boundaries. Verify the
+consumption order and per-copy balance for the already-admitted Economy
+Tag skip, then define the public pending-Tag feature and compatible
+artifact versions. Keep Diet Cola purchase and sale masked until the
+complete reachable slice passes CI. Hallucination, booster work, rewards,
+and retraining remain deferred.
+
+Diet Cola source audit:
+
+- Pinned `card.lua:2269` queues one `tag_double` from Diet Cola's own sale
+  callback. Pinned `tag.lua:311` leaves Double Tags pending when another
+  Double Tag is added. A newly acquired non-Double Tag schedules a copy
+  and marks the pending Double Tag triggered.
+- `HeadlessRunState.tags` already retains and serializes a private list.
+  The public observation encodes the selected blind's offered Tag. It has
+  no pending Tag feature. Current blind-start, Play, cash-out, generation,
+  and skip guards reject nonempty active Tags. `skip_blind_exact` admits
+  only the immediate Small Blind Economy Tag. Adding Diet Cola to the
+  sale list alone would leave the next normal transition unsupported.
 
 To the Moon acquisition checkpoint:
 
