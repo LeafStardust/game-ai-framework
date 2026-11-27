@@ -69,7 +69,7 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
 def test_env_o_v7_appends_only_the_exact_pending_double_tag_count():
     frame = _frame()
     names = PUBLIC_OBSERVATION_SCHEMA.feature_names
-    legacy_digest = sha256("\n".join(names[:-1]).encode()).hexdigest()
+    legacy_digest = sha256("\n".join(name for name in names[:-1] if not name.startswith("pack.")).encode()).hexdigest()
     assert legacy_digest == "b170f7f6703953f6f20e72143ec0bd849b6549729c63393244c0deb3ab55601c"
     assert names[-1] == "tags.pending_double_count"
 

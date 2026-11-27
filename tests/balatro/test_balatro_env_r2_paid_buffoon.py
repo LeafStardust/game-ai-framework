@@ -9,6 +9,7 @@ from games.balatro.env.pack import (
     skip_pack_exact,
 )
 from games.balatro.env.ppo_campaign import make_ppo_training_environment
+from games.balatro.env.ppo_contract import PPORolloutBoundary
 from games.balatro.env.serialization import restore_headless_run_state
 from games.balatro.env.state import EnvStateFrame
 from games.balatro.env.transition import HeadlessTransitionError
@@ -109,6 +110,8 @@ def test_ppo_routes_paid_buffoon_open_and_choose_as_public_actions():
     environment.step(opening)
 
     assert environment.frame.state.phase == "BUFFOON_PACK"
+    boundary = PPORolloutBoundary.from_frame(environment.frame)
+    assert boundary.blind_requirement is None
     assert environment.frame.pack_choices_remaining == 1
     assert [item.center_key for item in environment.frame.pack_choices] == [
         "j_red_card", "j_mystic_summit",

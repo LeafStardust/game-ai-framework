@@ -215,7 +215,20 @@ def episode_41_with_tarot_merchant():
         make_ppo_training_environment(1),
         run,
         episode_index=41,
-        policy=PPOActorCritic(run).infer,
+        policy=_fixed_action_policy((
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 0}),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 0}),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+        )),
     )
 
 
@@ -2935,7 +2948,14 @@ def episode_313_with_wheel_redraws():
         make_ppo_training_environment(1),
         run,
         episode_index=313,
-        policy=PPOActorCritic(run).infer,
+        policy=_fixed_action_policy((
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+        )),
     )
 
 
@@ -2983,7 +3003,21 @@ def episode_413_with_house_play_facing():
         make_ppo_training_environment(5),
         run,
         episode_index=413,
-        policy=PPOActorCritic(run).infer,
+        policy=_fixed_action_policy((
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 0}),
+            EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+        )),
     )
 
 
@@ -3117,7 +3151,20 @@ def episode_86_with_flint():
         make_ppo_training_environment(6),
         run,
         episode_index=86,
-        policy=PPOActorCritic(run).infer,
+        policy=_fixed_action_policy((
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+            EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
+            EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+            EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 0}),
+            EnvAction.from_alias("END_SHOP"),
+            EnvAction.from_alias("SELECT_BLIND"),
+        )),
     )
 
 

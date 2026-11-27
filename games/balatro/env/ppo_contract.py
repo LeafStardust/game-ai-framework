@@ -453,7 +453,7 @@ class PPORolloutBoundary:
         state = frame.state
         requirement = (
             None
-            if state.blind is None or state.phase == "SHOP"
+            if state.blind is None or state.phase in {"SHOP", "BUFFOON_PACK"}
             else _finite_number(
                 state.blind.requirement, "rollout blind requirement"
             )
