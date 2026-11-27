@@ -27,6 +27,7 @@ from games.balatro.jokers.madness import MadnessJoker, madness_x_mult_is_exact
 from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.diet_cola import DietColaJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
@@ -47,6 +48,7 @@ _BLIND_START_INERT_JOKER_TYPES = (
     SeanceJoker,
     DNAJoker,
     FacelessJoker,
+    DietColaJoker,
     GreenJoker,
     ToTheMoonJoker,
     MailInRebateJoker,

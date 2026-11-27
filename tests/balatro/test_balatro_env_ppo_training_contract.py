@@ -10,6 +10,7 @@ from games.balatro.env.action_encoding import action_index, legal_action_mask
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.environment import BalatroHeadlessEnvironment
 from games.balatro.env.episode_backend import PPOHeadlessBackend
+from games.balatro.env.joker_sale import can_sell_joker_exact
 from games.balatro.env.observation_encoding import (
     JOKER_CENTER_KEYS,
     PUBLIC_OBSERVATION_SCHEMA,
@@ -1905,6 +1906,42 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
         ("SELECT_BLIND", {}),
     ]
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
+
+
+def test_env_ppo_trace_seed_buys_diet_cola_and_carries_its_double_tag():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="062DA0EA")
+    for alias, payload, money, tags in (
+        ("SELECT_BLIND", {}, 8, 0),
+        ("END_SHOP", {}, 8, 0),
+        ("SELECT_BLIND", {}, 14, 0),
+        ("BUY_JOKER", {"slot": 0}, 8, 0),
+        ("SELL_JOKER", {"joker_index": 0}, 11, 1),
+        ("END_SHOP", {}, 11, 1),
+        ("SELECT_BLIND", {}, 19, 1),
+        ("END_SHOP", {}, 19, 1),
+    ):
+        action = EnvAction.from_alias(alias, payload)
+        assert action in environment.legal_actions()
+        before = environment._backend.run
+        rng = before.rng_snapshot()
+        if alias == "SELL_JOKER":
+            assert before.public.jokers[0].center == "j_diet_cola"
+            debuffed = before.copy()
+            debuffed.public.jokers[0].debuffed = True
+            assert not can_sell_joker_exact(debuffed, 0)
+        environment.step(action)
+        after = environment._backend.run
+        assert after.public.money == money
+        assert after.tags == ["tag_double"] * tags
+        assert environment.frame.encoded_observation().values[-1] == float(tags)
+        if alias == "SELL_JOKER":
+            assert after.public.jokers == []
+            assert after.rng_snapshot() == rng
+            assert "tag_double" in after.tag_profile_state.discovered_center_keys
+            assert before.tags == []
+
+    assert environment.frame.state.ante == 2
 
 
 def test_env_ppo_trace_seed_completes_moon_purchase_interest_and_sale():

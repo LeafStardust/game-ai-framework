@@ -127,6 +127,7 @@ def _apply_hook_forced_discards(
         from games.balatro.jokers.cloud_9 import Cloud9Joker
         from games.balatro.jokers.dna import DNAJoker
         from games.balatro.jokers.faceless_joker import FacelessJoker
+        from games.balatro.jokers.diet_cola import DietColaJoker
         from games.balatro.jokers.green_joker import GreenJoker
         from games.balatro.jokers.madness import MadnessJoker
         from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
@@ -144,6 +145,7 @@ def _apply_hook_forced_discards(
             Cloud9Joker,
             DNAJoker,
             FacelessJoker,
+            DietColaJoker,
             GreenJoker,
             MadnessJoker,
             MailInRebateJoker,

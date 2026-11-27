@@ -53,6 +53,7 @@ from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.diet_cola import DietColaJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.mail_in_rebate import MAIL_REBATE_RANKS, MailInRebateJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
@@ -306,6 +307,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 2
         expected_base_cost = 6
         label = "Sixth Sense"
+    elif item.center_key == "j_diet_cola":
+        joker_type = DietColaJoker
+        expected_rarity = 2
+        expected_base_cost = 6
+        label = "Diet Cola"
     elif item.center_key == "j_sly":
         joker_type = SlyJoker
         expected_rarity = 1

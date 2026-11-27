@@ -16,6 +16,9 @@ from games.balatro.env.joker_removal import (
     remove_validated_owned_joker,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.tag_selection import TagProfileState
+from games.balatro.joker import JokerContext
+from games.balatro.jokers.diet_cola import DietColaJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.juggler import JugglerJoker
 
@@ -86,6 +89,17 @@ def _sell_owned_joker(
 ) -> HeadlessRunState:
     """Credit sale proceeds after the shared exact inverse succeeds."""
     next_run = remove_validated_owned_joker(run, joker_index)
+    sold = run.public.jokers[joker_index]
+    if type(sold) is DietColaJoker:
+        context = JokerContext(
+            state=next_run.public, trigger="SOLD", data={"sold_joker": sold}
+        )
+        if sold.apply(context).data.get("double_tag"):
+            profile = next_run.require_tag_profile_state()
+            next_run.tags.append("tag_double")
+            next_run.tag_profile_state = TagProfileState(
+                profile.discovered_center_keys | {"tag_double"}
+            )
     next_run.public.money += sell_cost
     return next_run
 
@@ -107,6 +121,15 @@ def validate_joker_sale_exact(run: HeadlessRunState, joker_index: int) -> None:
         allow_juggler=True,
         allow_drunkard=True,
     )
+    joker = run.public.jokers[joker_index]
+    if type(joker) is DietColaJoker:
+        if (
+            joker.center != "j_diet_cola"
+            or joker.debuffed is not False
+            or not run.pending_tags_are_exact()
+        ):
+            raise HeadlessTransitionError("Diet Cola sale requires exact active Joker and Tags")
+        run.require_tag_profile_state()
 
 
 def can_sell_joker_exact(run: HeadlessRunState, joker_index: int) -> bool:
@@ -240,6 +263,8 @@ def sell_static_joker_during_verdant(
     if getattr(state.blind, "disabled", False):
         raise HeadlessTransitionError("Verdant Leaf is already disabled")
     sell_cost = _validate_owned_joker_identity(run, joker_index)
+    if type(state.jokers[joker_index]) is DietColaJoker:
+        raise HeadlessTransitionError("Diet Cola sale during Verdant Leaf is not owned")
 
     cards = _permanent_cards(run)
     if any(not card.debuffed for card in cards):
