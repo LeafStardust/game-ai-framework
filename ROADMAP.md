@@ -2559,11 +2559,16 @@ Rewards and retraining remain deferred.
 
 - Episode 63 decision 9 offers Hallucination for $4 in slot 1 on seed
   `3B8B6C3F`. `04fc23ed` pins its `Tarothal{ante}` pool stream.
+  CI run `45993036303` verified **3,989 passed, 1,621 deselected**.
 - `e0fe8486` implements Buffoon choice descriptor generation, including
   `buf` identity, sticker, and edition streams. CI is pending.
-- Next connect a paid ordinary Buffoon offer to authoritative pack choices
-  and deterministic choice or skip return. Keep Hallucination acquisition
-  gated until its seeded roll, reservation, and Tarot publication are exact.
+- `7a066303`, `54624a92` and `ab339ebe` connect a paid ordinary Buffoon
+  offer to exact choices, choose or skip return, and generated-option snapshots.
+- `cd52984f` wires Hallucination's roll, reserved capacity, and held Tarot
+  during that opening. CI run `45994900238` is pending.
+- Next expose the public Buffoon choices and remaining picks in the policy
+  observation before routing paid opening and pack actions through PPO.
+  Hallucination acquisition stays gated until these boundaries pass CI.
 
 Gros Michel and Campfire acquisition checkpoint:
 
