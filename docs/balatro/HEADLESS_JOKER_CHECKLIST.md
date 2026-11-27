@@ -1,8 +1,8 @@
 # Headless Joker checklist
 
-**52 of 150 verified · 1 awaiting CI · 97 outside support**
+**53 of 150 verified · 1 next · 96 outside support**
 
-Red Deck / White Stake snapshot through `61f19f93`. Egg is the latest verified acquisition. Shortcut's purchase and sale regression is awaiting [CI](https://github.com/LeafStardust/game-ai-framework/actions/runs/45975956842).
+Red Deck / White Stake snapshot through `61f19f93`. Shortcut is the latest verified acquisition. Its [CI run](https://github.com/LeafStardust/game-ai-framework/actions/runs/45975956842) reported **3,959 passed, 1,621 deselected**. 8 Ball is next.
 
 Supported means exact generated shop acquisition for the supported variant. Jokers outside support may already have some mechanics implemented. Training and promotion follow the [roadmap](../../ROADMAP.md).
 
@@ -10,7 +10,8 @@ Sources: [Joker catalogue](../../games/balatro/env/joker_centers.py) and [shop a
 
 | Joker center | Headless acquisition |
 | --- | --- |
-| `j_shortcut` | Awaiting CI |
+| `j_8_ball` | Next |
+| `j_shortcut` | Supported |
 | `j_abstract` | Supported |
 | `j_banner` | Supported |
 | `j_blue_joker` | Supported |
@@ -63,7 +64,6 @@ Sources: [Joker catalogue](../../games/balatro/env/joker_centers.py) and [shop a
 | `j_wily` | Supported |
 | `j_wrathful_joker` | Supported |
 | `j_zany` | Supported |
-| `j_8_ball` | Outside support |
 | `j_acrobat` | Outside support |
 | `j_ancient` | Outside support |
 | `j_arrowhead` | Outside support |

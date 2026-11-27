@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`bbe25a036a5d322edf2eef1a2eec7a44a518ba02`.
+`61f19f93`.
 
 ## Objective
 
@@ -2552,16 +2552,19 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Shortcut as the candidate for the fifty-third exact generated Joker
-acquisition. Trace episode 58 decision 8 / seed `062DA0EA` offers
-uneditioned `j_shortcut` for $7.
+Audit 8 Ball as the candidate for the fifty-fourth exact generated Joker
+acquisition. Trace episode 59 decision 10 / seed `61B2716E` offers
+uneditioned `j_8_ball` for $5 in slot 0 with $24 available.
 
-First verify the pinned gap rule against the canonical hand evaluator,
-then audit tactical classification, scoring, Boss constraints, and
-Straight component callbacks before admitting purchase and sale.
+Verify scored-8 callback order, debuffs, retriggers, and consumable capacity.
+Vanilla checks capacity before rolling the `8ball` RNG stream and uses
+`8ba` for successful Tarot generation. Headless Play currently lacks an
+exact held Tarot generation path for this callback. Keep acquisition closed
+until exact pool eligibility, inventory publication, and RNG advancement are
+covered by deterministic regressions.
 Hallucination, booster work, rewards, and retraining remain deferred.
 
-Shortcut Play checkpoint:
+Shortcut acquisition checkpoint:
 
 - `01ab6f04` applies passive hand rules before Play updates hand history
   or checks Boss restrictions. CI run `45970307837` reported
@@ -2569,8 +2572,8 @@ Shortcut Play checkpoint:
 - `bbe25a03` covers The Mouth's lock and Runner's growth with a gapped
   Straight, and admits Shortcut through The Hook's forced discard.
   CI run `45970623353` reported **3,958 passed, 1,621 deselected**.
-- Verify the generated purchase and sale replay on seed `062DA0EA`
-  before counting Shortcut and advancing the acquisition queue.
+- `61f19f93` verifies the generated $7 purchase and $3 sale on seed
+  `062DA0EA`. CI run `45975956842` reported **3,959 passed, 1,621 deselected**.
 
 Egg acquisition checkpoint:
 
