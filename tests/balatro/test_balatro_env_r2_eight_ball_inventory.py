@@ -24,11 +24,12 @@ def _run():
 
 def test_env_r2_eight_ball_publishes_tarot_and_suppresses_held_center():
     run = _run()
+    original_rng = run.rng_snapshot()
     first = generate_held_eight_ball_tarot(run)
     second = generate_held_eight_ball_tarot(first)
 
     assert run.public.consumables == []
-    assert run.rng.nodes == {}
+    assert run.rng_snapshot() == original_rng
     strength, other = second.public.consumables
     assert (strength.center_key, strength.price, strength.discovered) == (
         "c_strength", 3, True,
