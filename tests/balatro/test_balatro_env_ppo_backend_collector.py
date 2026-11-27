@@ -28,7 +28,7 @@ from games.balatro.env.ppo_contract import (
 )
 from games.balatro.env.ppo_rollout import collect_complete_ppo_episode
 from games.balatro.env.state import RunStatus, TurnOwner
-from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.transition import HeadlessTransitionError
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.banner import BannerJoker
@@ -2196,7 +2196,10 @@ def test_env_ppo_pending_double_tags_carry_through_play_shops_and_boss_cashout()
 
         snapshot = pending_backend.run.serialize()
         assert pending_backend.run.tags == ["tag_double", "tag_double"]
-        assert HeadlessRunState.restore(snapshot).tags == pending_backend.run.tags
+        assert baseline.frame.encoded_observation().values[-1] == 0.0
+        assert pending.frame.encoded_observation().values[-1] == 2.0
+        restored = PPOHeadlessBackend(_OneCardTacticalPolicy()).restore(pending.serialize())
+        assert restored.encoded_observation() == pending.frame.encoded_observation()
         snapshot["private"]["tags"] = []
         assert snapshot == baseline_backend.run.serialize()
 

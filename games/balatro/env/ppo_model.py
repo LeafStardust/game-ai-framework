@@ -25,7 +25,7 @@ from games.balatro.env.ppo_contract import (
 
 
 _PARAMETER_ORDER = ("w1", "b1", "w2", "b2", "policy_w", "policy_b", "value_w", "value_b")
-PPO_MODEL_VERSION = "balatro-red-white-ppo-actor-critic-v3"
+PPO_MODEL_VERSION = "balatro-red-white-ppo-actor-critic-v4"
 PPO_OPTIMIZER_VERSION = "balatro-red-white-ppo-adam-v1"
 ADAM_BETA1 = 0.9
 ADAM_BETA2 = 0.999
@@ -170,12 +170,12 @@ class PPOActorCritic:
         """Extend the v3 initializer without perturbing existing feature weights.
 
         Observation v4 adds two present/value pairs to each of six Joker slots.
-        Observation v6 appends additional permanent-deck and discard slots.
+        Observation v6 appends permanent-deck and discard slots. v7 appends the Double Tag count.
         Existing deterministic corpora retain their exact untrained policy while
         the zero-initialized new rows remain trainable. Older checkpoints still
         fail closed because their first-layer shape is smaller.
         """
-        if PUBLIC_OBSERVATION_VERSION != "balatro-red-white-public-observation-v6":
+        if PUBLIC_OBSERVATION_VERSION != "balatro-red-white-public-observation-v7":
             raise PPOContractError("PPO model observation initializer is not versioned")
         feature_names = PUBLIC_OBSERVATION_SCHEMA.feature_names
         added_suffixes = (
@@ -191,8 +191,12 @@ class PPOActorCritic:
         )
         if len(added_indices) != 24:
             raise PPOContractError("PPO v4 Joker observation expansion drifted")
-        if len(feature_names) != 3320 or feature_names[2480] != "owned_deck.52.present":
-            raise PPOContractError("PPO v6 deck observation expansion drifted")
+        if (
+            len(feature_names) != 3321
+            or feature_names[2480] != "owned_deck.52.present"
+            or feature_names[3320] != "tags.pending_double_count"
+        ):
+            raise PPOContractError("PPO v7 observation expansion drifted")
         legacy_indices = tuple(
             index for index in range(2480) if index not in added_indices
         )

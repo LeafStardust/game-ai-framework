@@ -35,8 +35,11 @@ class EnvStateFrame:
     status: RunStatus = RunStatus.RUNNING
     owner: TurnOwner = TurnOwner.AGENT
     info: dict[str, Any] = field(default_factory=dict)
+    pending_double_tags: int = 0
 
     def __post_init__(self) -> None:
+        if type(self.pending_double_tags) is not int or self.pending_double_tags < 0:
+            raise ValueError("pending Double Tags require a nonnegative integer count")
         if self.status.terminal and self.owner is not TurnOwner.TERMINAL:
             raise ValueError("terminal frame must be owned by TERMINAL")
         if not self.status.terminal and self.owner is TurnOwner.TERMINAL:

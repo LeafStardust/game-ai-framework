@@ -64,10 +64,10 @@ def test_env_ppo_model_initialization_is_seeded_and_contract_shaped():
 
     assert first.parameter_sha256 == second.parameter_sha256
     assert first.parameter_sha256 != different.parameter_sha256
-    assert PPO_MODEL_VERSION == "balatro-red-white-ppo-actor-critic-v3"
+    assert PPO_MODEL_VERSION == "balatro-red-white-ppo-actor-critic-v4"
     assert PPO_OPTIMIZER_VERSION == "balatro-red-white-ppo-adam-v1"
     assert (ADAM_BETA1, ADAM_BETA2, ADAM_EPSILON) == (0.9, 0.999, 1e-8)
-    assert first.parameters["w1"].shape == (3320, 512)
+    assert first.parameters["w1"].shape == (3321, 512)
     assert first.parameters["w2"].shape == (512, 256)
     assert first.parameters["policy_w"].shape == (256, 27)
     assert first.parameters["value_w"].shape == (256, 1)
@@ -88,6 +88,22 @@ def test_env_ppo_initializer_zeroes_only_added_observation_rows():
     assert np.count_nonzero(model.parameters["w1"][list(added)]) == 0
     assert np.count_nonzero(model.parameters["w1"][2480:]) == 0
     assert np.count_nonzero(model.parameters["w1"][:2480]) == 2456 * 512
+
+
+def test_env_ppo_model_pending_tag_row_starts_neutral_and_can_learn():
+    run, model = _model("PENDING-TAG")
+    batch = _small_batch(model)
+    before, values, _ = model.evaluate_batch(batch.observations, batch.action_masks)
+    batch.observations[1, -1] = 2.0
+    after, after_values, _ = model.evaluate_batch(batch.observations, batch.action_masks)
+    np.testing.assert_array_equal(after, before)
+    np.testing.assert_array_equal(after_values, values)
+
+    PPOOptimizer(model, run).step(batch)
+
+    assert np.any(model.parameters["w1"][-1] != 0)
+    with pytest.raises(PPOContractError, match="observation shape"):
+        model.evaluate_batch(batch.observations[:, :-1], batch.action_masks)
 
 
 def test_env_ppo_model_inference_masks_logits_and_returns_value_exactly():

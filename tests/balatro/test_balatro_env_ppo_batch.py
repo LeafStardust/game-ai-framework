@@ -107,7 +107,7 @@ def test_env_ppo_batch_assembles_exact_stream_slices_and_restores_carryover():
     assert assembler.next_episode_indices == tuple(range(8, 16))
     batch = assembler.assemble()
 
-    assert batch.observations.shape == (2048, 3320)
+    assert batch.observations.shape == (2048, 3321)
     assert batch.action_masks.shape == (2048, 27)
     assert batch.action_indices.shape == (2048,)
     assert batch.episode_indices.tolist() == [

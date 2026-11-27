@@ -184,6 +184,8 @@ class PPOHeadlessBackend:
         tactical_actions: int,
     ) -> EnvStateFrame:
         state = run.public
+        if not run.pending_tags_are_exact():
+            raise HeadlessTransitionError("strategy observation cannot represent unowned pending Tags")
         info = {
             "backend_schema": PPO_HEADLESS_BACKEND_SCHEMA,
             "reward_contract": self._reward_contract,
@@ -204,6 +206,7 @@ class PPOHeadlessBackend:
                 status=RunStatus.LOSS,
                 owner=TurnOwner.TERMINAL,
                 info=info,
+                pending_double_tags=len(run.tags),
             )
         if state.phase == "ROUND_EVAL":
             require_ante_8_win_boundary(run)
@@ -212,6 +215,7 @@ class PPOHeadlessBackend:
                 status=RunStatus.ANTE_8_WIN,
                 owner=TurnOwner.TERMINAL,
                 info=info,
+                pending_double_tags=len(run.tags),
             )
         if state.phase not in {"BLIND_SELECT", "SHOP"}:
             raise HeadlessTransitionError(
@@ -222,6 +226,7 @@ class PPOHeadlessBackend:
             status=RunStatus.RUNNING,
             owner=TurnOwner.AGENT,
             info=info,
+            pending_double_tags=len(run.tags),
         )
 
     def reset(self, seed: str | int) -> EnvStateFrame:

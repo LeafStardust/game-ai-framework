@@ -1,4 +1,5 @@
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
+from hashlib import sha256
 
 import pytest
 
@@ -55,7 +56,7 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
     assert PUBLIC_OBSERVATION_SCHEMA.version == PUBLIC_OBSERVATION_VERSION
     assert encoded.schema_version == PUBLIC_OBSERVATION_VERSION
     assert encoded.shape == PUBLIC_OBSERVATION_SCHEMA.shape
-    assert encoded.shape == (3320,)
+    assert encoded.shape == (3321,)
     assert PUBLIC_OBSERVATION_SCHEMA.feature_names[:5] == (
         "frame.status", "frame.owner", "state.phase", "state.money", "state.ante"
     )
@@ -65,13 +66,32 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
     assert _at(encoded, "jokers.0.present") == 1.0
 
 
+def test_env_o_v7_appends_only_the_exact_pending_double_tag_count():
+    frame = _frame()
+    names = PUBLIC_OBSERVATION_SCHEMA.feature_names
+    legacy_digest = sha256("\n".join(names[:-1]).encode()).hexdigest()
+    assert legacy_digest == "b170f7f6703953f6f20e72143ec0bd849b6549729c63393244c0deb3ab55601c"
+    assert names[-1] == "tags.pending_double_count"
+
+    baseline = frame.encoded_observation()
+    pending = replace(frame, pending_double_tags=2).encoded_observation()
+    assert pending.values[:-1] == baseline.values[:-1]
+    assert (baseline.values[-1], pending.values[-1]) == (0.0, 2.0)
+
+
+@pytest.mark.parametrize("invalid", [-1, True, 1.0])
+def test_env_o_rejects_inexact_pending_double_tag_count(invalid):
+    with pytest.raises(ValueError, match="nonnegative integer count"):
+        replace(_frame(), pending_double_tags=invalid)
+
+
 @pytest.mark.parametrize(("attribute", "prefix"), [
     ("owned_deck", "owned_deck"), ("discard_pile", "discard"),
 ])
 def test_env_o_v6_accepts_exact_bounded_deck_and_rejects_overflow(attribute, prefix):
     frame = _frame()
     legacy = encode_public_observation(frame)
-    assert legacy.values[2480:] == (0.0,) * 840
+    assert legacy.values[2480:3320] == (0.0,) * 840
 
     cards = [BalatroCard("2", "Clubs") for _ in range(81)] + [BalatroCard("A", "Spades")]
     setattr(frame.state, attribute, cards)
@@ -95,8 +115,8 @@ def test_env_o_v6_encodes_held_spectral_identity_in_existing_slots():
 
     encoded = encode_public_observation(frame)
 
-    assert encoded.shape == (3320,)
-    assert encoded.schema_version == "balatro-red-white-public-observation-v6"
+    assert encoded.shape == (3321,)
+    assert encoded.schema_version == "balatro-red-white-public-observation-v7"
     assert _at(encoded, "consumables.0.category") == 3.0
     assert _at(encoded, "consumables.0.center") == 35 + VANILLA_SPECTRAL_CENTER_ORDER.index("c_cryptid")
 
