@@ -40,6 +40,7 @@ from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.jokers.gros_michel import GrosMichelJoker
+from games.balatro.jokers.campfire import CampfireJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 
@@ -53,6 +54,7 @@ _BLIND_START_INERT_JOKER_TYPES = (
     EightBallJoker,
     FlashCardJoker,
     GrosMichelJoker,
+    CampfireJoker,
     DNAJoker,
     FacelessJoker,
     DietColaJoker,

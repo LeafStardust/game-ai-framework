@@ -3694,3 +3694,27 @@ def test_env_ppo_trace_seed_buys_and_sells_gros_michel_without_extinction():
     assert run.public.jokers == []
     assert run.gros_michel_extinct is False
     assert "gros_michel" not in run.rng.nodes
+
+
+def test_env_ppo_trace_seed_buys_and_sells_exact_campfire():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="3B8B6C3F")
+    for alias in (
+        "SELECT_BLIND", "END_SHOP", "SELECT_BLIND", "BUY_VOUCHER", "END_SHOP",
+        "SELECT_BLIND", "BUY_VOUCHER", "END_SHOP", "SELECT_BLIND", "END_SHOP",
+        "SELECT_BLIND",
+    ):
+        params = {"slot": 0} if alias == "BUY_VOUCHER" else {}
+        environment.step(EnvAction.from_alias(alias, params))
+
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+    assert buy in environment.legal_actions()
+    environment.step(buy)
+    state = environment.frame.state
+    assert state.money == 3
+    assert [(joker.center, joker.x_mult, joker.sell_cost) for joker in state.jokers] == [
+        ("j_campfire", 1.0, 4)
+    ]
+    environment.step(EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}))
+    assert environment.frame.state.money == 7
+    assert environment.frame.state.jokers == []

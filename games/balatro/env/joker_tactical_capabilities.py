@@ -21,6 +21,7 @@ from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.jokers.gros_michel import GrosMichelJoker
+from games.balatro.jokers.campfire import CampfireJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.diet_cola import DietColaJoker
@@ -89,6 +90,10 @@ def generated_joker_tactical_callbacks_are_exact(
             if type(joker.mult) is not int or joker.mult < 0 or joker.mult % 2:
                 return False
             expected_center = "j_flash"
+        elif type(joker) is CampfireJoker:
+            if type(joker.x_mult) not in (int, float) or joker.x_mult < 1 or joker.x_mult % 0.25:
+                return False
+            expected_center = "j_campfire"
         elif type(joker) is GrosMichelJoker:
             if type(joker.mult) is not int or joker.mult != 15 or joker.destroyed is not False:
                 return False

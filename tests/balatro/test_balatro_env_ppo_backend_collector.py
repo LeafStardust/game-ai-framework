@@ -995,9 +995,7 @@ def test_env_ppo_backend_acquires_generated_lusty_joker_and_discovers_its_center
         ("j_gros_michel", 5, 5, False),
     )
     assert buy in environment.legal_actions()
-    assert EnvAction.from_alias("BUY_JOKER", {"slot": 1}) not in (
-        environment.legal_actions()
-    )
+    assert EnvAction.from_alias("BUY_JOKER", {"slot": 1}) in environment.legal_actions()
     environment.step(buy)
     assert backend.run.public.money == before_money - 5
     assert type(backend.run.public.jokers[0]) is LustyJoker

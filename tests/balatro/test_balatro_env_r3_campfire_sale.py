@@ -10,6 +10,8 @@ from games.balatro.state import BalatroState
 
 def _shop_run(*jokers):
     state = BalatroState()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
     state.phase = "SHOP"
     state.shop_active = True
     state.money = 7
