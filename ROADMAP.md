@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`e50dfb6df0032b6f96dd761d11bd1b34bace88d3`.
+`a690c4b17d2633bb50e31df3e53c78bee067a8a4`.
 
 ## Objective
 
@@ -2554,14 +2554,26 @@ acquisition. The committed strategic/shop trace offers uneditioned
 `j_diet_cola` at episode 58 decision 3 / seed `062DA0EA`, with rarity 2,
 base cost 6, and price 6.
 
-Next, own the smallest exact pending Double Tag slice before connecting
-Diet Cola. Trace vanilla `add_tag` ordering and keep pending Double Tags
-through supported blind, shop, and cash-out boundaries. Verify the
-consumption order and per-copy balance for the already-admitted Economy
-Tag skip, then define the public pending-Tag feature and compatible
-artifact versions. Keep Diet Cola purchase and sale masked until the
-complete reachable slice passes CI. Hallucination, booster work, rewards,
-and retraining remain deferred.
+Next, append the count of pending Double Tags to the public observation
+and version the dependent PPO training, model, rollout, and checkpoint
+contracts. Preserve all 3,320 existing feature positions and prove the
+zero-count baseline and the owned count at strategic boundaries. Keep
+Diet Cola purchase and sale masked until the observation and artifact
+gate passes. Hallucination, booster work, rewards, and retraining
+remain deferred.
+
+Pending Double Tag lifecycle checkpoint:
+
+- Commit `2c9b37ba` carries only pending Double Tags through validated
+  blind, Play, cash-out, and shop boundaries. The already-admitted Small
+  Blind Economy skip consumes them. Each copy applies the $40 cap to the
+  updated balance, so $17 becomes $68 with one Double Tag or $108 with
+  two. The skip count advances once, and Tag processing consumes no RNG.
+- Initial Actions run `45951220512` hit the 10-minute timeout before
+  pytest printed totals. Commit `26e2f9df` extends the same job to 15
+  minutes. Commit `a690c4b1` keeps rejection fixtures on unsupported
+  Juggle Tags. GitHub Actions run `45953585279`, job `140354815441`
+  logged **3944 passed, 1621 deselected in 389.19s**.
 
 Diet Cola source audit:
 
@@ -2571,10 +2583,9 @@ Diet Cola source audit:
   and marks the pending Double Tag triggered.
 - `HeadlessRunState.tags` already retains and serializes a private list.
   The public observation encodes the selected blind's offered Tag. It has
-  no pending Tag feature. Current blind-start, Play, cash-out, generation,
-  and skip guards reject nonempty active Tags. `skip_blind_exact` admits
-  only the immediate Small Blind Economy Tag. Adding Diet Cola to the
-  sale list alone would leave the next normal transition unsupported.
+  no pending Tag feature. The owned lifecycle now accepts pending Double
+  Tags. `skip_blind_exact` still admits only the immediate Small Blind
+  Economy Tag.
 
 To the Moon acquisition checkpoint:
 
