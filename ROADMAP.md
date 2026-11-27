@@ -2585,6 +2585,12 @@ Reward changes remain deferred.
   checkpoint integrity, and rollout behavior before extending the run.
   Use the existing fixed-seed and fresh unseeded promotion contract for
   the trained candidate.
+- The first pilot on `be2f431d` stopped before publishing a checkpoint.
+  Episode 4 / seed `A0370D8B` exposed a missing Golden Joker blind-start
+  admission. The corrected replay completes on `7bda10df`, awaiting CI
+  run `46023644344`. Episode 5 / seed `59B15C34` separately spends time
+  in the tactical lookahead after the second shop. Retry from a fresh
+  artifact directory once the repair passes CI.
 
 Gros Michel and Campfire acquisition checkpoint:
 
