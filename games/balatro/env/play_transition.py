@@ -66,7 +66,7 @@ from games.balatro.env.voucher_capabilities import (
     expected_red_deck_hand_size_for_vouchers,
 )
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
-from games.balatro.env.shop_consumable_generation_state import generate_held_eight_ball_tarot
+from games.balatro.env.shop_consumable_generation_state import generate_held_tarot
 from games.balatro.env.spectral_inventory import GeneratedHeldSpectral, generate_held_spectral
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
@@ -567,7 +567,7 @@ def apply_supported_ordinary_play(
         next_state.score += hand_score.total
         if reserved_tarots:
             for _ in range(reserved_tarots):
-                next_run = generate_held_eight_ball_tarot(next_run)
+                next_run = generate_held_tarot(next_run, key_append="8ba")
             next_state = next_run.public
             selected = list(next_run.played_pile)
         for category in generated or ():

@@ -296,7 +296,7 @@ def eligible_consumable_records_from_state(
     return tuple(dict(record) for record in pools[card_type])
 
 
-def require_eight_ball_tarot_authority(run: HeadlessRunState) -> dict[str, list[dict]]:
+def require_held_tarot_authority(run: HeadlessRunState) -> dict[str, list[dict]]:
     """Validate the observed pool and inventory needed for 8 Ball Tarot creation."""
     pools = _validate_observed_consumable_generation_pools(run)
     state = run.public
@@ -306,7 +306,7 @@ def require_eight_ball_tarot_authority(run: HeadlessRunState) -> dict[str, list[
         or _showman_present(run)
         or not run.pending_tags_are_exact()
     ):
-        raise HeadlessTransitionError("8 Ball Tarot generation requires exact open inventory")
+        raise HeadlessTransitionError("Held Tarot generation requires exact open inventory")
     discount = expected_shop_discount_percent_for_vouchers(state)
     if (
         discount is None
@@ -315,7 +315,7 @@ def require_eight_ball_tarot_authority(run: HeadlessRunState) -> dict[str, list[
         or state.shop_discount_percent != discount
         or state.shop_inflation_observed is not True
     ):
-        raise HeadlessTransitionError("8 Ball Tarot generation requires exact price inputs")
+        raise HeadlessTransitionError("Held Tarot generation requires exact price inputs")
     records = {record["key"]: record for record in pools["Tarot"]}
     visible = set()
     for item in (*state.consumables, *state.shop_consumables):
@@ -323,31 +323,31 @@ def require_eight_ball_tarot_authority(run: HeadlessRunState) -> dict[str, list[
         if record is None:
             category = getattr(item, "category", getattr(item, "card_type", ""))
             if category not in ("Spectral", "SPECTRAL"):
-                raise HeadlessTransitionError("8 Ball requires exact visible consumable identities")
+                raise HeadlessTransitionError("Held Tarot generation requires exact visible consumable identities")
         elif record["type"] == "Tarot":
             visible.add(record["key"])
     if records.keys() & visible:
-        raise HeadlessTransitionError("8 Ball Tarot pool contains a visible duplicate")
+        raise HeadlessTransitionError("Held Tarot pool contains a visible duplicate")
     profile = run.tag_profile_state
     if profile is None or any(
         type(run.generated_center_discovered(key)) is not bool
         or run.generated_center_discovered(key) != (key in profile.discovered_center_keys)
         for key in vanilla_consumable_center_order("Tarot")
     ):
-        raise HeadlessTransitionError("8 Ball Tarot generation requires profile discovery authority")
+        raise HeadlessTransitionError("Held Tarot generation requires profile discovery authority")
     return pools
 
 
-def generate_held_eight_ball_tarot(run: HeadlessRunState) -> HeadlessRunState:
-    """Publish one reserved 8 Ball success on an isolated run."""
-    pools = require_eight_ball_tarot_authority(run)
+def generate_held_tarot(run: HeadlessRunState, *, key_append: str) -> HeadlessRunState:
+    """Publish one reserved Tarot on an isolated run."""
+    pools = require_held_tarot_authority(run)
     state = run.public
     if len(state.consumables) == state.consumable_slots:
-        raise HeadlessTransitionError("8 Ball Tarot generation requires exact open inventory")
+        raise HeadlessTransitionError("Held Tarot generation requires exact open inventory")
     records = {record["key"]: record for record in pools["Tarot"]}
     profile = run.tag_profile_state
     next_run = run.copy()
-    center, _ = poll_held_tarot_center(next_run.rng, state.ante, records.keys(), key_append="8ba")
+    center, _ = poll_held_tarot_center(next_run.rng, state.ante, records.keys(), key_append=key_append)
     base_cost = records[center]["cost"] if records else 3
     price = vanilla_card_cost(
         base_cost, edition=None, inflation=state.shop_inflation,

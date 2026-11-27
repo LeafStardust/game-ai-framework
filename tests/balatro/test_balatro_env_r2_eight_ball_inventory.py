@@ -5,7 +5,7 @@ from games.balatro.card import BalatroCard
 from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.episode_backend import pristine_red_white_reset
 from games.balatro.env.play_transition import apply_supported_ordinary_play
-from games.balatro.env.shop_consumable_generation_state import generate_held_eight_ball_tarot
+from games.balatro.env.shop_consumable_generation_state import generate_held_tarot
 from games.balatro.env.shop_repricing import reprice_exact_generated_shop
 from games.balatro.env.transition import HeadlessTransitionError
 from games.balatro.hand import PokerHand
@@ -25,8 +25,8 @@ def _run():
 def test_env_r2_eight_ball_publishes_tarot_and_suppresses_held_center():
     run = _run()
     original_rng = run.rng_snapshot()
-    first = generate_held_eight_ball_tarot(run)
-    second = generate_held_eight_ball_tarot(first)
+    first = generate_held_tarot(run, key_append="8ba")
+    second = generate_held_tarot(first, key_append="8ba")
 
     assert run.public.consumables == []
     assert run.rng_snapshot() == original_rng
@@ -44,23 +44,23 @@ def test_env_r2_eight_ball_publishes_tarot_and_suppresses_held_center():
 
     snapshot = second.rng_snapshot()
     with pytest.raises(HeadlessTransitionError, match="exact open inventory"):
-        generate_held_eight_ball_tarot(second)
+        generate_held_tarot(second, key_append="8ba")
     assert second.rng_snapshot() == snapshot
 
 
 def test_env_r2_eight_ball_rejects_inconsistent_pool_before_rng():
     run = _run()
-    result = generate_held_eight_ball_tarot(run)
+    result = generate_held_tarot(run, key_append="8ba")
     result.public.consumable_generation_pools = run.public.consumable_generation_pools
     snapshot = result.rng_snapshot()
 
     with pytest.raises(HeadlessTransitionError, match="visible duplicate"):
-        generate_held_eight_ball_tarot(result)
+        generate_held_tarot(result, key_append="8ba")
     assert result.rng_snapshot() == snapshot
 
 
 def test_env_r2_eight_ball_tarot_reprices_with_shop_discount():
-    run = generate_held_eight_ball_tarot(_run())
+    run = generate_held_tarot(_run(), key_append="8ba")
     run.public.phase = "SHOP"
     run.public.shop_active = True
     result = reprice_exact_generated_shop(run, discount_percent=50)

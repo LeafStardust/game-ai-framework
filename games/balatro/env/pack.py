@@ -12,6 +12,10 @@ from __future__ import annotations
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.joker_order import JokerOrderError
 from games.balatro.env.shop_booster_generation import GeneratedShopBoosterItem
+from games.balatro.env.shop_consumable_generation_state import (
+    generate_held_tarot,
+    require_held_tarot_authority,
+)
 from games.balatro.env.shop_generation_state import (
     restore_removed_shop_jokers_to_generation_pool,
     suppress_visible_shop_jokers_from_generation_pool,
@@ -45,7 +49,6 @@ def open_paid_buffoon_pack_exact(run: HeadlessRunState, slot: int) -> HeadlessRu
         or not run.pending_tags_are_exact()
         or not shop_pricing_vouchers_are_exact(state)
         or state.shop_inflation_observed is not True or state.shop_inflation != 0
-        or any(type(joker) is HallucinationJoker for joker in state.jokers)
     ):
         raise HeadlessTransitionError("paid Buffoon opening requires exact shop state")
     if type(slot) is not int or not 0 <= slot < len(state.shop_boosters):
@@ -69,6 +72,16 @@ def open_paid_buffoon_pack_exact(run: HeadlessRunState, slot: int) -> HeadlessRu
     ):
         raise HeadlessTransitionError("paid Buffoon opening requires exact price and discovery")
 
+    hallucinations = [joker for joker in state.jokers if type(joker) is HallucinationJoker]
+    if hallucinations:
+        require_held_tarot_authority(run)
+        if any(
+            getattr(joker, "center", None) != "j_hallucination"
+            or getattr(joker, "edition", None) is not None
+            or type(joker.debuffed) is not bool
+            for joker in hallucinations
+        ):
+            raise HeadlessTransitionError("Buffoon opening requires exact Hallucination state")
     next_run = run.copy()
     next_run.public.money -= price
     next_run.public.shop_boosters.pop(slot)
@@ -80,6 +93,15 @@ def open_paid_buffoon_pack_exact(run: HeadlessRunState, slot: int) -> HeadlessRu
     next_run.tag_profile_state = TagProfileState(
         next_run.tag_profile_state.discovered_center_keys | {item.center_key}
     )
+    reserved_tarots = 0
+    available = state.consumable_slots - len(state.consumables) if hallucinations else 0
+    for joker in hallucinations:
+        if (
+            not joker.debuffed
+            and reserved_tarots < available
+            and next_run.rng.random(f"halu{state.ante}") < 0.5
+        ):
+            reserved_tarots += 1
 
     for _ in range(item.pack_size):
         descriptor = generate_ordinary_shop_joker_descriptor(next_run, key_append="buf")
@@ -93,6 +115,8 @@ def open_paid_buffoon_pack_exact(run: HeadlessRunState, slot: int) -> HeadlessRu
         )
         next_run = suppress_visible_shop_jokers_from_generation_pool(descriptor.run, (option,))
         next_run.pack_choices.append(option)
+    for _ in range(reserved_tarots):
+        next_run = generate_held_tarot(next_run, key_append="hal")
     return next_run
 
 

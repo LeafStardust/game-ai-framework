@@ -9,6 +9,7 @@ from games.balatro.env.pack import (
 from games.balatro.env.ppo_campaign import make_ppo_training_environment
 from games.balatro.env.serialization import restore_headless_run_state
 from games.balatro.env.transition import HeadlessTransitionError
+from games.balatro.jokers.hallucination import HallucinationJoker
 
 
 def test_paid_buffoon_opens_exact_choices_and_skip_restores_shop_pool():
@@ -54,3 +55,33 @@ def test_paid_buffoon_opens_exact_choices_and_skip_restores_shop_pool():
     assert "j_red_card" in common
     assert "j_mystic_summit" not in common
     assert chosen.rng_snapshot() == opened.rng_snapshot()
+
+
+@pytest.mark.parametrize(
+    "seed, slots, debuffed, rolled, centers",
+    [
+        (4, 2, False, True, ["c_high_priestess"]),
+        (0, 2, False, True, []),
+        (4, 0, False, False, []),
+        (4, 2, True, False, []),
+    ],
+)
+def test_paid_buffoon_hallucination_rolls_only_with_an_active_joker_and_room(
+    seed, slots, debuffed, rolled, centers,
+):
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed=seed)
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    run = environment._backend.run
+    joker = HallucinationJoker()
+    joker.center = "j_hallucination"
+    joker.debuffed = debuffed
+    run.public.jokers = [joker]
+    run.public.consumable_slots = slots
+
+    opened = open_paid_buffoon_pack_exact(run, 0)
+
+    assert ("halu1" in opened.rng.nodes) is rolled
+    assert ("Tarothal1" in opened.rng.nodes) is bool(centers)
+    assert [item.center_key for item in opened.public.consumables] == centers
+    assert "halu1" not in run.rng.nodes
