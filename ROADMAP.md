@@ -36,6 +36,8 @@ For every continuation:
    For Joker acquisition work, update the [headless Joker checklist](docs/balatro/HEADLESS_JOKER_CHECKLIST.md)
    in the same checkpoint. Record the verified total, the current Joker's
    status, and the next Joker from the roadmap. Count support after CI passes.
+   Continue eligible Jokers sequentially while CI runs. Review completed jobs
+   between implementation steps and repair failures when they surface.
 10. Request a live Balatro run only for genuinely live-only validation, and
     provide the exact commands. The held Money Tree live check remains on hold.
 11. If context is insufficient, synchronize this roadmap and stop rather than
@@ -2561,6 +2563,12 @@ ordering, owned-Joker removal, and the persistent pool flag that excludes
 Gros Michel and admits Cavendish to generation. Keep acquisition closed
 until these effects are covered by deterministic regressions.
 Hallucination, booster work, rewards, and retraining remain deferred.
+
+- `ba61c014` completes the Gros Michel and Campfire acquisition replays
+  and corrects the stale purchase-mask assertion and Campfire fixture setup
+  reported by CI run `45991127858`. Verification is pending.
+- The remaining affordable uneditioned offer in this trace is Hallucination.
+  Its headless booster-open dependency remains deferred.
 
 8 Ball and Flash Card acquisition checkpoint:
 
