@@ -1,5 +1,7 @@
 import pytest
 
+from games.balatro.env.episode_backend import pristine_red_white_reset
+
 from games.balatro.env.shop_joker_generation import (
     generate_ordinary_shop_joker_descriptor,
 )
@@ -93,3 +95,20 @@ def test_env_r2_ordinary_shop_joker_descriptor_rejects_unowned_edition_rate_befo
     assert run.rng_snapshot() == before
     assert "rarity1sho" not in run.rng.nodes
     assert "edisho1" not in run.rng.nodes
+
+
+def test_buffoon_descriptor_uses_separate_identity_sticker_and_edition_streams():
+    run = pristine_red_white_reset(48)
+    run.public.phase = "BUFFOON_PACK"
+    before = run.rng_snapshot()
+    original_keys = set(run.rng.nodes)
+
+    result = generate_ordinary_shop_joker_descriptor(run, key_append="buf")
+
+    assert (result.center_key, result.rarity, result.base_cost, result.edition) == (
+        "j_egg", 1, 4, None,
+    )
+    assert [key for key in result.run.rng.nodes if key not in original_keys] == [
+        "rarity1buf", "Joker1buf1", "packetper1", "edibuf1",
+    ]
+    assert run.rng_snapshot() == before

@@ -222,7 +222,23 @@ def poll_base_main_shop_types(run: HeadlessRunState) -> ShopMainTypeSequence:
     return ShopMainTypeSequence(next_run, tuple(card_types))
 
 
-def poll_base_shop_joker_rarity(run: HeadlessRunState) -> ShopJokerRarityPoll:
+def _validate_joker_generation_boundary(run: HeadlessRunState, key_append: str) -> None:
+    if key_append == "sho":
+        _validate_base_shop_boundary(run)
+        return
+    if key_append != "buf" or not isinstance(run, HeadlessRunState):
+        raise HeadlessTransitionError("unsupported Joker generation boundary")
+    state = run.public
+    if state.phase != "BUFFOON_PACK" or state.shop_active:
+        raise HeadlessTransitionError("Buffoon Joker generation requires an open pack")
+    require_exact_normal_shop_ante(state)
+    if not shop_generation_vouchers_are_exact(state) or not run.pending_tags_are_exact():
+        raise HeadlessTransitionError("Buffoon Joker generation requires exact modifiers")
+
+
+def poll_base_shop_joker_rarity(
+    run: HeadlessRunState, *, key_append: str = "sho",
+) -> ShopJokerRarityPoll:
     """Poll ordinary shop Joker rarity before concrete pool construction.
 
     ``create_card_for_shop`` calls ``create_card(..., key_append='sho')``. For a
@@ -230,10 +246,10 @@ def poll_base_shop_joker_rarity(run: HeadlessRunState) -> ShopJokerRarityPoll:
     ``pseudorandom('rarity' .. ante .. 'sho')`` and maps it to Common/Uncommon/
     Rare ids 1/2/3. Legendary rarity is not reachable through this ordinary path.
     """
-    _validate_base_shop_boundary(run)
+    _validate_joker_generation_boundary(run, key_append)
 
     next_run = run.copy()
-    roll = next_run.rng.random(f"rarity{run.public.ante}sho")
+    roll = next_run.rng.random(f"rarity{run.public.ante}{key_append}")
     return ShopJokerRarityPoll(next_run, _joker_rarity_from_roll(roll))
 
 
@@ -241,6 +257,8 @@ def poll_base_shop_joker_center(
     run: HeadlessRunState,
     rarity: int,
     eligible_keys: Collection[str],
+    *,
+    key_append: str = "sho",
 ) -> ShopJokerCenterPoll:
     """Select one ordinary shop Joker identity from an exact eligible pool.
 
@@ -254,13 +272,13 @@ def poll_base_shop_joker_center(
     The function intentionally does not infer unlock/profile/Showman/ban/flag
     state and does not instantiate a runtime Joker object or roll an edition.
     """
-    _validate_base_shop_boundary(run)
+    _validate_joker_generation_boundary(run, key_append)
     if type(rarity) is not int or rarity not in (1, 2, 3):
         raise HeadlessTransitionError("ordinary shop Joker rarity must be exact 1, 2, or 3")
 
     pool = current_joker_pool_from_eligible_keys(rarity, eligible_keys)
     next_run = run.copy()
-    pool_key = f"Joker{rarity}sho{run.public.ante}"
+    pool_key = f"Joker{rarity}{key_append}{run.public.ante}"
 
     index = next_run.rng.pseudorandom_element_index(len(pool), pool_key)
     center = pool[index]
@@ -278,7 +296,9 @@ def poll_base_shop_joker_center(
     return ShopJokerCenterPoll(next_run, center, rarity, resamples)
 
 
-def poll_base_shop_joker_edition(run: HeadlessRunState) -> ShopJokerEditionPoll:
+def poll_base_shop_joker_edition(
+    run: HeadlessRunState, *, key_append: str = "sho",
+) -> ShopJokerEditionPoll:
     """Poll the exact edition assigned by ordinary base-shop Joker creation.
 
     The base boundary validates that current owned Vouchers and the canonical
@@ -286,7 +306,7 @@ def poll_base_shop_joker_edition(run: HeadlessRunState) -> ShopJokerEditionPoll:
     remain safe here while changing the Foil/Holographic/Polychrome thresholds
     exactly as vanilla does. Negative remains unscaled by edition rate.
     """
-    _validate_base_shop_boundary(run)
+    _validate_joker_generation_boundary(run, key_append)
     rate = run.public.joker_generation_edition_rate
     if isinstance(rate, bool) or not isinstance(rate, (int, float)):
         raise HeadlessTransitionError("base shop Joker edition rate must be numeric")
@@ -295,7 +315,7 @@ def poll_base_shop_joker_edition(run: HeadlessRunState) -> ShopJokerEditionPoll:
         raise HeadlessTransitionError("base shop Joker edition rate cannot be negative")
 
     next_run = run.copy()
-    roll = next_run.rng.random(f"edisho{run.public.ante}")
+    roll = next_run.rng.random(f"edi{key_append}{run.public.ante}")
     return ShopJokerEditionPoll(
         next_run,
         _joker_edition_from_roll(roll, exact_rate),

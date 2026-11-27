@@ -43,12 +43,15 @@ class OrdinaryShopJokerDescriptor:
 
 def generate_ordinary_shop_joker_descriptor(
     run: HeadlessRunState,
+    *,
+    key_append: str = "sho",
 ) -> OrdinaryShopJokerDescriptor:
     """Generate one source-ordered ordinary base-shop Joker descriptor."""
-    rarity_poll = poll_base_shop_joker_rarity(run)
+    rarity_poll = poll_base_shop_joker_rarity(run, key_append=key_append)
     center_poll = poll_base_shop_joker_center_from_state(
         rarity_poll.run,
         rarity_poll.rarity,
+        key_append=key_append,
     )
     base_cost = joker_center_cost_from_state(
         center_poll.run,
@@ -56,8 +59,9 @@ def generate_ordinary_shop_joker_descriptor(
         center_poll.center_key,
     )
     pre_edition_run = center_poll.run.copy()
-    pre_edition_run.rng.random(f"etperpoll{run.public.ante}")
-    edition_poll = poll_base_shop_joker_edition(pre_edition_run)
+    sticker_stream = "packetper" if key_append == "buf" else "etperpoll"
+    pre_edition_run.rng.random(f"{sticker_stream}{run.public.ante}")
+    edition_poll = poll_base_shop_joker_edition(pre_edition_run, key_append=key_append)
     return OrdinaryShopJokerDescriptor(
         run=edition_poll.run,
         center_key=center_poll.center_key,

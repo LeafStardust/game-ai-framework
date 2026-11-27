@@ -277,11 +277,13 @@ def joker_center_cost_from_state(run: HeadlessRunState, rarity: int, center_key:
 def poll_base_shop_joker_center_from_state(
     run: HeadlessRunState,
     rarity: int,
+    *,
+    key_append: str = "sho",
 ) -> ShopJokerCenterPoll:
     """Select an exact shop Joker identity from canonical observed eligibility."""
     eligible_keys = eligible_joker_keys_from_state(run, rarity)
     try:
-        return poll_base_shop_joker_center(run, rarity, eligible_keys)
+        return poll_base_shop_joker_center(run, rarity, eligible_keys, key_append=key_append)
     except (TypeError, ValueError) as exc:
         raise HeadlessTransitionError(
             "observed Joker generation pool is incompatible with the pinned vanilla catalogue"
