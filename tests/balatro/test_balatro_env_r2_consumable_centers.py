@@ -6,7 +6,10 @@ from games.balatro.env.consumable_centers import (
     VANILLA_TAROT_CENTER_ORDER,
     current_consumable_pool_from_eligible_keys,
 )
-from games.balatro.env.consumable_generation import poll_held_spectral_center
+from games.balatro.env.consumable_generation import (
+    poll_eight_ball_tarot_center,
+    poll_held_spectral_center,
+)
 from games.balatro.env.rng import BalatroRNG
 
 
@@ -83,6 +86,22 @@ def test_env_r2_spectral_pool_keeps_hidden_center_positions_unavailable():
         8: "c_ectoplasm",
         15: "c_cryptid",
     }
+
+
+@pytest.mark.parametrize(
+    "eligible, center, nodes",
+    [
+        ({"c_chariot"}, "c_chariot", ["Tarot8ba2", "Tarot8ba2_resample2"]),
+        (set(), "c_strength", ["Tarot8ba2"]),
+    ],
+)
+def test_env_r2_eight_ball_tarot_poll_uses_seeded_pool_and_fallback(
+    eligible, center, nodes,
+):
+    rng = BalatroRNG(48)
+
+    assert poll_eight_ball_tarot_center(rng, 2, eligible) == (center, len(nodes) - 1)
+    assert list(rng.nodes) == nodes
 
 
 def test_env_r2_seance_polls_seeded_spectral_positions_and_ordered_retries():

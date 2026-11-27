@@ -21,6 +21,18 @@ def poll_consumable_center(
     return center, resamples
 
 
+def poll_eight_ball_tarot_center(
+    rng: BalatroRNG,
+    ante: int,
+    eligible_keys: Collection[str],
+) -> tuple[str, int]:
+    """Poll a non-soulable Tarot after a successful 8 Ball roll."""
+    if type(ante) is not int:
+        raise TypeError("8 Ball Tarot generation requires an exact integer Ante")
+    pool = current_consumable_pool_from_eligible_keys("Tarot", eligible_keys)
+    return poll_consumable_center(rng, pool, f"Tarot8ba{ante}")
+
+
 def poll_held_spectral_center(
     rng: BalatroRNG,
     ante: int,
