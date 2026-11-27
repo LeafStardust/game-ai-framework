@@ -7,7 +7,7 @@ from games.balatro.env.consumable_centers import (
     current_consumable_pool_from_eligible_keys,
 )
 from games.balatro.env.consumable_generation import (
-    poll_eight_ball_tarot_center,
+    poll_held_tarot_center,
     poll_held_spectral_center,
 )
 from games.balatro.env.rng import BalatroRNG
@@ -100,8 +100,17 @@ def test_env_r2_eight_ball_tarot_poll_uses_seeded_pool_and_fallback(
 ):
     rng = BalatroRNG(48)
 
-    assert poll_eight_ball_tarot_center(rng, 2, eligible) == (center, len(nodes) - 1)
+    assert poll_held_tarot_center(rng, 2, eligible, key_append="8ba") == (
+        center, len(nodes) - 1,
+    )
     assert list(rng.nodes) == nodes
+
+
+def test_env_r2_hallucination_tarot_poll_uses_separate_seeded_retry_stream():
+    rng = BalatroRNG(48)
+
+    assert poll_held_tarot_center(rng, 2, {"c_sun"}, key_append="hal") == ("c_sun", 1)
+    assert list(rng.nodes) == ["Tarothal2", "Tarothal2_resample2"]
 
 
 def test_env_r2_seance_polls_seeded_spectral_positions_and_ordered_retries():

@@ -17,7 +17,7 @@ by the authoritative observed records and are never guessed.
 from __future__ import annotations
 
 from games.balatro.env.consumable_centers import vanilla_consumable_center_order
-from games.balatro.env.consumable_generation import poll_eight_ball_tarot_center
+from games.balatro.env.consumable_generation import poll_held_tarot_center
 from games.balatro.env.shop_consumable_items import (
     GeneratedShopConsumableItem,
     OrdinaryShopConsumableDescriptor,
@@ -347,7 +347,7 @@ def generate_held_eight_ball_tarot(run: HeadlessRunState) -> HeadlessRunState:
     records = {record["key"]: record for record in pools["Tarot"]}
     profile = run.tag_profile_state
     next_run = run.copy()
-    center, _ = poll_eight_ball_tarot_center(next_run.rng, state.ante, records.keys())
+    center, _ = poll_held_tarot_center(next_run.rng, state.ante, records.keys(), key_append="8ba")
     base_cost = records[center]["cost"] if records else 3
     price = vanilla_card_cost(
         base_cost, edition=None, inflation=state.shop_inflation,
