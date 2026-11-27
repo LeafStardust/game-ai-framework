@@ -80,7 +80,7 @@ Authoritative CI workflow: `.github/workflows/balatro-l3.yml`.
 | R6 performance gate | Complete / green |
 | O observation/action encoding | Complete / green |
 | B0 baseline/evaluation infrastructure | Complete / green |
-| PPO learner and training path | Observation v7; prior checkpoints are historical and fresh retraining is required |
+| PPO learner and training path | Observation v8; prior checkpoints are historical and a fresh campaign is queued after CI |
 
 Completed phase details are intentionally removed from this roadmap. Git
 history and the focused files under `docs/balatro/` retain the evidence. Do not
@@ -2554,8 +2554,9 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Implement one exact paid Buffoon opening and return path for Hallucination.
-Rewards and retraining remain deferred.
+Verify the paid Buffoon and Hallucination changes in CI, then freeze the
+verified Red/White surface for a fresh observation-v8 PPO campaign.
+Reward changes remain deferred.
 
 - Episode 63 decision 9 offers Hallucination for $4 in slot 1 on seed
   `3B8B6C3F`. `04fc23ed` pins its `Tarothal{ante}` pool stream.
@@ -2573,6 +2574,14 @@ Rewards and retraining remain deferred.
 - `97c5293d` routes paid Buffoon opening and pack actions through PPO.
   `9de790b5` admits Hallucination and adds its $4 purchase and $2 sale replay.
   Verify those changes in CI before counting Hallucination.
+- After the acquisition gate is green, close the current trace queue at 58
+  verified Jokers and record the exact implementation SHA and CI counts.
+  Start a fresh campaign artifact directory with observation v8, model v5,
+  campaign v16, and the existing PPO contract. The first execution
+  checkpoint is one completed optimizer batch. Verify persisted progress,
+  checkpoint integrity, and rollout behavior before extending the run.
+  Use the existing fixed-seed and fresh unseeded promotion contract for
+  the trained candidate.
 
 Gros Michel and Campfire acquisition checkpoint:
 
