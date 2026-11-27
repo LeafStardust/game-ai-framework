@@ -265,7 +265,7 @@ def _require_baseline_discard_callbacks_exact(run: HeadlessRunState) -> None:
         )
 
         if generated_joker_tactical_callbacks_are_exact(
-            state.jokers, castle_suit=run.castle_suit
+            state.jokers, castle_suit=run.castle_suit, mail_rebate_rank=run.mail_rebate_rank
         ):
             return
         raise HeadlessTransitionError(

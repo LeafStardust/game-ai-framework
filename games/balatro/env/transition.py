@@ -73,6 +73,7 @@ from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.lusty_joker import LustyJoker
 from games.balatro.jokers.mad_joker import MadJoker
+from games.balatro.jokers.mail_in_rebate import MAIL_REBATE_RANKS
 from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
@@ -234,6 +235,7 @@ class HeadlessRunState:
     consumable_usage_totals: dict[str, int] = field(default_factory=dict)
     generation_discovery: dict[str, bool] | None = None
     castle_suit: str | None = None
+    mail_rebate_rank: str | None = None
     opening_draw_capacity: int | None = None
     pillar_debuff_snapshot: tuple[tuple[bool, ...], tuple[bool, ...]] | None = None
     removed_base_six_suits: tuple[str, ...] = ()
@@ -248,6 +250,10 @@ class HeadlessRunState:
                    for group in snapshot)
         ):
             raise HeadlessTransitionError("invalid retained Pillar debuff snapshot")
+        if self.mail_rebate_rank is not None and (
+            type(self.mail_rebate_rank) is not str or self.mail_rebate_rank not in MAIL_REBATE_RANKS
+        ):
+            raise HeadlessTransitionError("invalid retained Mail-In Rebate rank")
         if self.castle_suit is not None and (
             not isinstance(self.castle_suit, str) or self.castle_suit not in CASTLE_SUITS
         ):
@@ -669,7 +675,9 @@ class ShopTransitionEngine:
 
             if type(source_item) is GeneratedShopJokerItem:
                 purchased = materialize_generated_shop_joker_for_acquisition(
-                    source_item, castle_suit=next_run.castle_suit
+                    source_item,
+                    castle_suit=next_run.castle_suit,
+                    mail_rebate_rank=next_run.mail_rebate_rank,
                 )
                 discovered = next_run.generated_center_discovered(
                     source_item.center_key
@@ -771,7 +779,7 @@ class ShopTransitionEngine:
 
                     require_held_spectral_authority(run)
                 materialize_generated_shop_joker_for_acquisition(
-                    item, castle_suit=run.castle_suit
+                    item, castle_suit=run.castle_suit, mail_rebate_rank=run.mail_rebate_rank,
                 )
             except (TypeError, HeadlessTransitionError):
                 return False

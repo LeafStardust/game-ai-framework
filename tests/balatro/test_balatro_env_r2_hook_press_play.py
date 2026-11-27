@@ -8,6 +8,7 @@ from games.balatro.jokers.castle import CastleJoker
 from games.balatro.jokers.cloud_9 import Cloud9Joker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.mime import MimeJoker
@@ -196,3 +197,22 @@ def test_env_r2_hook_input_state_is_isolated():
     assert started.public.discard_pile == []
     assert started.discard_pile == []
     assert started.rng_snapshot() == before_rng
+
+
+def test_env_r2_hook_pays_mail_without_spending_a_discard():
+    run = start_supported_start_inert_boss(_hook_run())
+    action = BalatroAction(PLAY_CARDS, cards=run.public.hand[:5])
+    baseline = apply_hook_press_play_discards(run, action)
+    run.mail_rebate_rank = baseline.discard_pile[0].rank
+    joker = MailInRebateJoker(run.mail_rebate_rank)
+    joker.center = "j_mail"
+    run.public.jokers = [joker]
+
+    result = apply_hook_press_play_discards(run, action)
+
+    assert result.discard_pile == baseline.discard_pile
+    assert result.rng_snapshot() == baseline.rng_snapshot()
+    assert result.public.discards_remaining == run.public.discards_remaining
+    assert result.public.money == run.public.money + 5 * sum(
+        card.rank == joker.rank for card in baseline.discard_pile
+    )

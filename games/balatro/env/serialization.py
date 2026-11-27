@@ -297,6 +297,8 @@ def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
         else _plain_value(asdict(run.blind_progression_state))
     )
     private = {name: _plain_value(getattr(run, name)) for name in _PRIVATE_SCALARS}
+    if run.mail_rebate_rank is not None:
+        private["mail_rebate_rank"] = run.mail_rebate_rank
     if run.castle_suit is not None:
         private["castle_suit"] = run.castle_suit
     if run.opening_draw_capacity is not None:
@@ -397,7 +399,8 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
         raise HeadlessTransitionError("invalid private zones in headless snapshot")
     private = payload["private"]
     optional_fields = {
-        "castle_suit", "opening_draw_capacity", "pillar_debuff_snapshot", "removed_base_six_suits",
+        "castle_suit", "mail_rebate_rank", "opening_draw_capacity",
+        "pillar_debuff_snapshot", "removed_base_six_suits",
     }
     if not isinstance(private, Mapping) or set(private) - optional_fields != set(_PRIVATE_SCALARS):
         raise HeadlessTransitionError("invalid private fields in headless snapshot")

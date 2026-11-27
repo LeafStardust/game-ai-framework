@@ -129,6 +129,7 @@ def _apply_hook_forced_discards(
         from games.balatro.jokers.faceless_joker import FacelessJoker
         from games.balatro.jokers.green_joker import GreenJoker
         from games.balatro.jokers.madness import MadnessJoker
+        from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
         from games.balatro.jokers.midas_mask import MidasMaskJoker
         from games.balatro.jokers.mime import MimeJoker
         from games.balatro.jokers.runner import RunnerJoker
@@ -144,6 +145,7 @@ def _apply_hook_forced_discards(
             FacelessJoker,
             GreenJoker,
             MadnessJoker,
+            MailInRebateJoker,
             MidasMaskJoker,
             MimeJoker,
             RunnerJoker,
@@ -155,7 +157,7 @@ def _apply_hook_forced_discards(
         if (
             any(type(joker) not in owned_hook_joker_types for joker in state.jokers)
             or not generated_joker_tactical_callbacks_are_exact(
-                state.jokers, castle_suit=run.castle_suit
+                state.jokers, castle_suit=run.castle_suit, mail_rebate_rank=run.mail_rebate_rank
             )
         ):
             raise HeadlessTransitionError(

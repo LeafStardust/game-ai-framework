@@ -54,6 +54,7 @@ from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.green_joker import GreenJoker
+from games.balatro.jokers.mail_in_rebate import MAIL_REBATE_RANKS, MailInRebateJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.scholar import ScholarJoker
@@ -92,6 +93,7 @@ def materialize_generated_shop_joker_for_acquisition(
     item: GeneratedShopJokerItem,
     *,
     castle_suit: str | None = None,
+    mail_rebate_rank: str | None = None,
 ) -> Joker:
     """Construct the first exactly owned generated gameplay Joker.
 
@@ -241,6 +243,13 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Faceless Joker"
+    elif item.center_key == "j_mail":
+        if type(mail_rebate_rank) is not str or mail_rebate_rank not in MAIL_REBATE_RANKS:
+            raise HeadlessTransitionError("generated Mail-In Rebate requires the exact round rank")
+        joker_type = MailInRebateJoker
+        expected_rarity = 1
+        expected_base_cost = 4
+        label = "Mail-In Rebate"
     elif item.center_key == "j_midas_mask":
         joker_type = MidasMaskJoker
         expected_rarity = 2
@@ -356,7 +365,12 @@ def materialize_generated_shop_joker_for_acquisition(
     if not isinstance(item.discovered, bool):
         raise HeadlessTransitionError("generated Joker discovery state must be exact")
 
-    joker = CastleJoker(castle_suit) if joker_type is CastleJoker else joker_type()
+    if joker_type is CastleJoker:
+        joker = CastleJoker(castle_suit)
+    elif joker_type is MailInRebateJoker:
+        joker = MailInRebateJoker(mail_rebate_rank)
+    else:
+        joker = joker_type()
     joker.center = item.center_key
     joker.label = label
     joker.rarity = item.rarity

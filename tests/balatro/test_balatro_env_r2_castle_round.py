@@ -49,6 +49,7 @@ def test_env_r2_castle_resets_on_wins_including_after_boss_ante_advance(blind_ty
     run.blind_progression_state = progression
     snapshot = run.rng_snapshot()
     expected_rng = BalatroRNG.from_snapshot(snapshot)
+    expected_rng.pseudorandom_element_index(2, f"mail{key[-1]}")
     index = expected_rng.pseudorandom_element_index(2, key)
 
     result, _ = finalize_won_round_progression(run, progression, blind_type=blind_type)
@@ -62,6 +63,7 @@ def test_env_r2_castle_resets_on_wins_including_after_boss_ante_advance(blind_ty
 
 def test_env_r2_castle_all_stone_falls_back_without_a_draw():
     run = pristine_red_white_reset("CASTLE")
+    run.mail_rebate_rank = None
     for card in run.require_playing_card_order():
         card.enhancement = "Stone"
     run.public.phase = "ROUND_EVAL"

@@ -41,6 +41,7 @@ from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.green_joker import GreenJoker
+from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.sixth_sense import SixthSenseJoker
 from games.balatro.jokers.supernova import SupernovaJoker
@@ -62,6 +63,7 @@ _ROUND_END_INERT_JOKER_TYPES = (
     DNAJoker,
     FacelessJoker,
     GreenJoker,
+    MailInRebateJoker,
     RunnerJoker,
     SixthSenseJoker,
     SupernovaJoker,

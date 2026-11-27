@@ -38,6 +38,7 @@ from games.balatro.env.state import EnvStateFrame, RunStatus, TurnOwner
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.green_joker import GreenJoker
+from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.sixth_sense import SixthSenseJoker
 from games.balatro.jokers.splash import SplashJoker
@@ -1888,6 +1889,56 @@ def test_env_ppo_fixed_seed_completes_exact_generated_rocket_lifecycle():
         ("SELECT_BLIND", {}),
     ]
     assert money == [4, 9, 9, 15, 9, 12, 12, 12]
+
+
+def test_env_ppo_trace_seed_completes_mail_purchase_payout_and_sale():
+    class MatchingDiscard:
+        def __init__(self):
+            self.tactical = make_ppo_tactical_decision_engine()
+            self.money_before = None
+            self.payout = None
+
+        def decide(self, state):
+            if state.round == 2 and self.money_before is None:
+                cards = [
+                    card for card in state.hand
+                    if not card.face_down and not card.debuffed
+                    and card.rank == state.jokers[0].rank
+                ]
+                if cards and state.discards_remaining:
+                    self.money_before = state.money
+                    return SimpleNamespace(action=BalatroAction(DISCARD_CARDS, cards=cards))
+            elif self.money_before is not None and self.payout is None:
+                self.payout = state.money - self.money_before
+            return self.tactical.decide(state)
+
+    policy = MatchingDiscard()
+    environment = BalatroHeadlessEnvironment(PPOHeadlessBackend(policy))
+    environment.reset(seed="FADDC372")
+    replay = (
+        ("SELECT_BLIND", {}, 9, "7", False),
+        ("BUY_JOKER", {"slot": 0}, 5, "7", True),
+        ("END_SHOP", {}, 5, "7", True),
+        ("SELECT_BLIND", {}, 17, "9", True),
+        ("SELL_JOKER", {"joker_index": 0}, 19, "9", False),
+        ("END_SHOP", {}, 19, "9", False),
+        ("SELECT_BLIND", {}, 19, "9", False),
+    )
+    for alias, params, money, rank, owns_mail in replay:
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+        run = environment._backend.run
+        assert run.public.money == money
+        assert run.mail_rebate_rank == rank
+        assert [type(joker) for joker in run.public.jokers] == [MailInRebateJoker] * owns_mail
+        if owns_mail:
+            assert run.public.jokers[0].rank == rank
+            assert run.generated_center_discovered("j_mail") is True
+
+    assert policy.payout == 5
+    assert environment.frame.state.round == 3
+    assert environment.frame.status is RunStatus.LOSS
 
 
 def test_env_ppo_trace_seed_completes_sixth_sense_purchase_destruction_and_sale():

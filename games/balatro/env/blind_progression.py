@@ -162,6 +162,10 @@ def finalize_won_round_progression(
         next_run.round_bonus_hands = 0
         next_run.round_bonus_discards = 0
 
+    if next_run.mail_rebate_rank is not None:
+        from games.balatro.env.mail_rebate_round import reset_mail_rebate_rank
+
+        reset_mail_rebate_rank(next_run)
     if next_run.castle_suit is not None:
         from games.balatro.env.castle_round import reset_castle_round_suit
 

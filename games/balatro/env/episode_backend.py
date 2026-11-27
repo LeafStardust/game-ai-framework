@@ -106,6 +106,7 @@ def transition_reward(
 def pristine_red_white_reset(seed: str | int) -> HeadlessRunState:
     """Build the exact fresh Red Deck / White Stake first-blind boundary."""
     from games.balatro.env.castle_round import reset_castle_round_suit
+    from games.balatro.env.mail_rebate_round import reset_mail_rebate_rank
 
     if isinstance(seed, bool) or not isinstance(seed, (str, int)):
         raise TypeError("headless game seed must be a string or exact integer")
@@ -140,6 +141,7 @@ def pristine_red_white_reset(seed: str | int) -> HeadlessRunState:
     run = initialize_pristine_played_this_ante_history(run)
     run = initialize_pristine_ppo_generation_authority(run)
     run = initialize_pristine_ppo_boss_authority(run)
+    reset_mail_rebate_rank(run)
     reset_castle_round_suit(run)
     return run
 

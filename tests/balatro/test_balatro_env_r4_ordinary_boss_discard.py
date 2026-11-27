@@ -9,6 +9,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker import JokerContext
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
 from games.balatro.jokers.pareidolia import PareidoliaJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.state import BalatroState
@@ -265,3 +266,24 @@ def test_env_r4_splash_does_not_score_the_heads_debuffed_kicker():
     assert result.public.last_played_hand == "PAIR"
     assert result.public.score == 84
     assert all(card.played_this_ante for card in result.discard_pile)
+
+
+def test_env_r4_mail_pays_five_only_for_each_debuff_free_match():
+    run = _boss_run("The Club")
+    indices = (3, 4, 5, 6)
+    assert [(run.public.hand[i].rank, run.public.hand[i].debuffed) for i in indices] == [
+        ("9", False), ("9", True), ("9", False), ("4", False),
+    ]
+    run.mail_rebate_rank = "9"
+    joker = MailInRebateJoker("9")
+    joker.center = "j_mail"
+    run.public.jokers = [joker]
+
+    result = apply_supported_tactical_discard(run, indices)
+
+    assert result.public.money == run.public.money + 10
+    assert result.public.discards_remaining == run.public.discards_remaining - 1
+    assert result.rng_snapshot() == run.rng_snapshot()
+    joker.rank = "K"
+    with pytest.raises(HeadlessTransitionError, match="Joker discard callbacks"):
+        apply_supported_tactical_discard(run, indices)

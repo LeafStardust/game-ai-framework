@@ -39,6 +39,7 @@ from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.mail_in_rebate import MAIL_REBATE_RANKS, MailInRebateJoker
 from games.balatro.jokers.madness import MadnessJoker, madness_x_mult_is_exact
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.scholar import ScholarJoker
@@ -56,7 +57,7 @@ from games.balatro.jokers.zany_joker import ZanyJoker
 
 
 def generated_joker_tactical_callbacks_are_exact(
-    jokers: list[Any], *, castle_suit: str | None = None
+    jokers: list[Any], *, castle_suit: str | None = None, mail_rebate_rank: str | None = None
 ) -> bool:
     """Return whether every owned Joker has only the currently owned callbacks."""
     dna_seen = False
@@ -124,6 +125,14 @@ def generated_joker_tactical_callbacks_are_exact(
                 return False
             dna_seen = True
             expected_center = "j_dna"
+        elif type(joker) is MailInRebateJoker:
+            if (
+                type(mail_rebate_rank) is not str
+                or mail_rebate_rank not in MAIL_REBATE_RANKS
+                or joker.rank != mail_rebate_rank
+            ):
+                return False
+            expected_center = "j_mail"
         elif type(joker) is MadnessJoker:
             if not madness_x_mult_is_exact(joker.x_mult):
                 return False

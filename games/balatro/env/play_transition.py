@@ -319,7 +319,7 @@ def _require_supported_context(run: HeadlessRunState) -> None:
         if (
             boss_name == "Verdant Leaf"
             or not generated_joker_tactical_callbacks_are_exact(
-                state.jokers, castle_suit=run.castle_suit
+                state.jokers, castle_suit=run.castle_suit, mail_rebate_rank=run.mail_rebate_rank
             )
         ):
             raise HeadlessTransitionError(

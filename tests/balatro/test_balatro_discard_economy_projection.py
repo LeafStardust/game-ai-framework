@@ -72,6 +72,8 @@ def test_mail_in_rebate_rewards_five_per_matching_discard():
         BalatroCard("K", "Spades"),
         BalatroCard("K", "Hearts"),
         BalatroCard("Q", "Clubs"),
+        BalatroCard("K", "Diamonds", debuffed=True),
+        BalatroCard("K", "Clubs", enhancement="Stone"),
     ]
     state = _state(cards, [MailInRebateJoker("K")], money=1)
 
