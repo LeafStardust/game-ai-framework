@@ -11,9 +11,17 @@ from __future__ import annotations
 
 from games.balatro.env.actions import EnvAction
 from games.balatro.env.joker_order import JokerOrderError
+from games.balatro.env.shop_booster_generation import GeneratedShopBoosterItem
 from games.balatro.env.shop_generation_state import (
     restore_removed_shop_jokers_to_generation_pool,
+    suppress_visible_shop_jokers_from_generation_pool,
 )
+from games.balatro.env.shop_items import GeneratedShopJokerItem
+from games.balatro.env.shop_joker_generation import generate_ordinary_shop_joker_descriptor
+from games.balatro.env.shop_pricing import vanilla_card_cost
+from games.balatro.env.tag_selection import TagProfileState
+from games.balatro.env.voucher_capabilities import shop_pricing_vouchers_are_exact
+from games.balatro.jokers.hallucination import HallucinationJoker
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.red_card import RedCardJoker
@@ -23,6 +31,66 @@ from games.balatro.env.transition import _EXACT_R1_JOKER_ACQUISITION_TYPES
 PACK_PHASES = frozenset(
     {"BUFFOON_PACK", "PLANET_PACK", "SPECTRAL_PACK", "STANDARD_PACK", "TAROT_PACK"}
 )
+
+
+def open_paid_buffoon_pack_exact(run: HeadlessRunState, slot: int) -> HeadlessRunState:
+    """Open an ordinary paid Buffoon pack with authoritative profile state."""
+    state = run.public
+    if (
+        state.phase != "SHOP" or not state.shop_active or state.hand
+        or run.pack_choices or run.pack_return_phase is not None or run.pack_choices_remaining
+        or not run.pending_tags_are_exact()
+        or not shop_pricing_vouchers_are_exact(state)
+        or state.shop_inflation_observed is not True or state.shop_inflation != 0
+        or any(type(joker) is HallucinationJoker for joker in state.jokers)
+    ):
+        raise HeadlessTransitionError("paid Buffoon opening requires exact shop state")
+    if type(slot) is not int or not 0 <= slot < len(state.shop_boosters):
+        raise HeadlessTransitionError("paid Buffoon slot is out of range")
+    item = state.shop_boosters[slot]
+    if (
+        type(item) is not GeneratedShopBoosterItem
+        or item.center_key not in ("p_buffoon_normal_1", "p_buffoon_normal_2")
+        or (item.family, item.base_cost, item.pack_size, item.choices) != ("Buffoon", 4, 2, 1)
+    ):
+        raise HeadlessTransitionError("only ordinary generated Buffoon packs are owned")
+    price = vanilla_card_cost(
+        4, edition=None, inflation=0, discount_percent=state.shop_discount_percent,
+    )
+    discovery = run.generated_center_discovered(item.center_key)
+    if (
+        type(item.price) is not int or item.price != price
+        or type(state.money) is not int or state.money < price
+        or type(discovery) is not bool or item.discovered is not discovery
+        or run.tag_profile_state is None
+    ):
+        raise HeadlessTransitionError("paid Buffoon opening requires exact price and discovery")
+
+    next_run = run.copy()
+    next_run.public.money -= price
+    next_run.public.shop_boosters.pop(slot)
+    next_run.public.phase = "BUFFOON_PACK"
+    next_run.public.shop_active = False
+    next_run.pack_return_phase = "SHOP"
+    next_run.pack_choices_remaining = 1
+    next_run.generation_discovery[item.center_key] = True
+    next_run.tag_profile_state = TagProfileState(
+        next_run.tag_profile_state.discovered_center_keys | {item.center_key}
+    )
+
+    for _ in range(item.pack_size):
+        descriptor = generate_ordinary_shop_joker_descriptor(next_run, key_append="buf")
+        option = GeneratedShopJokerItem(
+            descriptor.center_key, descriptor.rarity, descriptor.base_cost,
+            descriptor.edition, vanilla_card_cost(
+                descriptor.base_cost, edition=descriptor.edition, inflation=0,
+                discount_percent=state.shop_discount_percent,
+            ),
+            discovered=descriptor.run.generated_center_discovered(descriptor.center_key),
+        )
+        next_run = suppress_visible_shop_jokers_from_generation_pool(descriptor.run, (option,))
+        next_run.pack_choices.append(option)
+    return next_run
 
 
 def validate_skip_pack_exact(run: HeadlessRunState) -> None:
@@ -140,6 +208,12 @@ def can_skip_pack_exact(run: HeadlessRunState) -> bool:
 def skip_pack_exact(run: HeadlessRunState) -> HeadlessRunState:
     validate_skip_pack_exact(run)
     next_run = run.copy()
+    if (
+        run.public.phase == "BUFFOON_PACK"
+        and run.public.joker_generation_pool_observed
+        and all(type(option) is GeneratedShopJokerItem for option in run.pack_choices)
+    ):
+        next_run = restore_removed_shop_jokers_to_generation_pool(next_run, next_run.pack_choices)
     for joker in next_run.public.jokers:
         if type(joker) is RedCardJoker:
             joker.mult += 3
