@@ -255,7 +255,13 @@ def _restore_shop_item(value: Any, expected_kind: str) -> Any:
 def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
     if not isinstance(run, HeadlessRunState):
         raise TypeError("run must be HeadlessRunState")
-    if run.pack_choices:
+    if run.pack_choices and (
+        run.public.phase != "BUFFOON_PACK"
+        or run.pack_return_phase != "SHOP"
+        or run.pack_choices_remaining != 1
+        or len(run.pack_choices) != 2
+        or any(type(item) is not GeneratedShopJokerItem for item in run.pack_choices)
+    ):
         raise HeadlessTransitionError("headless snapshot does not yet support pack-choice objects")
     for name in _UNSUPPORTED_OBJECT_FIELDS:
         if getattr(run.public, name):
@@ -309,6 +315,8 @@ def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
         private["removed_base_six_suits"] = _plain_value(run.removed_base_six_suits)
     if run.gros_michel_extinct:
         private["gros_michel_extinct"] = True
+    if run.pack_choices:
+        private["pack_choices"] = [_shop_item_payload(item, "JOKER") for item in run.pack_choices]
     return {
         "schema": HEADLESS_RUN_STATE_SCHEMA,
         "seed": run.seed,
@@ -403,11 +411,21 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
     optional_fields = {
         "castle_suit", "mail_rebate_rank", "opening_draw_capacity",
         "pillar_debuff_snapshot", "removed_base_six_suits", "gros_michel_extinct",
+        "pack_choices",
     }
     if not isinstance(private, Mapping) or set(private) - optional_fields != set(_PRIVATE_SCALARS):
         raise HeadlessTransitionError("invalid private fields in headless snapshot")
     if any(private[key] is None for key in optional_fields & private.keys()):
         raise HeadlessTransitionError("invalid null optional field in headless snapshot")
+    pack_payload = private.get("pack_choices", [])
+    if "pack_choices" in private and (
+        not isinstance(pack_payload, list)
+        or len(pack_payload) != 2
+        or state.phase != "BUFFOON_PACK"
+        or private["pack_return_phase"] != "SHOP"
+        or private["pack_choices_remaining"] != 1
+    ):
+        raise HeadlessTransitionError("invalid generated Buffoon pack snapshot")
     progression_payload = payload["blind_progression"]
     progression = None
     if progression_payload is not None:
@@ -434,8 +452,8 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
             draw_pile=card_refs(zones["draw_pile"]) or [],
             discard_pile=card_refs(zones["discard_pile"]) or [],
             played_pile=card_refs(zones["played_pile"]) or [],
-            pack_choices=[],
-            **{key: _restore_plain(value) for key, value in private.items()},
+            pack_choices=[_restore_shop_item(item, "JOKER") for item in pack_payload],
+            **{key: _restore_plain(value) for key, value in private.items() if key != "pack_choices"},
         )
     except (TypeError, ValueError) as exc:
         raise HeadlessTransitionError("invalid headless run-state snapshot") from exc

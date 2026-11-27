@@ -7,6 +7,7 @@ from games.balatro.env.pack import (
     skip_pack_exact,
 )
 from games.balatro.env.ppo_campaign import make_ppo_training_environment
+from games.balatro.env.serialization import restore_headless_run_state
 from games.balatro.env.transition import HeadlessTransitionError
 
 
@@ -34,7 +35,9 @@ def test_paid_buffoon_opens_exact_choices_and_skip_restores_shop_pool():
     assert before.rng_snapshot() == snapshot
     assert len(opened.public.joker_generation_pools["1"]) == len(eligible["1"]) - 2
 
-    skipped = skip_pack_exact(opened)
+    restored = restore_headless_run_state(opened.serialize())
+    assert restored.serialize() == opened.serialize()
+    skipped = skip_pack_exact(restored)
     assert skipped.public.phase == "SHOP"
     assert skipped.public.shop_active is True
     assert skipped.public.money == 4
@@ -42,7 +45,7 @@ def test_paid_buffoon_opens_exact_choices_and_skip_restores_shop_pool():
     assert skipped.public.joker_generation_pools == eligible
     assert skipped.rng_snapshot() == opened.rng_snapshot()
 
-    chosen = choose_pack_option_exact(opened, 1)
+    chosen = choose_pack_option_exact(restored, 1)
     assert chosen.public.phase == "SHOP"
     assert chosen.public.money == 4
     assert [joker.center for joker in chosen.public.jokers] == ["j_mystic_summit"]
