@@ -25,6 +25,9 @@ from games.balatro.env.round_end import (
     _round_end_interest_dollars,
 )
 from games.balatro.env.round_zones import repopulate_round_end_deck
+from games.balatro.events import BalatroEvent, BalatroEventType
+from games.balatro.joker import JokerContext
+from games.balatro.jokers.campfire import CampfireJoker
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import (
     boss_cash_out_vouchers_are_exact,
@@ -143,6 +146,12 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
     round_end_run = run.copy()
     apply_round_end_egg_growth(round_end_run)
     round_end_run = apply_round_end_gros_michel_extinction(round_end_run)
+    for joker in round_end_run.public.jokers:
+        if type(joker) is CampfireJoker:
+            joker.apply(JokerContext(
+                state=round_end_run.public,
+                event=BalatroEvent(BalatroEventType.BOSS_BLIND_DEFEATED),
+            ))
     joker_dollars = _round_end_joker_dollars(round_end_run)
 
     defeated = defeat_supported_boss(round_end_run)

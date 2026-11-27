@@ -62,6 +62,7 @@ from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.flash_card import FlashCardJoker
+from games.balatro.jokers.gros_michel import GrosMichelJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
@@ -291,6 +292,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Scholar"
+    elif item.center_key == "j_gros_michel":
+        joker_type = GrosMichelJoker
+        expected_rarity = 1
+        expected_base_cost = 5
+        label = "Gros Michel"
     elif item.center_key == "j_flash":
         joker_type = FlashCardJoker
         expected_rarity = 2

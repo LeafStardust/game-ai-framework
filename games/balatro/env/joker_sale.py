@@ -17,7 +17,9 @@ from games.balatro.env.joker_removal import (
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.tag_selection import TagProfileState
+from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.joker import JokerContext
+from games.balatro.jokers.campfire import CampfireJoker
 from games.balatro.jokers.diet_cola import DietColaJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.juggler import JugglerJoker
@@ -73,6 +75,18 @@ def _validate_owned_joker_identity(
         raise HeadlessTransitionError("Eternal Joker cannot be sold")
     if getattr(joker, "edition", None) is not None:
         raise HeadlessTransitionError("Joker editions remain fail-closed for sale")
+    if any(
+        type(other) is CampfireJoker
+        and index != joker_index
+        and (
+            type(other.debuffed) is not bool
+            or type(other.x_mult) not in (int, float)
+            or other.x_mult < 1
+            or other.x_mult % 0.25 != 0
+        )
+        for index, other in enumerate(state.jokers)
+    ):
+        raise HeadlessTransitionError("Joker sale requires exact retained Campfire state")
 
     sell_cost = getattr(joker, "sell_cost", None)
     if isinstance(sell_cost, bool) or not isinstance(sell_cost, int) or sell_cost < 0:
@@ -99,6 +113,14 @@ def _sell_owned_joker(
             next_run.tags.append("tag_double")
             next_run.tag_profile_state = TagProfileState(
                 profile.discovered_center_keys | {"tag_double"}
+            )
+    for joker in next_run.public.jokers:
+        if type(joker) is CampfireJoker:
+            joker.apply(
+                JokerContext(
+                    state=next_run.public,
+                    event=BalatroEvent(BalatroEventType.CARD_SOLD),
+                )
             )
     next_run.public.money += sell_cost
     return next_run

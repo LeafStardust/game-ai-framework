@@ -7,6 +7,7 @@ from games.balatro.env.deal import deal_supported_round_start
 from games.balatro.env.public_observation import public_observation_state
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.campfire import CampfireJoker
 from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.state import BalatroState
 
@@ -68,6 +69,18 @@ def test_env_r2_simple_boss_cashout_pays_and_enters_ungenerated_shop():
     assert result.public.ante == 1
     assert not any(card.played_this_ante for card in result.require_playing_card_order())
     assert run.require_playing_card_order()[0].played_this_ante is True
+
+
+def test_env_r2_boss_cashout_resets_campfire_mult():
+    run = _finish(_boss_round("The Psychic"))
+    joker = CampfireJoker()
+    joker.x_mult = 1.5
+    run.public.jokers = [joker]
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.jokers[0].x_mult == 1.0
+    assert run.public.jokers[0].x_mult == 1.5
 
 
 @pytest.mark.parametrize(("debuffed", "payout"), [(False, 3), (True, 0)])

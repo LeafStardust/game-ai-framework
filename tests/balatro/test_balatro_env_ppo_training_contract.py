@@ -3671,3 +3671,26 @@ def test_env_ppo_trace_seed_buys_grows_and_sells_exact_flash_card():
         assert state.money == money
         expected = [] if stored_mult is None else [("j_flash", stored_mult)]
         assert [(joker.center, joker.mult) for joker in state.jokers] == expected
+
+
+def test_env_ppo_trace_seed_buys_and_sells_gros_michel_without_extinction():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="3B8B6C3F")
+    for alias in ("SELECT_BLIND", "END_SHOP") * 2 + ("SELECT_BLIND",):
+        environment.step(EnvAction.from_alias(alias))
+
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 1})
+    assert buy in environment.legal_actions()
+    environment.step(buy)
+    state = environment.frame.state
+    assert state.money == 20
+    assert [(joker.center, joker.mult) for joker in state.jokers] == [
+        ("j_gros_michel", 15)
+    ]
+    environment.step(EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}))
+
+    run = environment._backend.run
+    assert run.public.money == 22
+    assert run.public.jokers == []
+    assert run.gros_michel_extinct is False
+    assert "gros_michel" not in run.rng.nodes

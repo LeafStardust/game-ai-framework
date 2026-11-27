@@ -769,6 +769,12 @@ class ShopTransitionEngine:
 
         if type(item) is GeneratedShopJokerItem:
             try:
+                if item.center_key == "j_gros_michel" and (
+                    run.gros_michel_extinct
+                    or not state.joker_generation_pool_observed
+                    or run.generated_center_discovered("j_cavendish") is None
+                ):
+                    return False
                 if item.center_key == "j_dna" and any(
                     type(joker) is DNAJoker for joker in state.jokers
                 ):
