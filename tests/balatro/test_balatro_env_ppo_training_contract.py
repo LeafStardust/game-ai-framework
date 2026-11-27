@@ -3785,3 +3785,20 @@ def test_env_ppo_trace_seed_buys_and_sells_exact_hallucination():
     environment.step(EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}))
     assert environment.frame.state.money == 5
     assert environment.frame.state.jokers == []
+
+
+def test_env_ppo_pilot_seed_carries_golden_joker_through_blind_start():
+    environment = make_ppo_training_environment(4)
+    environment.reset(seed="A0370D8B")
+    for alias, params in (
+        ("SELECT_BLIND", {}),
+        ("BUY_JOKER", {"slot": 0}),
+        ("END_SHOP", {}),
+        ("SELECT_BLIND", {}),
+    ):
+        action = EnvAction.from_alias(alias, params)
+        assert action in environment.legal_actions()
+        environment.step(action)
+
+    assert environment.frame.state.phase == "SHOP"
+    assert [joker.center for joker in environment.frame.state.jokers] == ["j_golden"]
