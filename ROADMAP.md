@@ -33,6 +33,9 @@ For every continuation:
 8. Use GitHub Actions as the test gate and report the exact passed/deselected
    counts from the actual job log.
 9. Update and verify this roadmap after every meaningful green checkpoint.
+   For Joker acquisition work, update the [headless Joker checklist](docs/balatro/HEADLESS_JOKER_CHECKLIST.md)
+   in the same checkpoint. Record the verified total, the current Joker's
+   status, and the next Joker from the roadmap. Count support after CI passes.
 10. Request a live Balatro run only for genuinely live-only validation, and
     provide the exact commands. The held Money Tree live check remains on hold.
 11. If context is insufficient, synchronize this roadmap and stop rather than
