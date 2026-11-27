@@ -25,7 +25,7 @@ from games.balatro.env.ppo_contract import (
 
 
 _PARAMETER_ORDER = ("w1", "b1", "w2", "b2", "policy_w", "policy_b", "value_w", "value_b")
-PPO_MODEL_VERSION = "balatro-red-white-ppo-actor-critic-v4"
+PPO_MODEL_VERSION = "balatro-red-white-ppo-actor-critic-v5"
 PPO_OPTIMIZER_VERSION = "balatro-red-white-ppo-adam-v1"
 ADAM_BETA1 = 0.9
 ADAM_BETA2 = 0.999
@@ -175,7 +175,7 @@ class PPOActorCritic:
         the zero-initialized new rows remain trainable. Older checkpoints still
         fail closed because their first-layer shape is smaller.
         """
-        if PUBLIC_OBSERVATION_VERSION != "balatro-red-white-public-observation-v7":
+        if PUBLIC_OBSERVATION_VERSION != "balatro-red-white-public-observation-v8":
             raise PPOContractError("PPO model observation initializer is not versioned")
         feature_names = PUBLIC_OBSERVATION_SCHEMA.feature_names
         added_suffixes = (
@@ -192,11 +192,12 @@ class PPOActorCritic:
         if len(added_indices) != 24:
             raise PPOContractError("PPO v4 Joker observation expansion drifted")
         if (
-            len(feature_names) != 3321
+            len(feature_names) != 3338
             or feature_names[2480] != "owned_deck.52.present"
-            or feature_names[3320] != "tags.pending_double_count"
+            or feature_names[3320] != "pack.jokers.0.present"
+            or feature_names[-1] != "tags.pending_double_count"
         ):
-            raise PPOContractError("PPO v7 observation expansion drifted")
+            raise PPOContractError("PPO v8 observation expansion drifted")
         legacy_indices = tuple(
             index for index in range(2480) if index not in added_indices
         )

@@ -28,7 +28,8 @@ if TYPE_CHECKING:
     from games.balatro.env.state import EnvStateFrame
 
 
-PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v7"
+PUBLIC_OBSERVATION_VERSION = "balatro-red-white-public-observation-v8"
+MAX_OBSERVED_BUFFOON_CHOICES = 2
 
 PHASES = (
     "ROUND_START", "BLIND_SELECT", "DRAW_TO_HAND", "SELECTING_HAND", "SHOP",
@@ -177,7 +178,8 @@ def _build_feature_names() -> tuple[str, ...]:
     names.extend(f"pool.voucher.{key}" for key in VOUCHER_KEYS)
     names.extend(_slot_names("owned_deck", MAX_OWNED_CARDS, _CARD_FIELDS, start=_LEGACY_DECK_SLOTS))
     names.extend(_slot_names("discard", MAX_DISCARD_CARDS, _CARD_FIELDS, start=_LEGACY_DECK_SLOTS))
-    names.append("tags.pending_double_count")
+    names.extend(_slot_names("pack.jokers", MAX_OBSERVED_BUFFOON_CHOICES, _SHOP_ITEM_FIELDS))
+    names.extend(("pack.choices_remaining", "tags.pending_double_count"))
     return tuple(names)
 
 
@@ -505,7 +507,11 @@ def encode_public_observation(frame: "EnvStateFrame") -> EncodedPublicObservatio
     )
     values.extend(owned[legacy_card_width:])
     values.extend(discard[legacy_card_width:])
-    values.append(float(frame.pending_double_tags))
+    values.extend(_fixed_shop(
+        list(frame.pack_choices), MAX_OBSERVED_BUFFOON_CHOICES, "pack.jokers",
+        JOKER_CENTER_KEYS, "JOKER",
+    ))
+    values.extend((float(frame.pack_choices_remaining), float(frame.pending_double_tags)))
     encoded = EncodedPublicObservation(PUBLIC_OBSERVATION_VERSION, tuple(values))
     if encoded.shape != PUBLIC_OBSERVATION_SCHEMA.shape:
         raise RuntimeError("public observation implementation drifted from its versioned schema")

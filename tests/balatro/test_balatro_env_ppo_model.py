@@ -64,10 +64,10 @@ def test_env_ppo_model_initialization_is_seeded_and_contract_shaped():
 
     assert first.parameter_sha256 == second.parameter_sha256
     assert first.parameter_sha256 != different.parameter_sha256
-    assert PPO_MODEL_VERSION == "balatro-red-white-ppo-actor-critic-v4"
+    assert PPO_MODEL_VERSION == "balatro-red-white-ppo-actor-critic-v5"
     assert PPO_OPTIMIZER_VERSION == "balatro-red-white-ppo-adam-v1"
     assert (ADAM_BETA1, ADAM_BETA2, ADAM_EPSILON) == (0.9, 0.999, 1e-8)
-    assert first.parameters["w1"].shape == (3321, 512)
+    assert first.parameters["w1"].shape == (3338, 512)
     assert first.parameters["w2"].shape == (512, 256)
     assert first.parameters["policy_w"].shape == (256, 27)
     assert first.parameters["value_w"].shape == (256, 1)

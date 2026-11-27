@@ -56,7 +56,7 @@ def test_env_o_schema_is_versioned_fixed_and_ordered():
     assert PUBLIC_OBSERVATION_SCHEMA.version == PUBLIC_OBSERVATION_VERSION
     assert encoded.schema_version == PUBLIC_OBSERVATION_VERSION
     assert encoded.shape == PUBLIC_OBSERVATION_SCHEMA.shape
-    assert encoded.shape == (3321,)
+    assert encoded.shape == (3338,)
     assert PUBLIC_OBSERVATION_SCHEMA.feature_names[:5] == (
         "frame.status", "frame.owner", "state.phase", "state.money", "state.ante"
     )
@@ -115,8 +115,8 @@ def test_env_o_v6_encodes_held_spectral_identity_in_existing_slots():
 
     encoded = encode_public_observation(frame)
 
-    assert encoded.shape == (3321,)
-    assert encoded.schema_version == "balatro-red-white-public-observation-v7"
+    assert encoded.shape == (3338,)
+    assert encoded.schema_version == "balatro-red-white-public-observation-v8"
     assert _at(encoded, "consumables.0.category") == 3.0
     assert _at(encoded, "consumables.0.center") == 35 + VANILLA_SPECTRAL_CENTER_ORDER.index("c_cryptid")
 

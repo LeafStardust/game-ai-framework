@@ -1,6 +1,7 @@
 import pytest
 
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.observation_encoding import JOKER_CENTER_KEYS, PUBLIC_OBSERVATION_SCHEMA
 from games.balatro.env.pack import (
     choose_pack_option_exact,
     open_paid_buffoon_pack_exact,
@@ -8,6 +9,7 @@ from games.balatro.env.pack import (
 )
 from games.balatro.env.ppo_campaign import make_ppo_training_environment
 from games.balatro.env.serialization import restore_headless_run_state
+from games.balatro.env.state import EnvStateFrame
 from games.balatro.env.transition import HeadlessTransitionError
 from games.balatro.jokers.hallucination import HallucinationJoker
 
@@ -32,6 +34,13 @@ def test_paid_buffoon_opens_exact_choices_and_skip_restores_shop_pool():
         "j_red_card", "j_mystic_summit",
     ]
     assert opened.generated_center_discovered("p_buffoon_normal_1") is True
+    frame = EnvStateFrame(
+        opened.public, pack_choices=tuple(opened.pack_choices), pack_choices_remaining=1,
+    )
+    features = dict(zip(PUBLIC_OBSERVATION_SCHEMA.feature_names, frame.encoded_observation().values))
+    assert features["pack.choices_remaining"] == 1
+    assert features["pack.jokers.0.center"] == JOKER_CENTER_KEYS.index("j_red_card") + 1
+    assert features["pack.jokers.1.center"] == JOKER_CENTER_KEYS.index("j_mystic_summit") + 1
     assert before.public.money == 8
     assert before.rng_snapshot() == snapshot
     assert len(opened.public.joker_generation_pools["1"]) == len(eligible["1"]) - 2

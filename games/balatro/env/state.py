@@ -36,8 +36,16 @@ class EnvStateFrame:
     owner: TurnOwner = TurnOwner.AGENT
     info: dict[str, Any] = field(default_factory=dict)
     pending_double_tags: int = 0
+    pack_choices: tuple[Any, ...] = ()
+    pack_choices_remaining: int = 0
 
     def __post_init__(self) -> None:
+        if type(self.pack_choices_remaining) is not int or not (
+            0 <= self.pack_choices_remaining <= len(self.pack_choices)
+        ):
+            raise ValueError("remaining pack picks require exact visible choices")
+        if self.pack_choices and self.state.phase != "BUFFOON_PACK":
+            raise ValueError("visible Joker pack choices require a Buffoon phase")
         if type(self.pending_double_tags) is not int or self.pending_double_tags < 0:
             raise ValueError("pending Double Tags require a nonnegative integer count")
         if self.status.terminal and self.owner is not TurnOwner.TERMINAL:
