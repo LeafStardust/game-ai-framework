@@ -66,6 +66,7 @@ from games.balatro.env.voucher_capabilities import (
     expected_red_deck_hand_size_for_vouchers,
 )
 from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
+from games.balatro.env.shop_consumable_generation_state import generate_held_eight_ball_tarot
 from games.balatro.env.spectral_inventory import GeneratedHeldSpectral, generate_held_spectral
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
@@ -80,6 +81,7 @@ from games.balatro.hand import PokerHand
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.consumable import PlanetCard, TarotCard
 from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.live.boss_score_transform import BossBaseScoreScorer
 from games.balatro.scoring import BalatroScorer, apply_before_score_jokers
 
@@ -541,6 +543,19 @@ def apply_supported_ordinary_play(
         joker_data["scoring_hand_play_count"] = next_state.hand_play_counts[hand_name]
         if generated is not None:
             joker_data["created_consumables"] = generated
+        reserved_tarots = 0
+        if any(type(joker) is EightBallJoker for joker in next_state.jokers):
+            capacity = next_state.consumable_slots
+            if type(capacity) is not int or capacity < 0:
+                raise HeadlessTransitionError("8 Ball requires exact consumable capacity")
+            available = capacity - len(next_state.consumables)
+
+            def reserve_eight_ball_tarot() -> None:
+                nonlocal reserved_tarots
+                if reserved_tarots < available and next_run.rng.random("8ball") < 0.25:
+                    reserved_tarots += 1
+
+            joker_data["reserve_eight_ball_tarot"] = reserve_eight_ball_tarot
         hand_score = scorer.score(
             poker_hand,
             state=next_state,
@@ -550,6 +565,11 @@ def apply_supported_ordinary_play(
             joker_data=joker_data,
         )
         next_state.score += hand_score.total
+        if reserved_tarots:
+            for _ in range(reserved_tarots):
+                next_run = generate_held_eight_ball_tarot(next_run)
+            next_state = next_run.public
+            selected = list(next_run.played_pile)
         for category in generated or ():
             if category != "Spectral":
                 raise HeadlessTransitionError("Play generated an unsupported consumable category")

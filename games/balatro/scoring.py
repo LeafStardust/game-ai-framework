@@ -312,6 +312,10 @@ class BalatroScorer:
                 joker
                 for joker in getattr(state, "jokers", [])
                 if type(joker).__name__ in self.ON_SCORED_JOKER_CLASS_NAMES
+                or (
+                    type(joker).__name__ == "EightBallJoker"
+                    and (context_data or {}).get("reserve_eight_ball_tarot") is not None
+                )
             ]
 
         if not on_scored_jokers:

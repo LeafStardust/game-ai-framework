@@ -4,6 +4,14 @@ from games.balatro.joker import Joker, JokerContext
 class EightBallJoker(Joker):
 
     def apply(self, context: JokerContext) -> JokerContext:
+        reserve_tarot = context.data.get("reserve_eight_ball_tarot")
+        if reserve_tarot is not None:
+            if (
+                context.trigger == "CARD_SCORED"
+                and context.data["current_scoring_card"].rank == "8"
+            ):
+                reserve_tarot()
+            return context
         if context.trigger != "HAND_SCORED":
             return context
 
