@@ -1,6 +1,7 @@
 import pytest
 
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.action_encoding import action_index, legal_action_mask
 from games.balatro.env.observation_encoding import JOKER_CENTER_KEYS, PUBLIC_OBSERVATION_SCHEMA
 from games.balatro.env.pack import (
     choose_pack_option_exact,
@@ -94,3 +95,26 @@ def test_paid_buffoon_hallucination_rolls_only_with_an_active_joker_and_room(
     assert ("Tarothal1" in opened.rng.nodes) is bool(centers)
     assert [item.center_key for item in opened.public.consumables] == centers
     assert "halu1" not in run.rng.nodes
+
+
+def test_ppo_routes_paid_buffoon_open_and_choose_as_public_actions():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="B2189F31")
+    environment.step(EnvAction.from_alias("SELECT_BLIND"))
+    opening = EnvAction.from_alias("OPEN_PACK", {"slot": 0})
+    blocked = EnvAction.from_alias("OPEN_PACK", {"slot": 1})
+    legal = environment.legal_actions()
+    assert opening in legal
+    assert blocked not in legal
+    environment.step(opening)
+
+    assert environment.frame.state.phase == "BUFFOON_PACK"
+    assert environment.frame.pack_choices_remaining == 1
+    assert [item.center_key for item in environment.frame.pack_choices] == [
+        "j_red_card", "j_mystic_summit",
+    ]
+    choice = EnvAction.from_alias("CHOOSE_PACK_OPTION", {"option_index": 1})
+    assert legal_action_mask(environment.legal_actions()).values[action_index(choice)]
+    environment.step(choice)
+    assert environment.frame.state.phase == "SHOP"
+    assert environment.frame.pack_choices == ()

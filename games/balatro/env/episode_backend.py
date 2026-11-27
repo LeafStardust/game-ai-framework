@@ -42,6 +42,7 @@ from games.balatro.env.transition import (
     HeadlessTransitionError,
     ShopTransitionEngine,
 )
+from games.balatro.env.pack import PackTransitionEngine
 from games.balatro.state import BalatroState
 
 
@@ -217,7 +218,7 @@ class PPOHeadlessBackend:
                 info=info,
                 pending_double_tags=len(run.tags),
             )
-        if state.phase not in {"BLIND_SELECT", "SHOP"}:
+        if state.phase not in {"BLIND_SELECT", "SHOP", "BUFFOON_PACK"}:
             raise HeadlessTransitionError(
                 "backend exposed a non-strategic nonterminal boundary"
             )
@@ -227,6 +228,8 @@ class PPOHeadlessBackend:
             owner=TurnOwner.AGENT,
             info=info,
             pending_double_tags=len(run.tags),
+            pack_choices=tuple(run.pack_choices),
+            pack_choices_remaining=run.pack_choices_remaining,
         )
 
     def reset(self, seed: str | int) -> EnvStateFrame:
@@ -243,6 +246,8 @@ class PPOHeadlessBackend:
             return ()
         if run.public.phase == "SHOP":
             return ShopTransitionEngine().legal_actions(run)
+        if run.public.phase == "BUFFOON_PACK":
+            return PackTransitionEngine().legal_actions(run)
         actions: list[EnvAction] = []
         if can_skip_blind_exact(run):
             actions.append(EnvAction.from_alias("SKIP_BLIND"))
@@ -319,6 +324,8 @@ class PPOHeadlessBackend:
         tactical_actions = self._tactical_actions
         if run.public.phase == "SHOP":
             next_run = ShopTransitionEngine().step(run, action)
+        elif run.public.phase == "BUFFOON_PACK":
+            next_run = PackTransitionEngine().step(run, action)
         elif action.alias == "SKIP_BLIND":
             next_run = skip_blind_exact(run)
         elif action.alias == "SELECT_BLIND":

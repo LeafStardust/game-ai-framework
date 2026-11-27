@@ -17,6 +17,7 @@ from games.balatro.env.shop_consumable_generation_state import (
     require_held_tarot_authority,
 )
 from games.balatro.env.shop_generation_state import (
+    eligible_joker_keys_from_state,
     restore_removed_shop_jokers_to_generation_pool,
     suppress_visible_shop_jokers_from_generation_pool,
 )
@@ -40,8 +41,7 @@ PACK_PHASES = frozenset(
 )
 
 
-def open_paid_buffoon_pack_exact(run: HeadlessRunState, slot: int) -> HeadlessRunState:
-    """Open an ordinary paid Buffoon pack with authoritative profile state."""
+def _validate_paid_buffoon_offer(run: HeadlessRunState, slot: int) -> GeneratedShopBoosterItem:
     state = run.public
     if (
         state.phase != "SHOP" or not state.shop_active or state.hand
@@ -72,6 +72,22 @@ def open_paid_buffoon_pack_exact(run: HeadlessRunState, slot: int) -> HeadlessRu
     ):
         raise HeadlessTransitionError("paid Buffoon opening requires exact price and discovery")
 
+    eligible_joker_keys_from_state(run, 1)
+    return item
+
+
+def can_open_paid_buffoon_pack_exact(run: HeadlessRunState, slot: int) -> bool:
+    try:
+        _validate_paid_buffoon_offer(run, slot)
+    except (TypeError, HeadlessTransitionError):
+        return False
+    return True
+
+
+def open_paid_buffoon_pack_exact(run: HeadlessRunState, slot: int) -> HeadlessRunState:
+    """Open an ordinary paid Buffoon pack with authoritative profile state."""
+    item = _validate_paid_buffoon_offer(run, slot)
+    state = run.public
     hallucinations = [joker for joker in state.jokers if type(joker) is HallucinationJoker]
     if hallucinations:
         require_held_tarot_authority(run)
@@ -83,7 +99,7 @@ def open_paid_buffoon_pack_exact(run: HeadlessRunState, slot: int) -> HeadlessRu
         ):
             raise HeadlessTransitionError("Buffoon opening requires exact Hallucination state")
     next_run = run.copy()
-    next_run.public.money -= price
+    next_run.public.money -= item.price
     next_run.public.shop_boosters.pop(slot)
     next_run.public.phase = "BUFFOON_PACK"
     next_run.public.shop_active = False

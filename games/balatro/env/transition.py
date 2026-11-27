@@ -620,6 +620,13 @@ class ShopTransitionEngine:
             and self._is_affordable(state, item)
         )
         from games.balatro.env.shop_reroll import can_reroll_base_main_shop
+        from games.balatro.env.pack import can_open_paid_buffoon_pack_exact
+
+        actions.extend(
+            EnvAction.from_alias("OPEN_PACK", {"slot": slot})
+            for slot in range(len(state.shop_boosters))
+            if can_open_paid_buffoon_pack_exact(run, slot)
+        )
 
         if can_reroll_base_main_shop(run):
             actions.append(EnvAction.from_alias("REROLL_SHOP"))
@@ -672,6 +679,10 @@ class ShopTransitionEngine:
             return reroll_base_main_shop(run).run
 
         slot = self._slot(params)
+        if action.alias == "OPEN_PACK":
+            from games.balatro.env.pack import open_paid_buffoon_pack_exact
+
+            return open_paid_buffoon_pack_exact(run, slot)
         if action.alias == "BUY_JOKER":
             source_item = state.shop_jokers[slot]
             purchased = source_item
