@@ -14,6 +14,7 @@ from games.balatro.env.shop_items import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.jokers.shortcut import ShortcutJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 from games.balatro.consumable import PlanetCard
@@ -33,6 +34,37 @@ def _play_run(*, seed="R4-PLAY", requirement=9999, hands_remaining=4):
 
 def _card_signature(card):
     return (card.rank, card.suit)
+
+
+def test_env_r4_ordinary_play_classifies_and_scores_shortcut_straight():
+    evaluator = HandEvaluator()
+    for attempt in range(100):
+        run = _play_run(seed=f"R4-SHORTCUT-{attempt}")
+        for indices in combinations(range(len(run.public.hand)), 5):
+            cards = [run.public.hand[index] for index in indices]
+            if (
+                evaluator.evaluate(cards) is PokerHand.HIGH_CARD
+                and evaluator.evaluate(cards, {"shortcut": True}) is PokerHand.STRAIGHT
+            ):
+                break
+        else:
+            continue
+        break
+    else:
+        pytest.fail("No gapped Straight in deterministic deal corpus")
+
+    joker = ShortcutJoker()
+    joker.center = "j_shortcut"
+    run.public.jokers = [joker]
+    result = apply_supported_ordinary_play(run, indices)
+
+    assert result.public.score == (
+        30 + sum(BalatroScorer.RANK_CHIPS[card.rank] for card in cards)
+    ) * 4
+    assert result.public.hand_play_counts["STRAIGHT"] == 1
+    assert result.public.round_hand_play_counts["STRAIGHT"] == 1
+    assert result.public.hand_play_counts["HIGH_CARD"] == 0
+    assert result.public.last_played_hand == "STRAIGHT"
 
 
 def test_env_r4_ordinary_play_high_card_updates_score_history_zones_and_redraws():

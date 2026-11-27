@@ -457,7 +457,7 @@ def apply_supported_ordinary_play(
         card.played_this_ante = True
         card.played_this_ante_observed = True
 
-    poker_hand = HandEvaluator().evaluate(selected)
+    poker_hand = HandEvaluator().evaluate(selected, hand_rules_for_state(next_state))
     hand_name = poker_hand.value
     first_hand = None
     if any(type(joker) in (DNAJoker, SixthSenseJoker) for joker in next_state.jokers):
