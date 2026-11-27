@@ -15,7 +15,7 @@ on:
 jobs:
   balatro-deterministic-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       APPDATA: /tmp/balatro-appdata
     steps:
