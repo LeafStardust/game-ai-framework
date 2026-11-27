@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`61f19f93`.
+`2e7a582b1ae0a12599b401bfacfc6a64a36c2d5d`.
 
 ## Objective
 
@@ -2563,6 +2563,15 @@ exact held Tarot generation path for this callback. Keep acquisition closed
 until exact pool eligibility, inventory publication, and RNG advancement are
 covered by deterministic regressions.
 Hallucination, booster work, rewards, and retraining remain deferred.
+
+8 Ball Tarot poll checkpoint:
+
+- `2e7a582b` pins the `Tarot8ba{ante}` stream, unavailable-position
+  retries, and the Strength fallback. CI run `45979370901` reported
+  **3,961 passed, 1,621 deselected**.
+- Next wire successful polls into held inventory using the authoritative
+  Tarot pool, duplicate suppression, and profile discovery. Then wire the
+  capacity-gated `8ball` roll into per-card scoring triggers.
 
 Shortcut acquisition checkpoint:
 

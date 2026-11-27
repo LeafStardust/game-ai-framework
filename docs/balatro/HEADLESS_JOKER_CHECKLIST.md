@@ -1,6 +1,6 @@
 # Headless Joker checklist
 
-**53 of 150 verified · 1 next · 96 outside support**
+**53 of 150 verified · 1 in progress · 96 outside support**
 
 Red Deck / White Stake snapshot through `61f19f93`. Shortcut is the latest verified acquisition. Its [CI run](https://github.com/LeafStardust/game-ai-framework/actions/runs/45975956842) reported **3,959 passed, 1,621 deselected**. 8 Ball is next.
 
@@ -10,7 +10,7 @@ Sources: [Joker catalogue](../../games/balatro/env/joker_centers.py) and [shop a
 
 | Joker center | Headless acquisition |
 | --- | --- |
-| `j_8_ball` | Next |
+| `j_8_ball` | In progress · Tarot poll verified, held generation pending |
 | `j_shortcut` | Supported |
 | `j_abstract` | Supported |
 | `j_banner` | Supported |
