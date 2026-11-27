@@ -1,6 +1,6 @@
 # Headless Joker checklist
 
-**55 of 150 verified · 2 awaiting CI · 93 outside support**
+**55 of 150 verified · 2 awaiting CI · 1 in progress · 92 outside support**
 
 Red Deck / White Stake snapshot through `10c201be`. 8 Ball and Flash Card are the latest verified acquisitions. Their [CI run](https://github.com/LeafStardust/game-ai-framework/actions/runs/45988752582) reported **3,977 passed, 1,621 deselected**. Gros Michel is next.
 
@@ -103,7 +103,7 @@ Sources: [Joker catalogue](../../games/balatro/env/joker_centers.py) and [shop a
 | `j_gift` | Outside support |
 | `j_glass` | Outside support |
 | `j_hack` | Outside support |
-| `j_hallucination` | Outside support |
+| `j_hallucination` | In progress · booster opening and Tarot callback |
 | `j_hanging_chad` | Outside support |
 | `j_hiker` | Outside support |
 | `j_hit_the_road` | Outside support |

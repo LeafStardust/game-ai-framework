@@ -2562,13 +2562,18 @@ Verify the seeded round-end extinction roll, debuff and Boss cleanup
 ordering, owned-Joker removal, and the persistent pool flag that excludes
 Gros Michel and admits Cavendish to generation. Keep acquisition closed
 until these effects are covered by deterministic regressions.
-Hallucination, booster work, rewards, and retraining remain deferred.
+Rewards and retraining remain deferred.
 
 - `ba61c014` completes the Gros Michel and Campfire acquisition replays
   and corrects the stale purchase-mask assertion and Campfire fixture setup
   reported by CI run `45991127858`. Verification is pending.
-- The remaining affordable uneditioned offer in this trace is Hallucination.
-  Its headless booster-open dependency remains deferred.
+- Continue with Hallucination while Gros Michel and Campfire CI runs.
+  Episode 63 decision 9 offers it for $4 in slot 1 on seed `3B8B6C3F`.
+  `04fc23ed` pins its `Tarothal{ante}` identity stream and retry order.
+  Next audit one paid headless booster-open path from visible offer through
+  choice generation and pack return. Keep Hallucination acquisition gated
+  until the `halu{ante}` roll, capacity reservation, event ordering and
+  held Tarot publication are exact for the admitted opening path.
 
 8 Ball and Flash Card acquisition checkpoint:
 
