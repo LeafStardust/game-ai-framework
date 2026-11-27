@@ -1,6 +1,6 @@
 # Headless Joker checklist
 
-**57 of 150 verified · 1 in progress · 92 outside support**
+**57 of 150 verified · 1 awaiting CI · 92 outside support**
 
 Red Deck / White Stake snapshot through `ba61c014`. Gros Michel and Campfire are the latest verified acquisitions. Their [CI run](https://github.com/LeafStardust/game-ai-framework/actions/runs/45992489562) reported **3,988 passed, 1,621 deselected**. Hallucination is in progress.
 
@@ -103,7 +103,7 @@ Sources: [Joker catalogue](../../games/balatro/env/joker_centers.py) and [shop a
 | `j_gift` | Outside support |
 | `j_glass` | Outside support |
 | `j_hack` | Outside support |
-| `j_hallucination` | In progress · booster opening and Tarot callback |
+| `j_hallucination` | Awaiting CI |
 | `j_hanging_chad` | Outside support |
 | `j_hiker` | Outside support |
 | `j_hit_the_road` | Outside support |

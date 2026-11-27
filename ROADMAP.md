@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`ba61c014`.
+`ab339ebe`.
 
 ## Objective
 
@@ -2561,14 +2561,18 @@ Rewards and retraining remain deferred.
   `3B8B6C3F`. `04fc23ed` pins its `Tarothal{ante}` pool stream.
   CI run `45993036303` verified **3,989 passed, 1,621 deselected**.
 - `e0fe8486` implements Buffoon choice descriptor generation, including
-  `buf` identity, sticker, and edition streams. CI is pending.
+  `buf` identity, sticker, and edition streams.
 - `7a066303`, `54624a92` and `ab339ebe` connect a paid ordinary Buffoon
   offer to exact choices, choose or skip return, and generated-option snapshots.
+  CI run `45994661860` verified **3,991 passed, 1,621 deselected**.
 - `cd52984f` wires Hallucination's roll, reserved capacity, and held Tarot
   during that opening. CI run `45994900238` is pending.
-- Next expose the public Buffoon choices and remaining picks in the policy
-  observation before routing paid opening and pack actions through PPO.
-  Hallucination acquisition stays gated until these boundaries pass CI.
+- `eb6e2262` adds public pack options and remaining picks to observation v8
+  (3,338 inputs, 27 actions), model v5, and campaign v16. Older trained
+  checkpoints require fresh training on the new schema.
+- `97c5293d` routes paid Buffoon opening and pack actions through PPO.
+  `9de790b5` admits Hallucination and adds its $4 purchase and $2 sale replay.
+  Verify those changes in CI before counting Hallucination.
 
 Gros Michel and Campfire acquisition checkpoint:
 
