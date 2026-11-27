@@ -18,6 +18,7 @@ from games.balatro.env.card_history import clear_played_this_ante_for_new_ante
 from games.balatro.env.round_end import (
     _held_gold_dollars,
     apply_round_end_egg_growth,
+    apply_round_end_gros_michel_extinction,
     _ROUND_END_DOLLAR_JOKER_TYPES,
     _ROUND_END_INERT_JOKER_TYPES,
     _round_end_joker_dollars,
@@ -141,6 +142,7 @@ def cash_out_supported_boss(run: HeadlessRunState) -> HeadlessRunState:
     money += _held_gold_dollars(run)
     round_end_run = run.copy()
     apply_round_end_egg_growth(round_end_run)
+    round_end_run = apply_round_end_gros_michel_extinction(round_end_run)
     joker_dollars = _round_end_joker_dollars(round_end_run)
 
     defeated = defeat_supported_boss(round_end_run)

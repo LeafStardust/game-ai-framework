@@ -45,6 +45,7 @@ from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.diet_cola import DietColaJoker
 from games.balatro.jokers.egg import EggJoker
 from games.balatro.jokers.green_joker import GreenJoker
+from games.balatro.jokers.gros_michel import GrosMichelJoker
 from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.sixth_sense import SixthSenseJoker
@@ -71,6 +72,7 @@ _ROUND_END_INERT_JOKER_TYPES = (
     FacelessJoker,
     DietColaJoker,
     EggJoker,
+    GrosMichelJoker,
     GreenJoker,
     MailInRebateJoker,
     RunnerJoker,
@@ -151,6 +153,33 @@ def apply_round_end_egg_growth(run: HeadlessRunState) -> None:
         reprice_held_egg(joker, inflation=state.shop_inflation, discount_percent=state.shop_discount_percent)
         joker.apply(JokerContext(state=state, trigger="ROUND_ENDED"))
         reprice_held_egg(joker, inflation=state.shop_inflation, discount_percent=state.shop_discount_percent)
+
+
+def apply_round_end_gros_michel_extinction(run: HeadlessRunState) -> HeadlessRunState:
+    from games.balatro.env.joker_removal import destroy_inventory_only_joker_exact
+    from games.balatro.env.shop_generation_state import record_gros_michel_extinction
+
+    extinct_indices = []
+    for index, joker in enumerate(run.public.jokers):
+        if type(joker) is not GrosMichelJoker:
+            continue
+        if (
+            getattr(joker, "center", None) != "j_gros_michel"
+            or joker.destroyed is not False
+            or type(joker.mult) is not int
+            or joker.mult != 15
+            or type(joker.debuffed) is not bool
+            or getattr(joker, "edition", None) is not None
+            or getattr(joker, "eternal", False) is not False
+        ):
+            raise HeadlessTransitionError("round end requires exact Gros Michel state")
+        if not joker.debuffed and run.rng.random("gros_michel") < 1 / 6:
+            extinct_indices.append(index)
+    if extinct_indices:
+        run = record_gros_michel_extinction(run)
+        for index in reversed(extinct_indices):
+            run = destroy_inventory_only_joker_exact(run, index)
+    return run
 
 
 def _round_end_joker_dollars(run: HeadlessRunState) -> int:
@@ -318,6 +347,7 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     interest = _round_end_interest_dollars(run, money, interest_cap)
     round_end_run = run.copy()
     apply_round_end_egg_growth(round_end_run)
+    round_end_run = apply_round_end_gros_michel_extinction(round_end_run)
     joker_dollars = _round_end_joker_dollars(round_end_run)
     payout = blind_reward + hands_remaining + joker_dollars + interest
 
