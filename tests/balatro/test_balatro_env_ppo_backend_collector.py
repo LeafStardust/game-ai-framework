@@ -679,9 +679,7 @@ def test_env_ppo_backend_acquires_generated_banner_and_discovers_its_center():
         ("j_8_ball", 5, 5, False),
         ("j_banner", 5, 5, False),
     )
-    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) not in (
-        environment.legal_actions()
-    )
+    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) in environment.legal_actions()
     assert buy in environment.legal_actions()
     environment.step(buy)
     assert backend.run.public.money == before_money - 5

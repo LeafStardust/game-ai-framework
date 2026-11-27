@@ -285,7 +285,7 @@ def test_env_ppo_rollout_crosses_exact_generated_droll_and_odd_todd_lifecycles(
     episode = episode_45_with_generated_joker_lifecycles
 
     assert episode.game_seed == "F41B6F3A"
-    assert episode.action_count == 13
+    assert episode.action_count == 15
     assert episode.rewards[-1] == -1.0
     assert episode.boundaries[-1].status is RunStatus.LOSS
     assert [decision.action.alias for decision in episode.decisions] == [
@@ -300,6 +300,8 @@ def test_env_ppo_rollout_crosses_exact_generated_droll_and_odd_todd_lifecycles(
         "SELECT_BLIND",
         "END_SHOP",
         "SELECT_BLIND",
+        "BUY_JOKER",
+        "SELL_JOKER",
         "END_SHOP",
         "SELECT_BLIND",
     ]
@@ -331,6 +333,7 @@ def test_env_ppo_rollout_crosses_exact_generated_droll_and_odd_todd_lifecycles(
         11,
     )
     assert episode.boundaries[7].money == 13
+    assert [boundary.money for boundary in episode.boundaries[11:14]] == [28, 23, 25]
 
 
 @pytest.fixture(scope="module")
