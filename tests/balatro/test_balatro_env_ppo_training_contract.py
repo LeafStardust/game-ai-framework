@@ -1030,11 +1030,30 @@ def test_env_ppo_rollout_crosses_exact_generated_smiley_greedy_and_blue_lifecycl
 
 @pytest.fixture(scope="module")
 def episode_62_with_raised_fist_lifecycle():
+    actions = (
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 1}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 1}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+    )
     return collect_complete_ppo_episode(
         make_ppo_training_environment(0),
         PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
         episode_index=62,
-        policy=_generated_joker_lifecycle_policy,
+        policy=_fixed_action_policy(actions),
     )
 
 
@@ -1250,11 +1269,20 @@ def test_env_ppo_rollout_crosses_exact_generated_zany_joker_lifecycle(
 
 @pytest.fixture(scope="module")
 def episode_110_with_crafty_joker_lifecycle():
+    actions = (
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
+        EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+        EnvAction.from_alias("END_SHOP"),
+        EnvAction.from_alias("SELECT_BLIND"),
+    )
     return collect_complete_ppo_episode(
         make_ppo_training_environment(0),
         PPOTrainingRun.from_seed("RED-WHITE-PPO-V1"),
         episode_index=110,
-        policy=_generated_joker_lifecycle_policy,
+        policy=_fixed_action_policy(actions),
     )
 
 
