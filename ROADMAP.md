@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`ab339ebe`.
+`cd52984f`.
 
 ## Objective
 
@@ -2567,13 +2567,17 @@ Reward changes remain deferred.
   offer to exact choices, choose or skip return, and generated-option snapshots.
   CI run `45994661860` verified **3,991 passed, 1,621 deselected**.
 - `cd52984f` wires Hallucination's roll, reserved capacity, and held Tarot
-  during that opening. CI run `45994900238` is pending.
+  during that opening. CI run `45994900238` verified
+  **3,995 passed, 1,621 deselected**.
 - `eb6e2262` adds public pack options and remaining picks to observation v8
   (3,338 inputs, 27 actions), model v5, and campaign v16. Older trained
   checkpoints require fresh training on the new schema.
 - `97c5293d` routes paid Buffoon opening and pack actions through PPO.
   `9de790b5` admits Hallucination and adds its $4 purchase and $2 sale replay.
-  Verify those changes in CI before counting Hallucination.
+  CI run `45996294163` reported **6 failed, 3,990 passed, 1,621 deselected,
+  1 error**. `be2f431d` fixes the Buffoon rollout boundary and pins the
+  affected mechanics replays independently of the newly legal actions.
+  Verify run `46011926776` before counting Hallucination and freezing.
 - After the acquisition gate is green, close the current trace queue at 58
   verified Jokers and record the exact implementation SHA and CI counts.
   Start a fresh campaign artifact directory with observation v8, model v5,
