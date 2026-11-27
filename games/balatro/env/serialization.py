@@ -307,6 +307,8 @@ def serialize_headless_run_state(run: HeadlessRunState) -> dict[str, Any]:
         private["pillar_debuff_snapshot"] = _plain_value(run.pillar_debuff_snapshot)
     if run.removed_base_six_suits:
         private["removed_base_six_suits"] = _plain_value(run.removed_base_six_suits)
+    if run.gros_michel_extinct:
+        private["gros_michel_extinct"] = True
     return {
         "schema": HEADLESS_RUN_STATE_SCHEMA,
         "seed": run.seed,
@@ -400,7 +402,7 @@ def restore_headless_run_state(payload: Mapping[str, Any]) -> HeadlessRunState:
     private = payload["private"]
     optional_fields = {
         "castle_suit", "mail_rebate_rank", "opening_draw_capacity",
-        "pillar_debuff_snapshot", "removed_base_six_suits",
+        "pillar_debuff_snapshot", "removed_base_six_suits", "gros_michel_extinct",
     }
     if not isinstance(private, Mapping) or set(private) - optional_fields != set(_PRIVATE_SCALARS):
         raise HeadlessTransitionError("invalid private fields in headless snapshot")

@@ -239,8 +239,11 @@ class HeadlessRunState:
     opening_draw_capacity: int | None = None
     pillar_debuff_snapshot: tuple[tuple[bool, ...], tuple[bool, ...]] | None = None
     removed_base_six_suits: tuple[str, ...] = ()
+    gros_michel_extinct: bool = False
 
     def __post_init__(self) -> None:
+        if type(self.gros_michel_extinct) is not bool:
+            raise ValueError("Gros Michel extinction flag must be boolean")
         snapshot = self.pillar_debuff_snapshot
         if snapshot is not None and (
             self.public.boss_name != "The Pillar"

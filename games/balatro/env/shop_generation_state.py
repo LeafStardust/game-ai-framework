@@ -90,8 +90,8 @@ def _visible_joker_record(run: HeadlessRunState, item) -> dict:
         # Ordinary shop generation cannot create a locked non-Legendary Joker.
         # Visibility therefore proves this dynamic predicate was true.
         "unlocked": True,
-        "no_pool_flag": None,
-        "yes_pool_flag": None,
+        "no_pool_flag": "gros_michel_extinct" if center_key == "j_gros_michel" else None,
+        "yes_pool_flag": "gros_michel_extinct" if center_key == "j_cavendish" else None,
     }
 
 
@@ -126,7 +126,9 @@ def restore_removed_shop_jokers_to_generation_pool(
     }
     for item in removed_jokers:
         record = _visible_joker_record(run, item)
-        if record["key"] in owned_keys:
+        if record["key"] in owned_keys or (
+            run.gros_michel_extinct and record["key"] == "j_gros_michel"
+        ):
             continue
         by_rarity[record["rarity"]].setdefault(record["key"], record)
 
@@ -134,6 +136,31 @@ def restore_removed_shop_jokers_to_generation_pool(
         str(rarity): _ordered_joker_records(rarity, by_rarity[rarity])
         for rarity in (1, 2, 3, 4)
     }
+    return next_run
+
+
+def record_gros_michel_extinction(run: HeadlessRunState) -> HeadlessRunState:
+    """Persist extinction and switch the common pool before the next shop."""
+    pools = _validate_observed_joker_generation_pools(run)
+    if run.generated_center_discovered("j_cavendish") is None or _showman_present(run):
+        raise HeadlessTransitionError("Gros Michel extinction requires exact profile authority")
+    next_run = run.copy()
+    next_run.gros_michel_extinct = True
+    common = {record["key"]: record for record in pools["1"]}
+    common.pop("j_gros_michel", None)
+    if not any(
+        (getattr(item, "center_key", None) or getattr(item, "center", None)) == "j_cavendish"
+        for item in (*run.public.jokers, *run.public.shop_jokers)
+    ):
+        common["j_cavendish"] = {
+            "rarity": 1,
+            "key": "j_cavendish",
+            "cost": 4,
+            "unlocked": True,
+            "no_pool_flag": None,
+            "yes_pool_flag": "gros_michel_extinct",
+        }
+    next_run.public.joker_generation_pools["1"] = _ordered_joker_records(1, common)
     return next_run
 
 
