@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`10c201be`.
+`ba61c014`.
 
 ## Objective
 
@@ -2554,26 +2554,23 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Audit Gros Michel as the candidate for the fifty-sixth exact generated
-Joker acquisition. Trace episode 63 decision 6 / seed `3B8B6C3F` offers
-uneditioned `j_gros_michel` for $5 in slot 1 with $13 available.
-
-Verify the seeded round-end extinction roll, debuff and Boss cleanup
-ordering, owned-Joker removal, and the persistent pool flag that excludes
-Gros Michel and admits Cavendish to generation. Keep acquisition closed
-until these effects are covered by deterministic regressions.
+Implement one exact paid Buffoon opening and return path for Hallucination.
 Rewards and retraining remain deferred.
 
-- `ba61c014` completes the Gros Michel and Campfire acquisition replays
-  and corrects the stale purchase-mask assertion and Campfire fixture setup
-  reported by CI run `45991127858`. Verification is pending.
-- Continue with Hallucination while Gros Michel and Campfire CI runs.
-  Episode 63 decision 9 offers it for $4 in slot 1 on seed `3B8B6C3F`.
-  `04fc23ed` pins its `Tarothal{ante}` identity stream and retry order.
-  Next audit one paid headless booster-open path from visible offer through
-  choice generation and pack return. Keep Hallucination acquisition gated
-  until the `halu{ante}` roll, capacity reservation, event ordering and
-  held Tarot publication are exact for the admitted opening path.
+- Episode 63 decision 9 offers Hallucination for $4 in slot 1 on seed
+  `3B8B6C3F`. `04fc23ed` pins its `Tarothal{ante}` pool stream.
+- `e0fe8486` implements Buffoon choice descriptor generation, including
+  `buf` identity, sticker, and edition streams. CI is pending.
+- Next connect a paid ordinary Buffoon offer to authoritative pack choices
+  and deterministic choice or skip return. Keep Hallucination acquisition
+  gated until its seeded roll, reservation, and Tarot publication are exact.
+
+Gros Michel and Campfire acquisition checkpoint:
+
+- `ba61c014` completes both acquisition replays. Gros Michel owns seeded
+  extinction and the persistent Cavendish pool switch. Campfire owns paid
+  Joker sale growth and Boss reset. CI run `45992489562` reported
+  **3,988 passed, 1,621 deselected**.
 
 8 Ball and Flash Card acquisition checkpoint:
 
