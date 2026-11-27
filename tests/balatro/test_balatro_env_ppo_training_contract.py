@@ -3591,3 +3591,32 @@ def test_env_ppo_trace_seed_buys_and_sells_exact_egg():
     environment.step(EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}))
     assert environment.frame.state.money == 28
     assert environment.frame.state.jokers == []
+
+
+def test_env_ppo_trace_seed_buys_and_sells_exact_shortcut():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="062DA0EA")
+    for alias in ("SELECT_BLIND", "END_SHOP") * 3 + ("SELECT_BLIND",):
+        environment.step(EnvAction.from_alias(alias))
+
+    state = environment.frame.state
+    assert state.money == 30
+    offer = state.shop_jokers[1]
+    assert (offer.center_key, offer.price, offer.edition) == ("j_shortcut", 7, None)
+    rng = environment._backend.run.rng_snapshot()
+
+    buy = EnvAction.from_alias("BUY_JOKER", {"slot": 1})
+    assert buy in environment.legal_actions()
+    environment.step(buy)
+    state = environment.frame.state
+    assert state.money == 23
+    assert [(joker.center, joker.sell_cost) for joker in state.jokers] == [
+        ("j_shortcut", 3)
+    ]
+
+    sell = EnvAction.from_alias("SELL_JOKER", {"joker_index": 0})
+    assert sell in environment.legal_actions()
+    environment.step(sell)
+    assert environment.frame.state.money == 26
+    assert environment.frame.state.jokers == []
+    assert environment._backend.run.rng_snapshot() == rng

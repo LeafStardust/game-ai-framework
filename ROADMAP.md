@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`0342581cb7d2df28b933aa4f830c236dee5d73ba`.
+`bbe25a036a5d322edf2eef1a2eec7a44a518ba02`.
 
 ## Objective
 
@@ -2557,6 +2557,17 @@ First verify the pinned gap rule against the canonical hand evaluator,
 then audit tactical classification, scoring, Boss constraints, and
 Straight component callbacks before admitting purchase and sale.
 Hallucination, booster work, rewards, and retraining remain deferred.
+
+Shortcut Play checkpoint:
+
+- `01ab6f04` applies passive hand rules before Play updates hand history
+  or checks Boss restrictions. CI run `45970307837` reported
+  **3,955 passed, 1,621 deselected**.
+- `bbe25a03` covers The Mouth's lock and Runner's growth with a gapped
+  Straight, and admits Shortcut through The Hook's forced discard.
+  CI run `45970623353` reported **3,958 passed, 1,621 deselected**.
+- Verify the generated purchase and sale replay on seed `062DA0EA`
+  before counting Shortcut and advancing the acquisition queue.
 
 Egg acquisition checkpoint:
 

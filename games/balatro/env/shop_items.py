@@ -48,6 +48,7 @@ from games.balatro.jokers.castle import CASTLE_SUITS, CastleJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.sixth_sense import SixthSenseJoker
+from games.balatro.jokers.shortcut import ShortcutJoker
 from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.madness import MadnessJoker
@@ -298,6 +299,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Scary Face"
+    elif item.center_key == "j_shortcut":
+        joker_type = ShortcutJoker
+        expected_rarity = 2
+        expected_base_cost = 7
+        label = "Shortcut"
     elif item.center_key == "j_splash":
         joker_type = SplashJoker
         expected_rarity = 1
