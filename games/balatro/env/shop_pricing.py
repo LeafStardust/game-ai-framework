@@ -68,6 +68,23 @@ def vanilla_card_cost(
     return ordinary_cost * post_discount_multiplier
 
 
+def reprice_held_egg(joker, *, inflation: int, discount_percent: int) -> None:
+    """Apply Card:set_cost to an owned Egg with exact accumulated extra value."""
+    if (
+        getattr(joker, "center", None) != "j_egg"
+        or getattr(joker, "base_cost", None) != 4
+        or getattr(joker, "edition", None) is not None
+        or type(joker.sell_value) is not int
+        or joker.sell_value < 0
+        or joker.sell_value % 3
+    ):
+        raise HeadlessTransitionError("Egg pricing requires exact owned sell-value state")
+    joker.cost = vanilla_card_cost(
+        4, edition=None, inflation=inflation, discount_percent=discount_percent
+    )
+    joker.sell_cost = vanilla_card_sell_cost(joker.cost, extra_value=joker.sell_value)
+
+
 def vanilla_card_sell_cost(cost: int, *, extra_value: int = 0) -> int:
     """Return vanilla ``Card:set_cost`` sale value for an exact card cost."""
     for name, value in (("cost", cost), ("extra_value", extra_value)):

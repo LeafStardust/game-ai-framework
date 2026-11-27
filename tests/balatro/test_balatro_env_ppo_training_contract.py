@@ -3568,3 +3568,17 @@ def test_env_ppo_terminal_diagnostic_authority_fails_closed_on_contradiction():
             decisions=(decision,),
             rewards=(0.0,),
         )
+
+def test_env_ppo_trace_seed_buys_and_sells_exact_egg():
+    environment = make_ppo_training_environment(0)
+    environment.reset(seed="062DA0EA")
+    for alias in ("SELECT_BLIND", "END_SHOP") * 3 + ("SELECT_BLIND",):
+        environment.step(EnvAction.from_alias(alias))
+
+    assert environment.frame.state.money == 30
+    environment.step(EnvAction.from_alias("BUY_JOKER", {"slot": 0}))
+    egg = environment.frame.state.jokers[0]
+    assert (egg.center, egg.sell_value, egg.sell_cost) == ("j_egg", 0, 2)
+    environment.step(EnvAction.from_alias("SELL_JOKER", {"joker_index": 0}))
+    assert environment.frame.state.money == 28
+    assert environment.frame.state.jokers == []

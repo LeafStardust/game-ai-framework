@@ -837,3 +837,23 @@ def test_env_r2_boss_moon_cashout_carries_unpaid_debt_without_interest():
     run.public.jokers = [ToTheMoonJoker()]
 
     assert cash_out_supported_boss(run).public.money == -4
+
+@pytest.mark.parametrize(("debuffed", "expected"), [(False, 8), (True, 5)])
+def test_env_r2_boss_egg_growth_uses_pre_defeat_debuff(debuffed, expected):
+    from games.balatro.env.shop_items import GeneratedShopJokerItem, materialize_generated_shop_joker_for_acquisition
+
+    run = _finish(_boss_round("Crimson Heart"), hands=0)
+    egg = materialize_generated_shop_joker_for_acquisition(
+        GeneratedShopJokerItem("j_egg", 1, 4, None, 4, True)
+    )
+    egg.sell_value = 3
+    egg.sell_cost = 5
+    egg.debuffed = debuffed
+    run.public.jokers = [egg]
+    setattr(run.public.blind, "prepped", False)
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.jokers[0].sell_cost == expected
+    assert result.public.jokers[0].debuffed is False
+    assert egg.sell_cost == 5

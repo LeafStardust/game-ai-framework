@@ -41,6 +41,7 @@ from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.diet_cola import DietColaJoker
+from games.balatro.jokers.egg import EggJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
 from games.balatro.jokers.runner import RunnerJoker
@@ -65,6 +66,7 @@ _ROUND_END_INERT_JOKER_TYPES = (
     DNAJoker,
     FacelessJoker,
     DietColaJoker,
+    EggJoker,
     GreenJoker,
     MailInRebateJoker,
     RunnerJoker,
@@ -133,6 +135,18 @@ def _held_gold_dollars(run: HeadlessRunState) -> int:
         BalatroScorer._held_card_trigger_count(card, mime_retriggers)
         for card in gold_cards
     )
+
+
+def apply_round_end_egg_growth(run: HeadlessRunState) -> None:
+    from games.balatro.env.shop_pricing import reprice_held_egg
+
+    state = run.public
+    for joker in state.jokers:
+        if type(joker) is not EggJoker or joker.debuffed:
+            continue
+        reprice_held_egg(joker, inflation=state.shop_inflation, discount_percent=state.shop_discount_percent)
+        joker.apply(JokerContext(state=state, trigger="ROUND_ENDED"))
+        reprice_held_egg(joker, inflation=state.shop_inflation, discount_percent=state.shop_discount_percent)
 
 
 def _round_end_joker_dollars(run: HeadlessRunState) -> int:
@@ -299,6 +313,7 @@ def cash_out_baseline_ordinary_blind(run: HeadlessRunState) -> HeadlessRunState:
     money += _held_gold_dollars(run)
     interest = _round_end_interest_dollars(run, money, interest_cap)
     round_end_run = run.copy()
+    apply_round_end_egg_growth(round_end_run)
     joker_dollars = _round_end_joker_dollars(round_end_run)
     payout = blind_reward + hands_remaining + joker_dollars + interest
 

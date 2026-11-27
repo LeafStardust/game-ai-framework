@@ -54,6 +54,7 @@ from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
 from games.balatro.jokers.diet_cola import DietColaJoker
+from games.balatro.jokers.egg import EggJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.mail_in_rebate import MAIL_REBATE_RANKS, MailInRebateJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
@@ -307,6 +308,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 2
         expected_base_cost = 6
         label = "Sixth Sense"
+    elif item.center_key == "j_egg":
+        joker_type = EggJoker
+        expected_rarity = 1
+        expected_base_cost = 4
+        label = "Egg"
     elif item.center_key == "j_diet_cola":
         joker_type = DietColaJoker
         expected_rarity = 2
@@ -383,6 +389,8 @@ def materialize_generated_shop_joker_for_acquisition(
         joker = MailInRebateJoker(mail_rebate_rank)
     else:
         joker = joker_type()
+    if type(joker) is EggJoker:
+        joker.sell_value = 0
     joker.center = item.center_key
     joker.label = label
     joker.rarity = item.rarity

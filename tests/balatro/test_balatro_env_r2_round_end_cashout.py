@@ -361,3 +361,25 @@ def test_env_r2_moon_interest_counts_held_gold_before_payout_rows(balance, gold,
 
     assert result.public.money == expected
     assert run.public.money == balance
+
+def test_env_r2_egg_growth_is_sell_value_not_cash_and_survives_repricing():
+    from games.balatro.env.shop_items import GeneratedShopJokerItem, materialize_generated_shop_joker_for_acquisition
+    from games.balatro.env.shop_repricing import reprice_exact_generated_shop
+    from games.balatro.env.state import EnvStateFrame
+    from games.balatro.env.observation_encoding import PUBLIC_OBSERVATION_SCHEMA
+
+    run = _cleared_run()
+    egg = materialize_generated_shop_joker_for_acquisition(
+        GeneratedShopJokerItem("j_egg", 1, 4, None, 4, False)
+    )
+    run.public.jokers = [egg]
+    result = cash_out_baseline_ordinary_blind(run)
+    assert result.public.money == 21
+    assert (egg.sell_value, egg.sell_cost) == (0, 2)
+    grown = result.public.jokers[0]
+    assert (grown.sell_value, grown.sell_cost) == (3, 5)
+    repriced = reprice_exact_generated_shop(result, discount_percent=50)
+    discounted = repriced.public.jokers[0]
+    assert (discounted.cost, discounted.sell_value, discounted.sell_cost) == (2, 3, 4)
+    encoded = EnvStateFrame(repriced.public).encoded_observation()
+    assert encoded.values[PUBLIC_OBSERVATION_SCHEMA.feature_names.index("jokers.0.sell_cost")] == 4.0

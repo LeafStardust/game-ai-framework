@@ -22,6 +22,7 @@ from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.diet_cola import DietColaJoker
+from games.balatro.jokers.egg import EggJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
@@ -86,6 +87,8 @@ def generated_joker_tactical_callbacks_are_exact(
             expected_center = "j_joker"
         elif type(joker) is DeviousJoker:
             expected_center = "j_devious"
+        elif type(joker) is EggJoker:
+            expected_center = "j_egg"
         elif type(joker) is DietColaJoker:
             expected_center = "j_diet_cola"
         elif type(joker) is DrollJoker:

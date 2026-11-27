@@ -31,7 +31,8 @@ def reprice_exact_generated_shop(
     # module cycle while keeping the runtime type boundary explicit.
     from games.balatro.env.shop_consumable_items import GeneratedShopConsumableItem
     from games.balatro.env.shop_items import GeneratedShopJokerItem
-    from games.balatro.env.shop_pricing import vanilla_card_cost
+    from games.balatro.env.shop_pricing import reprice_held_egg, vanilla_card_cost
+    from games.balatro.jokers.egg import EggJoker
     from games.balatro.env.shop_voucher_items import GeneratedShopVoucherItem
     from games.balatro.env.spectral_inventory import GeneratedHeldSpectral, reprice_held_spectral
     from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
@@ -119,6 +120,11 @@ def reprice_exact_generated_shop(
         )
         for item in next_state.shop_vouchers
     ]
+    for joker in next_state.jokers:
+        if type(joker) is EggJoker:
+            reprice_held_egg(
+                joker, inflation=next_state.shop_inflation, discount_percent=discount_percent
+            )
     next_state.shop_discount_percent_observed = True
     next_state.shop_discount_percent = discount_percent
     next_state.consumables = [
