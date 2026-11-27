@@ -5,7 +5,7 @@ in `LeafStardust/game-ai-framework`, branch
 `feat/v1.0-red-white-competence`.
 
 Last synchronized implementation HEAD:
-`be2f431d`.
+`7bda10df`.
 
 ## Objective
 
@@ -2555,7 +2555,7 @@ Completed progress-reward paired evaluation:
 ## Exact active task
 
 Run and verify one fresh observation-v8 PPO optimizer batch on the
-frozen Red/White implementation at `be2f431d`.
+frozen Red/White implementation at `7bda10df`.
 Reward changes remain deferred.
 
 - Episode 63 decision 9 offers Hallucination for $4 in slot 1 on seed
@@ -2587,8 +2587,8 @@ Reward changes remain deferred.
   the trained candidate.
 - The first pilot on `be2f431d` stopped before publishing a checkpoint.
   Episode 4 / seed `A0370D8B` exposed a missing Golden Joker blind-start
-  admission. The corrected replay completes on `7bda10df`, awaiting CI
-  run `46023644344`. Episode 5 / seed `59B15C34` separately spends time
+  admission. The corrected replay completes on `7bda10df`, verified by CI
+  run `46023644344` with **3,998 passed, 1,621 deselected**. Episode 5 / seed `59B15C34` separately spends time
   in the tactical lookahead after the second shop. Retry from a fresh
   artifact directory once the repair passes CI.
 
