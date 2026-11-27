@@ -64,6 +64,7 @@ from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.jokers.gros_michel import GrosMichelJoker
 from games.balatro.jokers.campfire import CampfireJoker
+from games.balatro.jokers.hallucination import HallucinationJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
@@ -293,6 +294,11 @@ def materialize_generated_shop_joker_for_acquisition(
         expected_rarity = 1
         expected_base_cost = 4
         label = "Scholar"
+    elif item.center_key == "j_hallucination":
+        joker_type = HallucinationJoker
+        expected_rarity = 1
+        expected_base_cost = 4
+        label = "Hallucination"
     elif item.center_key == "j_campfire":
         joker_type = CampfireJoker
         expected_rarity = 3

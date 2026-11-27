@@ -802,7 +802,7 @@ class ShopTransitionEngine:
                     from games.balatro.env.spectral_inventory import require_held_spectral_authority
 
                     require_held_spectral_authority(run)
-                if item.center_key == "j_8_ball":
+                if item.center_key in ("j_8_ball", "j_hallucination"):
                     from games.balatro.env.shop_consumable_generation_state import (
                         require_held_tarot_authority,
                     )

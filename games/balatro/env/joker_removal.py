@@ -30,6 +30,7 @@ from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.jokers.gros_michel import GrosMichelJoker
 from games.balatro.jokers.campfire import CampfireJoker
+from games.balatro.jokers.hallucination import HallucinationJoker
 from games.balatro.jokers.vampire import VampireJoker
 
 
@@ -59,6 +60,7 @@ INVENTORY_ONLY_JOKER_REMOVAL_TYPES = tuple(
         FlashCardJoker,
         GrosMichelJoker,
         CampfireJoker,
+        HallucinationJoker,
         VampireJoker,
     )
     if joker_type is not JugglerJoker
