@@ -2574,6 +2574,10 @@ Reward changes remain deferred.
   The Head. `1ecfb699` validates authoritative round-reset counts and
   leaves Joker callback validation with Boss cash-out. Retry the batch-3
   checkpoint. CI run `46135399735` reported **4,005 passed, 1,621 deselected**.
+- The next resume saved 8,443 transitions at batch 3. Episode 812 / seed
+  `D339ED03` exposed Hieroglyph with Shortcut at The Psychic. `c6b338f8`
+  keeps the exact Ante and round-reset checks and leaves supported Joker
+  validation to Boss cash-out. Resume after this repair passes CI.
 
 - Pilot batch 1 exited with code 0. It collected 2,286 transitions and
   optimized 2,048. The remaining 238 transitions carry forward. The
