@@ -2555,7 +2555,7 @@ Completed progress-reward paired evaluation:
 ## Exact active task
 
 Run and verify one fresh observation-v8 PPO optimizer batch on the
-frozen Red/White implementation at `6fcb327d`.
+frozen Red/White implementation at `67a13dd1`.
 Reward changes remain deferred.
 
 - Episode 63 decision 9 offers Hallucination for $4 in slot 1 on seed
@@ -2613,7 +2613,7 @@ Reward changes remain deferred.
   CI run `46119408219` reported **1 failed, 4,002 passed, 1,621 deselected**.
   Its older Juggler fixture omitted the acquired slot. `67a13dd1` corrects
   that fixture and checks the inconsistent capacity fails closed. Resume the
-  verified 504-transition checkpoint after CI run `46120711550` passes.
+  verified 504-transition checkpoint. CI run `46120711550` reported **4,003 passed, 1,621 deselected**.
 
 Gros Michel and Campfire acquisition checkpoint:
 
