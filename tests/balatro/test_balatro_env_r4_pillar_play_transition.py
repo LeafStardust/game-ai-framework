@@ -4,13 +4,15 @@ from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.env.blind_start import start_supported_pillar
 from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.serialization import serialize_headless_run_state
+from games.balatro.env.tactical_transition import apply_supported_tactical_discard
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
 
-def _pillar_run(*, seed="R4-PILLAR", requirement=99_999, mark_all=False):
+def _pillar_run(*, seed="R4-PILLAR", requirement=99_999, mark_all=False, juggler=False):
     state = BalatroState()
     state.deck_name = "RED"
     state.stake_name = "WHITE"
@@ -19,6 +21,11 @@ def _pillar_run(*, seed="R4-PILLAR", requirement=99_999, mark_all=False):
     state.round = 6
     state.blind = Blind(BlindType.BOSS, requirement=requirement, reward=5)
     state.boss_name = "The Pillar"
+    if juggler:
+        joker = JugglerJoker()
+        joker.center = "j_juggler"
+        state.jokers = [joker]
+        state.hand_size = 9
     state.round_reset_hands_observed = True
     state.round_reset_hands = 4
     state.round_reset_discards_observed = True
@@ -28,6 +35,17 @@ def _pillar_run(*, seed="R4-PILLAR", requirement=99_999, mark_all=False):
         card.played_this_ante_observed = True
         card.played_this_ante = mark_all
     return start_supported_pillar(run)
+
+
+def test_env_r4_pillar_play_and_discard_maintain_juggler_capacity():
+    run = _pillar_run(juggler=True)
+    assert len(run.public.hand) == 9
+
+    played = apply_supported_ordinary_play(run, (0,))
+    discarded = apply_supported_tactical_discard(run, (0,))
+
+    assert len(played.public.hand) == played.public.hand_size == 9
+    assert len(discarded.public.hand) == discarded.public.hand_size == 9
 
 
 def test_env_r4_pillar_play_scores_hand_base_but_not_debuffed_card_chips():

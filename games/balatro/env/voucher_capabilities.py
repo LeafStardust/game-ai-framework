@@ -9,6 +9,7 @@ single global "supported Voucher" flag.
 from __future__ import annotations
 
 from games.balatro.state import BalatroState
+from games.balatro.jokers.juggler import JugglerJoker
 
 
 EXACT_HAND_SIZE_VOUCHER_KEYS = frozenset({"v_paint_brush", "v_palette"})
@@ -290,6 +291,22 @@ def expected_red_deck_hand_size_for_vouchers(state: BalatroState) -> int | None:
     if owned is None or ("v_palette" in owned and "v_paint_brush" not in owned):
         return None
     return 8 + int("v_paint_brush" in owned) + int("v_palette" in owned)
+
+
+def expected_red_deck_tactical_hand_size(state: BalatroState) -> int | None:
+    """Compose persistent Voucher capacity with audited Juggler ownership."""
+    base = expected_red_deck_hand_size_for_vouchers(state)
+    if base is None:
+        return None
+    jugglers = [joker for joker in state.jokers if type(joker) is JugglerJoker]
+    if any(
+        getattr(joker, "center", None) != "j_juggler"
+        or getattr(joker, "edition", None) is not None
+        or joker.debuffed is not False
+        for joker in jugglers
+    ):
+        return None
+    return base + len(jugglers)
 
 
 def expected_red_deck_round_resources_for_vouchers(

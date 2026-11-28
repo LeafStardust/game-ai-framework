@@ -33,7 +33,7 @@ from games.balatro.env.tactical_evidence import (
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.env.voucher_capabilities import (
-    expected_red_deck_hand_size_for_vouchers,
+    expected_red_deck_tactical_hand_size,
 )
 
 
@@ -77,7 +77,7 @@ def _require_active_ordinary_discard_boss_state(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "ordinary Boss discard does not own additional blind modifiers"
         )
-    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
+    expected_hand_size = expected_red_deck_tactical_hand_size(state)
     if (
         expected_hand_size is None
         or state.hand_size != expected_hand_size
@@ -129,7 +129,7 @@ def _require_active_psychic_discard_state(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "Psychic discard does not own additional blind modifiers"
         )
-    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
+    expected_hand_size = expected_red_deck_tactical_hand_size(state)
     if (
         expected_hand_size is None
         or state.hand_size != expected_hand_size
@@ -160,7 +160,7 @@ def _require_active_needle_discard_state(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "Needle discard does not own additional blind modifiers"
         )
-    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
+    expected_hand_size = expected_red_deck_tactical_hand_size(state)
     reset_hands = state.round_reset_hands
     if (
         state.round_reset_hands_observed is not True
@@ -196,7 +196,7 @@ def _require_active_wheel_discard_state(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "Wheel discard does not own additional blind modifiers"
         )
-    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
+    expected_hand_size = expected_red_deck_tactical_hand_size(state)
     if (
         expected_hand_size is None
         or state.hand_size != expected_hand_size
@@ -227,7 +227,7 @@ def _require_active_mark_discard_state(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError(
             "Mark discard does not own additional blind modifiers"
         )
-    expected_hand_size = expected_red_deck_hand_size_for_vouchers(state)
+    expected_hand_size = expected_red_deck_tactical_hand_size(state)
     if (
         expected_hand_size is None
         or state.hand_size != expected_hand_size
