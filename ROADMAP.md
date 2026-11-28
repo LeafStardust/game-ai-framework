@@ -2601,7 +2601,11 @@ Reward changes remain deferred.
   hash matches `progress.json`. Episode 40 / seed `33841AF2` exposed a
   missing Vampire blind-start admission. `4f12fe16` also admits Rocket,
   the other generated Joker with an inert blind-start lifecycle missing
-  from that owner. CI run `46114591429` reported **4,001 passed, 1,621 deselected**. Resume the pilot from its existing checkpoint.
+  from that owner. CI run `46114591429` reported **4,001 passed, 1,621 deselected**.
+- The resume on `4f12fe16` reached ordinary cash-out with Vampire, which
+  was missing from the cash-out capability list. `6fcb327d` preserves its
+  stored XMult and baseline payout. CI run `46116620209` is pending. The
+  existing checkpoint still has 322 transitions and zero optimizer batches.
 
 Gros Michel and Campfire acquisition checkpoint:
 
