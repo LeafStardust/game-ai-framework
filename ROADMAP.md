@@ -2554,9 +2554,17 @@ Completed progress-reward paired evaluation:
 
 ## Exact active task
 
-Run and verify one fresh observation-v8 PPO optimizer batch on the
-frozen Red/White implementation at `67a13dd1`.
+Resume the verified observation-v8 PPO pilot on frozen Red/White
+implementation `67a13dd1` for one more optimizer batch. Verify that
+the resumed run persists batch 2 before setting the larger training budget.
 Reward changes remain deferred.
+
+- Pilot batch 1 exited with code 0. It collected 2,286 transitions and
+  optimized 2,048. The remaining 238 transitions carry forward. The
+  checkpoint SHA-256 matches progress and the campaign loader restored
+  batch 1 successfully. Resume the same directory
+  `balatro-ppo-v8-pilot-459830ec` with root seed `RED-WHITE-PPO-V1`,
+  campaign v16 and an incremental ceiling of one batch.
 
 - Episode 63 decision 9 offers Hallucination for $4 in slot 1 on seed
   `3B8B6C3F`. `04fc23ed` pins its `Tarothal{ante}` pool stream.
