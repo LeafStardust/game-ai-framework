@@ -2564,6 +2564,10 @@ Reward changes remain deferred.
   4,558 transitions, optimized 4,096, and carries 462 forward. Its SHA-256
   matches `progress.json` and the campaign loader restored batch 2.
   Continue from the same directory with six additional batches as the cap.
+- The extension saved batch 3 with 7,833 collected and 6,144 optimized
+  transitions. Replay episode 752 / seed `B3F8A73C` isolated The Goad
+  cash-out failure to Wasteful with Smiley Face. Resume this checkpoint
+  toward batch 8 after CI verifies the narrow composition fix in `50a777a4`.
 
 - Pilot batch 1 exited with code 0. It collected 2,286 transitions and
   optimized 2,048. The remaining 238 transitions carry forward. The
