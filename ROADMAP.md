@@ -2555,7 +2555,7 @@ Completed progress-reward paired evaluation:
 ## Exact active task
 
 Run and verify one fresh observation-v8 PPO optimizer batch on the
-frozen Red/White implementation at `4f12fe16`.
+frozen Red/White implementation at `6fcb327d`.
 Reward changes remain deferred.
 
 - Episode 63 decision 9 offers Hallucination for $4 in slot 1 on seed
@@ -2604,7 +2604,7 @@ Reward changes remain deferred.
   from that owner. CI run `46114591429` reported **4,001 passed, 1,621 deselected**.
 - The resume on `4f12fe16` reached ordinary cash-out with Vampire, which
   was missing from the cash-out capability list. `6fcb327d` preserves its
-  stored XMult and baseline payout. CI run `46116620209` is pending. The
+  stored XMult and baseline payout. CI run `46116620209` passed **4,002 tests, 1,621 deselected**. The
   existing checkpoint still has 322 transitions and zero optimizer batches.
 
 Gros Michel and Campfire acquisition checkpoint:
