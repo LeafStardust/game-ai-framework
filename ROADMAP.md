@@ -2555,7 +2555,7 @@ Completed progress-reward paired evaluation:
 ## Exact active task
 
 Extend the verified observation-v8 PPO campaign on frozen Red/White
-implementation `67a13dd1` through optimizer batch 8. Keep the existing
+implementation `50a777a4` through optimizer batch 8. Keep the existing
 checkpoint and contract. Verify the batch-8 checkpoint before extending
 training further or scheduling promotion evaluation.
 Reward changes remain deferred.
@@ -2567,7 +2567,8 @@ Reward changes remain deferred.
 - The extension saved batch 3 with 7,833 collected and 6,144 optimized
   transitions. Replay episode 752 / seed `B3F8A73C` isolated The Goad
   cash-out failure to Wasteful with Smiley Face. Resume this checkpoint
-  toward batch 8 after CI verifies the narrow composition fix in `50a777a4`.
+  toward batch 8 with the narrow composition fix in `50a777a4`.
+  CI run `46132918309` reported **4,004 passed, 1,621 deselected**.
 
 - Pilot batch 1 exited with code 0. It collected 2,286 transitions and
   optimized 2,048. The remaining 238 transitions carry forward. The
