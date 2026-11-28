@@ -11,6 +11,7 @@ from games.balatro.jokers.campfire import CampfireJoker
 from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.sly_joker import SlyJoker
+from games.balatro.jokers.shortcut import ShortcutJoker
 from games.balatro.state import BalatroState
 
 
@@ -305,10 +306,12 @@ def test_env_r2_manacle_cashout_validates_paint_brush_active_reduction():
         (["v_hieroglyph", "v_wasteful", "v_recyclomancy"], 3, 5),
     ],
 )
+@pytest.mark.parametrize("with_shortcut", [False, True])
 def test_env_r2_boss_cashout_preserves_exact_ante_voucher_noop(
     vouchers,
     reset_hands,
     reset_discards,
+    with_shortcut,
 ):
     run = _finish(_boss_round("The Psychic", money=6, reward=5), hands=1)
     run.public.ante = 0
@@ -319,6 +322,8 @@ def test_env_r2_boss_cashout_preserves_exact_ante_voucher_noop(
     run.public.round_reset_discards_observed = True
     run.public.round_reset_discards = reset_discards
     run.blind_progression_state = BlindProgressionState(blind_ante=-1)
+    if with_shortcut:
+        run.public.jokers = [ShortcutJoker()]
     before_rng = run.rng_snapshot()
 
     result = cash_out_supported_boss(run)
@@ -329,6 +334,8 @@ def test_env_r2_boss_cashout_preserves_exact_ante_voucher_noop(
     assert result.public.round_reset_hands == reset_hands
     assert result.public.round_reset_discards == reset_discards
     assert result.rng_snapshot() == before_rng
+    if with_shortcut:
+        assert type(result.public.jokers[0]) is ShortcutJoker
 
 
 @pytest.mark.parametrize(

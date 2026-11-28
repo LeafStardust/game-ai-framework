@@ -179,8 +179,6 @@ def boss_cash_out_vouchers_are_exact(
     if owned & (EXACT_ANTE_VOUCHER_KEYS | EXACT_ROUND_RESOURCE_VOUCHER_KEYS):
         # Boss cash-out owns Joker callbacks separately. Compare the retained
         # reset counters here to exclude unowned changes to persistent resources.
-        if state.jokers and owned & EXACT_ANTE_VOUCHER_KEYS:
-            return False
         expected_hands, expected_discards = expected_round_resources
         if (
             state.round_reset_hands_observed is not True
