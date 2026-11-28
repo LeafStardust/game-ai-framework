@@ -47,6 +47,7 @@ from games.balatro.jokers.egg import EggJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.gros_michel import GrosMichelJoker
 from games.balatro.jokers.campfire import CampfireJoker
+from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.jokers.hallucination import HallucinationJoker
 from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
 from games.balatro.jokers.runner import RunnerJoker
@@ -76,6 +77,7 @@ _ROUND_END_INERT_JOKER_TYPES = (
     EggJoker,
     GrosMichelJoker,
     CampfireJoker,
+    VampireJoker,
     HallucinationJoker,
     GreenJoker,
     MailInRebateJoker,

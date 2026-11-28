@@ -9,6 +9,7 @@ from games.balatro.env.round_end import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.to_the_moon import ToTheMoonJoker
+from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.state import BalatroState
 
 
@@ -44,6 +45,20 @@ def _cleared_run(
 
 def _ids(cards):
     return {id(card) for card in cards}
+
+
+def test_env_r2_cashout_preserves_vampire_growth_without_payout():
+    run = _cleared_run()
+    baseline = cash_out_baseline_ordinary_blind(run)
+    vampire = VampireJoker()
+    vampire.x_mult = 1.5
+    run.public.jokers = [vampire]
+
+    result = cash_out_baseline_ordinary_blind(run)
+
+    assert result.public.jokers[0].x_mult == 1.5
+    assert result.public.money == baseline.public.money
+    assert result.rng_snapshot() == baseline.rng_snapshot()
 
 
 def test_env_r2_baseline_interest_uses_pre_payout_money_and_caps_at_five():
