@@ -9,6 +9,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.campfire import CampfireJoker
 from games.balatro.jokers.to_the_moon import ToTheMoonJoker
+from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.state import BalatroState
 
 
@@ -49,6 +50,23 @@ def _card_signature(card):
         card.debuffed,
         card.forced_selection,
     )
+
+
+def test_env_r2_boss_cashout_preserves_wasteful_with_smiley_face():
+    run = _finish(_boss_round("The Psychic"))
+    run.public.vouchers = ["v_wasteful"]
+    run.public.vouchers_observed = True
+    run.public.round_reset_hands_observed = True
+    run.public.round_reset_hands = 4
+    run.public.round_reset_discards_observed = True
+    run.public.round_reset_discards = 4
+    run.public.jokers = [SmileyFaceJoker()]
+
+    result = cash_out_supported_boss(run)
+
+    assert result.public.money == 22
+    assert result.public.round_reset_discards == 4
+    assert type(result.public.jokers[0]) is SmileyFaceJoker
 
 
 def test_env_r2_simple_boss_cashout_pays_and_enters_ungenerated_shop():
