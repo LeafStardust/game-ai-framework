@@ -2555,7 +2555,7 @@ Completed progress-reward paired evaluation:
 ## Exact active task
 
 Run and verify one fresh observation-v8 PPO optimizer batch on the
-frozen Red/White implementation at `7bda10df`.
+frozen Red/White implementation at `459830ec`.
 Reward changes remain deferred.
 
 - Episode 63 decision 9 offers Hallucination for $4 in slot 1 on seed
@@ -2594,8 +2594,9 @@ Reward changes remain deferred.
 - The retry on `7bda10df` exited before any checkpoint. The Hook rejected
   a roster already admitted by the shared tactical capability gate.
   `459830ec` uses the shared gate and existing exact discard callbacks,
-  with a deterministic regression for Golden Joker. Retry the pilot from
-  a fresh directory after the Hook repair passes CI.
+  with a deterministic regression for Golden Joker. CI run `46112405145`
+  reported **3,999 passed, 1,621 deselected**. Retry in a fresh artifact
+  directory named `balatro-ppo-v8-pilot-459830ec`.
 
 Gros Michel and Campfire acquisition checkpoint:
 
