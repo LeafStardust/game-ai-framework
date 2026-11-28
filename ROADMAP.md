@@ -2555,7 +2555,7 @@ Completed progress-reward paired evaluation:
 ## Exact active task
 
 Extend the verified observation-v8 PPO campaign on frozen Red/White
-implementation `50a777a4` through optimizer batch 8. Keep the existing
+implementation `1ecfb699` through optimizer batch 8. Keep the existing
 checkpoint and contract. Verify the batch-8 checkpoint before extending
 training further or scheduling promotion evaluation.
 Reward changes remain deferred.
@@ -2573,7 +2573,7 @@ Reward changes remain deferred.
   804 / seed `F70DBB0E` hit the same gate with Wasteful and Sly Joker at
   The Head. `1ecfb699` validates authoritative round-reset counts and
   leaves Joker callback validation with Boss cash-out. Retry the batch-3
-  checkpoint after CI passes.
+  checkpoint. CI run `46135399735` reported **4,005 passed, 1,621 deselected**.
 
 - Pilot batch 1 exited with code 0. It collected 2,286 transitions and
   optimized 2,048. The remaining 238 transitions carry forward. The
