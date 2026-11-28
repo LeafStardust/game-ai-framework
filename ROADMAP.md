@@ -2606,6 +2606,11 @@ Reward changes remain deferred.
   was missing from the cash-out capability list. `6fcb327d` preserves its
   stored XMult and baseline payout. CI run `46116620209` passed **4,002 tests, 1,621 deselected**. The
   existing checkpoint still has 322 transitions and zero optimizer batches.
+- The resume on `6fcb327d` saved 504 transitions and zero optimizer batches.
+  Episode 62 / seed `43F62C55` exposed the Voucher-only hand-size check
+  during Play against The Pillar with Juggler. `1c6f82cf` composes exact
+  Juggler capacity with Voucher capacity for tactical and Manacle checks.
+  Resume the existing checkpoint after CI verifies the repair.
 
 Gros Michel and Campfire acquisition checkpoint:
 
