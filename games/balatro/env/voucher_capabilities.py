@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from games.balatro.state import BalatroState
 from games.balatro.jokers.juggler import JugglerJoker
-from games.balatro.jokers.smiley_face import SmileyFaceJoker
 
 
 EXACT_HAND_SIZE_VOUCHER_KEYS = frozenset({"v_paint_brush", "v_palette"})
@@ -178,12 +177,9 @@ def boss_cash_out_vouchers_are_exact(
         elif boss_hand_size_sub is not None or state.hand_size != expected_hand_size:
             return False
     if owned & (EXACT_ANTE_VOUCHER_KEYS | EXACT_ROUND_RESOURCE_VOUCHER_KEYS):
-        resource_vouchers = owned & (EXACT_ANTE_VOUCHER_KEYS | EXACT_ROUND_RESOURCE_VOUCHER_KEYS)
-        # Smiley Face only modifies scoring and leaves Wasteful's reset intact.
-        if state.jokers and (
-            resource_vouchers != {"v_wasteful"}
-            or any(type(joker) is not SmileyFaceJoker for joker in state.jokers)
-        ):
+        # Boss cash-out owns Joker callbacks separately. Compare the retained
+        # reset counters here to exclude unowned changes to persistent resources.
+        if state.jokers and owned & EXACT_ANTE_VOUCHER_KEYS:
             return False
         expected_hands, expected_discards = expected_round_resources
         if (
