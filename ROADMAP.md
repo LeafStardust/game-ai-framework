@@ -2569,6 +2569,11 @@ Reward changes remain deferred.
   cash-out failure to Wasteful with Smiley Face. Resume this checkpoint
   toward batch 8 with the narrow composition fix in `50a777a4`.
   CI run `46132918309` reported **4,004 passed, 1,621 deselected**.
+- The resumed campaign saved 8,339 collected transitions before episode
+  804 / seed `F70DBB0E` hit the same gate with Wasteful and Sly Joker at
+  The Head. `1ecfb699` validates authoritative round-reset counts and
+  leaves Joker callback validation with Boss cash-out. Retry the batch-3
+  checkpoint after CI passes.
 
 - Pilot batch 1 exited with code 0. It collected 2,286 transitions and
   optimized 2,048. The remaining 238 transitions carry forward. The
