@@ -123,60 +123,8 @@ def _apply_hook_forced_discards(
         from games.balatro.env.joker_tactical_capabilities import (
             generated_joker_tactical_callbacks_are_exact,
         )
-        from games.balatro.jokers.castle import CastleJoker
-        from games.balatro.jokers.cloud_9 import Cloud9Joker
-        from games.balatro.jokers.dna import DNAJoker
-        from games.balatro.jokers.faceless_joker import FacelessJoker
-        from games.balatro.jokers.diet_cola import DietColaJoker
-        from games.balatro.jokers.egg import EggJoker
-        from games.balatro.jokers.green_joker import GreenJoker
-        from games.balatro.jokers.madness import MadnessJoker
-        from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
-        from games.balatro.jokers.midas_mask import MidasMaskJoker
-        from games.balatro.jokers.mime import MimeJoker
-        from games.balatro.jokers.runner import RunnerJoker
-        from games.balatro.jokers.seance import SeanceJoker
-        from games.balatro.jokers.eight_ball import EightBallJoker
-        from games.balatro.jokers.flash_card import FlashCardJoker
-        from games.balatro.jokers.gros_michel import GrosMichelJoker
-        from games.balatro.jokers.campfire import CampfireJoker
-        from games.balatro.jokers.hallucination import HallucinationJoker
-        from games.balatro.jokers.shortcut import ShortcutJoker
-        from games.balatro.jokers.sixth_sense import SixthSenseJoker
-        from games.balatro.jokers.splash import SplashJoker
-        from games.balatro.jokers.supernova import SupernovaJoker
-        from games.balatro.jokers.to_the_moon import ToTheMoonJoker
-
-        owned_hook_joker_types = {
-            CastleJoker,
-            Cloud9Joker,
-            DNAJoker,
-            FacelessJoker,
-            DietColaJoker,
-            EggJoker,
-            GreenJoker,
-            MadnessJoker,
-            MailInRebateJoker,
-            MidasMaskJoker,
-            MimeJoker,
-            RunnerJoker,
-            SeanceJoker,
-            EightBallJoker,
-            FlashCardJoker,
-            GrosMichelJoker,
-            CampfireJoker,
-            HallucinationJoker,
-            ShortcutJoker,
-            SixthSenseJoker,
-            SplashJoker,
-            SupernovaJoker,
-            ToTheMoonJoker,
-        }
-        if (
-            any(type(joker) not in owned_hook_joker_types for joker in state.jokers)
-            or not generated_joker_tactical_callbacks_are_exact(
-                state.jokers, castle_suit=run.castle_suit, mail_rebate_rank=run.mail_rebate_rank
-            )
+        if not generated_joker_tactical_callbacks_are_exact(
+            state.jokers, castle_suit=run.castle_suit, mail_rebate_rank=run.mail_rebate_rank
         ):
             raise HeadlessTransitionError(
                 "Hook press-play with Joker discard triggers is not yet owned"

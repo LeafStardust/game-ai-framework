@@ -10,6 +10,7 @@ from games.balatro.env.play_transition import apply_supported_ordinary_play
 from games.balatro.env.tactical_transition import apply_planned_tactical_step
 from games.balatro.env.transition import HeadlessRunState
 from games.balatro.jokers.green_joker import GreenJoker
+from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.shortcut import ShortcutJoker
 from games.balatro.state import BalatroState
 
@@ -47,13 +48,15 @@ def _expected_hook_press_play(run, indices):
     )
 
 
-@pytest.mark.parametrize("with_shortcut", [False, True])
-def test_env_r4_hook_play_composes_forced_discards_before_scoring_and_redraw(with_shortcut):
+@pytest.mark.parametrize("joker_type, center", [
+    (None, None), (ShortcutJoker, "j_shortcut"), (GoldenJoker, "j_golden"),
+])
+def test_env_r4_hook_play_composes_forced_discards_before_scoring_and_redraw(joker_type, center):
     run = _hook_play_run(seed="R4-HOOK-CONTINUE")
-    if with_shortcut:
-        shortcut = ShortcutJoker()
-        shortcut.center = "j_shortcut"
-        run.public.jokers = [shortcut]
+    if joker_type is not None:
+        joker = joker_type()
+        joker.center = center
+        run.public.jokers = [joker]
     selected_indices = (0, 2)
     selected = [_card_signature(run.public.hand[index]) for index in selected_indices]
     forced, expected_rng = _expected_hook_press_play(run, selected_indices)
