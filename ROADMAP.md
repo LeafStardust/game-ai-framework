@@ -2555,7 +2555,7 @@ Completed progress-reward paired evaluation:
 ## Exact active task
 
 Extend the verified observation-v8 PPO campaign on frozen Red/White
-implementation `1ecfb699` through optimizer batch 8. Keep the existing
+implementation `c6b338f8` through optimizer batch 8. Keep the existing
 checkpoint and contract. Verify the batch-8 checkpoint before extending
 training further or scheduling promotion evaluation.
 Reward changes remain deferred.
@@ -2577,7 +2577,8 @@ Reward changes remain deferred.
 - The next resume saved 8,443 transitions at batch 3. Episode 812 / seed
   `D339ED03` exposed Hieroglyph with Shortcut at The Psychic. `c6b338f8`
   keeps the exact Ante and round-reset checks and leaves supported Joker
-  validation to Boss cash-out. Resume after this repair passes CI.
+  validation to Boss cash-out. CI run `46136925044` reported
+  **4,009 passed, 1,621 deselected**. Resume from the saved batch-3 checkpoint.
 
 - Pilot batch 1 exited with code 0. It collected 2,286 transitions and
   optimized 2,048. The remaining 238 transitions carry forward. The
