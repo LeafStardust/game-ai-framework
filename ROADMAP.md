@@ -2555,7 +2555,7 @@ Completed progress-reward paired evaluation:
 ## Exact active task
 
 Run and verify one fresh observation-v8 PPO optimizer batch on the
-frozen Red/White implementation at `459830ec`.
+frozen Red/White implementation at `4f12fe16`.
 Reward changes remain deferred.
 
 - Episode 63 decision 9 offers Hallucination for $4 in slot 1 on seed
@@ -2601,7 +2601,7 @@ Reward changes remain deferred.
   hash matches `progress.json`. Episode 40 / seed `33841AF2` exposed a
   missing Vampire blind-start admission. `4f12fe16` also admits Rocket,
   the other generated Joker with an inert blind-start lifecycle missing
-  from that owner. Resume the existing checkpoint after the fix passes CI.
+  from that owner. CI run `46114591429` reported **4,001 passed, 1,621 deselected**. Resume the pilot from its existing checkpoint.
 
 Gros Michel and Campfire acquisition checkpoint:
 
