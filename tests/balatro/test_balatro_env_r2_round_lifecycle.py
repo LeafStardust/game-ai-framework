@@ -8,7 +8,9 @@ from games.balatro.env.round_lifecycle import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.burglar import BurglarJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.turtle_bean import TurtleBeanJoker
+from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.state import BalatroState
 
 
@@ -62,6 +64,23 @@ def test_env_r2_round_resource_baseline_applies_then_consumes_positive_bonuses()
     assert result.public.discards_remaining == 7
     assert result.round_bonus_hands == 0
     assert result.round_bonus_discards == 0
+
+
+@pytest.mark.parametrize("joker_type, field, value", [
+    (VampireJoker, "x_mult", 1.5),
+    (RocketJoker, "dollars", 5),
+])
+def test_env_r2_blind_start_preserves_vampire_and_rocket(joker_type, field, value):
+    run = _run()
+    joker = joker_type()
+    setattr(joker, field, value)
+    run.public.jokers = [joker]
+    before = run.rng_snapshot()
+
+    result = apply_supported_setting_blind_effects(run)
+
+    assert getattr(result.public.jokers[0], field) == value
+    assert result.rng_snapshot() == before
 
 
 def test_env_r2_burglar_runs_after_round_bonus_has_already_been_consumed():
