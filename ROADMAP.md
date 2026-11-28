@@ -2610,7 +2610,10 @@ Reward changes remain deferred.
   Episode 62 / seed `43F62C55` exposed the Voucher-only hand-size check
   during Play against The Pillar with Juggler. `1c6f82cf` composes exact
   Juggler capacity with Voucher capacity for tactical and Manacle checks.
-  Resume the existing checkpoint after CI verifies the repair.
+  CI run `46119408219` reported **1 failed, 4,002 passed, 1,621 deselected**.
+  Its older Juggler fixture omitted the acquired slot. `67a13dd1` corrects
+  that fixture and checks the inconsistent capacity fails closed. Resume the
+  verified 504-transition checkpoint after CI run `46120711550` passes.
 
 Gros Michel and Campfire acquisition checkpoint:
 
