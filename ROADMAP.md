@@ -2597,6 +2597,11 @@ Reward changes remain deferred.
   with a deterministic regression for Golden Joker. CI run `46112405145`
   reported **3,999 passed, 1,621 deselected**. Retry in a fresh artifact
   directory named `balatro-ppo-v8-pilot-459830ec`.
+- The pilot saved 322 transitions and zero optimizer batches. The checkpoint
+  hash matches `progress.json`. Episode 40 / seed `33841AF2` exposed a
+  missing Vampire blind-start admission. `4f12fe16` also admits Rocket,
+  the other generated Joker with an inert blind-start lifecycle missing
+  from that owner. Resume the existing checkpoint after the fix passes CI.
 
 Gros Michel and Campfire acquisition checkpoint:
 
