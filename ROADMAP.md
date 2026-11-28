@@ -2591,6 +2591,11 @@ Reward changes remain deferred.
   run `46023644344` with **3,998 passed, 1,621 deselected**. Episode 5 / seed `59B15C34` separately spends time
   in the tactical lookahead after the second shop. Retry from a fresh
   artifact directory once the repair passes CI.
+- The retry on `7bda10df` exited before any checkpoint. The Hook rejected
+  a roster already admitted by the shared tactical capability gate.
+  `459830ec` uses the shared gate and existing exact discard callbacks,
+  with a deterministic regression for Golden Joker. Retry the pilot from
+  a fresh directory after the Hook repair passes CI.
 
 Gros Michel and Campfire acquisition checkpoint:
 
